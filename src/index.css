@@ -1,0 +1,149 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap');
+
+@font-face {
+  font-family: 'Handwriting';
+  src: local('Brush Script MT'), local('Cursive');
+}
+
+@theme {
+  --font-sans: 'Trebuchet MS', system-ui, sans-serif;
+  --font-hand: 'Georgia', serif;
+  --font-handwriting: 'Handwriting', cursive;
+  --font-logo: 'Baloo 2', cursive;
+  --color-paper: #FDFBF7;
+  --color-ink: #1A1A1A;
+  --color-crimson: #AF1E2D;
+  --background-image-paper: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(240, 230, 210, 0.1) 100%);
+}
+
+body {
+  background-color: var(--color-paper);
+  background-image: var(--background-image-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans); 
+  font-size: 1rem; 
+}
+
+/* Base class for hand-drawn borders */
+.sketch-border {
+  border: 2px solid var(--color-ink);
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+}
+
+.sketch-border-hover:hover {
+  border-radius: 15px 225px 15px 255px / 255px 15px 225px 15px;
+}
+
+.sketch-input {
+  border: 2px solid var(--color-ink);
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  background-color: transparent;
+  padding: 0.5rem 1rem;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+}
+.sketch-input:focus {
+  border-radius: 15px 225px 15px 255px / 255px 15px 225px 15px;
+  border-color: var(--color-crimson);
+}
+
+.sketch-button {
+  border: 2px solid var(--color-ink);
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  background-color: transparent;
+  color: var(--color-ink);
+  transition: all 0.2s ease;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 1.5rem;
+  cursor: pointer;
+}
+
+.sketch-button:hover {
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+  border-radius: 15px 225px 15px 255px / 255px 15px 225px 15px;
+}
+
+.sketch-button-primary {
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.sketch-button-primary:hover {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+  opacity: 0.9;
+}
+
+.strike-through-path {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: strikeDraw 0.4s ease-out forwards;
+}
+
+@keyframes strikeDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+.nav-squiggle {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: drawSquiggle 0.4s ease-out forwards;
+}
+
+@keyframes drawSquiggle {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+
+.hand-text {
+  font-family: var(--font-hand);
+  font-style: italic;
+  color: var(--color-crimson);
+}
+
+.pill {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  background: white;
+  border: 1px solid var(--color-ink);
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.big-project {
+  background: var(--color-crimson);
+  color: white;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 9px;
+  margin-top: 2px;
+  display: inline-block;
+}
+
+.calendar-day {
+  border: 1px solid rgba(26,26,26,0.1);
+}
+
+.srs-bar {
+  height: 6px;
+  background: rgba(26,26,26,0.1);
+  border-radius: 3px;
+  margin-top: 10px;
+}
+
+.srs-progress {
+  height: 100%;
+  background: var(--color-crimson);
+  border-radius: 3px;
+}
+
+svg.lucide, .hand-drawn-svg {
+  filter: url(#hand-drawn-filter);
+}
