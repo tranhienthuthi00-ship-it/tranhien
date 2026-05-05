@@ -20,8 +20,13 @@ export default function App() {
 
   // State (loading from localStorage if available)
   const [words, setWords] = useState<Word[]>(() => {
-    const saved = localStorage.getItem('spatial_hub_words');
-    if (saved) return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem('spatial_hub_words');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) { console.error("Error loading words", e); }
     return [
       {
         id: "1",
@@ -50,50 +55,48 @@ export default function App() {
     ];
   });
   const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = localStorage.getItem('spatial_hub_tasks');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('spatial_hub_tasks');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => {
-    const saved = localStorage.getItem('spatial_hub_wishlist');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('spatial_hub_wishlist');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
   const [logs, setLogs] = useState<LogEntry[]>(() => {
-    const saved = localStorage.getItem('spatial_hub_logs');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('spatial_hub_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
   const [foodPlaces, setFoodPlaces] = useState<FoodPlace[]>(() => {
-    const saved = localStorage.getItem('spatial_hub_places');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('spatial_hub_places');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
   const [tags, setTags] = useState<string[]>(() => {
-    const saved = localStorage.getItem('spatial_hub_tags');
-    return saved ? JSON.parse(saved) : ['Tourism', 'Hospitality', 'Cruise Industry'];
+    try {
+      const saved = localStorage.getItem('spatial_hub_tags');
+      return saved ? JSON.parse(saved) : ['Tourism', 'Hospitality', 'Cruise Industry'];
+    } catch (e) { return ['Tourism', 'Hospitality', 'Cruise Industry']; }
   });
+
+  const [lastSaved, setLastSaved] = useState<string>("");
 
   // Saving to localStorage whenever state changes
   useEffect(() => {
     localStorage.setItem('spatial_hub_words', JSON.stringify(words));
-  }, [words]);
-
-  useEffect(() => {
     localStorage.setItem('spatial_hub_tasks', JSON.stringify(tasks));
-  }, [tasks]);
-
-  useEffect(() => {
     localStorage.setItem('spatial_hub_wishlist', JSON.stringify(wishlist));
-  }, [wishlist]);
-
-  useEffect(() => {
     localStorage.setItem('spatial_hub_logs', JSON.stringify(logs));
-  }, [logs]);
-
-  useEffect(() => {
     localStorage.setItem('spatial_hub_places', JSON.stringify(foodPlaces));
-  }, [foodPlaces]);
-
-  useEffect(() => {
     localStorage.setItem('spatial_hub_tags', JSON.stringify(tags));
-  }, [tags]);
+    setLastSaved(new Date().toLocaleTimeString());
+  }, [words, tasks, wishlist, logs, foodPlaces, tags]);
 
   const updateWordDifficulty = (id: string, newDifficulty: number) => {
     setWords(words.map(w => w.id === id ? { ...w, difficulty: newDifficulty } : w));
@@ -119,7 +122,7 @@ export default function App() {
           </filter>
         </defs>
       </svg>
-      <NavBar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <NavBar activeTab={activeTab} setActiveTab={setActiveTab} lastSaved={lastSaved} />
       
       <main className="mt-4 relative z-10 animate-in fade-in duration-500">
         {activeTab === "English Hub" && (

@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 export type Tab = "English Hub" | "Calendar" | "Lists" | "Places" | "Dashboard";
 
-export function NavBar({ activeTab, setActiveTab }: { activeTab: Tab; setActiveTab: (tab: Tab) => void }) {
+export function NavBar({ activeTab, setActiveTab, lastSaved }: { activeTab: Tab; setActiveTab: (tab: Tab) => void, lastSaved?: string }) {
   const tabs: Tab[] = ["English Hub", "Calendar", "Lists", "Places", "Dashboard"];
 
   return (
@@ -60,6 +60,12 @@ export function NavBar({ activeTab, setActiveTab }: { activeTab: Tab; setActiveT
             </li>
           ))}
         </ul>
+        {lastSaved && (
+          <div className="hidden lg:flex flex-col items-end opacity-20 hover:opacity-100 transition-opacity ml-4">
+            <span className="text-[8px] font-mono uppercase tracking-tighter">Auto-Saved</span>
+            <span className="text-[10px] font-mono leading-none">{lastSaved}</span>
+          </div>
+        )}
       </div>
     </nav>
   );

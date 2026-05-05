@@ -122,9 +122,15 @@ export function CalendarView({
         {/* Calendar Grid */}
         <div className="lg:col-span-2 space-y-3">
         <div className="flex items-center justify-between pointer-events-auto">
-          <button onClick={onPrevMonth} className="sketch-button px-2"><ChevronLeft /></button>
-          <h2 className="text-3xl font-bold font-sans tracking-tight">{format(currentDate, "MMMM yyyy")}</h2>
-          <button onClick={onNextMonth} className="sketch-button px-2"><ChevronRight /></button>
+          <div className="flex items-center gap-2">
+            <button onClick={onPrevMonth} className="sketch-button px-2"><ChevronLeft /></button>
+            <h2 className="text-3xl font-bold font-sans tracking-tight min-w-[200px] text-center">{format(currentDate, "MMMM yyyy")}</h2>
+            <button onClick={onNextMonth} className="sketch-button px-2"><ChevronRight /></button>
+          </div>
+          <div className="flex gap-2">
+             <button onClick={() => setCurrentDate(subMonths(currentDate, 12))} className="sketch-button text-[10px] font-bold uppercase tracking-widest px-3">-1 Year</button>
+             <button onClick={() => setCurrentDate(addMonths(currentDate, 12))} className="sketch-button text-[10px] font-bold uppercase tracking-widest px-3">+1 Year</button>
+          </div>
         </div>
 
         <div className="grid grid-cols-7 gap-1">
