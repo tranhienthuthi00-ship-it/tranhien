@@ -404,10 +404,10 @@ export function Places({
         {filteredPlaces.map(place => (
           <div key={place.id} className="p-5 sketch-border bg-white/60 relative group flex flex-col justify-between hover:bg-white transition-all hover:translate-y-[-2px]">
              <div>
-               <div className="flex justify-between items-start mb-3">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-xl leading-tight text-ink">{place.name}</h3>
+               <div className="flex justify-between items-start mb-3 gap-2 w-full">
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <h3 className="font-bold text-xl leading-tight text-ink break-words min-w-0">{place.name}</h3>
                       <button 
                         onClick={() => toggleStatus(place.id)}
                         className={cn(
@@ -446,9 +446,9 @@ export function Places({
                )}
                
                {place.link && (
-                 <div className="flex items-start gap-1.5 text-xs text-ink/60 mb-3 bg-ink/5 p-2 rounded">
+                 <div className="flex items-start gap-1.5 text-xs text-ink/60 mb-3 bg-ink/5 p-2 rounded w-full min-w-0 overflow-hidden">
                    <ExternalLink size={12} className="mt-0.5 shrink-0" />
-                   <a href={place.link} target="_blank" rel="noopener noreferrer" className="leading-snug hover:text-crimson transition-colors truncate">
+                   <a href={place.link} target="_blank" rel="noopener noreferrer" className="leading-snug hover:text-crimson transition-colors truncate flex-1 min-w-0 block">
                      {place.link}
                    </a>
                  </div>

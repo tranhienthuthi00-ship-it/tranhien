@@ -275,7 +275,7 @@ export function MyList({
               value={newWish}
               onChange={(e) => setNewWish(e.target.value)}
               placeholder="Tên món đồ (Add to wishlist...)"
-              className="sketch-input flex-1 bg-white/50 py-1.5"
+              className="sketch-input flex-1 bg-white/50 py-1.5 min-w-0"
               required
             />
             <input
@@ -283,21 +283,21 @@ export function MyList({
               value={newPrice}
               onChange={(e) => setNewPrice(e.target.value)}
               placeholder="VNĐ"
-              className="sketch-input w-24 bg-white/50 font-mono text-xs py-1.5"
+              className="sketch-input w-24 bg-white/50 font-mono text-xs py-1.5 shrink-0"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               value={newWishLink}
               onChange={(e) => setNewWishLink(e.target.value)}
               placeholder="Link mua hàng (nếu có)"
-              className="sketch-input flex-1 bg-white/50 py-1.5 text-xs font-mono text-ink/70"
+              className="sketch-input flex-1 bg-white/50 py-1.5 text-xs font-mono text-ink/70 min-w-0"
             />
             <input
               value={newTags}
               onChange={(e) => setNewTags(e.target.value)}
               placeholder="Hashtags (cách nhau ,)..."
-              className="sketch-input flex-1 bg-white/50 py-1.5 text-xs font-mono text-ink/70"
+              className="sketch-input flex-1 bg-white/50 py-1.5 text-xs font-mono text-ink/70 min-w-0"
             />
           </div>
           <div className="flex">
@@ -308,8 +308,8 @@ export function MyList({
                className="sketch-input flex-1 bg-white/50 py-1.5 text-xs text-ink/80 min-h-[50px] resize-y"
              />
           </div>
-          <div className="flex justify-between items-center mt-1">
-            <div className="flex gap-1 items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-1 gap-3 sm:gap-0">
+            <div className="flex gap-1 items-center flex-wrap">
               <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40 mr-1">Need:</span>
               {(['Low', 'Medium', 'High'] as const).map(level => (
                 <button
@@ -347,7 +347,7 @@ export function MyList({
         <div className="space-y-2 text-sm font-sans border-t border-transparent max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
           {sortedWishlist.map(wish => (
             <div key={wish.id} className={cn(
-              "flex flex-col py-2 px-3 sketch-border transition-all relative group",
+              "flex flex-col py-2 px-3 sketch-border transition-all relative group w-full overflow-hidden",
               wish.necessity === 'High' ? "bg-crimson/5 border-crimson" : "bg-white/50 border-ink/10 hover:border-ink/30"
             )}>
                 <div className="flex justify-between items-start">
@@ -448,7 +448,7 @@ export function MyList({
                  </div>
                )}
                
-               <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+               <div className="absolute -top-3 -right-3 flex gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                  <button 
                    onClick={(e) => {
                      e.preventDefault();
