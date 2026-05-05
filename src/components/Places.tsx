@@ -134,16 +134,21 @@ export function Places({
   
   // Calculate top places per tag
   const topByTag = allTags.map(tag => {
-    const placesWithTag = places.filter(p => p.status === 'Visited' && p.tags && p.tags.includes(tag));
-    // get the highest rated place, or null if none
+    const placesWithTag = places.filter(p => p.status === 'Visited' && p.rating >= 4 && p.tags && p.tags.includes(tag));
     if (placesWithTag.length === 0) return { tag, place: null };
+    
+    // Sort: Best rating first, then cheapest price
     placesWithTag.sort((a, b) => {
       if (b.rating !== a.rating) return b.rating - a.rating;
-      // If ratings are equal, prioritize cheaper
       return (a.price ?? Infinity) - (b.price ?? Infinity);
     });
+    
     return { tag, place: placesWithTag[0] };
-  }).filter(t => t.place !== null);
+  })
+  .filter(t => t.place !== null)
+  // Sort overall tags by the quality of their top place (Price ascending)
+  .sort((a, b) => (a.place!.price ?? Infinity) - (b.place!.price ?? Infinity))
+  .slice(0, 10);
 
   const filteredPlaces = places
     .filter(p => {
@@ -396,7 +401,7 @@ export function Places({
 
       {showTopTags && topByTag.length > 0 && (
         <div className="mb-8 p-4 bg-amber-50 sketch-border rounded relative mx-1">
-           <h2 className="font-bold uppercase tracking-widest text-[10px] text-amber-900 mb-4 text-center">Top 1 Theo Hashtag</h2>
+           <h2 className="font-bold uppercase tracking-widest text-[10px] text-amber-900 mb-4 text-center">Top 10 Quán 4★+ Rẻ Nhất Theo Hashtag</h2>
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
              {topByTag.map(({ tag, place }) => place && (
                <div key={tag} className="bg-white p-3 rounded sketch-border border-amber-200">
