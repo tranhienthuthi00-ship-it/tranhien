@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 
-export type Tab = "English Hub" | "Calendar" | "Lists" | "Places" | "Dashboard";
+export type Tab = "English Hub" | "Calendar" | "Lists" | "Places" | "Content" | "Dashboard";
 
 export function NavBar({ activeTab, setActiveTab, lastSaved }: { activeTab: Tab; setActiveTab: (tab: Tab) => void, lastSaved?: string }) {
-  const tabs: Tab[] = ["English Hub", "Calendar", "Lists", "Places", "Dashboard"];
+  const tabs: Tab[] = ["English Hub", "Calendar", "Lists", "Places", "Content", "Dashboard"];
 
   return (
     <nav className="sticky top-0 z-50 bg-paper/95 backdrop-blur-sm border-b-2 border-dashed border-ink/20 py-3">

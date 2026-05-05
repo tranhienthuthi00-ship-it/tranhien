@@ -13,6 +13,8 @@ export function Places({
 }) {
   const [filter, setFilter] = useState<'All' | 'Food' | 'Cafe' | 'Dessert' | 'Travel' | 'Other'>('All');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Visited' | 'Want to visit'>('All');
+  const [sortBy, setSortBy] = useState<'Recent' | 'Rating'>('Recent');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   
   const [newName, setNewName] = useState("");
   const [newCat, setNewCat] = useState<'Food' | 'Cafe' | 'Dessert' | 'Travel' | 'Other'>('Food');
@@ -21,6 +23,19 @@ export function Places({
   const [newAddress, setNewAddress] = useState("");
   const [newReview, setNewReview] = useState("");
   const [newNotes, setNewNotes] = useState("");
+  const [tagInput, setTagInput] = useState("");
+  const [newTags, setNewTags] = useState<string[]>([]);
+
+  const addTag = () => {
+    if (tagInput.trim() && !newTags.includes(tagInput.trim())) {
+      setNewTags([...newTags, tagInput.trim()]);
+      setTagInput("");
+    }
+  };
+
+  const removeNewTag = (tag: string) => {
+    setNewTags(newTags.filter(t => t !== tag));
+  };
 
   const addPlace = (e: FormEvent) => {
     e.preventDefault();
@@ -34,7 +49,8 @@ export function Places({
       rating: newRating,
       address: newAddress,
       review: newReview || undefined,
-      notes: newNotes || undefined
+      notes: newNotes || undefined,
+      tags: newTags.length > 0 ? newTags : undefined
     }, ...places]);
     
     setNewName("");
@@ -43,6 +59,7 @@ export function Places({
     setNewNotes("");
     setNewRating(5);
     setNewStatus('Want to visit');
+    setNewTags([]);
   };
 
   const removePlace = (id: string) => {
@@ -57,11 +74,21 @@ export function Places({
     ));
   };
 
-  const filteredPlaces = places.filter(p => {
-    const matchCat = filter === 'All' || p.category === filter;
-    const matchStatus = statusFilter === 'All' || p.status === statusFilter;
-    return matchCat && matchStatus;
-  });
+  const allTags = Array.from(new Set(places.flatMap(p => p.tags || [])));
+
+  const filteredPlaces = places
+    .filter(p => {
+      const matchCat = filter === 'All' || p.category === filter;
+      const matchStatus = statusFilter === 'All' || p.status === statusFilter;
+      const matchTag = !selectedTag || (p.tags && p.tags.includes(selectedTag));
+      return matchCat && matchStatus && matchTag;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'Rating') {
+        return b.rating - a.rating || b.id.localeCompare(a.id);
+      }
+      return b.id.localeCompare(a.id);
+    });
 
   return (
     <div className="max-w-4xl mx-auto px-4 font-sans pb-10">
@@ -125,6 +152,28 @@ export function Places({
                 className="sketch-input bg-white/50 py-2"
               />
             </div>
+            
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Tags (Ví dụ: Chill, Hẹn hò, Đắt...)</label>
+              <div className="flex gap-2">
+                <input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                  placeholder="Nhấn Enter để thêm..."
+                  className="sketch-input bg-white/50 py-2 flex-1"
+                />
+                <button type="button" onClick={addTag} className="sketch-button px-3 py-1">Add</button>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {newTags.map(tag => (
+                  <span key={tag} className="bg-ink/5 border border-ink/20 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+                    #{tag}
+                    <button type="button" onClick={() => removeNewTag(tag)} className="text-crimson hover:text-red-700">×</button>
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -173,7 +222,7 @@ export function Places({
             </button>
           ))}
         </div>
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center items-center">
           {(['All', 'Want to visit', 'Visited'] as const).map(status => (
             <button
               key={status}
@@ -186,7 +235,44 @@ export function Places({
               {status === 'All' ? 'Tất cả' : status === 'Want to visit' ? 'Muốn đi' : 'Đã đi'}
             </button>
           ))}
+          <div className="w-[1px] h-3 bg-ink/10 mx-2" />
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setSortBy('Recent')}
+              className={cn("text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 transition-opacity", sortBy === 'Recent' ? "text-ink opacity-100" : "text-ink opacity-30 hover:opacity-50")}
+            >
+              Mới nhất
+            </button>
+            <button 
+              onClick={() => setSortBy('Rating')}
+              className={cn("text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 transition-opacity", sortBy === 'Rating' ? "text-ink opacity-100" : "text-ink opacity-30 hover:opacity-50")}
+            >
+              Đánh giá
+            </button>
+          </div>
         </div>
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap gap-2 justify-center border-t border-dashed border-ink/10 pt-4">
+            <button 
+              onClick={() => setSelectedTag(null)}
+              className={cn("px-2 py-0.5 text-[10px] font-bold uppercase rounded transition-all", !selectedTag ? "text-crimson bg-crimson/5 underline underline-offset-4" : "text-ink/40 hover:text-ink/60")}
+            >
+              #Tất cả
+            </button>
+            {allTags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                className={cn(
+                  "px-2 py-0.5 text-[10px] font-bold uppercase rounded transition-all",
+                  selectedTag === tag ? "text-crimson bg-crimson/5 underline underline-offset-4 font-black" : "text-ink/40 hover:text-ink/60"
+                )}
+              >
+                #{tag}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin content-start">
@@ -212,6 +298,13 @@ export function Places({
                     <span className="text-[10px] font-bold uppercase tracking-tighter text-ink/40">
                       {place.category}
                     </span>
+                    {place.tags && place.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {place.tags.map(tag => (
+                          <span key={tag} className="text-[8px] font-mono uppercase text-crimson/60">#{tag}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-0.5">
                      {Array.from({ length: place.rating }).map((_, i) => (

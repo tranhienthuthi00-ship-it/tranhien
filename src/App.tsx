@@ -8,7 +8,8 @@ import { Progress } from "./components/Progress";
 import { Places } from "./components/Places";
 import { Doodles } from "./components/Doodles";
 import { Login } from "./components/Login";
-import type { Word, Task, WishlistItem, LogEntry, FoodPlace } from "./types";
+import { ContentManager } from "./components/ContentManager";
+import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea } from "./types";
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -98,6 +99,13 @@ export default function App() {
     } catch (e) { return ['Tourism', 'Hospitality', 'Cruise Industry']; }
   });
 
+  const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>(() => {
+    try {
+      const saved = localStorage.getItem('spatial_hub_content_ideas');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
   const [lastSaved, setLastSaved] = useState<string>("");
 
   // Saving to localStorage whenever state changes
@@ -108,8 +116,9 @@ export default function App() {
     localStorage.setItem('spatial_hub_logs', JSON.stringify(logs));
     localStorage.setItem('spatial_hub_places', JSON.stringify(foodPlaces));
     localStorage.setItem('spatial_hub_tags', JSON.stringify(tags));
+    localStorage.setItem('spatial_hub_content_ideas', JSON.stringify(contentIdeas));
     setLastSaved(new Date().toLocaleTimeString());
-  }, [words, tasks, wishlist, logs, foodPlaces, tags]);
+  }, [words, tasks, wishlist, logs, foodPlaces, tags, contentIdeas]);
 
   const updateWordDifficulty = (id: string, newDifficulty: number) => {
     setWords(words.map(w => w.id === id ? { ...w, difficulty: newDifficulty } : w));
@@ -161,6 +170,7 @@ export default function App() {
         
         {activeTab === "Lists" && <MyList tasks={tasks} setTasks={setTasks} wishlist={wishlist} setWishlist={setWishlist} />}
         {activeTab === "Places" && <Places places={foodPlaces} setPlaces={setFoodPlaces} />}
+        {activeTab === "Content" && <ContentManager ideas={contentIdeas} setIdeas={setContentIdeas} />}
         {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
         {activeTab === "Dashboard" && <Progress words={words} tasks={tasks} logs={logs} />}
       </main>

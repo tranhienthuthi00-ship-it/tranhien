@@ -29,6 +29,17 @@ export interface FoodPlace {
   address?: string;
   review?: string;
   notes?: string;
+  tags?: string[];
+}
+
+export interface ContentIdea {
+  id: string;
+  title: string;
+  description?: string;
+  platform?: string;
+  link?: string;
+  status: 'Pending' | 'Done';
+  createdAt: number;
 }
 
 export interface WishlistHistoryEntry {

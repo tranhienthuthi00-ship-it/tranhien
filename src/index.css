@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
 
 @font-face {
   font-family: 'Handwriting';
@@ -7,10 +7,11 @@
 }
 
 @theme {
-  --font-sans: 'Trebuchet MS', system-ui, sans-serif;
-  --font-hand: 'Georgia', serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-hand: 'Crimson Pro', serif;
   --font-handwriting: 'Handwriting', cursive;
   --font-logo: 'Baloo 2', cursive;
+  --font-mono: 'JetBrains Mono', monospace;
   --color-paper: #FDFBF7;
   --color-ink: #1A1A1A;
   --color-crimson: #AF1E2D;
