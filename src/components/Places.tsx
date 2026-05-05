@@ -15,6 +15,7 @@ export function Places({
   const [statusFilter, setStatusFilter] = useState<'All' | 'Visited' | 'Want to visit'>('All');
   const [sortBy, setSortBy] = useState<'Recent' | 'Rating'>('Recent');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedCityForTop, setSelectedCityForTop] = useState<string>("");
   const [showTopCities, setShowTopCities] = useState(false);
   
   const [newName, setNewName] = useState("");
@@ -137,10 +138,11 @@ export function Places({
   };
 
   const allTags = Array.from(new Set(places.flatMap(p => p.tags || [])));
+  const allCities = Array.from(new Set(places.map(p => p.city).filter(Boolean))) as string[];
   
-  // Calculate top 10 places overall prioritized by rating and cheapness
+  // Calculate top 10 places overall or by city prioritized by rating and cheapness
   const topPlaces = places
-    .filter(p => p.status === 'Visited' && p.rating >= 4)
+    .filter(p => p.status === 'Visited' && p.rating >= 4 && (!selectedCityForTop || p.city === selectedCityForTop))
     .sort((a, b) => {
       if (b.rating !== a.rating) return b.rating - a.rating;
       return (a.price ?? Infinity) - (b.price ?? Infinity);
@@ -344,15 +346,29 @@ export function Places({
           ))}
         </div>
         <div className="flex flex-wrap gap-3 justify-center items-center">
-          <button
-              onClick={() => setShowTopCities(!showTopCities)}
-              className={cn(
-                "px-2 py-1 font-bold text-[10px] uppercase tracking-widest rounded transition-all sketch-border",
-                showTopCities ? "bg-amber-100/50 text-amber-700" : "bg-white/50 text-ink/60 hover:bg-white"
-              )}
-            >
-              🏆 Top 10 Quốc Dân
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+                onClick={() => setShowTopCities(!showTopCities)}
+                className={cn(
+                  "px-2 py-1 font-bold text-[10px] uppercase tracking-widest rounded transition-all sketch-border",
+                  showTopCities ? "bg-amber-100/50 text-amber-700" : "bg-white/50 text-ink/60 hover:bg-white"
+                )}
+              >
+                🏆 Top 10
+            </button>
+            {showTopCities && (
+              <select 
+                value={selectedCityForTop}
+                onChange={(e) => setSelectedCityForTop(e.target.value)}
+                className="bg-paper border-2 border-ink text-[10px] uppercase font-bold py-1 px-1 rounded sketch-border outline-none"
+              >
+                <option value="">Toàn Quốc</option>
+                {allCities.sort().map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+            )}
+          </div>
           
           {(['All', 'Want to visit', 'Visited'] as const).map(status => (
             <button
@@ -408,7 +424,9 @@ export function Places({
 
       {showTopCities && topPlaces.length > 0 && (
         <div className="mb-8 p-4 bg-amber-50 sketch-border rounded relative mx-1">
-           <h2 className="font-bold uppercase tracking-widest text-[10px] text-amber-900 mb-4 text-center">Top 10 Quán 4★+ Rẻ Nhất Toàn Quốc</h2>
+           <h2 className="font-bold uppercase tracking-widest text-[10px] text-amber-900 mb-4 text-center">
+             {selectedCityForTop ? `Top 10 ở ${selectedCityForTop}` : "Top 10 Quán 4★+ Rẻ Nhất"}
+           </h2>
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
              {topPlaces.map((place, idx) => (
                <div key={place.id} className="bg-white p-3 rounded sketch-border border-amber-200 relative overflow-hidden">
@@ -416,19 +434,25 @@ export function Places({
                    {idx + 1}
                  </div>
                  <div className="flex justify-between items-center mb-1 pr-4">
-                   <span className="font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded text-[8px] uppercase">{place.city || "Ẩn danh"}</span>
                    <div className="flex">
                      {Array.from({ length: place.rating }).map((_, i) => (
                        <Star key={i} size={8} className="fill-amber-400 text-amber-400" />
                      ))}
                    </div>
                  </div>
-                 <h4 className="font-bold text-xs leading-tight text-ink w-full truncate mb-1">{place.name}</h4>
-                 {place.price !== undefined && (
-                   <div className="text-[9px] font-mono font-bold text-crimson mb-1">
-                     {place.price.toLocaleString()} VNĐ
-                   </div>
-                 )}
+                 <h4 className="font-bold text-xs leading-tight text-ink w-full truncate mb-0.5">{place.name}</h4>
+                 <div className="flex flex-col gap-0.5">
+                   {place.price !== undefined && (
+                     <div className="text-[9px] font-mono font-bold text-crimson">
+                       {place.price.toLocaleString()} VNĐ
+                     </div>
+                   )}
+                   {place.address && (
+                     <div className="text-[8px] text-ink/50 uppercase truncate">
+                       {place.address}
+                     </div>
+                   )}
+                 </div>
                </div>
              ))}
            </div>
