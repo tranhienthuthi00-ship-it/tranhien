@@ -75,7 +75,20 @@ export default function App() {
   const [foodPlaces, setFoodPlaces] = useState<FoodPlace[]>(() => {
     try {
       const saved = localStorage.getItem('spatial_hub_places');
-      return saved ? JSON.parse(saved) : [];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // Migration: Add status if missing, and ensure category is valid
+          return parsed.map(p => ({
+            ...p,
+            status: p.status || 'Visited', // Default to Visited for old entries
+            category: (p.category === 'Food' || p.category === 'Cafe' || p.category === 'Dessert' || p.category === 'Travel' || p.category === 'Other') 
+              ? p.category 
+              : 'Other'
+          }));
+        }
+      }
+      return [];
     } catch (e) { return []; }
   });
   const [tags, setTags] = useState<string[]>(() => {

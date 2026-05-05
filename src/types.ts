@@ -23,7 +23,8 @@ export interface Task {
 export interface FoodPlace {
   id: string;
   name: string;
-  category: 'Food' | 'Cafe' | 'Dessert' | 'Other';
+  category: 'Food' | 'Cafe' | 'Dessert' | 'Travel' | 'Other';
+  status: 'Visited' | 'Want to visit';
   rating: number;
   address?: string;
   review?: string;
