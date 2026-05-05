@@ -27,6 +27,7 @@ export interface FoodPlace {
   status: 'Visited' | 'Want to visit';
   rating: number;
   address?: string;
+  link?: string;
   review?: string;
   notes?: string;
   tags?: string[];
@@ -66,4 +67,20 @@ export interface LogEntry {
   emoji?: string;
   icon?: string;
   time?: string;
+}
+
+export interface AssetCategory {
+  id: string;
+  name: string;
+  icon: string;
+}
+
+export interface Asset {
+  id: string;
+  name: string;
+  category: string; // ID of the category
+  value: number;
+  currency: string;
+  notes?: string;
+  acquiredAt?: number;
 }

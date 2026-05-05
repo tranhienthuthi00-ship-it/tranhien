@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Plus, Trash2, MapPin, Star } from "lucide-react";
+import { Plus, Trash2, MapPin, Star, Edit2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FoodPlace } from "@/types";
 
@@ -21,10 +21,41 @@ export function Places({
   const [newStatus, setNewStatus] = useState<'Visited' | 'Want to visit'>('Want to visit');
   const [newRating, setNewRating] = useState(5);
   const [newAddress, setNewAddress] = useState("");
+  const [newLink, setNewLink] = useState("");
   const [newReview, setNewReview] = useState("");
   const [newNotes, setNewNotes] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [newTags, setNewTags] = useState<string[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const startEdit = (place: FoodPlace) => {
+    setEditingId(place.id);
+    setNewName(place.name);
+    setNewCat(place.category);
+    setNewStatus(place.status);
+    setNewRating(place.rating);
+    setNewAddress(place.address || "");
+    setNewLink(place.link || "");
+    setNewReview(place.review || "");
+    setNewNotes(place.notes || "");
+    setNewTags(place.tags || []);
+    setTagInput("");
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setNewName("");
+    setNewAddress("");
+    setNewLink("");
+    setNewReview("");
+    setNewNotes("");
+    setNewRating(5);
+    setNewStatus('Want to visit');
+    setNewTags([]);
+  };
 
   const addTag = () => {
     if (tagInput.trim() && !newTags.includes(tagInput.trim())) {
@@ -41,20 +72,38 @@ export function Places({
     e.preventDefault();
     if (!newName.trim()) return;
     
-    setPlaces([{
-      id: Date.now().toString(),
-      name: newName,
-      category: newCat,
-      status: newStatus,
-      rating: newRating,
-      address: newAddress,
-      review: newReview || undefined,
-      notes: newNotes || undefined,
-      tags: newTags.length > 0 ? newTags : undefined
-    }, ...places]);
+    if (editingId) {
+      setPlaces(places.map(p => p.id === editingId ? {
+        ...p,
+        name: newName,
+        category: newCat,
+        status: newStatus,
+        rating: newRating,
+        address: newAddress,
+        link: newLink || undefined,
+        review: newReview || undefined,
+        notes: newNotes || undefined,
+        tags: newTags.length > 0 ? newTags : undefined
+      } : p));
+      setEditingId(null);
+    } else {
+      setPlaces([{
+        id: Date.now().toString(),
+        name: newName,
+        category: newCat,
+        status: newStatus,
+        rating: newRating,
+        address: newAddress,
+        link: newLink || undefined,
+        review: newReview || undefined,
+        notes: newNotes || undefined,
+        tags: newTags.length > 0 ? newTags : undefined
+      }, ...places]);
+    }
     
     setNewName("");
     setNewAddress("");
+    setNewLink("");
     setNewReview("");
     setNewNotes("");
     setNewRating(5);
@@ -99,7 +148,9 @@ export function Places({
 
       <form onSubmit={addPlace} className="bg-paper p-5 sketch-border border-dashed border-ink/30 mb-8 space-y-4 relative">
         <div className="absolute -top-3 -left-3 rotate-[-10deg]">
-          <span className="bg-crimson text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider sketch-border">Thêm Địa Điểm</span>
+          <span className="bg-crimson text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider sketch-border">
+            {editingId ? "Cập Nhật Địa Điểm" : "Thêm Địa Điểm"}
+          </span>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -154,6 +205,16 @@ export function Places({
             </div>
             
             <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Link (nếu có)</label>
+              <input
+                value={newLink}
+                onChange={(e) => setNewLink(e.target.value)}
+                placeholder="https://g.page/..."
+                className="sketch-input bg-white/50 py-2"
+              />
+            </div>
+            
+            <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Tags (Ví dụ: Chill, Hẹn hò, Đắt...)</label>
               <div className="flex gap-2">
                 <input
@@ -196,9 +257,16 @@ export function Places({
                       {[5,4,3,2,1].map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                  </div>
-                 <button type="submit" className="sketch-button sketch-button-primary bg-ink text-paper text-sm py-2 px-8 flex items-center gap-2">
-                    <Plus size={16} /> Lưu Địa Điểm
-                 </button>
+                 <div className="flex items-center gap-2">
+                    {editingId && (
+                      <button type="button" onClick={cancelEdit} className="sketch-button text-xs py-2 px-4 whitespace-nowrap">
+                        Hủy
+                      </button>
+                    )}
+                    <button type="submit" className="sketch-button sketch-button-primary bg-ink text-paper text-sm py-2 px-8 flex items-center gap-2 whitespace-nowrap">
+                       <Plus size={16} /> {editingId ? "Cập Nhật" : "Lưu"}
+                    </button>
+                 </div>
               </div>
             </div>
           </div>
@@ -314,9 +382,18 @@ export function Places({
                </div>
                
                {place.address && (
-                 <div className="flex items-start gap-1.5 text-xs text-ink/60 mb-3 bg-ink/5 p-2 rounded">
+                 <div className="flex items-start gap-1.5 text-xs text-ink/60 mb-2 bg-ink/5 p-2 rounded">
                    <MapPin size={12} className="mt-0.5 shrink-0" />
                    <p className="leading-snug">{place.address}</p>
+                 </div>
+               )}
+               
+               {place.link && (
+                 <div className="flex items-start gap-1.5 text-xs text-ink/60 mb-3 bg-ink/5 p-2 rounded">
+                   <ExternalLink size={12} className="mt-0.5 shrink-0" />
+                   <a href={place.link} target="_blank" rel="noopener noreferrer" className="leading-snug hover:text-crimson transition-colors truncate">
+                     {place.link}
+                   </a>
                  </div>
                )}
 
@@ -331,7 +408,14 @@ export function Places({
                )}
              </div>
 
-             <div className="mt-5 flex justify-end">
+             <div className="mt-5 flex justify-end gap-2">
+               <button 
+                 onClick={() => startEdit(place)}
+                 className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-ink hover:text-white rounded-lg border border-ink/10 shadow-sm"
+                 title="Sửa địa điểm"
+               >
+                 <Edit2 size={16} />
+               </button>
                <button 
                  onClick={() => removePlace(place.id)}
                  className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-crimson hover:text-white rounded-lg border border-ink/10 shadow-sm"
