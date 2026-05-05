@@ -151,7 +151,7 @@ export function MyList({
           </div>
         </div>
 
-        <ul className="text-sm space-y-2 font-sans border-t border-transparent">
+        <ul className="text-sm space-y-2 font-sans border-t border-transparent max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
           {sortedTasks.map(task => (
             <li key={task.id} className={cn(
               "flex items-center group relative py-3 px-4 sketch-border transition-all",
@@ -258,7 +258,7 @@ export function MyList({
           </div>
         </div>
 
-        <div className="space-y-2 text-sm font-sans border-t border-transparent">
+        <div className="space-y-2 text-sm font-sans border-t border-transparent max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
           {sortedWishlist.map(wish => (
             <div key={wish.id} className={cn(
               "flex flex-col py-2 px-3 sketch-border transition-all relative group",

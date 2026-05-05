@@ -18,45 +18,82 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("English Hub");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games">("Academy");
 
-  // State (using lazy initialization from localStorage if this was real, but simple state for prototype)
-  const [words, setWords] = useState<Word[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [foodPlaces, setFoodPlaces] = useState<FoodPlace[]>([]);
-  const [tags, setTags] = useState<string[]>(['Tourism', 'Hospitality', 'Cruise Industry']);
+  // State (loading from localStorage if available)
+  const [words, setWords] = useState<Word[]>(() => {
+    const saved = localStorage.getItem('spatial_hub_words');
+    if (saved) return JSON.parse(saved);
+    return [
+      {
+        id: "1",
+        vocabulary: "Itinerary",
+        wordType: "noun",
+        ipa: "/aɪˈtɪnəreri/",
+        definition: "A planned route or journey.",
+        examples: ["We will review the itinerary before the cruise departs."],
+        tags: ["Tourism", "Cruise Industry"],
+        difficulty: 0,
+        lastReviewed: new Date().toISOString(),
+        nextReview: new Date().toISOString(),
+      },
+      {
+        id: "2",
+        vocabulary: "Concierge",
+        wordType: "noun",
+        ipa: "/kɒnsiˈeəʒ/",
+        definition: "A hotel employee whose job is to assist guests by booking tours, making theatre and restaurant reservations, etc.",
+        examples: ["The concierge arranged a private tour of the city for us."],
+        tags: ["Hospitality"],
+        difficulty: 1,
+        lastReviewed: new Date().toISOString(),
+        nextReview: new Date().toISOString(),
+      }
+    ];
+  });
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    const saved = localStorage.getItem('spatial_hub_tasks');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [wishlist, setWishlist] = useState<WishlistItem[]>(() => {
+    const saved = localStorage.getItem('spatial_hub_wishlist');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [logs, setLogs] = useState<LogEntry[]>(() => {
+    const saved = localStorage.getItem('spatial_hub_logs');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [foodPlaces, setFoodPlaces] = useState<FoodPlace[]>(() => {
+    const saved = localStorage.getItem('spatial_hub_places');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [tags, setTags] = useState<string[]>(() => {
+    const saved = localStorage.getItem('spatial_hub_tags');
+    return saved ? JSON.parse(saved) : ['Tourism', 'Hospitality', 'Cruise Industry'];
+  });
 
-  // Simple mock data for demonstration if empty
+  // Saving to localStorage whenever state changes
   useEffect(() => {
-    if (words.length === 0) {
-      setWords([
-        {
-          id: "1",
-          vocabulary: "Itinerary",
-          wordType: "noun",
-          ipa: "/aɪˈtɪnəreri/",
-          definition: "A planned route or journey.",
-          examples: ["We will review the itinerary before the cruise departs."],
-          tags: ["Tourism", "Cruise Industry"],
-          difficulty: 0,
-          lastReviewed: new Date().toISOString(),
-          nextReview: new Date().toISOString(),
-        },
-        {
-          id: "2",
-          vocabulary: "Concierge",
-          wordType: "noun",
-          ipa: "/kɒnsiˈeəʒ/",
-          definition: "A hotel employee whose job is to assist guests by booking tours, making theatre and restaurant reservations, etc.",
-          examples: ["The concierge arranged a private tour of the city for us."],
-          tags: ["Hospitality"],
-          difficulty: 1,
-          lastReviewed: new Date().toISOString(),
-          nextReview: new Date().toISOString(),
-        }
-      ]);
-    }
-  }, []);
+    localStorage.setItem('spatial_hub_words', JSON.stringify(words));
+  }, [words]);
+
+  useEffect(() => {
+    localStorage.setItem('spatial_hub_tasks', JSON.stringify(tasks));
+  }, [tasks]);
+
+  useEffect(() => {
+    localStorage.setItem('spatial_hub_wishlist', JSON.stringify(wishlist));
+  }, [wishlist]);
+
+  useEffect(() => {
+    localStorage.setItem('spatial_hub_logs', JSON.stringify(logs));
+  }, [logs]);
+
+  useEffect(() => {
+    localStorage.setItem('spatial_hub_places', JSON.stringify(foodPlaces));
+  }, [foodPlaces]);
+
+  useEffect(() => {
+    localStorage.setItem('spatial_hub_tags', JSON.stringify(tags));
+  }, [tags]);
 
   const updateWordDifficulty = (id: string, newDifficulty: number) => {
     setWords(words.map(w => w.id === id ? { ...w, difficulty: newDifficulty } : w));

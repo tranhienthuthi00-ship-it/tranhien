@@ -19,6 +19,7 @@ export function Academy({
   const [activeView, setActiveView] = useState<'log' | 'bank'>('log');
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<WordTag | null>(null);
+  const [editingWordId, setEditingWordId] = useState<string | null>(null);
 
   // Form State
   const [vocab, setVocab] = useState("");
@@ -33,22 +34,52 @@ export function Academy({
     e.preventDefault();
     if (!vocab.trim() || !definition.trim()) return;
 
-    const newWord: Word = {
-      id: Date.now().toString(),
-      vocabulary: vocab,
-      wordType: type,
-      ipa,
-      definition,
-      examples: example ? [example] : [],
-      tags: activeTags,
-      difficulty: 0,
-      lastReviewed: new Date().toISOString(),
-      nextReview: new Date(Date.now() + 86400000).toISOString(), // +1 day
-    };
-
-    setWords([newWord, ...words]);
+    if (editingWordId) {
+      setWords(words.map(w => w.id === editingWordId ? {
+        ...w,
+        vocabulary: vocab,
+        wordType: type,
+        ipa,
+        definition,
+        examples: example ? [example] : [],
+        tags: activeTags,
+      } : w));
+      setEditingWordId(null);
+    } else {
+      const newWord: Word = {
+        id: Date.now().toString(),
+        vocabulary: vocab,
+        wordType: type,
+        ipa,
+        definition,
+        examples: example ? [example] : [],
+        tags: activeTags,
+        difficulty: 0,
+        lastReviewed: new Date().toISOString(),
+        nextReview: new Date(Date.now() + 86400000).toISOString(), // +1 day
+      };
+      setWords([newWord, ...words]);
+    }
+    
     setVocab(""); setIpa(""); setDefinition(""); setExample(""); setActiveTags([]);
     setActiveView('bank');
+  };
+
+  const startEdit = (word: Word) => {
+    setEditingWordId(word.id);
+    setVocab(word.vocabulary);
+    setType(word.wordType);
+    setIpa(word.ipa);
+    setDefinition(word.definition);
+    setExample(word.examples[0] || "");
+    setActiveTags(word.tags);
+    setActiveView('log');
+  };
+
+  const deleteWord = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this word?")) {
+      setWords(words.filter(w => w.id !== id));
+    }
   };
 
   const toggleTag = (tag: WordTag) => {
@@ -65,10 +96,16 @@ export function Academy({
     <div className="max-w-4xl mx-auto p-2 md:p-4">
        <div className="flex justify-center gap-6 mb-4">
          <button 
-           onClick={() => setActiveView('log')}
+           onClick={() => {
+             if (editingWordId) {
+               setEditingWordId(null);
+               setVocab(""); setIpa(""); setDefinition(""); setExample(""); setActiveTags([]);
+             }
+             setActiveView('log');
+           }}
            className={cn("text-xl font-sans font-bold transition-opacity", activeView === 'log' ? "opacity-100 border-b-4 border-ink" : "opacity-40 hover:opacity-70")}
          >
-           Log New Word
+           {editingWordId ? "Edit Word" : "Log New Word"}
          </button>
          <button 
            onClick={() => setActiveView('bank')}
@@ -163,9 +200,22 @@ export function Academy({
                 </div>
              </div>
 
-             <div className="pt-4 border-t-2 border-dashed border-ink/20 text-right">
-               <button type="submit" className="sketch-button sketch-button-primary py-2 px-6 text-base flex items-center gap-2 inline-flex">
-                 <Plus size={20} /> Save Word
+             <div className="pt-4 border-t-2 border-dashed border-ink/20 flex justify-between items-center">
+               {editingWordId && (
+                 <button 
+                   type="button" 
+                   onClick={() => {
+                     setEditingWordId(null);
+                     setVocab(""); setIpa(""); setDefinition(""); setExample(""); setActiveTags([]);
+                     setActiveView('bank');
+                   }}
+                   className="text-ink/60 hover:text-ink font-sans font-bold text-sm"
+                 >
+                   Cancel Edit
+                 </button>
+               )}
+               <button type="submit" className={cn("sketch-button sketch-button-primary py-2 px-6 text-base flex items-center gap-2 inline-flex", !editingWordId && "ml-auto")}>
+                 <Plus size={20} /> {editingWordId ? "Update Word" : "Save Word"}
                </button>
              </div>
            </form>
@@ -207,7 +257,7 @@ export function Academy({
              </div>
            </section>
 
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin content-start">
              {filteredWords.map(word => (
                <div key={word.id} className="p-4 sketch-border bg-white/40 flex flex-col gap-3 relative group">
                  <div className="flex justify-between items-start">
@@ -215,7 +265,15 @@ export function Academy({
                      <h3 className="font-serif text-xl font-bold text-ink">{word.vocabulary}</h3>
                      <p className="font-sans text-xs text-ink/60">{word.ipa} • <span className="italic">{word.wordType}</span></p>
                    </div>
-                   <BookA className="text-ink/20 group-hover:text-crimson transition-colors w-5 h-5" />
+                    <div className="flex gap-3 items-center">
+                       <button onClick={() => startEdit(word)} className="font-sans text-[10px] font-bold uppercase tracking-wider text-ink/40 hover:text-ink transition-colors">
+                          Edit
+                       </button>
+                       <button onClick={() => deleteWord(word.id)} className="font-sans text-[10px] font-bold uppercase tracking-wider text-ink/40 hover:text-crimson transition-colors">
+                          Delete
+                       </button>
+                       <BookA className="text-ink/20 group-hover:text-crimson transition-colors w-4 h-4 ml-1" />
+                    </div>
                  </div>
                  <p className="font-sans font-medium line-clamp-3 text-sm">{word.definition}</p>
                  {word.examples[0] && (

@@ -128,7 +128,7 @@ export function Places({
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[50vh] overflow-y-auto pr-2 scrollbar-thin content-start">
         {filteredPlaces.map(place => (
           <div key={place.id} className="p-5 sketch-border bg-white/60 relative group flex flex-col justify-between min-h-[140px] hover:bg-white transition-colors">
              <div>

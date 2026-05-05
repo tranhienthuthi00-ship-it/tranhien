@@ -109,10 +109,18 @@ export function CalendarView({
     return logs.filter(l => l.date === dStr);
   };
 
+  const getMonthlyLogs = () => {
+    const mStr = format(currentDate, 'yyyy-MM');
+    return logs.filter(l => l.date.startsWith(mStr)).sort((a, b) => b.date.localeCompare(a.date));
+  };
+
+  const monthlyLogs = getMonthlyLogs();
+
   return (
-    <div className="max-w-5xl mx-auto p-2 md:p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Calendar Grid */}
-      <div className="lg:col-span-2 space-y-3">
+    <div className="max-w-6xl mx-auto p-2 md:p-4 flex flex-col gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Calendar Grid */}
+        <div className="lg:col-span-2 space-y-3">
         <div className="flex items-center justify-between pointer-events-auto">
           <button onClick={onPrevMonth} className="sketch-button px-2"><ChevronLeft /></button>
           <h2 className="text-3xl font-bold font-sans tracking-tight">{format(currentDate, "MMMM yyyy")}</h2>
@@ -256,6 +264,50 @@ export function CalendarView({
         ) : (
           <div className="p-4 sketch-border border-dashed border-ink/20 text-center opacity-60">
             <p className="hand-text text-xl">Click a day on the calendar to view or add logs.</p>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Monthly Summary Section */}
+      <div className="sketch-border bg-white/40 p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-sans font-black tracking-tight uppercase">Monthly Recap: {format(currentDate, "MMMM yyyy")}</h3>
+          <div className="flex gap-4 text-xs font-sans font-bold text-ink/40">
+            <span>{monthlyLogs.filter(l => l.type === 'Event').length} Events</span>
+            <span>{monthlyLogs.filter(l => l.type === 'Reflection').length} Reflections</span>
+          </div>
+        </div>
+        
+        {monthlyLogs.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {monthlyLogs.map(log => (
+              <div key={log.id} className="p-4 bg-white/60 sketch-border border-dashed border-ink/20 flex flex-col gap-2 relative group hover:scale-[1.01] transition-all">
+                <div className="flex justify-between items-start mb-1">
+                  <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-ink/40">
+                    {format(new Date(log.date), "do")}
+                  </span>
+                  <span className={cn("text-[10px] font-sans font-bold px-2 py-0.5 rounded-full border", log.type === 'Event' ? "text-crimson border-crimson/30" : "text-ink/60 border-ink/20")}>
+                    {log.type}
+                  </span>
+                </div>
+                {log.type === 'Event' && log.time && (
+                  <span className="text-xs font-sans font-bold text-ink/50">{log.time}</span>
+                )}
+                <p className={cn("line-clamp-3", log.type === 'Reflection' ? "hand-text text-xl" : "font-sans text-base")}>
+                  {log.content}
+                </p>
+                {log.type === 'Reflection' && log.icon && (
+                  <div className="absolute bottom-2 right-2 opacity-10">
+                    <HandDrawnIcon type={log.icon} className="w-8 h-8" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 opacity-40">
+            <p className="hand-text text-2xl">No logs for this month yet. Start writing!</p>
           </div>
         )}
       </div>
