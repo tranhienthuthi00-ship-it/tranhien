@@ -1,0 +1,180 @@
+{
+  "entities": {
+    "Word": {
+      "title": "Word",
+      "description": "An English vocabulary word for spaced repetition.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "vocabulary": { "type": "string" },
+        "wordType": { "type": "string" },
+        "ipa": { "type": "string" },
+        "definition": { "type": "string" },
+        "examples": { "type": "array", "items": { "type": "string" } },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "difficulty": { "type": "number" },
+        "lastReviewed": { "type": "string", "description": "ISO date" },
+        "nextReview": { "type": "string", "description": "ISO date" }
+      },
+      "required": ["id", "vocabulary", "wordType", "ipa", "definition", "examples", "tags", "difficulty", "lastReviewed", "nextReview"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A checklist task item.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "content": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "priority": { "type": "string", "enum": ["Low", "Medium", "High"] }
+      },
+      "required": ["id", "content", "completed", "priority"]
+    },
+    "FoodPlace": {
+      "title": "FoodPlace",
+      "description": "A food place logged.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "status": { "type": "string" },
+        "rating": { "type": "number" },
+        "address": { "type": "string" },
+        "link": { "type": "string" },
+        "review": { "type": "string" },
+        "notes": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "name", "category", "status", "rating"]
+    },
+    "ContentIdea": {
+      "title": "ContentIdea",
+      "description": "A content creation idea.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "platform": { "type": "string" },
+        "link": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "title", "status", "createdAt"]
+    },
+    "WishlistItem": {
+      "title": "WishlistItem",
+      "description": "An item to buy later.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "content": { "type": "string" },
+        "addedDate": { "type": "string" },
+        "link": { "type": "string" },
+        "price": { "type": "number" },
+        "necessity": { "type": "string" },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "date": { "type": "string" },
+              "necessity": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["id", "content", "addedDate", "necessity"]
+    },
+    "LogEntry": {
+      "title": "LogEntry",
+      "description": "A calendar log or reflection.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string" },
+        "emoji": { "type": "string" },
+        "icon": { "type": "string" },
+        "time": { "type": "string" }
+      },
+      "required": ["id", "date", "content", "type"]
+    },
+    "AssetCategory": {
+      "title": "AssetCategory",
+      "description": "Category for assets.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "icon": { "type": "string" }
+      },
+      "required": ["id", "name", "icon"]
+    },
+    "Asset": {
+      "title": "Asset",
+      "description": "An asset logging entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "value": { "type": "number" },
+        "currency": { "type": "string" },
+        "notes": { "type": "string" },
+        "acquiredAt": { "type": "number" }
+      },
+      "required": ["id", "name", "category", "value", "currency"]
+    },
+    "UserTags": {
+      "title": "UserTags",
+      "description": "Global user tags document.",
+      "type": "object",
+      "properties": {
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["tags"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/words/{wordId}": {
+      "schema": { "$ref": "#/entities/Word" },
+      "description": "Words user adds."
+    },
+    "users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Tasks user adds."
+    },
+    "users/{userId}/foodPlaces/{placeId}": {
+      "schema": { "$ref": "#/entities/FoodPlace" },
+      "description": "Food places user logs."
+    },
+    "users/{userId}/contentIdeas/{ideaId}": {
+      "schema": { "$ref": "#/entities/ContentIdea" },
+      "description": "Content ideas."
+    },
+    "users/{userId}/wishlistItems/{itemId}": {
+      "schema": { "$ref": "#/entities/WishlistItem" },
+      "description": "Wishlist items."
+    },
+    "users/{userId}/logEntries/{logId}": {
+      "schema": { "$ref": "#/entities/LogEntry" },
+      "description": "Calendar log entries."
+    },
+    "users/{userId}/assetCategories/{catId}": {
+      "schema": { "$ref": "#/entities/AssetCategory" },
+      "description": "Custom asset categories."
+    },
+    "users/{userId}/assets/{assetId}": {
+      "schema": { "$ref": "#/entities/Asset" },
+      "description": "User assets."
+    },
+    "users/{userId}/data/tags": {
+      "schema": { "$ref": "#/entities/UserTags" },
+      "description": "User global tags."
+    }
+  }
+}

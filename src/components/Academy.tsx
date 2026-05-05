@@ -249,7 +249,7 @@ export function Academy({
            <section className="sketch-border p-4 bg-white/30 max-w-sm ml-auto">
              <h3 className="text-sm font-bold uppercase mb-2 font-sans tracking-tight">SRS Status Engine</h3>
              <div className="flex justify-between items-end text-xs mb-2">
-               <span className="hand-text text-sm">{words.length} Words for Review</span>
+               <span className="hand-text text-sm">{words.filter(w => new Date(w.nextReview) <= new Date()).length} Due Now</span>
                <span className="font-mono">{words.filter(w => w.difficulty === 1).length} Mastered</span>
              </div>
              <div className="srs-bar">

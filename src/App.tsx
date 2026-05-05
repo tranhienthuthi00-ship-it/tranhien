@@ -10,177 +10,73 @@ import { Doodles } from "./components/Doodles";
 import { Login } from "./components/Login";
 import { ContentManager } from "./components/ContentManager";
 import { AssetsManager } from "./components/AssetsManager";
-import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory } from "./types";
+import { useFirebaseSync } from "./lib/useFirebaseSync";
+import { Loader2 } from "lucide-react";
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('isAuthenticated') === 'true';
-  });
-  
+  const {
+    user, loading,
+    words, setWords,
+    tasks, setTasks,
+    wishlist, setWishlist,
+    logs, setLogs,
+    foodPlaces, setFoodPlaces,
+    tags, setTags,
+    contentIdeas, setContentIdeas,
+    assets, setAssets,
+    assetCategories, setAssetCategories
+  } = useFirebaseSync();
+
   const [activeTab, setActiveTab] = useState<Tab>("English Hub");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games">("Academy");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Places" | "Content" | "Assets">("Lists");
 
-  // State (loading from localStorage if available)
-  const [words, setWords] = useState<Word[]>(() => {
-    try {
-      const saved = localStorage.getItem('spatial_hub_words');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch (e) { console.error("Error loading words", e); }
-    return [
-      {
-        id: "1",
-        vocabulary: "Itinerary",
-        wordType: "noun",
-        ipa: "/aɪˈtɪnəreri/",
-        definition: "A planned route or journey.",
-        examples: ["We will review the itinerary before the cruise departs."],
-        tags: ["Tourism", "Cruise Industry"],
-        difficulty: 0,
-        lastReviewed: new Date().toISOString(),
-        nextReview: new Date().toISOString(),
-      },
-      {
-        id: "2",
-        vocabulary: "Concierge",
-        wordType: "noun",
-        ipa: "/kɒnsiˈeəʒ/",
-        definition: "A hotel employee whose job is to assist guests by booking tours, making theatre and restaurant reservations, etc.",
-        examples: ["The concierge arranged a private tour of the city for us."],
-        tags: ["Hospitality"],
-        difficulty: 1,
-        lastReviewed: new Date().toISOString(),
-        nextReview: new Date().toISOString(),
-      }
-    ];
-  });
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    try {
-      const saved = localStorage.getItem('spatial_hub_tasks');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) { return []; }
-  });
-  const [wishlist, setWishlist] = useState<WishlistItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('spatial_hub_wishlist');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) { return []; }
-  });
-  const [logs, setLogs] = useState<LogEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem('spatial_hub_logs');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) { return []; }
-  });
-  const [foodPlaces, setFoodPlaces] = useState<FoodPlace[]>(() => {
-    try {
-      const saved = localStorage.getItem('spatial_hub_places');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          // Migration: Add status if missing, and ensure category is valid
-          return parsed.map(p => ({
-            ...p,
-            status: p.status || 'Visited', // Default to Visited for old entries
-            category: (p.category === 'Food' || p.category === 'Cafe' || p.category === 'Dessert' || p.category === 'Travel' || p.category === 'Other') 
-              ? p.category 
-              : 'Other'
-          }));
-        }
-      }
-      return [];
-    } catch (e) { return []; }
-  });
-  const [tags, setTags] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('spatial_hub_tags');
-      return saved ? JSON.parse(saved) : ['Tourism', 'Hospitality', 'Cruise Industry'];
-    } catch (e) { return ['Tourism', 'Hospitality', 'Cruise Industry']; }
-  });
-
-  const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>(() => {
-    try {
-      const saved = localStorage.getItem('spatial_hub_content_ideas');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) { return []; }
-  });
-
-  const [assets, setAssets] = useState<Asset[]>(() => {
-    try {
-      const saved = localStorage.getItem('spatial_hub_assets');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) { return []; }
-  });
-
-  const [assetCategories, setAssetCategories] = useState<AssetCategory[]>(() => {
-    try {
-      const saved = localStorage.getItem('spatial_hub_asset_cats');
-      if (saved) {
-        let parsed = JSON.parse(saved);
-        parsed = parsed.map((p: any) => {
-            if (p.icon === '💰') return { ...p, icon: 'Wallet' };
-            if (p.icon === '🏠') return { ...p, icon: 'Home' };
-            if (p.icon === '🚗') return { ...p, icon: 'Car' };
-            if (p.icon === '💻') return { ...p, icon: 'Laptop' };
-            return p;
-        });
-        return parsed;
-      }
-      return [
-        { id: 'cat-money', name: 'Tiền mặt & NH', icon: 'Wallet' },
-        { id: 'cat-realestate', name: 'Bất động sản', icon: 'Home' },
-        { id: 'cat-vehicles', name: 'Xe cộ', icon: 'Car' },
-        { id: 'cat-tech', name: 'Công nghệ', icon: 'Laptop' }
-      ];
-    } catch (e) { return [
-        { id: 'cat-money', name: 'Tiền mặt & NH', icon: 'Wallet' },
-        { id: 'cat-realestate', name: 'Bất động sản', icon: 'Home' },
-        { id: 'cat-vehicles', name: 'Xe cộ', icon: 'Car' },
-        { id: 'cat-tech', name: 'Công nghệ', icon: 'Laptop' }
-    ]; }
-  });
-
-  const [lastSaved, setLastSaved] = useState<string>("");
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    setIsLoaded(true);
-  }, []);
-
-  // Saving to localStorage whenever state changes
-  useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem('spatial_hub_words', JSON.stringify(words));
-    localStorage.setItem('spatial_hub_tasks', JSON.stringify(tasks));
-    localStorage.setItem('spatial_hub_wishlist', JSON.stringify(wishlist));
-    localStorage.setItem('spatial_hub_logs', JSON.stringify(logs));
-    localStorage.setItem('spatial_hub_places', JSON.stringify(foodPlaces));
-    localStorage.setItem('spatial_hub_tags', JSON.stringify(tags));
-    localStorage.setItem('spatial_hub_content_ideas', JSON.stringify(contentIdeas));
-    localStorage.setItem('spatial_hub_assets', JSON.stringify(assets));
-    localStorage.setItem('spatial_hub_asset_cats', JSON.stringify(assetCategories));
-    setLastSaved(new Date().toLocaleTimeString());
-  }, [words, tasks, wishlist, logs, foodPlaces, tags, contentIdeas, assets, assetCategories, isLoaded]);
+  const [lastSaved, setLastSaved] = useState<string>("Synced");
 
   const updateWordDifficulty = (id: string, newDifficulty: number) => {
-    setWords(words.map(w => w.id === id ? { ...w, difficulty: newDifficulty } : w));
+    const w = words.find(x => x.id === id);
+    if (!w) return;
+
+    let nextReviewDate = new Date();
+    // Spaced repetition logic
+    if (newDifficulty === 1) { // Easy
+      nextReviewDate.setDate(nextReviewDate.getDate() + 4); 
+    } else if (newDifficulty === 2) { // Good
+      nextReviewDate.setDate(nextReviewDate.getDate() + 1); 
+    } else if (newDifficulty === 3) { // Hard / Incorrect
+      nextReviewDate.setHours(nextReviewDate.getHours() + 12); 
+    }
+
+    setWords([...words.filter(x => x.id !== id), { 
+      ...w, 
+      difficulty: newDifficulty,
+      lastReviewed: new Date().toISOString(),
+      nextReview: nextReviewDate.toISOString()
+    }]);
   };
 
   const handleLogin = () => {
-    localStorage.setItem('isAuthenticated', 'true');
-    setIsAuthenticated(true);
+    // Rely on onAuthStateChanged in useFirebaseSync
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    const { auth } = await import("./lib/firebase");
+    auth.signOut();
   };
 
-  if (!isAuthenticated) {
+  if (!user) {
     return <Login onLogin={handleLogin} />;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f4f1ea]">
+        <div className="flex flex-col items-center gap-4 text-ink">
+          <Loader2 className="animate-spin" size={40} />
+          <p className="hand-text text-xl">Loading your space...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

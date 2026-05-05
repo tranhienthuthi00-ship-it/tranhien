@@ -21,8 +21,14 @@ export function LearningGames({
   const selectNextWord = () => {
     if (words.length === 0) return;
     
+    // Calculate due words based on nextReview
+    const now = new Date();
+    const dueWords = words.filter(w => new Date(w.nextReview) <= now);
+    
+    let pool = dueWords.length > 0 ? dueWords : words; // fallback to all words if nothing is due but user wants to practice
+
     // Higher difficulty number means it should appear MORE often.
-    const weightedArray = words.flatMap(w => {
+    const weightedArray = pool.flatMap(w => {
       let weight = 4;
       if (w.difficulty === 1) weight = 1;
       else if (w.difficulty === 2) weight = 3;
@@ -66,6 +72,8 @@ export function LearningGames({
   }
 
   if (!activeWordInfo.word) {
+    const dueCount = words.filter(w => new Date(w.nextReview) <= new Date()).length;
+
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-lg mx-auto space-y-8">
         <div className="w-32 h-32 rounded-full border-4 border-dashed border-ink/20 flex items-center justify-center text-ink p-8 relative">
@@ -74,9 +82,16 @@ export function LearningGames({
         </div>
         <div>
           <h2 className="text-4xl font-bold font-sans tracking-tight mb-4">Random Challenge</h2>
-          <p className="hand-text text-2xl opacity-90 mb-8">
+          <p className="hand-text text-2xl opacity-90 mb-4">
             Our Spaced Repetition engine will bias towards words you find difficult. Let's build that memory muscle.
           </p>
+          <div className="mb-8 font-sans font-bold uppercase tracking-widest text-sm p-3 border-2 border-dashed border-ink/20 inline-block">
+            {dueCount > 0 ? (
+              <span className="text-crimson">🔥 {dueCount} Words due for review!</span>
+            ) : (
+              <span className="text-ink/60">✅ You're all caught up! Practice anyway?</span>
+            )}
+          </div>
           <div className="flex gap-4 justify-center">
             <button 
               onClick={() => setGameMode('Flashcard')} 

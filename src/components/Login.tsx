@@ -2,19 +2,20 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Lock, Unlock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { auth } from "@/lib/firebase";
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 export function Login({ onLogin }: { onLogin: () => void }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isHovering, setIsHovering] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (username === "tranhien" && password === "Tranhien00") {
-      onLogin();
-    } else {
-      setError("Mật khẩu hoặc tên đăng nhập chưa đúng! Thử lại nha.");
+  const handleGoogleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      onLogin(); // App.tsx can also rely on auth state listener
+    } catch (err: any) {
+      setError(err.message || "Failed to sign in. Please try again.");
     }
   };
 
@@ -53,10 +54,10 @@ export function Login({ onLogin }: { onLogin: () => void }) {
            <p className="hand-text text-2xl text-ink/70">Welcome to your spatial hub</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm p-8 sketch-border shadow-xl relative z-20">
+        <div className="bg-white/80 backdrop-blur-sm p-8 sketch-border shadow-xl relative z-20">
           <div className="flex items-center justify-center mb-6 text-ink">
             <div className="relative" onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
-              {isHovering || (username === "tranhien" && password === "Tranhien00") ? (
+              {isHovering ? (
                 <Unlock size={32} strokeWidth={2.5} className="animate-in zoom-in duration-300 text-emerald-600" />
               ) : (
                 <Lock size={32} strokeWidth={2.5} />
@@ -65,54 +66,23 @@ export function Login({ onLogin }: { onLogin: () => void }) {
           </div>
 
           <div className="space-y-5">
-            <div className="space-y-2">
-              <label className="font-sans font-bold text-[11px] opacity-60 tracking-widest uppercase">Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  setError("");
-                }}
-                className="sketch-input w-full text-lg font-sans"
-                placeholder="Enter username..."
-                autoFocus
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="font-sans font-bold text-[11px] opacity-60 tracking-widest uppercase">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setError("");
-                }}
-                className="sketch-input w-full text-lg font-mono tracking-widest"
-                placeholder="••••••••"
-                required
-              />
-            </div>
-
             {error && (
-              <div className="text-crimson hand-text text-xl pt-2 animate-in slide-in-from-top-2">
+              <div className="text-crimson hand-text text-xl pt-2 animate-in slide-in-from-top-2 text-center">
                 * {error}
               </div>
             )}
 
             <button 
-              type="submit" 
+              onClick={handleGoogleLogin}
               className={cn(
                 "w-full sketch-button py-3 text-lg font-bold mt-4 transition-all duration-300",
-                username && password ? "sketch-button-primary bg-ink text-paper hover:bg-crimson hover:text-white" : "opacity-50"
+                "sketch-button-primary bg-ink text-paper hover:bg-crimson hover:text-white"
               )}
             >
-              Let's Go!
+              Sign In with Google
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
