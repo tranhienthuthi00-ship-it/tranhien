@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, Plus, Trash2, Heart, HeartPulse } from "lucide-react";
+import { Check, Plus, Trash2, Heart, HeartPulse, Star } from "lucide-react";
 import type { Task, WishlistItem } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,10 @@ export function MyList({
   const [newWish, setNewWish] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newNecessity, setNewNecessity] = useState<'Low' | 'Medium' | 'High'>('Medium');
+  const [newTags, setNewTags] = useState("");
+  const [newWishLink, setNewWishLink] = useState("");
+  const [newWishNote, setNewWishNote] = useState("");
+  const [editingWishId, setEditingWishId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'Date' | 'Necessity' | 'Price'>('Date');
   const [activeReviewId, setActiveReviewId] = useState<string | null>(null);
   const [reviewNote, setReviewNote] = useState("");
@@ -53,16 +57,62 @@ export function MyList({
   const addWish = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newWish.trim()) return;
-    setWishlist([{ 
-      id: Date.now().toString(), 
-      content: newWish, 
-      addedDate: new Date().toISOString(),
-      price: newPrice ? parseFloat(newPrice) : undefined,
-      necessity: newNecessity
-    }, ...wishlist]);
+    
+    if (editingWishId) {
+      setWishlist(wishlist.map(w => w.id === editingWishId ? {
+        ...w,
+        content: newWish,
+        price: newPrice ? parseFloat(newPrice) : undefined,
+        necessity: newNecessity,
+        tags: newTags ? newTags.split(',').map(t => t.trim()).filter(Boolean) : undefined,
+        link: newWishLink || undefined,
+        note: newWishNote || undefined,
+      } : w));
+      setEditingWishId(null);
+    } else {
+      setWishlist([{ 
+        id: Date.now().toString(), 
+        content: newWish, 
+        addedDate: new Date().toISOString(),
+        price: newPrice ? parseFloat(newPrice) : undefined,
+        necessity: newNecessity,
+        tags: newTags ? newTags.split(',').map(t => t.trim()).filter(Boolean) : undefined,
+        link: newWishLink || undefined,
+        note: newWishNote || undefined,
+        isWorthBuying: false
+      }, ...wishlist]);
+    }
     setNewWish("");
     setNewPrice("");
     setNewNecessity("Medium");
+    setNewTags("");
+    setNewWishLink("");
+    setNewWishNote("");
+  };
+
+  const startEditWish = (wish: WishlistItem) => {
+    setEditingWishId(wish.id);
+    setNewWish(wish.content);
+    setNewPrice(wish.price ? wish.price.toString() : "");
+    setNewNecessity(wish.necessity);
+    setNewTags(wish.tags ? wish.tags.join(', ') : "");
+    setNewWishLink(wish.link || "");
+    setNewWishNote(wish.note || "");
+  };
+
+  const cancelEditWish = () => {
+    setEditingWishId(null);
+    setNewWish("");
+    setNewPrice("");
+    setNewNecessity("Medium");
+    setNewTags("");
+    setNewWishLink("");
+    setNewWishNote("");
+  };
+
+  const toggleWorthBuying = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setWishlist(wishlist.map(w => w.id === id ? { ...w, isWorthBuying: !w.isWorthBuying } : w));
   };
 
   const sortedWishlist = [...wishlist].sort((a, b) => {
@@ -206,18 +256,25 @@ export function MyList({
       </section>
 
       {/* WISHLIST */}
-      <section className="space-y-4">
+      <section id="wishlist-section" className="space-y-4">
         <div className="flex items-center gap-3 mb-4">
           <h2 className="text-2xl font-bold font-sans">Waitlist / Wishlist</h2>
           <div className="flex-1 border-b-2 border-ink border-dashed"></div>
         </div>
 
-        <form onSubmit={addWish} className="flex flex-col gap-2 mb-4">
+        <form onSubmit={addWish} className="flex flex-col gap-2 mb-4 bg-paper p-3 sketch-border border-dashed border-ink/30 relative">
+          {editingWishId && (
+            <div className="absolute -top-3 -left-3 rotate-[-5deg]">
+              <span className="bg-amber-400 text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider sketch-border">
+                Cập Nhật Món Đồ
+              </span>
+            </div>
+          )}
           <div className="flex gap-2">
             <input
               value={newWish}
               onChange={(e) => setNewWish(e.target.value)}
-              placeholder="Add to wishlist..."
+              placeholder="Tên món đồ (Add to wishlist...)"
               className="sketch-input flex-1 bg-white/50 py-1.5"
               required
             />
@@ -229,7 +286,29 @@ export function MyList({
               className="sketch-input w-24 bg-white/50 font-mono text-xs py-1.5"
             />
           </div>
-          <div className="flex justify-between items-center">
+          <div className="flex gap-2">
+            <input
+              value={newWishLink}
+              onChange={(e) => setNewWishLink(e.target.value)}
+              placeholder="Link mua hàng (nếu có)"
+              className="sketch-input flex-1 bg-white/50 py-1.5 text-xs font-mono text-ink/70"
+            />
+            <input
+              value={newTags}
+              onChange={(e) => setNewTags(e.target.value)}
+              placeholder="Hashtags (cách nhau ,)..."
+              className="sketch-input flex-1 bg-white/50 py-1.5 text-xs font-mono text-ink/70"
+            />
+          </div>
+          <div className="flex">
+             <textarea
+               value={newWishNote}
+               onChange={(e) => setNewWishNote(e.target.value)}
+               placeholder="Ghi chú về món đồ này (lý do mua, ưu/nhược điểm...)"
+               className="sketch-input flex-1 bg-white/50 py-1.5 text-xs text-ink/80 min-h-[50px] resize-y"
+             />
+          </div>
+          <div className="flex justify-between items-center mt-1">
             <div className="flex gap-1 items-center">
               <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40 mr-1">Need:</span>
               {(['Low', 'Medium', 'High'] as const).map(level => (
@@ -243,9 +322,16 @@ export function MyList({
                 </button>
               ))}
             </div>
-            <button type="submit" className="sketch-button flex items-center gap-1 px-3 py-1 text-xs bg-crimson/5 border-crimson text-crimson hover:bg-crimson hover:text-white">
-              <Heart size={12} className="fill-current" /> Add
-            </button>
+            <div className="flex gap-2">
+              {editingWishId && (
+                <button type="button" onClick={cancelEditWish} className="sketch-button px-3 py-1 text-xs bg-white text-ink/60 hover:text-ink">
+                  Hủy
+                </button>
+              )}
+              <button type="submit" className="sketch-button flex items-center gap-1 px-3 py-1 text-xs bg-crimson/5 border-crimson text-crimson hover:bg-crimson hover:text-white">
+                <Heart size={12} className="fill-current" /> {editingWishId ? 'Update' : 'Add'}
+              </button>
+            </div>
           </div>
         </form>
 
@@ -264,19 +350,42 @@ export function MyList({
               "flex flex-col py-2 px-3 sketch-border transition-all relative group",
               wish.necessity === 'High' ? "bg-crimson/5 border-crimson" : "bg-white/50 border-ink/10 hover:border-ink/30"
             )}>
-               <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start">
                   <span className={cn("font-bold text-base pr-8", wish.necessity === 'High' && "text-crimson")}>{wish.content}</span>
                   {wish.price !== undefined && <span className="font-mono font-medium text-ink/60 bg-white px-1.5 py-0.5 border border-ink/10 rounded">{wish.price.toLocaleString()} VNĐ</span>}
                </div>
+
+               {wish.tags && wish.tags.length > 0 && (
+                 <div className="flex flex-wrap gap-1 mt-2">
+                   {wish.tags.map((tag, idx) => (
+                     <span key={idx} className="text-[10px] font-mono bg-ink/5 text-ink/60 px-1.5 py-0.5 rounded">#{tag}</span>
+                   ))}
+                 </div>
+               )}
+               
+               {wish.link && (
+                 <a href={wish.link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline mt-2 inline-block truncate max-w-full">
+                   {wish.link}
+                 </a>
+               )}
+               
+               {wish.note && (
+                 <div className="mt-2 text-xs text-ink/80 font-hand italic bg-white/50 p-2 rounded border border-ink/5">
+                   <strong className="text-[10px] uppercase font-sans tracking-widest text-ink/40 block mb-0.5">Ghi chú:</strong>
+                   {wish.note}
+                 </div>
+               )}
                
                <div className="flex justify-between items-end mt-2">
-                 <span className={cn(
-                   "text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full border",
-                   wish.necessity === 'High' ? "border-crimson text-crimson bg-white" : 
-                   wish.necessity === 'Medium' ? "border-orange-400 text-orange-600 bg-white" : "border-ink/20 text-ink/40 bg-white"
-                 )}>
-                   {wish.necessity} Need
-                 </span>
+                 <div className="flex gap-2 items-center">
+                   <span className={cn(
+                     "text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full border",
+                     wish.necessity === 'High' ? "border-crimson text-crimson bg-white" : 
+                     wish.necessity === 'Medium' ? "border-orange-400 text-orange-600 bg-white" : "border-ink/20 text-ink/40 bg-white"
+                   )}>
+                     {wish.necessity} Need
+                   </span>
+                 </div>
                  <span className="text-xs opacity-40">{new Date(wish.addedDate).toLocaleDateString()}</span>
                </div>
                
@@ -339,12 +448,39 @@ export function MyList({
                  </div>
                )}
                
-               <button 
-                  onClick={() => removeWish(wish.id)}
-                  className="absolute -top-3 -right-3 bg-paper text-ink/40 opacity-0 group-hover:opacity-100 transition-opacity border-2 border-ink rounded-full p-1 hover:bg-crimson hover:border-crimson hover:text-white shadow-sm"
-                >
-                  <Trash2 size={12} />
-               </button>
+               <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <button 
+                   onClick={(e) => {
+                     e.preventDefault();
+                     startEditWish(wish);
+                     document.getElementById('wishlist-section')?.scrollIntoView({ behavior: 'smooth' });
+                   }}
+                   className="bg-paper text-ink/60 border-2 border-ink/40 rounded-full p-1 hover:bg-ink hover:text-white shadow-sm"
+                   title="Sửa món đồ"
+                 >
+                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                 </button>
+                 <button 
+                   onClick={(e) => toggleWorthBuying(wish.id, e)}
+                   className="bg-paper text-amber-500 border-2 border-amber-400 rounded-full p-1 hover:bg-amber-400 hover:text-white shadow-sm"
+                   title="Đáng mua"
+                 >
+                   <Star size={12} className={wish.isWorthBuying ? "fill-current" : ""} />
+                 </button>
+                 <button 
+                    onClick={() => removeWish(wish.id)}
+                    className="bg-paper text-ink/40 border-2 border-ink rounded-full p-1 hover:bg-crimson hover:border-crimson hover:text-white shadow-sm"
+                    title="Xóa"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+               </div>
+
+               {wish.isWorthBuying && (
+                 <div className="absolute -top-2 left-2 rotate-[-15deg] pointer-events-none">
+                    <Star size={20} className="fill-amber-400 text-amber-500 drop-shadow-sm" />
+                 </div>
+               )}
             </div>
           ))}
           {wishlist.length === 0 && <p className="hand-text text-xl text-center py-4 opacity-50">Keep it intentional.</p>}

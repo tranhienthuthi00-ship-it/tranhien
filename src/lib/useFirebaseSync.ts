@@ -37,81 +37,68 @@ export function useFirebaseSync() {
   }, []);
 
   const migrateLocalStorage = async (uid: string) => {
-    const migrated = localStorage.getItem(`migrated_${uid}`);
+    const migrated = localStorage.getItem(`migrated_${uid}_v3`);
     if (migrated) return;
+
+    const safeSetDoc = async (path: string, item: any) => {
+      try {
+        const cleanItem = Object.fromEntries(Object.entries(item).filter(([_, v]) => v !== undefined));
+        await setDoc(doc(db, path), cleanItem);
+      } catch (err) {
+        console.error("Failed to migrate item", path, err);
+      }
+    };
 
     try {
       const savedAssets = localStorage.getItem('spatial_hub_assets');
       if (savedAssets) {
-        const parsed = JSON.parse(savedAssets);
-        for (const item of parsed) {
-          await setDoc(doc(db, `users/${uid}/assets/${item.id}`), { ...item });
-        }
+        for (const item of JSON.parse(savedAssets)) await safeSetDoc(`users/${uid}/assets/${item.id}`, item);
       }
 
       const savedCats = localStorage.getItem('spatial_hub_asset_cats');
       if (savedCats) {
-        const parsed = JSON.parse(savedCats);
-        for (const item of parsed) {
-          await setDoc(doc(db, `users/${uid}/assetCategories/${item.id}`), { ...item });
-        }
+        for (const item of JSON.parse(savedCats)) await safeSetDoc(`users/${uid}/assetCategories/${item.id}`, item);
       }
 
       const savedWords = localStorage.getItem('spatial_hub_words');
       if (savedWords) {
-        const parsed = JSON.parse(savedWords);
-        for (const item of parsed) {
-          await setDoc(doc(db, `users/${uid}/words/${item.id}`), { ...item });
-        }
+        for (const item of JSON.parse(savedWords)) await safeSetDoc(`users/${uid}/words/${item.id}`, item);
       }
 
       const savedTasks = localStorage.getItem('spatial_hub_tasks');
       if (savedTasks) {
-        const parsed = JSON.parse(savedTasks);
-        for (const item of parsed) {
-          await setDoc(doc(db, `users/${uid}/tasks/${item.id}`), { ...item });
-        }
+        for (const item of JSON.parse(savedTasks)) await safeSetDoc(`users/${uid}/tasks/${item.id}`, item);
       }
 
       const savedWishlist = localStorage.getItem('spatial_hub_wishlist');
       if (savedWishlist) {
-        const parsed = JSON.parse(savedWishlist);
-        for (const item of parsed) {
-          await setDoc(doc(db, `users/${uid}/wishlistItems/${item.id}`), { ...item });
-        }
+        for (const item of JSON.parse(savedWishlist)) await safeSetDoc(`users/${uid}/wishlistItems/${item.id}`, item);
       }
 
       const savedLogs = localStorage.getItem('spatial_hub_logs');
       if (savedLogs) {
-        const parsed = JSON.parse(savedLogs);
-        for (const item of parsed) {
-          await setDoc(doc(db, `users/${uid}/logEntries/${item.id}`), { ...item });
-        }
+        for (const item of JSON.parse(savedLogs)) await safeSetDoc(`users/${uid}/logEntries/${item.id}`, item);
       }
 
       const savedPlaces = localStorage.getItem('spatial_hub_places');
       if (savedPlaces) {
-        const parsed = JSON.parse(savedPlaces);
-        for (const item of parsed) {
-          await setDoc(doc(db, `users/${uid}/foodPlaces/${item.id}`), { ...item });
-        }
+        for (const item of JSON.parse(savedPlaces)) await safeSetDoc(`users/${uid}/foodPlaces/${item.id}`, item);
       }
 
       const savedIdeas = localStorage.getItem('spatial_hub_content_ideas');
       if (savedIdeas) {
-        const parsed = JSON.parse(savedIdeas);
-        for (const item of parsed) {
-          await setDoc(doc(db, `users/${uid}/contentIdeas/${item.id}`), { ...item });
-        }
+        for (const item of JSON.parse(savedIdeas)) await safeSetDoc(`users/${uid}/contentIdeas/${item.id}`, item);
       }
 
       const savedTags = localStorage.getItem('spatial_hub_tags');
       if (savedTags) {
-        const parsed = JSON.parse(savedTags);
-        await setDoc(doc(db, `users/${uid}/data/tags`), { tags: parsed });
+        try {
+          const parsed = JSON.parse(savedTags);
+          await setDoc(doc(db, `users/${uid}/data/tags`), { tags: parsed });
+        } catch(e) {}
       }
 
-      localStorage.setItem(`migrated_${uid}`, 'true');
+      localStorage.setItem(`migrated_${uid}_v3`, 'true');
     } catch (e) {
       console.error("Migration error", e);
     }

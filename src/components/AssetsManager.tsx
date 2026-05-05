@@ -136,7 +136,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   };
   
   const getCategory = (catId: string) => {
-    return categories.find(c => c.id === catId) || { id: 'unknown', name: 'Unknown', icon: '❓' };
+    return categories.find(c => c.id === catId) || { id: catId || 'unknown', name: catId || 'Khác', icon: '❓' };
   };
 
   const getValueInVND = (value: number, currency: string) => {
@@ -151,26 +151,46 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     return assets.reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
   }, [assets]);
 
-  const COLORS = ['#1A1A1A', '#AF1E2D', '#D97706', '#059669', '#2563EB', '#7C3AED', '#DB2777', '#0F766E', '#A21CAF', '#B45309'];
+  const COLORS = [
+    '#2a2a2a', // ink
+    '#d93838', // crimson
+    '#eab308', // amber
+    '#10b981', // emerald
+    '#3b82f6', // blue
+    '#8b5cf6', // violet
+    '#ec4899', // pink
+    '#f97316', // orange
+  ];
 
   const getCategoryColor = (catId: string) => {
-    const index = categories.findIndex(c => c.id === catId);
-    return COLORS[(index >= 0 ? index : 0) % COLORS.length];
+    if (!catId || catId === 'unknown') return '#cbd5e1'; // slate-300 for missing
+    let index = categories.findIndex(c => c.id === catId);
+    if (index === -1) {
+        let hash = 0;
+        for (let i = 0; i < catId.length; i++) hash = catId.charCodeAt(i) + ((hash << 5) - hash);
+        index = Math.abs(hash);
+    }
+    return COLORS[index % COLORS.length];
   };
 
   const pieData = useMemo(() => {
-    const dataMap = new Map<string, { value: number, name: string, catId: string }>();
+    const dataMap = new Map<string, { value: number, name: string, catId: string, fill: string }>();
     assets.forEach(a => {
       const val = getValueInVND(a.value, a.currency);
       const cat = getCategory(a.category);
       if (dataMap.has(cat.id)) {
         dataMap.get(cat.id)!.value += val;
       } else {
-        dataMap.set(cat.id, { value: val, name: cat.name, catId: cat.id });
+        dataMap.set(cat.id, { 
+          value: val, 
+          name: cat.name, 
+          catId: cat.id,
+          fill: getCategoryColor(cat.id)
+        });
       }
     });
     return Array.from(dataMap.values()).filter(d => d.value > 0);
-  }, [assets, categories]);
+  }, [assets, categories, getCategory, getCategoryColor, getValueInVND]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 font-sans pb-10">
@@ -247,9 +267,11 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                 outerRadius={80}
                 paddingAngle={5}
                 dataKey="value"
+                stroke="#faf9f6"
+                strokeWidth={2}
               >
                 {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={getCategoryColor(entry.catId)} />
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
                 ))}
               </Pie>
               <RechartsTooltip formatter={(value: number) => formatCurrency(value, 'VND')} contentStyle={{ borderRadius: '8px', border: '2px solid var(--color-ink)' }} />

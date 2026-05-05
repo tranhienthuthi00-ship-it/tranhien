@@ -15,6 +15,7 @@ export function Places({
   const [statusFilter, setStatusFilter] = useState<'All' | 'Visited' | 'Want to visit'>('All');
   const [sortBy, setSortBy] = useState<'Recent' | 'Rating'>('Recent');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [showTopTags, setShowTopTags] = useState(false);
   
   const [newName, setNewName] = useState("");
   const [newCat, setNewCat] = useState<'Food' | 'Cafe' | 'Dessert' | 'Travel' | 'Other'>('Food');
@@ -124,6 +125,15 @@ export function Places({
   };
 
   const allTags = Array.from(new Set(places.flatMap(p => p.tags || [])));
+  
+  // Calculate top places per tag
+  const topByTag = allTags.map(tag => {
+    const placesWithTag = places.filter(p => p.status === 'Visited' && p.tags && p.tags.includes(tag));
+    // get the highest rated place, or null if none
+    if (placesWithTag.length === 0) return { tag, place: null };
+    placesWithTag.sort((a, b) => b.rating - a.rating);
+    return { tag, place: placesWithTag[0] };
+  }).filter(t => t.place !== null);
 
   const filteredPlaces = places
     .filter(p => {
@@ -238,13 +248,23 @@ export function Places({
           </div>
 
           <div className="space-y-4">
-            <div className="flex flex-col gap-1.5 h-full">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Ghi chú / Review</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Ghi chú (Note khi đi)</label>
               <textarea
                 value={newNotes}
                 onChange={(e) => setNewNotes(e.target.value)}
-                placeholder="Ghi chú thông tin quan trọng, giờ mở cửa, món must-try..."
-                className="sketch-input bg-white/50 w-full flex-1 min-h-[100px] resize-none py-2"
+                placeholder="Giờ mở cửa, món must-try..."
+                className="sketch-input bg-white/50 w-full min-h-[50px] resize-none py-2"
+              />
+            </div>
+            
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Review (Sau khi đi)</label>
+              <textarea
+                value={newReview}
+                onChange={(e) => setNewReview(e.target.value)}
+                placeholder="Trải nghiệm thực tế, có đáng tiền không?"
+                className="sketch-input bg-white/50 w-full min-h-[50px] flex-1 resize-none py-2"
               />
               <div className="flex items-center justify-between mt-1">
                  <div className="flex items-center gap-2">
@@ -291,6 +311,18 @@ export function Places({
           ))}
         </div>
         <div className="flex gap-4 justify-center items-center">
+          <button
+              onClick={() => setShowTopTags(!showTopTags)}
+              className={cn(
+                "px-3 py-1 font-bold text-[11px] uppercase tracking-widest rounded transition-all sketch-border",
+                showTopTags ? "bg-amber-100/50 text-amber-700" : "bg-white/50 text-ink/60 hover:bg-white"
+              )}
+            >
+              🏆 Top Theo Hashtag
+          </button>
+          
+          <div className="w-[1px] h-3 bg-ink/10 mx-2" />
+          
           {(['All', 'Want to visit', 'Visited'] as const).map(status => (
             <button
               key={status}
@@ -342,6 +374,31 @@ export function Places({
           </div>
         )}
       </div>
+
+      {showTopTags && topByTag.length > 0 && (
+        <div className="mb-8 p-4 bg-amber-50 sketch-border rounded relative">
+           <h2 className="font-bold uppercase tracking-widest text-xs text-amber-900 mb-4 text-center">Top 1 Địa Điểm Tốt Nhất Theo Hashtag</h2>
+           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+             {topByTag.map(({ tag, place }) => place && (
+               <div key={tag} className="bg-white p-3 rounded sketch-border border-amber-200">
+                 <div className="flex justify-between items-center mb-2">
+                   <span className="font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded text-[10px] uppercase">#{tag}</span>
+                   <div className="flex">
+                     {Array.from({ length: place.rating }).map((_, i) => (
+                       <Star key={i} size={10} className="fill-amber-400 text-amber-400" />
+                     ))}
+                   </div>
+                 </div>
+                 <h4 className="font-bold text-sm leading-tight text-ink w-full truncate">{place.name}</h4>
+                 <div className="text-[10px] text-ink/50 tracking-widest uppercase mt-1">{place.category}</div>
+                 {place.review && (
+                   <p className="mt-2 text-xs text-ink/70 line-clamp-2 italic">"{place.review}"</p>
+                 )}
+               </div>
+             ))}
+           </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin content-start">
         {filteredPlaces.map(place => (
@@ -401,28 +458,48 @@ export function Places({
                  <div className="mt-2 p-3 bg-yellow-50/50 border border-dashed border-amber-200 text-sm font-hand leading-relaxed text-ink/80 rounded relative">
                    <div className="absolute -top-2 right-2 flex gap-1">
                       <div className="w-1 h-1 rounded-full bg-amber-400" />
-                      <div className="w-1 h-1 rounded-full bg-amber-400" />
                    </div>
+                   <strong className="text-[10px] uppercase tracking-widest text-ink/40 font-sans block mb-1">Ghi chú:</strong>
                    {place.notes}
+                 </div>
+               )}
+               {place.review && (
+                 <div className="mt-2 p-3 bg-emerald-50/50 border border-dashed border-emerald-200 text-sm font-hand leading-relaxed text-ink/80 rounded relative">
+                   <div className="absolute -top-2 right-2 flex gap-1">
+                      <div className="w-1 h-1 rounded-full bg-emerald-400" />
+                   </div>
+                   <strong className="text-[10px] uppercase tracking-widest text-ink/40 font-sans block mb-1">Review:</strong>
+                   {place.review}
                  </div>
                )}
              </div>
 
-             <div className="mt-5 flex justify-end gap-2">
-               <button 
-                 onClick={() => startEdit(place)}
-                 className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-ink hover:text-white rounded-lg border border-ink/10 shadow-sm"
-                 title="Sửa địa điểm"
+             <div className="mt-5 flex justify-between items-center">
+               <button
+                 onClick={() => {
+                   startEdit(place);
+                   setNewStatus('Visited'); // Automatically prepare for review if wanting to rate
+                 }}
+                 className="text-xs sketch-button text-ink py-1 px-3"
                >
-                 <Edit2 size={16} />
+                 {place.status === 'Visited' ? 'Viết lại Review' : 'Đã đi & Thêm Review'}
                </button>
-               <button 
-                 onClick={() => removePlace(place.id)}
-                 className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-crimson hover:text-white rounded-lg border border-ink/10 shadow-sm"
-                 title="Xóa địa điểm"
-               >
-                 <Trash2 size={16} />
-               </button>
+               <div className="flex gap-2">
+                 <button 
+                   onClick={() => startEdit(place)}
+                   className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-ink hover:text-white rounded-lg border border-ink/10 shadow-sm"
+                   title="Sửa địa điểm"
+                 >
+                   <Edit2 size={16} />
+                 </button>
+                 <button 
+                   onClick={() => removePlace(place.id)}
+                   className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-crimson hover:text-white rounded-lg border border-ink/10 shadow-sm"
+                   title="Xóa địa điểm"
+                 >
+                   <Trash2 size={16} />
+                 </button>
+               </div>
              </div>
           </div>
         ))}

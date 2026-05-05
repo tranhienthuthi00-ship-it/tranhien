@@ -55,7 +55,10 @@ export interface WishlistItem {
   addedDate: string;
   link?: string;
   price?: number;
+  note?: string;
   necessity: 'Low' | 'Medium' | 'High';
+  tags?: string[];
+  isWorthBuying?: boolean;
   history?: WishlistHistoryEntry[];
 }
 
