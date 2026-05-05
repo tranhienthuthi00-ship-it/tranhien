@@ -15,7 +15,7 @@ export function Places({
   const [statusFilter, setStatusFilter] = useState<'All' | 'Visited' | 'Want to visit'>('All');
   const [sortBy, setSortBy] = useState<'Recent' | 'Rating'>('Recent');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [showTopTags, setShowTopTags] = useState(false);
+  const [showTopCities, setShowTopCities] = useState(false);
   
   const [newName, setNewName] = useState("");
   const [newCat, setNewCat] = useState<'Food' | 'Cafe' | 'Dessert' | 'Travel' | 'Other'>('Food');
@@ -26,6 +26,7 @@ export function Places({
   const [newReview, setNewReview] = useState("");
   const [newNotes, setNewNotes] = useState("");
   const [newPrice, setNewPrice] = useState<string>("");
+  const [newCity, setNewCity] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [newTags, setNewTags] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export function Places({
     setNewReview(place.review || "");
     setNewNotes(place.notes || "");
     setNewPrice(place.price?.toString() || "");
+    setNewCity(place.city || "");
     setNewTags(place.tags || []);
     setTagInput("");
     
@@ -56,6 +58,7 @@ export function Places({
     setNewReview("");
     setNewNotes("");
     setNewPrice("");
+    setNewCity("");
     setNewRating(5);
     setNewStatus('Want to visit');
     setNewTags([]);
@@ -88,6 +91,7 @@ export function Places({
         review: newReview || undefined,
         notes: newNotes || undefined,
         price: newPrice ? Number(newPrice) : undefined,
+        city: newCity || undefined,
         tags: newTags.length > 0 ? newTags : undefined
       } : p));
       setEditingId(null);
@@ -103,6 +107,7 @@ export function Places({
         review: newReview || undefined,
         notes: newNotes || undefined,
         price: newPrice ? Number(newPrice) : undefined,
+        city: newCity || undefined,
         tags: newTags.length > 0 ? newTags : undefined
       }, ...places]);
     }
@@ -113,6 +118,7 @@ export function Places({
     setNewReview("");
     setNewNotes("");
     setNewPrice("");
+    setNewCity("");
     setNewRating(5);
     setNewStatus('Want to visit');
     setNewTags([]);
@@ -132,23 +138,14 @@ export function Places({
 
   const allTags = Array.from(new Set(places.flatMap(p => p.tags || [])));
   
-  // Calculate top places per tag
-  const topByTag = allTags.map(tag => {
-    const placesWithTag = places.filter(p => p.status === 'Visited' && p.rating >= 4 && p.tags && p.tags.includes(tag));
-    if (placesWithTag.length === 0) return { tag, place: null };
-    
-    // Sort: Best rating first, then cheapest price
-    placesWithTag.sort((a, b) => {
+  // Calculate top 10 places overall prioritized by rating and cheapness
+  const topPlaces = places
+    .filter(p => p.status === 'Visited' && p.rating >= 4)
+    .sort((a, b) => {
       if (b.rating !== a.rating) return b.rating - a.rating;
       return (a.price ?? Infinity) - (b.price ?? Infinity);
-    });
-    
-    return { tag, place: placesWithTag[0] };
-  })
-  .filter(t => t.place !== null)
-  // Sort overall tags by the quality of their top place (Price ascending)
-  .sort((a, b) => (a.place!.price ?? Infinity) - (b.place!.price ?? Infinity))
-  .slice(0, 10);
+    })
+    .slice(0, 10);
 
   const filteredPlaces = places
     .filter(p => {
@@ -229,6 +226,16 @@ export function Places({
               />
             </div>
 
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Tỉnh/Thành phố</label>
+              <input
+                value={newCity}
+                onChange={(e) => setNewCity(e.target.value)}
+                placeholder="Ví dụ: Đà Lạt, Hà Nội..."
+                className="sketch-input bg-white/50 py-2 text-sm"
+              />
+            </div>
+            
             <div className="flex flex-col gap-1.5">
               <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Giá tiền (nếu có - VNĐ)</label>
               <input
@@ -338,13 +345,13 @@ export function Places({
         </div>
         <div className="flex flex-wrap gap-3 justify-center items-center">
           <button
-              onClick={() => setShowTopTags(!showTopTags)}
+              onClick={() => setShowTopCities(!showTopCities)}
               className={cn(
                 "px-2 py-1 font-bold text-[10px] uppercase tracking-widest rounded transition-all sketch-border",
-                showTopTags ? "bg-amber-100/50 text-amber-700" : "bg-white/50 text-ink/60 hover:bg-white"
+                showTopCities ? "bg-amber-100/50 text-amber-700" : "bg-white/50 text-ink/60 hover:bg-white"
               )}
             >
-              🏆 Top Tag
+              🏆 Top 10 Quốc Dân
           </button>
           
           {(['All', 'Want to visit', 'Visited'] as const).map(status => (
@@ -399,28 +406,28 @@ export function Places({
         )}
       </div>
 
-      {showTopTags && topByTag.length > 0 && (
+      {showTopCities && topPlaces.length > 0 && (
         <div className="mb-8 p-4 bg-amber-50 sketch-border rounded relative mx-1">
-           <h2 className="font-bold uppercase tracking-widest text-[10px] text-amber-900 mb-4 text-center">Top 10 Quán 4★+ Rẻ Nhất Theo Hashtag</h2>
+           <h2 className="font-bold uppercase tracking-widest text-[10px] text-amber-900 mb-4 text-center">Top 10 Quán 4★+ Rẻ Nhất Toàn Quốc</h2>
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-             {topByTag.map(({ tag, place }) => place && (
-               <div key={tag} className="bg-white p-3 rounded sketch-border border-amber-200">
-                 <div className="flex justify-between items-center mb-2">
-                   <span className="font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded text-[9px] uppercase">#{tag}</span>
+             {topPlaces.map((place, idx) => (
+               <div key={place.id} className="bg-white p-3 rounded sketch-border border-amber-200 relative overflow-hidden">
+                 <div className="absolute -top-1 -right-1 bg-amber-500 text-white font-black text-[10px] w-6 h-6 flex items-center justify-center rounded-bl-lg">
+                   {idx + 1}
+                 </div>
+                 <div className="flex justify-between items-center mb-1 pr-4">
+                   <span className="font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded text-[8px] uppercase">{place.city || "Ẩn danh"}</span>
                    <div className="flex">
                      {Array.from({ length: place.rating }).map((_, i) => (
                        <Star key={i} size={8} className="fill-amber-400 text-amber-400" />
                      ))}
                    </div>
                  </div>
-                 <h4 className="font-bold text-sm leading-tight text-ink w-full truncate">{place.name}</h4>
+                 <h4 className="font-bold text-xs leading-tight text-ink w-full truncate mb-1">{place.name}</h4>
                  {place.price !== undefined && (
-                   <div className="text-[10px] font-mono font-bold text-crimson mb-1">
+                   <div className="text-[9px] font-mono font-bold text-crimson mb-1">
                      {place.price.toLocaleString()} VNĐ
                    </div>
-                 )}
-                 {place.review && (
-                   <p className="mt-1 text-[10px] text-ink/70 line-clamp-1 italic">"{place.review}"</p>
                  )}
                </div>
              ))}
@@ -435,7 +442,10 @@ export function Places({
                <div className="flex justify-between items-start mb-3 gap-2 w-full">
                   <div className="flex flex-col flex-1 min-w-0">
                     <div className="flex items-start gap-2 flex-wrap">
-                      <h3 className="font-bold text-xl leading-tight text-ink break-words min-w-0">{place.name}</h3>
+                      <h3 className="font-bold text-xl leading-tight text-ink break-words min-w-0">
+                        {place.name}
+                        {place.city && <span className="ml-2 text-xs font-normal text-ink/40 uppercase tracking-widest">({place.city})</span>}
+                      </h3>
                       {place.price !== undefined && (
                         <span className="font-mono font-bold text-xs bg-crimson/10 text-crimson px-1.5 py-0.5 rounded border border-crimson/20">
                           {place.price.toLocaleString()} VNĐ

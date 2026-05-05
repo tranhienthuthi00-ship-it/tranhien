@@ -27,6 +27,7 @@ export interface FoodPlace {
   status: 'Visited' | 'Want to visit';
   rating: number;
   price?: number;
+  city?: string;
   address?: string;
   link?: string;
   review?: string;
