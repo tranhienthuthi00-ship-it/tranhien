@@ -109,12 +109,50 @@ export function CalendarView({
     return logs.filter(l => l.date === dStr);
   };
 
-  const getMonthlyLogs = () => {
-    const mStr = format(currentDate, 'yyyy-MM');
-    return logs.filter(l => l.date.startsWith(mStr)).sort((a, b) => b.date.localeCompare(a.date));
+  const getGroupedEvents = () => {
+    const events = logs
+      .filter(l => l.type === 'Event' && l.date.startsWith(format(currentDate, 'yyyy-MM')))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    if (events.length === 0) return [];
+
+    const grouped: {
+      content: string,
+      startDate: string,
+      endDate: string,
+      time?: string,
+      id: string
+    }[] = [];
+
+    events.forEach(event => {
+      const lastGroup = grouped[grouped.length - 1];
+      
+      if (lastGroup && lastGroup.content === event.content) {
+        // Check if it's consecutive (calculating difference in days)
+        const prevDate = new Date(lastGroup.endDate);
+        const currDate = new Date(event.date);
+        const diffTime = Math.abs(currDate.getTime() - prevDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays <= 1) {
+          lastGroup.endDate = event.date;
+          return;
+        }
+      }
+      
+      grouped.push({
+        id: event.id,
+        content: event.content,
+        startDate: event.date,
+        endDate: event.date,
+        time: event.time
+      });
+    });
+
+    return grouped;
   };
 
-  const monthlyLogs = getMonthlyLogs();
+  const groupedEvents = getGroupedEvents();
 
   return (
     <div className="max-w-6xl mx-auto p-2 md:p-4 flex flex-col gap-8">
@@ -276,40 +314,41 @@ export function CalendarView({
         <div className="flex items-center justify-between">
           <h3 className="text-2xl font-sans font-black tracking-tight uppercase">Monthly Recap: {format(currentDate, "MMMM yyyy")}</h3>
           <div className="flex gap-4 text-xs font-sans font-bold text-ink/40">
-            <span>{monthlyLogs.filter(l => l.type === 'Event').length} Events</span>
-            <span>{monthlyLogs.filter(l => l.type === 'Reflection').length} Reflections</span>
+            <span>{groupedEvents.length} Events Grouped</span>
           </div>
         </div>
         
-        {monthlyLogs.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {monthlyLogs.map(log => (
-              <div key={log.id} className="p-4 bg-white/60 sketch-border border-dashed border-ink/20 flex flex-col gap-2 relative group hover:scale-[1.01] transition-all">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-ink/40">
-                    {format(new Date(log.date), "do")}
-                  </span>
-                  <span className={cn("text-[10px] font-sans font-bold px-2 py-0.5 rounded-full border", log.type === 'Event' ? "text-crimson border-crimson/30" : "text-ink/60 border-ink/20")}>
-                    {log.type}
-                  </span>
-                </div>
-                {log.type === 'Event' && log.time && (
-                  <span className="text-xs font-sans font-bold text-ink/50">{log.time}</span>
-                )}
-                <p className={cn("line-clamp-3", log.type === 'Reflection' ? "hand-text text-xl" : "font-sans text-base")}>
-                  {log.content}
-                </p>
-                {log.type === 'Reflection' && log.icon && (
-                  <div className="absolute bottom-2 right-2 opacity-10">
-                    <HandDrawnIcon type={log.icon} className="w-8 h-8" />
+        {groupedEvents.length > 0 ? (
+          <div className="relative border-l-2 border-ink/10 ml-4 py-4 space-y-8">
+            {groupedEvents.map((event, idx) => (
+              <div key={event.id} className="relative pl-8">
+                {/* Timeline Dot */}
+                <div className="absolute left-[-9px] top-1.5 w-4 h-4 rounded-full bg-crimson sketch-border border-2 border-paper" />
+                
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-sans font-black uppercase tracking-widest bg-ink text-paper px-2 py-0.5 rounded">
+                      {event.startDate === event.endDate 
+                        ? format(new Date(event.startDate), "do MMMM")
+                        : `${format(new Date(event.startDate), "do")} - ${format(new Date(event.endDate), "do MMMM")}`
+                      }
+                    </span>
+                    {event.time && (
+                      <span className="text-xs font-sans font-bold text-ink/50 italic">{event.time}</span>
+                    )}
                   </div>
-                )}
+                  <div className="p-4 bg-white/80 sketch-border border-dashed shadow-sm">
+                    <p className="font-sans text-lg font-bold text-ink leading-tight">
+                      {event.content}
+                    </p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         ) : (
           <div className="text-center py-12 opacity-40">
-            <p className="hand-text text-2xl">No logs for this month yet. Start writing!</p>
+            <p className="hand-text text-2xl">No events recorded this month.</p>
           </div>
         )}
       </div>

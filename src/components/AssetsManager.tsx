@@ -363,20 +363,20 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
           const cat = getCategory(asset.category);
           return (
           <div key={asset.id} className="p-4 bg-white/60 sketch-border flex flex-col justify-between group relative overflow-hidden" style={{ borderTopWidth: '4px', borderTopColor: getCategoryColor(asset.category) }}>
-            <div className="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-white/90 to-transparent opacity-0 translate-x-full group-hover:opacity-100 group-hover:translate-x-0 transition-all flex items-center justify-end px-3 gap-2">
+            <div className="absolute top-1 right-1 flex items-center justify-end px-2 gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity z-20">
                <button 
                  onClick={() => startEdit(asset)}
                  className="p-1.5 bg-ink text-white rounded-lg shadow-sm hover:scale-110 transition-transform"
                  title="Sửa"
                >
-                 <Edit2 size={14} />
+                 <Edit2 size={12} />
                </button>
                <button 
                  onClick={() => removeAsset(asset.id)}
                  className="p-1.5 bg-crimson text-white rounded-lg shadow-sm hover:scale-110 transition-transform"
                  title="Xóa"
                >
-                 <Trash2 size={14} />
+                 <Trash2 size={12} />
                </button>
             </div>
 

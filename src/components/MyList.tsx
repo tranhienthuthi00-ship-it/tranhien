@@ -350,9 +350,38 @@ export function MyList({
               "flex flex-col py-2 px-3 sketch-border transition-all relative group w-full overflow-hidden",
               wish.necessity === 'High' ? "bg-crimson/5 border-crimson" : "bg-white/50 border-ink/10 hover:border-ink/30"
             )}>
-                <div className="flex justify-between items-start">
-                  <span className={cn("font-bold text-base pr-8", wish.necessity === 'High' && "text-crimson")}>{wish.content}</span>
-                  {wish.price !== undefined && <span className="font-mono font-medium text-ink/60 bg-white px-1.5 py-0.5 border border-ink/10 rounded">{wish.price.toLocaleString()} VNĐ</span>}
+                <div className="flex justify-between items-start gap-4">
+                  <span className={cn("font-bold text-base flex-1 min-w-0 break-words", wish.necessity === 'High' && "text-crimson")}>{wish.content}</span>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    {wish.price !== undefined && <span className="font-mono font-medium text-[11px] text-ink/60 bg-white px-1.5 py-0.5 border border-ink/10 rounded">{wish.price.toLocaleString()} VNĐ</span>}
+                    <div className="flex gap-1.5 mt-1">
+                       <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          startEditWish(wish);
+                          document.getElementById('wishlist-section')?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="text-ink/40 hover:text-ink"
+                        title="Sửa"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                      </button>
+                      <button 
+                        onClick={(e) => toggleWorthBuying(wish.id, e)}
+                        className={cn("hover:text-amber-500", wish.isWorthBuying ? "text-amber-500" : "text-ink/40")}
+                        title="Đáng mua"
+                      >
+                        <Star size={12} className={wish.isWorthBuying ? "fill-current" : ""} />
+                      </button>
+                      <button 
+                         onClick={() => removeWish(wish.id)}
+                         className="text-ink/40 hover:text-crimson"
+                         title="Xóa"
+                       >
+                         <Trash2 size={12} />
+                       </button>
+                    </div>
+                  </div>
                </div>
 
                {wish.tags && wish.tags.length > 0 && (
@@ -386,19 +415,19 @@ export function MyList({
                      {wish.necessity} Need
                    </span>
                  </div>
-                 <span className="text-xs opacity-40">{new Date(wish.addedDate).toLocaleDateString()}</span>
+                 <span className="text-[10px] opacity-40 uppercase font-sans font-bold">{new Date(wish.addedDate).toLocaleDateString()}</span>
                </div>
                
                {wish.history && wish.history.length > 0 && (
                  <div className="mt-4 space-y-2 border-t border-ink/10 pt-3">
                    {wish.history.map((entry, idx) => (
-                     <div key={idx} className="flex gap-2 items-start text-xs">
-                       <span className={cn("px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase", 
+                     <div key={idx} className="flex gap-2 items-start text-[11px]">
+                       <span className={cn("px-1 py-0.5 rounded border text-[8px] font-bold uppercase", 
                           entry.necessity === 'High' ? "border-crimson text-crimson bg-crimson/5" :
                           entry.necessity === 'Medium' ? "border-orange-400 text-orange-600 bg-orange-400/5" :
                           "border-ink/20 text-ink/50 bg-ink/5"
                        )}>{entry.necessity}</span>
-                       <span className="opacity-50 min-w-16">{new Date(entry.date).toLocaleDateString()}</span>
+                       <span className="opacity-50 min-w-[60px]">{new Date(entry.date).toLocaleDateString()}</span>
                        <span className="font-hand italic text-ink/80 flex-1">{entry.note}</span>
                      </div>
                    ))}
@@ -412,19 +441,19 @@ export function MyList({
                      setReviewNecessity(wish.necessity);
                      setReviewNote("");
                    }}
-                   className="mt-3 text-[11px] font-bold text-ink/40 hover:text-ink text-left w-max transition-colors"
+                   className="mt-3 text-[10px] font-bold text-ink/40 hover:text-ink text-left w-max transition-colors border-b border-dotted"
                  >
-                   + Add Review
+                   + Review Progress
                  </button>
                )}
 
                {activeReviewId === wish.id && (
-                 <div className="mt-3 bg-white/60 p-3 rounded border border-ink/20 border-dashed">
+                 <div className="mt-3 bg-white/60 p-2 rounded border border-ink/20 border-dashed">
                     <textarea 
                       value={reviewNote}
                       onChange={(e) => setReviewNote(e.target.value)}
-                      placeholder="Đánh giá mức độ cần thiết hôm nay..."
-                      className="sketch-input bg-white w-full min-h-[50px] resize-y text-xs mb-2 p-1.5 rounded"
+                      placeholder="Review necessity..."
+                      className="sketch-input bg-white w-full min-h-[40px] resize-y text-[11px] mb-2 p-1.5 rounded"
                       rows={2}
                     />
                     <div className="flex justify-between items-center">
@@ -434,51 +463,23 @@ export function MyList({
                              key={level}
                              type="button"
                              onClick={() => setReviewNecessity(level)}
-                             className={cn("px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border transition-colors", reviewNecessity === level ? "bg-ink text-paper border-ink" : "border-ink/20 text-ink/60 hover:bg-ink/5")}
+                             className={cn("px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full border transition-colors", reviewNecessity === level ? "bg-ink text-paper border-ink" : "border-ink/20 text-ink/60 hover:bg-ink/5")}
                            >
                              {level}
                            </button>
                          ))}
                        </div>
                        <div className="flex gap-2">
-                          <button onClick={() => setActiveReviewId(null)} className="text-[11px] text-ink/60 hover:text-ink font-bold px-2">Hủy</button>
-                          <button onClick={() => addWishlistReview(wish.id)} className="text-[11px] sketch-button sketch-button-primary bg-ink text-paper px-3 py-1 flex items-center gap-1">Lưu</button>
+                          <button onClick={() => setActiveReviewId(null)} className="text-[10px] text-ink/60 hover:text-ink font-bold px-1">X</button>
+                          <button onClick={() => addWishlistReview(wish.id)} className="text-[10px] sketch-button sketch-button-primary bg-ink text-paper px-2 py-0.5">Save</button>
                        </div>
                     </div>
                  </div>
                )}
                
-               <div className="absolute -top-3 -right-3 flex gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                 <button 
-                   onClick={(e) => {
-                     e.preventDefault();
-                     startEditWish(wish);
-                     document.getElementById('wishlist-section')?.scrollIntoView({ behavior: 'smooth' });
-                   }}
-                   className="bg-paper text-ink/60 border-2 border-ink/40 rounded-full p-1 hover:bg-ink hover:text-white shadow-sm"
-                   title="Sửa món đồ"
-                 >
-                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                 </button>
-                 <button 
-                   onClick={(e) => toggleWorthBuying(wish.id, e)}
-                   className="bg-paper text-amber-500 border-2 border-amber-400 rounded-full p-1 hover:bg-amber-400 hover:text-white shadow-sm"
-                   title="Đáng mua"
-                 >
-                   <Star size={12} className={wish.isWorthBuying ? "fill-current" : ""} />
-                 </button>
-                 <button 
-                    onClick={() => removeWish(wish.id)}
-                    className="bg-paper text-ink/40 border-2 border-ink rounded-full p-1 hover:bg-crimson hover:border-crimson hover:text-white shadow-sm"
-                    title="Xóa"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-               </div>
-
                {wish.isWorthBuying && (
-                 <div className="absolute -top-2 left-2 rotate-[-15deg] pointer-events-none">
-                    <Star size={20} className="fill-amber-400 text-amber-500 drop-shadow-sm" />
+                 <div className="absolute top-2 left-1 rotate-[-15deg] pointer-events-none opacity-20">
+                    <Star size={24} className="fill-amber-400 text-amber-500 drop-shadow-sm" />
                  </div>
                )}
             </div>

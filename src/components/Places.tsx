@@ -150,53 +150,53 @@ export function Places({
     });
 
   return (
-    <div className="max-w-4xl mx-auto px-4 font-sans pb-10">
-      <div className="mb-8 text-center">
-         <h1 className="text-4xl font-black font-logo tracking-wide mb-2 uppercase">Spatial Spots</h1>
-         <p className="text-ink/60 font-medium">Lưu lại những nơi tâm đắc hoặc muốn ghé thăm</p>
+    <div className="max-w-4xl mx-auto px-2 md:px-4 font-sans pb-10">
+      <div className="mb-6 text-center">
+         <h1 className="text-3xl md:text-4xl font-black font-logo tracking-wide mb-2 uppercase">Spatial Spots</h1>
+         <p className="text-xs md:text-sm text-ink/60 font-medium">Lưu lại những nơi tâm đắc hoặc muốn ghé thăm</p>
       </div>
 
-      <form onSubmit={addPlace} className="bg-paper p-5 sketch-border border-dashed border-ink/30 mb-8 space-y-4 relative">
-        <div className="absolute -top-3 -left-3 rotate-[-10deg]">
-          <span className="bg-crimson text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider sketch-border">
+      <form onSubmit={addPlace} className="bg-paper p-4 md:p-5 sketch-border border-dashed border-ink/30 mb-8 space-y-4 relative mx-1">
+        <div className="absolute -top-3 -left-2 rotate-[-10deg]">
+          <span className="bg-crimson text-white px-2 py-0.5 text-[9px] md:text-[10px] font-bold uppercase tracking-wider sketch-border whitespace-nowrap">
             {editingId ? "Cập Nhật Địa Điểm" : "Thêm Địa Điểm"}
           </span>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Tên địa điểm</label>
+              <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Tên địa điểm</label>
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Ví dụ: Cà phê Phê La, Đà Lạt..."
-                className="sketch-input bg-white/50 py-2"
+                placeholder="Ví dụ: Cà phê Phê La..."
+                className="sketch-input bg-white/50 py-2 text-sm"
                 required
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Phân loại</label>
+                <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Phân loại</label>
                 <select 
                   value={newCat} 
                   onChange={(e) => setNewCat(e.target.value as any)}
-                  className="sketch-input bg-white/50 cursor-pointer py-2"
+                  className="sketch-input bg-white/50 cursor-pointer py-2 text-xs"
                 >
-                  <option value="Food">Food (Quán ăn)</option>
-                  <option value="Cafe">Cafe (Cà phê)</option>
-                  <option value="Dessert">Dessert (Đồ ngọt)</option>
-                  <option value="Travel">Travel (Du lịch)</option>
-                  <option value="Other">Other (Khai khác)</option>
+                  <option value="Food">Food</option>
+                  <option value="Cafe">Cafe</option>
+                  <option value="Dessert">Dessert</option>
+                  <option value="Travel">Travel</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Trạng thái</label>
+                <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Trạng thái</label>
                 <select 
                   value={newStatus} 
                   onChange={(e) => setNewStatus(e.target.value as any)}
-                  className="sketch-input bg-white/50 cursor-pointer py-2"
+                  className="sketch-input bg-white/50 cursor-pointer py-2 text-xs"
                 >
                   <option value="Want to visit">Muốn đi ✨</option>
                   <option value="Visited">Đã đi ✅</option>
@@ -205,86 +205,86 @@ export function Places({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Địa chỉ (nếu có)</label>
+              <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Địa chỉ (nếu có)</label>
               <input
                 value={newAddress}
                 onChange={(e) => setNewAddress(e.target.value)}
                 placeholder="Đường, quận, thành phố..."
-                className="sketch-input bg-white/50 py-2"
+                className="sketch-input bg-white/50 py-2 text-sm"
               />
             </div>
             
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Link (nếu có)</label>
+              <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Link (nếu có)</label>
               <input
                 value={newLink}
                 onChange={(e) => setNewLink(e.target.value)}
-                placeholder="https://g.page/..."
-                className="sketch-input bg-white/50 py-2"
+                placeholder="https://..."
+                className="sketch-input bg-white/50 py-2 text-sm"
               />
             </div>
             
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Tags (Ví dụ: Chill, Hẹn hò, Đắt...)</label>
+              <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Tags</label>
               <div className="flex gap-2">
                 <input
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  placeholder="Nhấn Enter để thêm..."
-                  className="sketch-input bg-white/50 py-2 flex-1"
+                  placeholder="Thêm tag..."
+                  className="sketch-input bg-white/50 py-2 flex-1 text-xs"
                 />
-                <button type="button" onClick={addTag} className="sketch-button px-3 py-1">Add</button>
+                <button type="button" onClick={addTag} className="sketch-button px-2 py-1 text-xs">Add</button>
               </div>
-              <div className="flex flex-wrap gap-2 mt-1">
+              <div className="flex flex-wrap gap-1 mt-1">
                 {newTags.map(tag => (
-                  <span key={tag} className="bg-ink/5 border border-ink/20 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+                  <span key={tag} className="bg-ink/5 border border-ink/20 px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-1">
                     #{tag}
-                    <button type="button" onClick={() => removeNewTag(tag)} className="text-crimson hover:text-red-700">×</button>
+                    <button type="button" onClick={() => removeNewTag(tag)} className="text-crimson">×</button>
                   </span>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Ghi chú (Note khi đi)</label>
+              <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Ghi chú</label>
               <textarea
                 value={newNotes}
                 onChange={(e) => setNewNotes(e.target.value)}
-                placeholder="Giờ mở cửa, món must-try..."
-                className="sketch-input bg-white/50 w-full min-h-[50px] resize-none py-2"
+                placeholder="Giờ mở cửa..."
+                className="sketch-input bg-white/50 w-full min-h-[50px] resize-none py-2 text-sm"
               />
             </div>
             
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Review (Sau khi đi)</label>
+              <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Review</label>
               <textarea
                 value={newReview}
                 onChange={(e) => setNewReview(e.target.value)}
-                placeholder="Trải nghiệm thực tế, có đáng tiền không?"
-                className="sketch-input bg-white/50 w-full min-h-[50px] flex-1 resize-none py-2"
+                placeholder="Trải nghiệm thực tế..."
+                className="sketch-input bg-white/50 w-full min-h-[50px] flex-1 resize-none py-2 text-sm"
               />
-              <div className="flex items-center justify-between mt-1">
+              <div className="flex flex-wrap items-center justify-between mt-1 gap-2">
                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-ink/50">Đánh giá:</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-ink/50">Đánh giá:</span>
                     <select 
                       value={newRating} 
                       onChange={(e) => setNewRating(Number(e.target.value))}
-                      className="sketch-input bg-white/50 w-16 cursor-pointer py-1"
+                      className="sketch-input bg-white/50 w-14 cursor-pointer py-1 text-xs px-1"
                     >
                       {[5,4,3,2,1].map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                  </div>
                  <div className="flex items-center gap-2">
                     {editingId && (
-                      <button type="button" onClick={cancelEdit} className="sketch-button text-xs py-2 px-4 whitespace-nowrap">
+                      <button type="button" onClick={cancelEdit} className="sketch-button text-xs py-1.5 px-3">
                         Hủy
                       </button>
                     )}
-                    <button type="submit" className="sketch-button sketch-button-primary bg-ink text-paper text-sm py-2 px-8 flex items-center gap-2 whitespace-nowrap">
-                       <Plus size={16} /> {editingId ? "Cập Nhật" : "Lưu"}
+                    <button type="submit" className="sketch-button sketch-button-primary bg-ink text-paper text-xs py-1.5 px-4 flex items-center gap-1">
+                       <Plus size={14} /> {editingId ? "Cập Nhật" : "Lưu"}
                     </button>
                  </div>
               </div>
@@ -293,78 +293,76 @@ export function Places({
         </div>
       </form>
 
-      <div className="flex flex-col gap-4 mb-8">
-        <div className="flex gap-2 flex-wrap justify-center">
+      <div className="flex flex-col gap-4 mb-8 sticky top-0 bg-[#f4f1ea]/80 backdrop-blur-md py-4 z-20 mx-[-1rem] px-4">
+        <div className="flex gap-1.5 flex-wrap justify-center">
           {(['All', 'Food', 'Cafe', 'Dessert', 'Travel', 'Other'] as const).map(cat => (
             <button
               key={cat}
               onClick={() => setFilter(cat)}
               className={cn(
-                "px-4 py-1 rounded-full border-2 transition-all font-bold text-[11px] uppercase tracking-wider",
+                "px-3 py-1 rounded-full border-2 transition-all font-bold text-[10px] uppercase tracking-wider",
                 filter === cat 
-                  ? "bg-ink text-paper border-ink shadow-md" 
-                  : "border-ink/20 text-ink/60 hover:bg-ink/5 hover:border-ink/40"
+                  ? "bg-ink text-paper border-ink shadow-sm" 
+                  : "border-ink/10 text-ink/60 hover:bg-ink/5 hover:border-ink/40"
               )}
             >
               {cat}
             </button>
           ))}
         </div>
-        <div className="flex gap-4 justify-center items-center">
+        <div className="flex flex-wrap gap-3 justify-center items-center">
           <button
               onClick={() => setShowTopTags(!showTopTags)}
               className={cn(
-                "px-3 py-1 font-bold text-[11px] uppercase tracking-widest rounded transition-all sketch-border",
+                "px-2 py-1 font-bold text-[10px] uppercase tracking-widest rounded transition-all sketch-border",
                 showTopTags ? "bg-amber-100/50 text-amber-700" : "bg-white/50 text-ink/60 hover:bg-white"
               )}
             >
-              🏆 Top Theo Hashtag
+              🏆 Top Tag
           </button>
-          
-          <div className="w-[1px] h-3 bg-ink/10 mx-2" />
           
           {(['All', 'Want to visit', 'Visited'] as const).map(status => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
               className={cn(
-                "font-sans font-bold text-xs transition-colors px-2 py-0.5",
+                "font-sans font-bold text-[10px] transition-colors px-1.5 py-0.5 uppercase tracking-tighter",
                 statusFilter === status ? "text-crimson border-b-2 border-crimson" : "text-ink/40 hover:text-ink/70"
               )}
             >
               {status === 'All' ? 'Tất cả' : status === 'Want to visit' ? 'Muốn đi' : 'Đã đi'}
             </button>
           ))}
-          <div className="w-[1px] h-3 bg-ink/10 mx-2" />
-          <div className="flex gap-2">
+
+          <div className="flex gap-2 ml-1">
             <button 
               onClick={() => setSortBy('Recent')}
-              className={cn("text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 transition-opacity", sortBy === 'Recent' ? "text-ink opacity-100" : "text-ink opacity-30 hover:opacity-50")}
+              className={cn("text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.5", sortBy === 'Recent' ? "text-ink opacity-100" : "text-ink opacity-30")}
             >
-              Mới nhất
+              Mới
             </button>
             <button 
               onClick={() => setSortBy('Rating')}
-              className={cn("text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 transition-opacity", sortBy === 'Rating' ? "text-ink opacity-100" : "text-ink opacity-30 hover:opacity-50")}
+              className={cn("text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.5", sortBy === 'Rating' ? "text-ink opacity-100" : "text-ink opacity-30")}
             >
-              Đánh giá
+              Rate
             </button>
           </div>
         </div>
         {allTags.length > 0 && (
-          <div className="flex flex-wrap gap-2 justify-center border-t border-dashed border-ink/10 pt-4">
+          <div className="flex flex-wrap gap-1.5 justify-center border-t border-dashed border-ink/10 pt-3 pb-1">
             <button 
               onClick={() => setSelectedTag(null)}
-              className={cn("px-2 py-0.5 text-[10px] font-bold uppercase rounded transition-all", !selectedTag ? "text-crimson bg-crimson/5 underline underline-offset-4" : "text-ink/40 hover:text-ink/60")}
+              className={cn("px-2 py-0.5 text-[9px] font-bold uppercase rounded transition-all", !selectedTag ? "text-crimson bg-crimson/5 underline underline-offset-4" : "text-ink/40 hover:text-ink/60")}
             >
               #Tất cả
             </button>
-            {allTags.map(tag => (
+            {allTags.sort().map(tag => (
               <button
                 key={tag}
                 onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
                 className={cn(
-                  "px-2 py-0.5 text-[10px] font-bold uppercase rounded transition-all",
+                  "px-2 py-0.5 text-[9px] font-bold uppercase rounded transition-all",
                   selectedTag === tag ? "text-crimson bg-crimson/5 underline underline-offset-4 font-black" : "text-ink/40 hover:text-ink/60"
                 )}
               >
@@ -376,23 +374,22 @@ export function Places({
       </div>
 
       {showTopTags && topByTag.length > 0 && (
-        <div className="mb-8 p-4 bg-amber-50 sketch-border rounded relative">
-           <h2 className="font-bold uppercase tracking-widest text-xs text-amber-900 mb-4 text-center">Top 1 Địa Điểm Tốt Nhất Theo Hashtag</h2>
-           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="mb-8 p-4 bg-amber-50 sketch-border rounded relative mx-1">
+           <h2 className="font-bold uppercase tracking-widest text-[10px] text-amber-900 mb-4 text-center">Top 1 Theo Hashtag</h2>
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
              {topByTag.map(({ tag, place }) => place && (
                <div key={tag} className="bg-white p-3 rounded sketch-border border-amber-200">
                  <div className="flex justify-between items-center mb-2">
-                   <span className="font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded text-[10px] uppercase">#{tag}</span>
+                   <span className="font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded text-[9px] uppercase">#{tag}</span>
                    <div className="flex">
                      {Array.from({ length: place.rating }).map((_, i) => (
-                       <Star key={i} size={10} className="fill-amber-400 text-amber-400" />
+                       <Star key={i} size={8} className="fill-amber-400 text-amber-400" />
                      ))}
                    </div>
                  </div>
                  <h4 className="font-bold text-sm leading-tight text-ink w-full truncate">{place.name}</h4>
-                 <div className="text-[10px] text-ink/50 tracking-widest uppercase mt-1">{place.category}</div>
                  {place.review && (
-                   <p className="mt-2 text-xs text-ink/70 line-clamp-2 italic">"{place.review}"</p>
+                   <p className="mt-1 text-[10px] text-ink/70 line-clamp-1 italic">"{place.review}"</p>
                  )}
                </div>
              ))}
@@ -400,9 +397,9 @@ export function Places({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin content-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pr-1 content-start mx-1 pb-20">
         {filteredPlaces.map(place => (
-          <div key={place.id} className="p-5 sketch-border bg-white/60 relative group flex flex-col justify-between hover:bg-white transition-all hover:translate-y-[-2px]">
+          <div key={place.id} className="p-4 md:p-5 sketch-border bg-white/60 relative group flex flex-col justify-between hover:bg-white transition-all">
              <div>
                <div className="flex justify-between items-start mb-3 gap-2 w-full">
                   <div className="flex flex-col flex-1 min-w-0">
