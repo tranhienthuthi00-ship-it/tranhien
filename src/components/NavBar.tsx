@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 export type Tab = "English Hub" | "Calendar" | "Lists" | "Places" | "Content" | "Dashboard";
 
-export function NavBar({ activeTab, setActiveTab, lastSaved }: { activeTab: Tab; setActiveTab: (tab: Tab) => void, lastSaved?: string }) {
+export function NavBar({ activeTab, setActiveTab, lastSaved, onLogout }: { activeTab: Tab; setActiveTab: (tab: Tab) => void, lastSaved?: string, onLogout: () => void }) {
   const tabs: Tab[] = ["English Hub", "Calendar", "Lists", "Places", "Content", "Dashboard"];
 
   return (
@@ -61,11 +61,17 @@ export function NavBar({ activeTab, setActiveTab, lastSaved }: { activeTab: Tab;
           ))}
         </ul>
         {lastSaved && (
-          <div className="hidden lg:flex flex-col items-end opacity-20 hover:opacity-100 transition-opacity ml-4">
+          <div className="hidden lg:flex flex-col items-end opacity-20 hover:opacity-100 transition-opacity ml-4 mr-4">
             <span className="text-[8px] font-mono uppercase tracking-tighter">Auto-Saved</span>
             <span className="text-[10px] font-mono leading-none">{lastSaved}</span>
           </div>
         )}
+        <button
+          onClick={onLogout}
+          className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded border border-ink/20 hover:bg-ink hover:text-paper transition-colors"
+        >
+          Logout
+        </button>
       </div>
     </nav>
   );

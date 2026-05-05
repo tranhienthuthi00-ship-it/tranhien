@@ -107,9 +107,15 @@ export default function App() {
   });
 
   const [lastSaved, setLastSaved] = useState<string>("");
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
 
   // Saving to localStorage whenever state changes
   useEffect(() => {
+    if (!isLoaded) return;
     localStorage.setItem('spatial_hub_words', JSON.stringify(words));
     localStorage.setItem('spatial_hub_tasks', JSON.stringify(tasks));
     localStorage.setItem('spatial_hub_wishlist', JSON.stringify(wishlist));
@@ -118,7 +124,7 @@ export default function App() {
     localStorage.setItem('spatial_hub_tags', JSON.stringify(tags));
     localStorage.setItem('spatial_hub_content_ideas', JSON.stringify(contentIdeas));
     setLastSaved(new Date().toLocaleTimeString());
-  }, [words, tasks, wishlist, logs, foodPlaces, tags, contentIdeas]);
+  }, [words, tasks, wishlist, logs, foodPlaces, tags, contentIdeas, isLoaded]);
 
   const updateWordDifficulty = (id: string, newDifficulty: number) => {
     setWords(words.map(w => w.id === id ? { ...w, difficulty: newDifficulty } : w));
@@ -127,6 +133,11 @@ export default function App() {
   const handleLogin = () => {
     localStorage.setItem('isAuthenticated', 'true');
     setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    setIsAuthenticated(false);
   };
 
   if (!isAuthenticated) {
@@ -144,7 +155,7 @@ export default function App() {
           </filter>
         </defs>
       </svg>
-      <NavBar activeTab={activeTab} setActiveTab={setActiveTab} lastSaved={lastSaved} />
+      <NavBar activeTab={activeTab} setActiveTab={setActiveTab} lastSaved={lastSaved} onLogout={handleLogout} />
       
       <main className="mt-4 relative z-10 animate-in fade-in duration-500">
         {activeTab === "English Hub" && (
