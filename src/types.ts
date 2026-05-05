@@ -26,6 +26,7 @@ export interface FoodPlace {
   category: 'Food' | 'Cafe' | 'Dessert' | 'Travel' | 'Other';
   status: 'Visited' | 'Want to visit';
   rating: number;
+  price?: number;
   address?: string;
   link?: string;
   review?: string;

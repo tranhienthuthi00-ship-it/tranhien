@@ -25,6 +25,7 @@ export function Places({
   const [newLink, setNewLink] = useState("");
   const [newReview, setNewReview] = useState("");
   const [newNotes, setNewNotes] = useState("");
+  const [newPrice, setNewPrice] = useState<string>("");
   const [tagInput, setTagInput] = useState("");
   const [newTags, setNewTags] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -39,6 +40,7 @@ export function Places({
     setNewLink(place.link || "");
     setNewReview(place.review || "");
     setNewNotes(place.notes || "");
+    setNewPrice(place.price?.toString() || "");
     setNewTags(place.tags || []);
     setTagInput("");
     
@@ -53,6 +55,7 @@ export function Places({
     setNewLink("");
     setNewReview("");
     setNewNotes("");
+    setNewPrice("");
     setNewRating(5);
     setNewStatus('Want to visit');
     setNewTags([]);
@@ -84,6 +87,7 @@ export function Places({
         link: newLink || undefined,
         review: newReview || undefined,
         notes: newNotes || undefined,
+        price: newPrice ? Number(newPrice) : undefined,
         tags: newTags.length > 0 ? newTags : undefined
       } : p));
       setEditingId(null);
@@ -98,6 +102,7 @@ export function Places({
         link: newLink || undefined,
         review: newReview || undefined,
         notes: newNotes || undefined,
+        price: newPrice ? Number(newPrice) : undefined,
         tags: newTags.length > 0 ? newTags : undefined
       }, ...places]);
     }
@@ -107,6 +112,7 @@ export function Places({
     setNewLink("");
     setNewReview("");
     setNewNotes("");
+    setNewPrice("");
     setNewRating(5);
     setNewStatus('Want to visit');
     setNewTags([]);
@@ -131,7 +137,11 @@ export function Places({
     const placesWithTag = places.filter(p => p.status === 'Visited' && p.tags && p.tags.includes(tag));
     // get the highest rated place, or null if none
     if (placesWithTag.length === 0) return { tag, place: null };
-    placesWithTag.sort((a, b) => b.rating - a.rating);
+    placesWithTag.sort((a, b) => {
+      if (b.rating !== a.rating) return b.rating - a.rating;
+      // If ratings are equal, prioritize cheaper
+      return (a.price ?? Infinity) - (b.price ?? Infinity);
+    });
     return { tag, place: placesWithTag[0] };
   }).filter(t => t.place !== null);
 
@@ -210,6 +220,17 @@ export function Places({
                 value={newAddress}
                 onChange={(e) => setNewAddress(e.target.value)}
                 placeholder="Đường, quận, thành phố..."
+                className="sketch-input bg-white/50 py-2 text-sm"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Giá tiền (nếu có - VNĐ)</label>
+              <input
+                type="number"
+                value={newPrice}
+                onChange={(e) => setNewPrice(e.target.value)}
+                placeholder="Ví dụ: 50000"
                 className="sketch-input bg-white/50 py-2 text-sm"
               />
             </div>
@@ -388,6 +409,11 @@ export function Places({
                    </div>
                  </div>
                  <h4 className="font-bold text-sm leading-tight text-ink w-full truncate">{place.name}</h4>
+                 {place.price !== undefined && (
+                   <div className="text-[10px] font-mono font-bold text-crimson mb-1">
+                     {place.price.toLocaleString()} VNĐ
+                   </div>
+                 )}
                  {place.review && (
                    <p className="mt-1 text-[10px] text-ink/70 line-clamp-1 italic">"{place.review}"</p>
                  )}
@@ -405,6 +431,11 @@ export function Places({
                   <div className="flex flex-col flex-1 min-w-0">
                     <div className="flex items-start gap-2 flex-wrap">
                       <h3 className="font-bold text-xl leading-tight text-ink break-words min-w-0">{place.name}</h3>
+                      {place.price !== undefined && (
+                        <span className="font-mono font-bold text-xs bg-crimson/10 text-crimson px-1.5 py-0.5 rounded border border-crimson/20">
+                          {place.price.toLocaleString()} VNĐ
+                        </span>
+                      )}
                       <button 
                         onClick={() => toggleStatus(place.id)}
                         className={cn(
