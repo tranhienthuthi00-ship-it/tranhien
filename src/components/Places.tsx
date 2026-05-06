@@ -16,6 +16,7 @@ export function Places({
   const [sortBy, setSortBy] = useState<'Recent' | 'Rating'>('Recent');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedCityForTop, setSelectedCityForTop] = useState<string>("");
+  const [selectedCategoryForTop, setSelectedCategoryForTop] = useState<string>("");
   const [showTopCities, setShowTopCities] = useState(false);
   
   const [newName, setNewName] = useState("");
@@ -139,10 +140,16 @@ export function Places({
 
   const allTags = Array.from(new Set(places.flatMap(p => p.tags || [])));
   const allCities = Array.from(new Set(places.map(p => p.city).filter(Boolean))) as string[];
+  const categories = ['Food', 'Cafe', 'Dessert', 'Travel', 'Other'] as const;
   
-  // Calculate top 10 places overall or by city prioritized by rating and cheapness
+  // Calculate top 10 places overall or by city/category prioritized by rating and cheapness
   const topPlaces = places
-    .filter(p => p.status === 'Visited' && p.rating >= 4 && (!selectedCityForTop || p.city === selectedCityForTop))
+    .filter(p => 
+      p.status === 'Visited' && 
+      p.rating >= 4 && 
+      (!selectedCityForTop || p.city === selectedCityForTop) &&
+      (!selectedCategoryForTop || p.category === selectedCategoryForTop)
+    )
     .sort((a, b) => {
       if (b.rating !== a.rating) return b.rating - a.rating;
       return (a.price ?? Infinity) - (b.price ?? Infinity);
@@ -357,16 +364,28 @@ export function Places({
                 🏆 Top 10
             </button>
             {showTopCities && (
-              <select 
-                value={selectedCityForTop}
-                onChange={(e) => setSelectedCityForTop(e.target.value)}
-                className="bg-paper border-2 border-ink text-[10px] uppercase font-bold py-1 px-1 rounded sketch-border outline-none"
-              >
-                <option value="">Toàn Quốc</option>
-                {allCities.sort().map(city => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
-              </select>
+              <div className="flex gap-1">
+                <select 
+                  value={selectedCityForTop}
+                  onChange={(e) => setSelectedCityForTop(e.target.value)}
+                  className="bg-paper border-2 border-ink text-[10px] uppercase font-bold py-1 px-1 rounded sketch-border outline-none"
+                >
+                  <option value="">Tất cả Tỉnh</option>
+                  {allCities.sort().map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+                <select 
+                  value={selectedCategoryForTop}
+                  onChange={(e) => setSelectedCategoryForTop(e.target.value)}
+                  className="bg-paper border-2 border-ink text-[10px] uppercase font-bold py-1 px-1 rounded sketch-border outline-none"
+                >
+                  <option value="">Tất cả Phân loại</option>
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
           
@@ -425,7 +444,7 @@ export function Places({
       {showTopCities && topPlaces.length > 0 && (
         <div className="mb-8 p-4 bg-amber-50 sketch-border rounded relative mx-1">
            <h2 className="font-bold uppercase tracking-widest text-[10px] text-amber-900 mb-4 text-center">
-             {selectedCityForTop ? `Top 10 ở ${selectedCityForTop}` : "Top 10 Quán 4★+ Rẻ Nhất"}
+             Top 10 {selectedCategoryForTop || "Địa Điểm"} {selectedCityForTop ? `tại ${selectedCityForTop}` : "Toàn Quốc"}
            </h2>
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
              {topPlaces.map((place, idx) => (
