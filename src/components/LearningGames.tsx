@@ -140,12 +140,12 @@ export function LearningGames({
 
   if (words.length < 3) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-lg mx-auto space-y-6">
-        <div className="w-24 h-24 rounded-full bg-ink/5 flex items-center justify-center text-ink/40">
-          <BrainCircuit size={48} />
+      <div className="flex flex-col items-center justify-center min-h-[50vh] md:min-h-[60vh] text-center max-w-lg mx-auto space-y-4 md:space-y-6 p-4">
+        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-ink/5 flex items-center justify-center text-ink/40">
+          <BrainCircuit className="w-8 h-8 md:w-12 md:h-12" />
         </div>
-        <h2 className="text-3xl font-bold font-sans">Brain Training</h2>
-        <p className="hand-text text-2xl">
+        <h2 className="text-2xl md:text-3xl font-bold font-sans">Brain Training</h2>
+        <p className="hand-text text-xl md:text-2xl">
           You need at least 3 words in your Academy before you can start the Random Challenge. Head over there to log some vocab!
         </p>
       </div>
@@ -156,51 +156,51 @@ export function LearningGames({
     const dueCount = words.filter(w => new Date(w.nextReview) <= new Date()).length;
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-lg mx-auto space-y-8">
-        <div className="w-32 h-32 rounded-full border-4 border-dashed border-ink/20 flex items-center justify-center text-ink p-8 relative">
-           <BrainCircuit size={64} className="animate-pulse" />
-           <div className="absolute -bottom-4 bg-crimson text-white px-4 py-1 rounded-full font-sans font-bold text-sm tracking-widest uppercase">SRS Active</div>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] md:min-h-[60vh] text-center max-w-lg mx-auto space-y-6 md:space-y-8 p-4">
+        <div className="w-20 h-20 md:w-32 md:h-32 rounded-full border-4 border-dashed border-ink/20 flex items-center justify-center text-ink p-4 md:p-8 relative">
+           <BrainCircuit className="w-10 h-10 md:w-16 md:h-16 animate-pulse" />
+           <div className="absolute -bottom-3 md:-bottom-4 bg-crimson text-white px-3 md:px-4 py-0.5 md:py-1 rounded-full font-sans font-bold text-[10px] md:text-sm tracking-widest uppercase whitespace-nowrap">SRS Active</div>
         </div>
-        <div>
-          <h2 className="text-4xl font-bold font-sans tracking-tight mb-4">Random Challenge</h2>
-          <p className="hand-text text-2xl opacity-90 mb-4">
+        <div className="w-full">
+          <h2 className="text-3xl md:text-4xl font-bold font-sans tracking-tight mb-2 md:mb-4 px-2">Random Challenge</h2>
+          <p className="hand-text text-xl md:text-2xl opacity-90 mb-4 px-2">
             Our Spaced Repetition engine will bias towards words you find difficult. Let's build that memory muscle.
           </p>
-          <div className="mb-8 font-sans font-bold uppercase tracking-widest text-sm p-3 border-2 border-dashed border-ink/20 inline-block">
+          <div className="mb-6 md:mb-8 font-sans font-bold uppercase tracking-widest text-[10px] md:text-sm p-2 md:p-3 border-2 border-dashed border-ink/20 inline-block">
             {dueCount > 0 ? (
               <span className="text-crimson">🔥 {dueCount} Words due for review!</span>
             ) : (
               <span className="text-ink/60">✅ You're all caught up! Practice anyway?</span>
             )}
           </div>
-          <div className="flex gap-4 justify-center">
+          <div className="grid grid-cols-2 gap-2 md:flex md:gap-4 justify-center px-2">
             <button 
               onClick={() => setGameMode('Flashcard')} 
-              className={cn("px-4 py-2 border-2 text-sm font-bold uppercase tracking-widest rounded-full", gameMode === 'Flashcard' ? "bg-ink text-paper border-ink" : "border-ink/20")}
+              className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-colors", gameMode === 'Flashcard' ? "bg-ink text-paper border-ink" : "border-ink/20")}
             >
               Flashcards
             </button>
             <button 
               onClick={() => setGameMode('Typing')} 
-              className={cn("px-4 py-2 border-2 text-sm font-bold uppercase tracking-widest rounded-full", gameMode === 'Typing' ? "bg-ink text-paper border-ink" : "border-ink/20")}
+              className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-colors", gameMode === 'Typing' ? "bg-ink text-paper border-ink" : "border-ink/20")}
             >
               Typing Test
             </button>
             <button 
               onClick={() => setGameMode('Scramble')} 
-              className={cn("px-4 py-2 border-2 text-sm font-bold uppercase tracking-widest rounded-full", gameMode === 'Scramble' ? "bg-ink text-paper border-ink" : "border-ink/20")}
+              className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-colors", gameMode === 'Scramble' ? "bg-ink text-paper border-ink" : "border-ink/20")}
             >
               Scramble
             </button>
             <button 
               onClick={() => setGameMode('Quiz')} 
-              className={cn("px-4 py-2 border-2 text-sm font-bold uppercase tracking-widest rounded-full", gameMode === 'Quiz' ? "bg-ink text-paper border-ink" : "border-ink/20")}
+              className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-colors", gameMode === 'Quiz' ? "bg-ink text-paper border-ink" : "border-ink/20")}
             >
               Quiz
             </button>
           </div>
         </div>
-        <button onClick={handleStart} className="sketch-button sketch-button-primary text-xl px-12 py-4 mt-8">
+        <button onClick={handleStart} className="sketch-button sketch-button-primary text-lg md:text-xl px-10 md:px-12 py-3 md:py-4 mt-4 md:mt-8">
           Begin Tryout
         </button>
       </div>
@@ -231,14 +231,14 @@ export function LearningGames({
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-4 md:p-6 flex flex-col items-center">
-       <div className="w-full flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2 font-sans font-bold text-ink/50">
-             <ShieldCheck size={20} /> Streak: <span className="text-crimson text-xl">{streak}</span>
-             <span className="ml-4 px-2 py-1 bg-ink/5 rounded text-xs">{gameMode} Mode</span>
+    <div className="max-w-3xl mx-auto p-3 md:p-6 flex flex-col items-center">
+       <div className="w-full flex justify-between items-center mb-4 md:mb-6">
+          <div className="flex items-center gap-2 font-sans font-bold text-ink/50 text-xs md:text-sm">
+             <ShieldCheck className="w-4 h-4 md:w-5 md:h-5" /> Streak: <span className="text-crimson text-lg md:text-xl">{streak}</span>
+             <span className="ml-2 md:ml-4 px-2 py-0.5 md:py-1 bg-ink/5 rounded text-[10px] md:text-xs">{gameMode} Mode</span>
           </div>
-          <button onClick={() => setActiveWordInfo({ word: null, isFlipped: false })} className="text-sm font-sans font-medium text-ink/40 hover:text-ink flex items-center gap-2">
-             <RotateCcw size={16} /> End Session
+          <button onClick={() => setActiveWordInfo({ word: null, isFlipped: false })} className="text-[10px] md:text-sm font-sans font-medium text-ink/40 hover:text-ink flex items-center gap-1 md:gap-2 shrink-0">
+             <RotateCcw className="w-3 h-3 md:w-4 md:h-4" /> End Session
           </button>
        </div>
 
@@ -248,19 +248,19 @@ export function LearningGames({
            <div 
              onClick={handleFlip}
              className={cn(
-               "w-full aspect-[4/3] md:aspect-[16/9] sketch-border bg-white p-6 md:p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-500 preserve-3d shadow-xl",
+               "w-full aspect-auto min-h-[300px] md:aspect-[16/9] sketch-border bg-white p-4 md:p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-500 preserve-3d shadow-xl",
                !isFlipped ? "hover:scale-[1.02] hover:shadow-2xl" : "cursor-default border-crimson"
              )}
            >
-              <div className="space-y-2">
-                <h2 className="text-4xl md:text-5xl font-sans font-black tracking-tight">{word.vocabulary}</h2>
-                <p className="text-lg md:text-xl font-sans text-ink/60">{word.ipa} <span className="italic text-crimson mx-2">{word.wordType}</span></p>
+              <div className="space-y-1 md:space-y-2">
+                <h2 className="text-3xl md:text-5xl font-sans font-black tracking-tight break-words max-w-full px-2">{word.vocabulary}</h2>
+                <p className="text-base md:text-xl font-sans text-ink/60">{word.ipa} <span className="italic text-crimson mx-2">{word.wordType}</span></p>
               </div>
 
-              <div className={cn("mt-6 space-y-4 pt-4 border-t-2 border-dashed border-ink/20 w-full transition-all duration-300", isFlipped ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none")}>
-                 <p className="text-xl font-sans font-medium">{word.definition}</p>
+              <div className={cn("mt-4 md:mt-6 space-y-3 md:space-y-4 pt-4 border-t-2 border-dashed border-ink/20 w-full transition-all duration-300", isFlipped ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none")}>
+                 <p className="text-lg md:text-xl font-sans font-medium px-2">{word.definition}</p>
                  {word.examples[0] && (
-                   <p className="hand-text text-2xl">"{word.examples[0]}"</p>
+                   <p className="hand-text text-xl md:text-2xl px-2">"{word.examples[0]}"</p>
                  )}
               </div>
 
@@ -296,20 +296,20 @@ export function LearningGames({
        ) : gameMode === 'Typing' ? (
          <div className="w-full">
             {/* Typing Mode */}
-            <div className="sketch-border bg-white p-6 md:p-8 mb-6 shadow-xl">
-               <div className="mb-6">
+            <div className="sketch-border bg-white p-4 md:p-8 mb-4 md:mb-6 shadow-xl">
+               <div className="mb-4 md:mb-6">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Definition</span>
-                  <p className="text-lg font-sans font-medium mt-1">{word.definition}</p>
+                  <p className="text-base md:text-lg font-sans font-medium mt-1">{word.definition}</p>
                </div>
                
                {word.examples[0] && (
-                 <div className="mb-6 p-3 bg-ink/5 rounded-lg border border-ink/10">
+                 <div className="mb-4 md:mb-6 p-2 md:p-3 bg-ink/5 rounded-lg border border-ink/10">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Example</span>
-                    <p className="hand-text text-2xl mt-1">"{word.examples[0].replace(new RegExp(word.vocabulary, 'gi'), '________')}"</p>
+                    <p className="hand-text text-xl md:text-2xl mt-1">"{word.examples[0].replace(new RegExp(word.vocabulary, 'gi'), '________')}"</p>
                  </div>
                )}
 
-               <form onSubmit={handleTypingSubmit} className="mt-6 flex gap-3">
+               <form onSubmit={handleTypingSubmit} className="mt-4 md:mt-6 flex flex-col md:flex-row gap-2 md:gap-3">
                  <input 
                    type="text"
                    disabled={feedback === 'correct'}
@@ -317,7 +317,7 @@ export function LearningGames({
                    onChange={(e) => setUserInput(e.target.value)} 
                    placeholder="Type the word..." 
                    className={cn(
-                     "sketch-input flex-1 text-xl font-serif text-center py-1",
+                     "sketch-input flex-1 text-lg md:text-xl font-serif text-center py-2 md:py-1",
                      feedback === 'correct' ? "border-green-600 text-green-600 bg-green-50" : 
                      feedback === 'incorrect' ? "border-crimson text-crimson bg-crimson/10" : ""
                    )}
@@ -329,17 +329,17 @@ export function LearningGames({
                </form>
                
                {feedback === 'incorrect' && (
-                 <div className="mt-4 text-center animate-in fade-in">
-                   <p className="text-crimson font-bold uppercase text-[10px] tracking-widest mb-1">Incorrect</p>
-                   <p className="text-lg font-sans">The word was: <span className="font-bold text-ink text-xl">{word.vocabulary}</span></p>
-                   <button onClick={() => selectNextWord()} className="mt-3 sketch-button py-1 px-4 text-sm">Next Word</button>
+                 <div className="mt-2 md:mt-4 text-center animate-in fade-in px-2">
+                   <p className="text-crimson font-bold uppercase text-[9px] md:text-[10px] tracking-widest mb-0.5 md:mb-1">Incorrect</p>
+                   <p className="text-base md:text-lg font-sans">The word was: <span className="font-bold text-ink text-lg md:text-xl">{word.vocabulary}</span></p>
+                   <button onClick={() => selectNextWord()} className="mt-2 md:mt-3 sketch-button py-1 px-4 text-xs md:text-sm">Next Word</button>
                  </div>
                )}
 
                {feedback === 'correct' && (
-                 <div className="mt-4 text-center animate-in fade-in">
-                   <p className="text-green-600 font-bold uppercase tracking-widest mb-2">Correct!</p>
-                   <p className="text-lg font-sans mb-4 opacity-60">{word.ipa}</p>
+                 <div className="mt-2 md:mt-4 text-center animate-in fade-in px-2">
+                   <p className="text-green-600 font-bold uppercase text-[9px] md:text-[10px] tracking-widest mb-1 md:mb-2">Correct!</p>
+                   <p className="text-base md:text-lg font-sans mb-2 md:mb-4 opacity-60">{word.ipa}</p>
                  </div>
                )}
             </div>
@@ -347,20 +347,20 @@ export function LearningGames({
        ) : gameMode === 'Quiz' ? (
          <div className="w-full">
             {/* Quiz Mode */}
-            <div className="sketch-border bg-white p-6 md:p-8 mb-6 shadow-xl flex flex-col items-center">
-              <div className="mb-8 text-center w-full">
+            <div className="sketch-border bg-white p-4 md:p-8 mb-4 md:mb-6 shadow-xl flex flex-col items-center text-center">
+              <div className="mb-4 md:mb-8 text-center w-full px-2">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Select correct definition</span>
-                <h2 className="text-4xl md:text-5xl font-sans font-black tracking-tight mt-4 text-ink">{word.vocabulary}</h2>
-                <p className="text-lg font-sans text-ink/60 mt-2 italic">{word.ipa} • {word.wordType}</p>
+                <h2 className="text-3xl md:text-5xl font-sans font-black tracking-tight mt-2 md:mt-4 text-ink break-words">{word.vocabulary}</h2>
+                <p className="text-base md:text-lg font-sans text-ink/60 mt-1 md:mt-2 italic">{word.ipa} • {word.wordType}</p>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 w-full">
+              <div className="grid grid-cols-1 gap-2 md:gap-3 w-full">
                 {quizOptions.map((opt, i) => (
                   <button 
                     key={i}
                     onClick={() => handleQuizSelect(opt)}
                     className={cn(
-                      "p-4 sketch-border text-left font-sans transition-all",
+                      "p-3 md:p-4 sketch-border text-left font-sans transition-all text-sm md:text-base",
                       feedback === 'correct' && opt === word.definition ? "bg-green-100 border-green-600 text-green-800" :
                       feedback === 'incorrect' && opt === word.definition ? "bg-green-50 border-green-400" :
                       feedback === 'incorrect' && opt !== word.definition ? "bg-red-50 opacity-40" :
@@ -384,32 +384,32 @@ export function LearningGames({
        ) : (
          <div className="w-full">
             {/* Scramble Mode */}
-            <div className="sketch-border bg-white p-6 md:p-8 mb-6 shadow-xl flex flex-col items-center">
-              <div className="mb-8 text-center w-full">
+            <div className="sketch-border bg-white p-4 md:p-8 mb-4 md:mb-6 shadow-xl flex flex-col items-center text-center">
+              <div className="mb-4 md:mb-8 text-center w-full px-2">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">
-                  {word.vocabulary.trim().split(/\s+/).length < 2 ? "Unscramble the Letters" : "Reconstruct the Sentence"}
+                  {word.vocabulary.trim().split(/\s+/).length < 2 ? "Unscramble Letters" : "Reconstruct Sentence"}
                 </span>
-                <p className="text-lg font-sans font-medium mt-2">{word.definition}</p>
+                <p className="text-base md:text-lg font-sans font-medium mt-1 md:mt-2">{word.definition}</p>
               </div>
 
-              <div className="min-h-[100px] w-full p-4 bg-ink/5 rounded-xl sketch-border border-dashed border-ink/20 flex flex-wrap gap-2 justify-center content-center mb-8">
+              <div className="min-h-[80px] md:min-h-[100px] w-full p-2 md:p-4 bg-ink/5 rounded-xl sketch-border border-dashed border-ink/20 flex flex-wrap gap-1 md:gap-2 justify-center content-center mb-6 md:mb-8">
                 {scrambleAnswer.map((w, i) => (
                   <button 
                     key={`${w}-${i}`} 
                     onClick={() => removeFromAnswer(w, i)}
-                    className="px-4 py-2 bg-white sketch-border text-lg font-sans font-bold hover:scale-105 transition-transform"
+                    className="px-2 py-1 md:px-4 md:py-2 bg-white sketch-border text-sm md:text-base font-sans font-bold hover:scale-105 transition-transform"
                   >
                     {w}
                   </button>
                 ))}
               </div>
 
-              <div className="flex flex-wrap gap-3 justify-center">
+              <div className="flex flex-wrap gap-2 md:gap-3 justify-center px-1">
                 {scrambledWords.map((w, i) => (
                   <button 
                     key={`${w}-${i}`} 
                     onClick={() => toggleScrambleWord(w, i)}
-                    className="px-4 py-2 bg-ink/5 sketch-border border-ink/20 text-lg font-sans hover:bg-ink hover:text-white transition-colors"
+                    className="px-2 py-1 md:px-4 md:py-2 bg-ink/5 sketch-border border-ink/20 text-sm md:text-base font-sans hover:bg-ink hover:text-white transition-colors"
                   >
                     {w}
                   </button>

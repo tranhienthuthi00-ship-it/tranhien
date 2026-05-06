@@ -31,6 +31,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const [newValue, setNewValue] = useState("");
   const [newCurrency, setNewCurrency] = useState("VND");
   const [newNotes, setNewNotes] = useState("");
+  const [isDebt, setIsDebt] = useState(false);
 
   const [isManagingCats, setIsManagingCats] = useState(false);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
@@ -44,6 +45,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setNewValue(asset.value.toString());
     setNewCurrency(asset.currency);
     setNewNotes(asset.notes || "");
+    setIsDebt(!!asset.isDebt);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -54,6 +56,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setNewValue("");
     setNewCurrency("VND");
     setNewNotes("");
+    setIsDebt(false);
   };
 
   const formatCurrency = (val: number, cur: string) => {
@@ -76,7 +79,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         category: catToUse,
         value: val,
         currency: newCurrency,
-        notes: newNotes || undefined
+        notes: newNotes || undefined,
+        isDebt: isDebt
       } : a));
       setEditingId(null);
     } else {
@@ -87,13 +91,15 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         value: val,
         currency: newCurrency,
         notes: newNotes || undefined,
-        acquiredAt: Date.now()
+        acquiredAt: Date.now(),
+        isDebt: isDebt
       }, ...assets]);
     }
 
     setNewName("");
     setNewValue("");
     setNewNotes("");
+    setIsDebt(false);
     setNewCategory(catToUse);
   };
 
@@ -148,7 +154,18 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   };
 
   const totalVND = useMemo(() => {
-    return assets.reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
+    return assets.reduce((acc, curr) => {
+      const val = getValueInVND(curr.value, curr.currency);
+      return curr.isDebt ? acc - val : acc + val;
+    }, 0);
+  }, [assets]);
+
+  const totalAssetsVND = useMemo(() => {
+    return assets.filter(a => !a.isDebt).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
+  }, [assets]);
+
+  const totalDebtsVND = useMemo(() => {
+    return assets.filter(a => a.isDebt).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
   }, [assets]);
 
   const COLORS = [
@@ -196,7 +213,20 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     <div className="max-w-4xl mx-auto px-4 font-sans pb-10">
       <div className="mb-8 text-center flex flex-col items-center">
          <h1 className="text-4xl font-black font-logo tracking-wide mb-2 uppercase">My Assets</h1>
-         <p className="text-ink/60 font-medium tracking-widest text-xs uppercase mb-4">Tổng tài sản ước tính: {formatCurrency(totalVND, 'VND')}</p>
+         <div className="flex flex-col md:flex-row gap-4 md:gap-8 mb-4">
+           <div className="flex flex-col">
+             <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Tổng Tài Sản</span>
+             <span className="text-lg font-bold text-emerald-600">{formatCurrency(totalAssetsVND, 'VND')}</span>
+           </div>
+           <div className="flex flex-col">
+             <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Tổng Nợ</span>
+             <span className="text-lg font-bold text-crimson">{formatCurrency(totalDebtsVND, 'VND')}</span>
+           </div>
+           <div className="flex flex-col border-t md:border-t-0 md:border-l border-ink/10 pt-2 md:pt-0 md:pl-8">
+             <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Tài Sản Ròng</span>
+             <span className="text-lg font-bold text-ink">{formatCurrency(totalVND, 'VND')}</span>
+           </div>
+         </div>
          
          <div className="flex gap-2">
            <button onClick={() => setIsManagingCats(!isManagingCats)} className={`sketch-button flex items-center gap-2 px-4 text-xs ${isManagingCats ? 'bg-ink text-paper' : ''}`}>
@@ -343,6 +373,18 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                 className="sketch-input bg-white/50 py-2 flex-1 resize-none min-h-[60px]"
               />
             </div>
+            <div className="flex items-center gap-3 pt-2">
+              <input 
+                type="checkbox" 
+                id="isDebt" 
+                checked={isDebt} 
+                onChange={e => setIsDebt(e.target.checked)}
+                className="w-5 h-5 accent-crimson"
+              />
+              <label htmlFor="isDebt" className="text-xs font-bold uppercase tracking-widest text-crimson flex items-center gap-2 cursor-pointer">
+                Đây là một khoản nợ (Debt)
+              </label>
+            </div>
           </div>
         </div>
         
@@ -362,7 +404,10 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         {assets.map(asset => {
           const cat = getCategory(asset.category);
           return (
-          <div key={asset.id} className="p-4 bg-white/60 sketch-border flex flex-col justify-between group relative overflow-hidden" style={{ borderTopWidth: '4px', borderTopColor: getCategoryColor(asset.category) }}>
+          <div key={asset.id} className={cn(
+            "p-4 bg-white/60 sketch-border flex flex-col justify-between group relative overflow-hidden",
+            asset.isDebt ? "border-l-4 border-l-crimson" : ""
+          )} style={{ borderTopWidth: '4px', borderTopColor: getCategoryColor(asset.category) }}>
             <div className="absolute top-1 right-1 flex items-center justify-end px-2 gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity z-20">
                <button 
                  onClick={() => startEdit(asset)}
@@ -392,8 +437,11 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
               </div>
             </div>
             
-            <div className="text-2xl font-mono font-bold tracking-tight text-ink/90 mt-2">
-              {formatCurrency(asset.value, asset.currency)}
+            <div className="text-2xl font-mono font-bold tracking-tight mt-2 flex items-baseline gap-2">
+              <span className={asset.isDebt ? "text-crimson" : "text-ink/90"}>
+                {asset.isDebt ? "-" : ""}{formatCurrency(asset.value, asset.currency)}
+              </span>
+              {asset.isDebt && <span className="text-[10px] uppercase font-bold text-crimson bg-crimson/5 px-1 rounded">Nợ</span>}
             </div>
             
             {asset.notes && <div className="text-xs text-ink/60 mt-2 bg-ink/5 p-2 rounded">{asset.notes}</div>}

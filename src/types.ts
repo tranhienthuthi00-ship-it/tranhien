@@ -88,4 +88,5 @@ export interface Asset {
   currency: string;
   notes?: string;
   acquiredAt?: number;
+  isDebt?: boolean;
 }

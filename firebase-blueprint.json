@@ -125,7 +125,8 @@
         "value": { "type": "number" },
         "currency": { "type": "string" },
         "notes": { "type": "string" },
-        "acquiredAt": { "type": "number" }
+        "acquiredAt": { "type": "number" },
+        "isDebt": { "type": "boolean" }
       },
       "required": ["id", "name", "category", "value", "currency"]
     },

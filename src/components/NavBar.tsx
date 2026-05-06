@@ -16,7 +16,7 @@ export function NavBar({ activeTab, setActiveTab, lastSaved, onLogout }: { activ
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-paper/95 backdrop-blur-sm border-b-2 border-dashed border-ink/20 py-2 md:py-3">
+    <nav className="relative z-50 bg-paper/95 backdrop-blur-sm border-b-2 border-dashed border-ink/20 py-2 md:py-3">
       <div className="max-w-5xl mx-auto px-2 md:px-4 flex justify-between items-center gap-1 md:gap-4 overflow-hidden">
         <div className="shrink-0 flex items-center gap-1.5 select-none group cursor-pointer pt-1 md:pt-2 pb-1 pr-1 md:pr-6 pl-1 relative">
            <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center">
