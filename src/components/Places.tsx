@@ -67,8 +67,9 @@ export function Places({
   };
 
   const addTag = () => {
-    if (tagInput.trim() && !newTags.includes(tagInput.trim())) {
-      setNewTags([...newTags, tagInput.trim()]);
+    const normalizedTag = tagInput.trim().toLowerCase();
+    if (normalizedTag && !newTags.includes(normalizedTag)) {
+      setNewTags([...newTags, normalizedTag]);
       setTagInput("");
     }
   };
@@ -94,7 +95,7 @@ export function Places({
         notes: newNotes || undefined,
         price: newPrice ? Number(newPrice) : undefined,
         city: newCity || undefined,
-        tags: newTags.length > 0 ? newTags : undefined
+        tags: newTags.length > 0 ? newTags.map(t => t.toLowerCase()) : undefined
       } : p));
       setEditingId(null);
     } else {
@@ -110,7 +111,7 @@ export function Places({
         notes: newNotes || undefined,
         price: newPrice ? Number(newPrice) : undefined,
         city: newCity || undefined,
-        tags: newTags.length > 0 ? newTags : undefined
+        tags: newTags.length > 0 ? newTags.map(t => t.toLowerCase()) : undefined
       }, ...places]);
     }
     
@@ -138,7 +139,7 @@ export function Places({
     ));
   };
 
-  const allTags = Array.from(new Set(places.flatMap(p => p.tags || [])));
+  const allTags = Array.from(new Set(places.flatMap(p => (p.tags || []).map(t => t.toLowerCase()))));
   const allCities = Array.from(new Set(places.map(p => p.city).filter(Boolean))) as string[];
   const categories = ['Food', 'Cafe', 'Dessert', 'Travel', 'Other'] as const;
   
@@ -160,7 +161,7 @@ export function Places({
     .filter(p => {
       const matchCat = filter === 'All' || p.category === filter;
       const matchStatus = statusFilter === 'All' || p.status === statusFilter;
-      const matchTag = !selectedTag || (p.tags && p.tags.includes(selectedTag));
+      const matchTag = !selectedTag || (p.tags && p.tags.map(t => t.toLowerCase()).includes(selectedTag.toLowerCase()));
       return matchCat && matchStatus && matchTag;
     })
     .sort((a, b) => {

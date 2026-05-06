@@ -83,12 +83,15 @@ export function Academy({
   };
 
   const toggleTag = (tag: WordTag) => {
-    setActiveTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+    const normalizedTag = tag.toLowerCase();
+    setActiveTags(prev => prev.map(t => t.toLowerCase()).includes(normalizedTag) 
+      ? prev.filter(t => t.toLowerCase() !== normalizedTag) 
+      : [...prev, normalizedTag]);
   };
 
   const filteredWords = words.filter(w => {
     const matchesSearch = w.vocabulary.toLowerCase().includes(searchQuery.toLowerCase()) || w.definition.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTag = selectedTag ? w.tags.includes(selectedTag) : true;
+    const matchesTag = selectedTag ? w.tags.map(t => t.toLowerCase()).includes(selectedTag.toLowerCase()) : true;
     return matchesSearch && matchesTag;
   });
 
@@ -177,8 +180,9 @@ export function Academy({
                       onKeyDown={e => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
-                          if (newTag.trim() && !tags.includes(newTag.trim())) {
-                            setTags([...tags, newTag.trim()]);
+                          const normalizedTag = newTag.trim().toLowerCase();
+                          if (normalizedTag && !tags.includes(normalizedTag)) {
+                            setTags([...tags, normalizedTag]);
                             setNewTag('');
                           }
                         }
@@ -188,8 +192,9 @@ export function Academy({
                       type="button" 
                       className="text-ink/60 hover:text-ink"
                       onClick={() => {
-                        if (newTag.trim() && !tags.includes(newTag.trim())) {
-                          setTags([...tags, newTag.trim()]);
+                        const normalizedTag = newTag.trim().toLowerCase();
+                        if (normalizedTag && !tags.includes(normalizedTag)) {
+                          setTags([...tags, normalizedTag]);
                           setNewTag('');
                         }
                       }}

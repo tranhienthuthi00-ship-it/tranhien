@@ -64,7 +64,7 @@ export function MyList({
         content: newWish,
         price: newPrice ? parseFloat(newPrice) : undefined,
         necessity: newNecessity,
-        tags: newTags ? newTags.split(',').map(t => t.trim()).filter(Boolean) : undefined,
+        tags: newTags ? newTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) : undefined,
         link: newWishLink || undefined,
         note: newWishNote || undefined,
       } : w));
@@ -76,7 +76,7 @@ export function MyList({
         addedDate: new Date().toISOString(),
         price: newPrice ? parseFloat(newPrice) : undefined,
         necessity: newNecessity,
-        tags: newTags ? newTags.split(',').map(t => t.trim()).filter(Boolean) : undefined,
+        tags: newTags ? newTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) : undefined,
         link: newWishLink || undefined,
         note: newWishNote || undefined,
         isWorthBuying: false
