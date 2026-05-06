@@ -1,5 +1,5 @@
 import { useState, FormEvent } from "react";
-import { Plus, Trash2, CheckCircle2, Circle, ExternalLink, Video } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, Circle, ExternalLink, Video, Edit2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContentIdea } from "@/types";
 
@@ -11,26 +11,47 @@ export function ContentManager({ ideas, setIdeas }: {
   const [newDesc, setNewDesc] = useState("");
   const [newPlatform, setNewPlatform] = useState("TikTok");
   const [newLink, setNewLink] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'All' | 'Pending' | 'Done'>('All');
 
   const addIdea = (e: FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const idea: ContentIdea = {
-      id: Date.now().toString(),
-      title: newTitle,
-      description: newDesc,
-      platform: newPlatform,
-      link: newLink,
-      status: 'Pending',
-      createdAt: Date.now(),
-    };
+    if (editingId) {
+      setIdeas(ideas.map(i => i.id === editingId ? {
+        ...i,
+        title: newTitle,
+        description: newDesc,
+        platform: newPlatform,
+        link: newLink,
+      } : i));
+      setEditingId(null);
+    } else {
+      const idea: ContentIdea = {
+        id: Date.now().toString(),
+        title: newTitle,
+        description: newDesc,
+        platform: newPlatform,
+        link: newLink,
+        status: 'Pending',
+        createdAt: Date.now(),
+      };
+      setIdeas([idea, ...ideas]);
+    }
 
-    setIdeas([idea, ...ideas]);
     setNewTitle("");
     setNewDesc("");
     setNewLink("");
+  };
+
+  const startEdit = (idea: ContentIdea) => {
+    setEditingId(idea.id);
+    setNewTitle(idea.title);
+    setNewDesc(idea.description || "");
+    setNewPlatform(idea.platform);
+    setNewLink(idea.link || "");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const toggleStatus = (id: string) => {
@@ -110,9 +131,23 @@ export function ContentManager({ ideas, setIdeas }: {
                 placeholder="Ghi chú các cảnh cần quay, nhạc nền, text overlay..."
                 className="sketch-input bg-white/50 w-full flex-1 min-h-[80px] resize-none py-2"
               />
-              <div className="flex justify-end mt-2">
+              <div className="flex justify-end mt-2 gap-2">
+                 {editingId && (
+                   <button 
+                    type="button"
+                    onClick={() => {
+                      setEditingId(null);
+                      setNewTitle("");
+                      setNewDesc("");
+                      setNewLink("");
+                    }} 
+                    className="sketch-button bg-paper py-2 px-6 text-sm"
+                   >
+                     Hủy
+                   </button>
+                 )}
                  <button type="submit" className="sketch-button sketch-button-primary bg-ink text-paper text-sm py-2 px-8 flex items-center gap-2">
-                    <Plus size={16} /> Lưu Ý Tưởng
+                    <Plus size={16} /> {editingId ? "Cập Nhật" : "Lưu Ý Tưởng"}
                  </button>
               </div>
             </div>
@@ -155,6 +190,12 @@ export function ContentManager({ ideas, setIdeas }: {
                   </h3>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => startEdit(idea)}
+                    className="p-1 hover:bg-ink/5 rounded text-ink/40 hover:text-ink transition-colors"
+                  >
+                    <Edit2 size={16} />
+                  </button>
                   <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-ink/10 bg-ink/5">
                     {idea.platform}
                   </span>

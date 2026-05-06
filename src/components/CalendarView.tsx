@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, MouseEvent } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -75,6 +75,7 @@ export function CalendarView({
   const [logType, setLogType] = useState<'Reflection' | 'Event'>('Reflection');
   const [selectedIcon, setSelectedIcon] = useState('document');
   const [eventTime, setEventTime] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const ICONS = ['document', 'star', 'heart', 'anchor', 'coffee'];
 
@@ -90,18 +91,48 @@ export function CalendarView({
   const handleSaveLog = () => {
     if (!selectedDate || !logText.trim()) return;
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    const newLog: LogEntry = {
-      id: Date.now().toString(),
-      date: dateStr,
-      content: logText,
-      type: logType,
-      icon: logType === 'Reflection' ? selectedIcon : undefined,
-      time: logType === 'Event' ? eventTime : undefined
-    };
-    setLogs([...logs, newLog]);
+
+    if (editingId) {
+      setLogs(logs.map(log => log.id === editingId ? {
+        ...log,
+        content: logText,
+        type: logType,
+        icon: logType === 'Reflection' ? selectedIcon : undefined,
+        time: logType === 'Event' ? eventTime : undefined
+      } : log));
+      setEditingId(null);
+    } else {
+      const newLog: LogEntry = {
+        id: Date.now().toString(),
+        date: dateStr,
+        content: logText,
+        type: logType,
+        icon: logType === 'Reflection' ? selectedIcon : undefined,
+        time: logType === 'Event' ? eventTime : undefined
+      };
+      setLogs([...logs, newLog]);
+    }
+
     setLogText("");
     setEventTime("");
-    setSelectedDate(null);
+  };
+
+  const handleDeleteLog = (id: string, e: MouseEvent) => {
+    e.stopPropagation();
+    setLogs(logs.filter(l => l.id !== id));
+    if (editingId === id) {
+      setEditingId(null);
+      setLogText("");
+      setEventTime("");
+    }
+  };
+
+  const startEditLog = (log: LogEntry) => {
+    setEditingId(log.id);
+    setLogText(log.content);
+    setLogType(log.type);
+    if (log.icon) setSelectedIcon(log.icon);
+    if (log.time) setEventTime(log.time);
   };
 
   const getLogsForDate = (date: Date) => {
@@ -280,17 +311,44 @@ export function CalendarView({
                className={cn("w-full min-h-[60px] p-2 sketch-input resize-y", logType === 'Reflection' ? "hand-text text-lg" : "font-sans text-sm")}
                rows={2}
              />
-             <button onClick={handleSaveLog} className="sketch-button sketch-button-primary uppercase py-1 text-sm">
-               Log it
-             </button>
+             <div className="flex gap-2">
+               <button onClick={handleSaveLog} className="flex-1 sketch-button sketch-button-primary uppercase py-1 text-sm">
+                 {editingId ? "Update" : "Log it"}
+               </button>
+               {editingId && (
+                 <button 
+                  onClick={() => {
+                    setEditingId(null);
+                    setLogText("");
+                    setEventTime("");
+                  }} 
+                  className="sketch-button uppercase py-1 text-sm px-4"
+                 >
+                   Cancel
+                 </button>
+               )}
+             </div>
 
              <div className="mt-2 space-y-2 max-h-[300px] overflow-y-auto pr-1">
                 {getLogsForDate(selectedDate).map(log => (
-                  <div key={log.id} className="p-2 bg-paper sketch-border border-dashed border-ink/30 relative mt-3">
+                  <div 
+                    key={log.id} 
+                    onClick={() => startEditLog(log)}
+                    className={cn(
+                      "p-2 bg-paper sketch-border border-dashed border-ink/30 relative mt-3 cursor-pointer transition-colors group",
+                      editingId === log.id ? "bg-crimson/5 border-crimson" : "hover:border-ink/50"
+                    )}
+                  >
                      <span className={cn("absolute -top-3 left-3 px-1 bg-paper text-[10px] font-sans font-bold flex items-center gap-1", log.type === 'Event' ? "text-crimson" : "text-ink/50")}>
                         {log.type === 'Reflection' && <HandDrawnIcon type={log.icon || 'document'} className="w-3 h-3 mr-1 text-crimson inline" />}
                         {log.type} {log.type === 'Reflection' && "-"}
                      </span>
+                     <button 
+                       onClick={(e) => handleDeleteLog(log.id, e)}
+                       className="absolute -top-2 -right-2 w-5 h-5 bg-crimson text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                     >
+                       ×
+                     </button>
                      {log.type === 'Event' && log.time && (
                        <div className="text-[10px] font-sans font-bold opacity-50 mb-0.5">{log.time}</div>
                      )}
