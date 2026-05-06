@@ -42,7 +42,7 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
          throw new Error("Transcript data is invalid");
       }
     } catch (err: any) {
-      setTranscriptError('Không thể lấy phụ đề tự động (do giới hạn từ YouTube đối với một số video). Vui lòng copy phụ đề và dán thủ công xuống dưới (Tính năng dừng tự động chỉ hoạt động khi tải thành công bằng nút này).');
+      setTranscriptError(err.message || 'Không thể lấy phụ đề tự động do giới hạn từ YouTube. Vui lòng copy phụ đề và dán thủ công.');
     } finally {
       setIsLoadingTranscript(false);
     }

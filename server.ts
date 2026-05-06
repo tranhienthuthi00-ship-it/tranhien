@@ -25,8 +25,10 @@ async function startServer() {
       const transcript = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
       res.json({ transcript });
     } catch (error: any) {
-      console.error("Transcript error:", error);
-      res.status(500).json({ error: error.message || "Failed to fetch transcript" });
+      if (error.message?.includes('Transcript is disabled')) {
+         return res.status(404).json({ error: "Phụ đề tự động của video này đã bị tắt hoặc quyền truy cập bị YouTube chặn." });
+      }
+      res.status(500).json({ error: "Lỗi nội bộ khi tải phụ đề tự động. Vui lòng cung cấp phụ đề thủ công." });
     }
   });
 
