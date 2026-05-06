@@ -32,8 +32,8 @@ export function LearningGames({
 
     // If Scramble mode, prefer sentences/phrases
     if (gameMode === 'Scramble') {
-      const sentencePool = pool.filter(w => w.wordType === 'sentence' || w.wordType === 'phrase');
-      if (sentencePool.length > 0) pool = sentencePool;
+      const multiWordPool = pool.filter(w => w.vocabulary.trim().split(/\s+/).length >= 2);
+      if (multiWordPool.length > 0) pool = multiWordPool;
     }
 
     // Higher difficulty number means it should appear MORE often.
@@ -51,8 +51,14 @@ export function LearningGames({
     setFeedback(null);
 
     if (gameMode === 'Scramble' && randomWord) {
-      const wordsArray = randomWord.vocabulary.split(' ').filter(w => w.trim() !== '');
-      setScrambledWords([...wordsArray].sort(() => Math.random() - 0.5));
+      const parts = randomWord.vocabulary.split(/\s+/).filter(w => w.trim() !== '');
+      if (parts.length >= 2) {
+        setScrambledWords([...parts].sort(() => Math.random() - 0.5));
+      } else {
+        // Single word: Letter scramble
+        const letters = randomWord.vocabulary.split('').filter(c => c.trim() !== '');
+        setScrambledWords([...letters].sort(() => Math.random() - 0.5));
+      }
       setScrambleAnswer([]);
     }
 
@@ -94,7 +100,8 @@ export function LearningGames({
 
   const checkScramble = () => {
     if (!activeWordInfo.word) return;
-    const currentAnswer = scrambleAnswer.join(' ').toLowerCase();
+    const isSingleWord = activeWordInfo.word.vocabulary.trim().split(/\s+/).length < 2;
+    const currentAnswer = scrambleAnswer.join(isSingleWord ? '' : ' ').toLowerCase();
     const correctAnswer = activeWordInfo.word.vocabulary.toLowerCase();
     
     if (currentAnswer === correctAnswer) {
@@ -361,7 +368,9 @@ export function LearningGames({
             {/* Scramble Mode */}
             <div className="sketch-border bg-white p-6 md:p-8 mb-6 shadow-xl flex flex-col items-center">
               <div className="mb-8 text-center w-full">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Reconstruct the Sentence</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">
+                  {word.vocabulary.trim().split(/\s+/).length < 2 ? "Unscramble the Letters" : "Reconstruct the Sentence"}
+                </span>
                 <p className="text-lg font-sans font-medium mt-2">{word.definition}</p>
               </div>
 

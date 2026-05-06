@@ -316,16 +316,24 @@ export function CalendarView({
                  {editingId ? "Update" : "Log it"}
                </button>
                {editingId && (
-                 <button 
-                  onClick={() => {
-                    setEditingId(null);
-                    setLogText("");
-                    setEventTime("");
-                  }} 
-                  className="sketch-button uppercase py-1 text-sm px-4"
-                 >
-                   Cancel
-                 </button>
+                 <>
+                   <button 
+                    onClick={(e) => handleDeleteLog(editingId, e as any)} 
+                    className="sketch-button bg-crimson text-white uppercase py-1 text-sm px-4"
+                   >
+                     Delete
+                   </button>
+                   <button 
+                    onClick={() => {
+                      setEditingId(null);
+                      setLogText("");
+                      setEventTime("");
+                    }} 
+                    className="sketch-button uppercase py-1 text-sm px-4"
+                   >
+                     Cancel
+                   </button>
+                 </>
                )}
              </div>
 
@@ -345,7 +353,8 @@ export function CalendarView({
                      </span>
                      <button 
                        onClick={(e) => handleDeleteLog(log.id, e)}
-                       className="absolute -top-2 -right-2 w-5 h-5 bg-crimson text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                       className="absolute top-1 right-1 w-6 h-6 bg-crimson text-white rounded-full flex items-center justify-center text-xs opacity-40 group-hover:opacity-100 transition-opacity z-20 shadow-md border border-white/20"
+                       title="Delete"
                      >
                        ×
                      </button>
