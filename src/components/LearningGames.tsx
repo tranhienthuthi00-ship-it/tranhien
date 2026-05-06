@@ -20,6 +20,16 @@ export function LearningGames({
   const [quizOptions, setQuizOptions] = useState<string[]>([]);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
 
+  const speak = (text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   // Simple weighted random selection
   const selectNextWord = () => {
     if (words.length === 0) return;
@@ -106,6 +116,7 @@ export function LearningGames({
     
     if (currentAnswer === correctAnswer) {
       setFeedback('correct');
+      speak(activeWordInfo.word.vocabulary);
       handleScore(1);
     } else {
       setFeedback('incorrect');
@@ -118,6 +129,7 @@ export function LearningGames({
     if (feedback) return;
     if (option === activeWordInfo.word?.definition) {
       setFeedback('correct');
+      speak(activeWordInfo.word.vocabulary);
       handleScore(1);
     } else {
       setFeedback('incorrect');
@@ -201,6 +213,7 @@ export function LearningGames({
     e.preventDefault();
     if (userInput.trim().toLowerCase() === word.vocabulary.toLowerCase()) {
       setFeedback('correct');
+      speak(word.vocabulary);
       handleScore(1); // Grade as easy if they typed it correctly first try
     } else {
       setFeedback('incorrect');
@@ -210,6 +223,11 @@ export function LearningGames({
       updateWordDifficulty(word.id, 3); // incorrect means hard
       setStreak(0);
     }
+  };
+
+  const handleFlip = () => {
+    if (!isFlipped) speak(word.vocabulary);
+    setActiveWordInfo(prev => ({ ...prev, isFlipped: true }));
   };
 
   return (
@@ -228,7 +246,7 @@ export function LearningGames({
          <>
            {/* Flashcard */}
            <div 
-             onClick={() => !isFlipped && setActiveWordInfo(prev => ({ ...prev, isFlipped: true }))}
+             onClick={handleFlip}
              className={cn(
                "w-full aspect-[4/3] md:aspect-[16/9] sketch-border bg-white p-6 md:p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-500 preserve-3d shadow-xl",
                !isFlipped ? "hover:scale-[1.02] hover:shadow-2xl" : "cursor-default border-crimson"
