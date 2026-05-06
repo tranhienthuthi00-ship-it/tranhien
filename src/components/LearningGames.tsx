@@ -13,7 +13,7 @@ export function LearningGames({
 }) {
   const [activeWordInfo, setActiveWordInfo] = useState<{ word: Word | null, isFlipped: boolean }>({ word: null, isFlipped: false });
   const [streak, setStreak] = useState(0);
-  const [gameMode, setGameMode] = useState<'Flashcard' | 'Typing' | 'Scramble' | 'Quiz'>('Flashcard');
+  const [gameMode, setGameMode] = useState<'Flashcard' | 'Typing' | 'Scramble' | 'Quiz' | 'Dictation'>('Flashcard');
   const [userInput, setUserInput] = useState('');
   const [scrambledWords, setScrambledWords] = useState<string[]>([]);
   const [scrambleAnswer, setScrambleAnswer] = useState<string[]>([]);
@@ -78,6 +78,10 @@ export function LearningGames({
       const decoys = [...otherWords].sort(() => Math.random() - 0.5).slice(0, 3).map(w => w.definition);
       const options = [...decoys, randomWord.definition].sort(() => Math.random() - 0.5);
       setQuizOptions(options);
+    }
+    
+    if (gameMode === 'Dictation' && randomWord) {
+      setTimeout(() => speak(randomWord.vocabulary), 300);
     }
   };
 
@@ -197,6 +201,12 @@ export function LearningGames({
               className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-colors", gameMode === 'Quiz' ? "bg-ink text-paper border-ink" : "border-ink/20")}
             >
               Quiz
+            </button>
+            <button 
+              onClick={() => setGameMode('Dictation')} 
+              className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-colors", gameMode === 'Dictation' ? "bg-ink text-paper border-ink" : "border-ink/20")}
+            >
+              Dictation
             </button>
           </div>
         </div>
@@ -340,6 +350,62 @@ export function LearningGames({
                  <div className="mt-2 md:mt-4 text-center animate-in fade-in px-2">
                    <p className="text-green-600 font-bold uppercase text-[9px] md:text-[10px] tracking-widest mb-1 md:mb-2">Correct!</p>
                    <p className="text-base md:text-lg font-sans mb-2 md:mb-4 opacity-60">{word.ipa}</p>
+                 </div>
+               )}
+            </div>
+         </div>
+       ) : gameMode === 'Dictation' ? (
+         <div className="w-full">
+            {/* Dictation Mode */}
+            <div className="sketch-border bg-white p-4 md:p-8 mb-4 md:mb-6 shadow-xl flex flex-col items-center">
+               <div className="mb-4 md:mb-6 text-center">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Listen and Type</span>
+               </div>
+               
+               <button 
+                 onClick={() => speak(word.vocabulary)}
+                 className="w-20 h-20 md:w-24 md:h-24 sketch-border border-4 border-ink/20 rounded-full flex justify-center items-center hover:bg-ink/5 hover:border-ink/40 transition-colors mb-6 group cursor-pointer shadow-sm focus:outline-none"
+               >
+                 <span className="text-4xl group-hover:scale-110 transition-transform">🔊</span>
+               </button>
+
+               <form onSubmit={handleTypingSubmit} className="flex flex-col md:flex-row gap-2 md:gap-3 w-full">
+                 <input 
+                   type="text"
+                   disabled={feedback === 'correct'}
+                   value={userInput} 
+                   onChange={(e) => setUserInput(e.target.value)} 
+                   placeholder="Type what you hear..." 
+                   className={cn(
+                     "sketch-input flex-1 text-lg md:text-xl font-serif text-center py-2 md:py-1",
+                     feedback === 'correct' ? "border-green-600 text-green-600 bg-green-50" : 
+                     feedback === 'incorrect' ? "border-crimson text-crimson bg-crimson/10" : ""
+                   )}
+                   autoComplete="off"
+                   autoFocus
+                 />
+                 {feedback !== 'correct' && (
+                   <button type="submit" className="sketch-button sketch-button-primary px-6 py-1">Submit</button>
+                 )}
+               </form>
+               
+               {feedback === 'incorrect' && (
+                 <div className="mt-2 md:mt-4 text-center animate-in fade-in px-2 w-full">
+                   <p className="text-crimson font-bold uppercase text-[9px] md:text-[10px] tracking-widest mb-0.5 md:mb-1">Incorrect</p>
+                   <p className="text-base md:text-lg font-sans">The word was: <span className="font-bold text-ink text-lg md:text-xl">{word.vocabulary}</span></p>
+                   <div className="mt-2 bg-ink/5 p-2 rounded-lg text-left inline-block w-full text-xs">
+                     <p><strong>Meaning:</strong> {word.definition}</p>
+                     <p className="italic opacity-70">{word.ipa}</p>
+                   </div>
+                   <button onClick={() => selectNextWord()} className="mt-4 sketch-button py-1 px-4 text-xs md:text-sm">Next Word</button>
+                 </div>
+               )}
+
+               {feedback === 'correct' && (
+                 <div className="mt-2 md:mt-4 text-center animate-in fade-in px-2 w-full">
+                   <p className="text-green-600 font-bold uppercase text-[9px] md:text-[10px] tracking-widest mb-1 md:mb-2">Correct!</p>
+                   <p className="text-base md:text-lg font-sans mb-1 opacity-60">{word.ipa}</p>
+                   <p className="text-sm font-sans mb-4 opacity-80">{word.definition}</p>
                  </div>
                )}
             </div>

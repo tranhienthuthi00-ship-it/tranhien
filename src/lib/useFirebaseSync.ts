@@ -2,7 +2,54 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory } from '../types';
+import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory, VideoDictation } from '../types';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 export function useFirebaseSync() {
   const [user, setUser] = useState<User | null>(null);
@@ -17,6 +64,7 @@ export function useFirebaseSync() {
   const [tags, setTags] = useState<string[]>(['Tourism', 'Hospitality', 'Cruise Industry']);
   const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [dictations, setDictations] = useState<VideoDictation[]>([]);
   const [assetCategories, setAssetCategories] = useState<AssetCategory[]>([
     { id: 'cat-money', name: 'Tiền mặt & NH', icon: 'Wallet' },
     { id: 'cat-realestate', name: 'Bất động sản', icon: 'Home' },
@@ -111,41 +159,44 @@ export function useFirebaseSync() {
 
     const unsubWords = onSnapshot(collection(db, `users/${user.uid}/words`), (snap) => {
       setWords(snap.docs.map(d => d.data() as Word));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/words`));
     const unsubTasks = onSnapshot(collection(db, `users/${user.uid}/tasks`), (snap) => {
       setTasks(snap.docs.map(d => d.data() as Task));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/tasks`));
     const unsubWishlist = onSnapshot(collection(db, `users/${user.uid}/wishlistItems`), (snap) => {
       setWishlist(snap.docs.map(d => d.data() as WishlistItem));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/wishlistItems`));
     const unsubLogs = onSnapshot(collection(db, `users/${user.uid}/logEntries`), (snap) => {
       setLogs(snap.docs.map(d => d.data() as LogEntry));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/logEntries`));
     const unsubFood = onSnapshot(collection(db, `users/${user.uid}/foodPlaces`), (snap) => {
       setFoodPlaces(snap.docs.map(d => d.data() as FoodPlace));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/foodPlaces`));
     const unsubIdeas = onSnapshot(collection(db, `users/${user.uid}/contentIdeas`), (snap) => {
       setContentIdeas(snap.docs.map(d => d.data() as ContentIdea));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/contentIdeas`));
     const unsubAssets = onSnapshot(collection(db, `users/${user.uid}/assets`), (snap) => {
       setAssets(snap.docs.map(d => d.data() as Asset));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/assets`));
     const unsubCats = onSnapshot(collection(db, `users/${user.uid}/assetCategories`), (snap) => {
       const cats = snap.docs.map(d => d.data() as AssetCategory);
       if (cats.length > 0) setAssetCategories(cats);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/assetCategories`));
+    const unsubDictations = onSnapshot(collection(db, `users/${user.uid}/dictations`), (snap) => {
+      setDictations(snap.docs.map(d => d.data() as VideoDictation).sort((a,b) => b.lastModified - a.lastModified));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/dictations`));
     const unsubTags = onSnapshot(doc(db, `users/${user.uid}/data/tags`), (docSnap) => {
       if (docSnap.exists() && docSnap.data().tags) {
         setTags(docSnap.data().tags);
       }
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/tags`));
 
     const timer = setTimeout(() => { setLoading(false); }, 1500);
 
     return () => {
       clearTimeout(timer);
       unsubWords(); unsubTasks(); unsubWishlist(); unsubLogs(); unsubFood();
-      unsubIdeas(); unsubAssets(); unsubCats(); unsubTags();
+      unsubIdeas(); unsubAssets(); unsubCats(); unsubDictations(); unsubTags();
     };
   }, [user]);
 
@@ -202,6 +253,7 @@ export function useFirebaseSync() {
     contentIdeas, setContentIdeas: createSyncSetter<ContentIdea>('contentIdeas', contentIdeas, setContentIdeas),
     assets, setAssets: createSyncSetter<Asset>('assets', assets, setAssets),
     assetCategories, setAssetCategories: createSyncSetter<AssetCategory>('assetCategories', assetCategories, setAssetCategories),
+    dictations, setDictations: createSyncSetter<VideoDictation>('dictations', dictations, setDictations as any),
     tags, setTags: createSyncSetter<any>('tags', tags as any, setTags as any, true),
   };
 }

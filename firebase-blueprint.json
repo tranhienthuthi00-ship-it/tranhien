@@ -44,7 +44,8 @@
         "link": { "type": "string" },
         "review": { "type": "string" },
         "notes": { "type": "string" },
-        "tags": { "type": "array", "items": { "type": "string" } }
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "isFavorite": { "type": "boolean" }
       },
       "required": ["id", "name", "category", "status", "rating"]
     },
@@ -138,6 +139,19 @@
         "tags": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["tags"]
+    },
+    "VideoDictation": {
+      "title": "VideoDictation",
+      "description": "YouTube video dictation sessions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "youtubeId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "lastModified": { "type": "number" }
+      },
+      "required": ["id", "youtubeId", "title", "content", "lastModified"]
     }
   },
   "firestore": {
@@ -172,6 +186,10 @@
     "users/{userId}/assets/{assetId}": {
       "schema": { "$ref": "#/entities/Asset" },
       "description": "User assets."
+    },
+    "users/{userId}/dictations/{dictationId}": {
+      "schema": { "$ref": "#/entities/VideoDictation" },
+      "description": "Video dictations."
     },
     "users/{userId}/data/tags": {
       "schema": { "$ref": "#/entities/UserTags" },

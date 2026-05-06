@@ -33,6 +33,7 @@ export interface FoodPlace {
   review?: string;
   notes?: string;
   tags?: string[];
+  isFavorite?: boolean;
 }
 
 export interface ContentIdea {
@@ -89,4 +90,14 @@ export interface Asset {
   notes?: string;
   acquiredAt?: number;
   isDebt?: boolean;
+}
+
+export interface VideoDictation {
+  id: string;
+  youtubeId: string;
+  title: string;
+  content: string; // Used for raw text input if no items
+  transcriptItems?: { text: string; offset: number; duration: number }[];
+  lastModified: number;
+  progress?: number;
 }

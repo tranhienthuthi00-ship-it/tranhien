@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 export type Tab = "English Hub" | "Calendar" | "Collections" | "Dashboard";
 
-export function NavBar({ activeTab, setActiveTab, lastSaved, onLogout }: { activeTab: Tab; setActiveTab: (tab: Tab) => void, lastSaved?: string, onLogout: () => void }) {
+export function NavBar({ activeTab, setActiveTab, lastSaved, onLogout, dueCount = 0 }: { activeTab: Tab; setActiveTab: (tab: Tab) => void, lastSaved?: string, onLogout: () => void, dueCount?: number }) {
   const tabs: Tab[] = ["English Hub", "Calendar", "Collections", "Dashboard"];
 
   const getTabLabel = (tab: Tab) => {
@@ -41,16 +41,21 @@ export function NavBar({ activeTab, setActiveTab, lastSaved, onLogout }: { activ
         </div>
         <ul className="flex flex-1 justify-center md:justify-start items-center gap-3 sm:gap-6 md:gap-10">
           {tabs.map((tab) => (
-            <li key={tab} className="relative px-0 md:px-2">
+            <li key={tab} className="relative px-0 md:px-2 flex items-center">
               <button
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "font-sans font-bold md:font-semibold text-[9px] sm:text-[11px] md:text-[13px] uppercase tracking-wider md:tracking-[0.05em] transition-colors pb-1",
+                  "font-sans font-bold md:font-semibold text-[9px] sm:text-[11px] md:text-[13px] uppercase tracking-wider md:tracking-[0.05em] transition-colors pb-1 flex items-center gap-1",
                   activeTab === tab ? "text-crimson" : "text-ink hover:text-crimson"
                 )}
               >
                 <span className="md:hidden">{getTabLabel(tab)}</span>
                 <span className="hidden md:inline">{tab}</span>
+                {tab === "English Hub" && dueCount > 0 && (
+                  <span className="inline-flex items-center justify-center bg-crimson text-white text-[8px] md:text-[10px] w-3.5 h-3.5 md:w-5 md:h-5 rounded-full font-black -mt-1 shadow-sm">
+                    {dueCount > 99 ? "99+" : dueCount}
+                  </span>
+                )}
               </button>
               {activeTab === tab && (
                 <svg

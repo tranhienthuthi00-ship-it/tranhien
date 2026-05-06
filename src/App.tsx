@@ -10,6 +10,7 @@ import { Doodles } from "./components/Doodles";
 import { Login } from "./components/Login";
 import { ContentManager } from "./components/ContentManager";
 import { AssetsManager } from "./components/AssetsManager";
+import { YouTubeDictation } from "./components/YouTubeDictation";
 import { useFirebaseSync } from "./lib/useFirebaseSync";
 import { Loader2 } from "lucide-react";
 
@@ -24,11 +25,12 @@ export default function App() {
     tags, setTags,
     contentIdeas, setContentIdeas,
     assets, setAssets,
-    assetCategories, setAssetCategories
+    assetCategories, setAssetCategories,
+    dictations, setDictations
   } = useFirebaseSync();
 
   const [activeTab, setActiveTab] = useState<Tab>("English Hub");
-  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games">("Academy");
+  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation">("Academy");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Places" | "Content" | "Assets">("Lists");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
@@ -79,6 +81,8 @@ export default function App() {
     );
   }
 
+  const dueCount = words.filter(w => new Date(w.nextReview) <= new Date()).length;
+
   return (
     <div className="min-h-screen pb-20 relative overflow-x-hidden">
       <Doodles />
@@ -90,27 +94,34 @@ export default function App() {
           </filter>
         </defs>
       </svg>
-      <NavBar activeTab={activeTab} setActiveTab={setActiveTab} lastSaved={lastSaved} onLogout={handleLogout} />
+      <NavBar activeTab={activeTab} setActiveTab={setActiveTab} lastSaved={lastSaved} onLogout={handleLogout} dueCount={dueCount} />
       
       <main className="mt-4 relative z-10 animate-in fade-in duration-500">
         {activeTab === "English Hub" && (
           <div className="flex flex-col gap-4">
-            <div className="flex justify-center gap-4 mb-2">
+            <div className="flex justify-center gap-2 md:gap-4 mb-2 px-2 flex-wrap">
               <button 
                 onClick={() => setActiveEnglishSubTab("Academy")}
-                className={`text-sm font-sans font-bold uppercase tracking-widest px-4 py-1 rounded-full border-2 transition-colors ${activeEnglishSubTab === "Academy" ? "bg-ink text-paper border-ink" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1 rounded-full border-2 transition-colors ${activeEnglishSubTab === "Academy" ? "bg-ink text-paper border-ink" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
               >
-                Vocabulary
+                Vocab
               </button>
               <button 
                 onClick={() => setActiveEnglishSubTab("Learning Games")}
-                className={`text-sm font-sans font-bold uppercase tracking-widest px-4 py-1 rounded-full border-2 transition-colors ${activeEnglishSubTab === "Learning Games" ? "bg-ink text-paper border-ink" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1 rounded-full border-2 transition-colors ${activeEnglishSubTab === "Learning Games" ? "bg-ink text-paper border-ink" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
               >
                 Practice
+              </button>
+              <button 
+                onClick={() => setActiveEnglishSubTab("Dictation")}
+                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1 rounded-full border-2 transition-colors ${activeEnglishSubTab === "Dictation" ? "bg-ink text-paper border-ink" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+              >
+                Dictation
               </button>
             </div>
             {activeEnglishSubTab === "Academy" && <Academy words={words} setWords={setWords} tags={tags} setTags={setTags} />}
             {activeEnglishSubTab === "Learning Games" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} />}
+            {activeEnglishSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} />}
           </div>
         )}
         

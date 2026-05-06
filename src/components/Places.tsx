@@ -139,6 +139,12 @@ export function Places({
     ));
   };
 
+  const toggleFavorite = (id: string) => {
+    setPlaces(places.map(p => 
+      p.id === id ? { ...p, isFavorite: !p.isFavorite } : p
+    ));
+  };
+
   const allTags = Array.from(new Set(places.flatMap(p => (p.tags || []).map(t => t.toLowerCase()))));
   const allCities = Array.from(new Set(places.map(p => p.city).filter(Boolean))) as string[];
   const categories = ['Food', 'Cafe', 'Dessert', 'Travel', 'Other'] as const;
@@ -159,10 +165,11 @@ export function Places({
 
   const filteredPlaces = places
     .filter(p => {
-      const matchCat = filter === 'All' || p.category === filter;
+      const matchCat = filter === 'All' || p.category === filter || (filter as any) === 'Favorite';
       const matchStatus = statusFilter === 'All' || p.status === statusFilter;
       const matchTag = !selectedTag || (p.tags && p.tags.map(t => t.toLowerCase()).includes(selectedTag.toLowerCase()));
-      return matchCat && matchStatus && matchTag;
+      const matchFav = (filter as any) === 'Favorite' ? p.isFavorite : true;
+      return matchCat && matchStatus && matchTag && matchFav;
     })
     .sort((a, b) => {
       if (sortBy === 'Rating') {
@@ -356,6 +363,17 @@ export function Places({
         <div className="flex flex-wrap gap-3 justify-center items-center">
           <div className="flex items-center gap-1">
             <button
+              onClick={() => setFilter(filter === 'Favorite' ? 'All' : 'Favorite')}
+              className={cn(
+                "px-2 py-1 font-bold text-[10px] uppercase tracking-widest rounded transition-all sketch-border flex items-center gap-1",
+                filter === 'Favorite' ? "bg-amber-100/50 text-amber-700" : "bg-white/50 text-ink/60 hover:bg-white"
+              )}
+            >
+              <Star size={10} className={filter === 'Favorite' ? "fill-amber-400 text-amber-400" : "text-ink/60"} /> Yêu thích
+            </button>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
                 onClick={() => setShowTopCities(!showTopCities)}
                 className={cn(
                   "px-2 py-1 font-bold text-[10px] uppercase tracking-widest rounded transition-all sketch-border",
@@ -479,26 +497,32 @@ export function Places({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pr-1 content-start mx-1 pb-20">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 pr-1 content-start mx-1 pb-20">
         {filteredPlaces.map(place => (
-          <div key={place.id} className="p-4 md:p-5 sketch-border bg-white/60 relative group flex flex-col justify-between hover:bg-white transition-all">
+          <div key={place.id} className="p-3 sketch-border bg-white/60 relative group flex flex-col justify-between hover:bg-white transition-all text-sm">
              <div>
-               <div className="flex justify-between items-start mb-3 gap-2 w-full">
+               <div className="flex justify-between items-start mb-2 gap-2 w-full">
                   <div className="flex flex-col flex-1 min-w-0">
-                    <div className="flex items-start gap-2 flex-wrap">
-                      <h3 className="font-bold text-xl leading-tight text-ink break-words min-w-0">
+                    <div className="flex items-start gap-1 flex-wrap">
+                      <button 
+                        onClick={() => toggleFavorite(place.id)}
+                        className="mt-0.5 text-amber-400 hover:scale-110 transition-transform focus:outline-none"
+                      >
+                        <Star size={14} className={place.isFavorite ? "fill-amber-400" : "text-ink/20 hover:text-amber-400"} />
+                      </button>
+                      <h3 className="font-bold text-base leading-tight text-ink break-words min-w-0">
                         {place.name}
-                        {place.city && <span className="ml-2 text-xs font-normal text-ink/40 uppercase tracking-widest">({place.city})</span>}
+                        {place.city && <span className="ml-1 text-[10px] font-normal text-ink/40 uppercase tracking-widest">({place.city})</span>}
                       </h3>
                       {place.price !== undefined && (
-                        <span className="font-mono font-bold text-xs bg-crimson/10 text-crimson px-1.5 py-0.5 rounded border border-crimson/20">
+                        <span className="font-mono font-bold text-[10px] bg-crimson/10 text-crimson px-1.5 py-0.5 rounded border border-crimson/20">
                           {place.price.toLocaleString()} VNĐ
                         </span>
                       )}
                       <button 
                         onClick={() => toggleStatus(place.id)}
                         className={cn(
-                          "text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border transition-all",
+                          "text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full border transition-all ml-1",
                           place.status === 'Visited' 
                             ? "bg-emerald-100 text-emerald-700 border-emerald-200" 
                             : "bg-amber-100 text-amber-700 border-amber-200"
@@ -507,7 +531,7 @@ export function Places({
                         {place.status === 'Visited' ? 'Visited' : 'Want to visit'}
                       </button>
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-tighter text-ink/40">
+                    <span className="text-[9px] font-bold uppercase tracking-tighter text-ink/40 mt-1">
                       {place.category}
                     </span>
                     {place.tags && place.tags.length > 0 && (
@@ -518,23 +542,23 @@ export function Places({
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-0.5">
+                  <div className="flex gap-0.5 mt-1 shrink-0">
                      {Array.from({ length: place.rating }).map((_, i) => (
-                       <Star key={i} size={14} className="fill-crimson text-crimson" />
+                       <Star key={i} size={10} className="fill-crimson text-crimson" />
                      ))}
                   </div>
                </div>
                
                {place.address && (
-                 <div className="flex items-start gap-1.5 text-xs text-ink/60 mb-2 bg-ink/5 p-2 rounded">
-                   <MapPin size={12} className="mt-0.5 shrink-0" />
+                 <div className="flex items-start gap-1.5 text-[10px] text-ink/60 mb-2 bg-ink/5 p-1.5 rounded">
+                   <MapPin size={10} className="mt-0.5 shrink-0" />
                    <p className="leading-snug">{place.address}</p>
                  </div>
                )}
                
                {place.link && (
-                 <div className="flex items-start gap-1.5 text-xs text-ink/60 mb-3 bg-ink/5 p-2 rounded w-full min-w-0 overflow-hidden">
-                   <ExternalLink size={12} className="mt-0.5 shrink-0" />
+                 <div className="flex items-start gap-1.5 text-[10px] text-ink/60 mb-2 bg-ink/5 p-1.5 rounded w-full min-w-0 overflow-hidden">
+                   <ExternalLink size={10} className="mt-0.5 shrink-0" />
                    <a href={place.link} target="_blank" rel="noopener noreferrer" className="leading-snug hover:text-crimson transition-colors truncate flex-1 min-w-0 block">
                      {place.link}
                    </a>
@@ -542,49 +566,49 @@ export function Places({
                )}
 
                {place.notes && (
-                 <div className="mt-2 p-3 bg-yellow-50/50 border border-dashed border-amber-200 text-sm font-hand leading-relaxed text-ink/80 rounded relative">
-                   <div className="absolute -top-2 right-2 flex gap-1">
+                 <div className="mt-1.5 p-2 bg-yellow-50/50 border border-dashed border-amber-200 text-xs font-hand leading-relaxed text-ink/80 rounded relative">
+                   <div className="absolute -top-1.5 right-1.5 flex gap-1">
                       <div className="w-1 h-1 rounded-full bg-amber-400" />
                    </div>
-                   <strong className="text-[10px] uppercase tracking-widest text-ink/40 font-sans block mb-1">Ghi chú:</strong>
+                   <strong className="text-[8px] uppercase tracking-widest text-ink/40 font-sans block mb-0.5">Ghi chú:</strong>
                    {place.notes}
                  </div>
                )}
                {place.review && (
-                 <div className="mt-2 p-3 bg-emerald-50/50 border border-dashed border-emerald-200 text-sm font-hand leading-relaxed text-ink/80 rounded relative">
-                   <div className="absolute -top-2 right-2 flex gap-1">
+                 <div className="mt-1.5 p-2 bg-emerald-50/50 border border-dashed border-emerald-200 text-xs font-hand leading-relaxed text-ink/80 rounded relative">
+                   <div className="absolute -top-1.5 right-1.5 flex gap-1">
                       <div className="w-1 h-1 rounded-full bg-emerald-400" />
                    </div>
-                   <strong className="text-[10px] uppercase tracking-widest text-ink/40 font-sans block mb-1">Review:</strong>
+                   <strong className="text-[8px] uppercase tracking-widest text-ink/40 font-sans block mb-0.5">Review:</strong>
                    {place.review}
                  </div>
                )}
              </div>
 
-             <div className="mt-5 flex justify-between items-center">
+             <div className="mt-3 flex justify-between items-center">
                <button
                  onClick={() => {
                    startEdit(place);
                    setNewStatus('Visited'); // Automatically prepare for review if wanting to rate
                  }}
-                 className="text-xs sketch-button text-ink py-1 px-3"
+                 className="text-[10px] sketch-button text-ink py-1 px-2"
                >
-                 {place.status === 'Visited' ? 'Viết lại Review' : 'Đã đi & Thêm Review'}
+                 {place.status === 'Visited' ? 'Viết lại Review' : 'Thêm Review'}
                </button>
-               <div className="flex gap-2">
+               <div className="flex gap-1.5">
                  <button 
                    onClick={() => startEdit(place)}
-                   className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-ink hover:text-white rounded-lg border border-ink/10 shadow-sm"
+                   className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-ink hover:text-white rounded border border-ink/10 shadow-sm"
                    title="Sửa địa điểm"
                  >
-                   <Edit2 size={16} />
+                   <Edit2 size={12} />
                  </button>
                  <button 
                    onClick={() => removePlace(place.id)}
-                   className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-crimson hover:text-white rounded-lg border border-ink/10 shadow-sm"
+                   className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-crimson hover:text-white rounded border border-ink/10 shadow-sm"
                    title="Xóa địa điểm"
                  >
-                   <Trash2 size={16} />
+                   <Trash2 size={12} />
                  </button>
                </div>
              </div>
