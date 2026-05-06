@@ -3,7 +3,7 @@ import { Search, BookA, Tag as TagIcon, Plus, X } from "lucide-react";
 import type { Word, WordTag } from "@/types";
 import { cn } from "@/lib/utils";
 
-const WORD_TYPES = ['noun', 'verb', 'adj', 'adv', 'idiom', 'phrasal verb'];
+const WORD_TYPES = ['noun', 'verb', 'adj', 'adv', 'idiom', 'phrasal verb', 'phrase', 'sentence'];
 
 export function Academy({
   words,

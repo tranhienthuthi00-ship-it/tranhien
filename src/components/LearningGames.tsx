@@ -13,8 +13,11 @@ export function LearningGames({
 }) {
   const [activeWordInfo, setActiveWordInfo] = useState<{ word: Word | null, isFlipped: boolean }>({ word: null, isFlipped: false });
   const [streak, setStreak] = useState(0);
-  const [gameMode, setGameMode] = useState<'Flashcard' | 'Typing'>('Flashcard');
+  const [gameMode, setGameMode] = useState<'Flashcard' | 'Typing' | 'Scramble' | 'Quiz'>('Flashcard');
   const [userInput, setUserInput] = useState('');
+  const [scrambledWords, setScrambledWords] = useState<string[]>([]);
+  const [scrambleAnswer, setScrambleAnswer] = useState<string[]>([]);
+  const [quizOptions, setQuizOptions] = useState<string[]>([]);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
 
   // Simple weighted random selection
@@ -26,6 +29,12 @@ export function LearningGames({
     const dueWords = words.filter(w => new Date(w.nextReview) <= now);
     
     let pool = dueWords.length > 0 ? dueWords : words; // fallback to all words if nothing is due but user wants to practice
+
+    // If Scramble mode, prefer sentences/phrases
+    if (gameMode === 'Scramble') {
+      const sentencePool = pool.filter(w => w.wordType === 'sentence' || w.wordType === 'phrase');
+      if (sentencePool.length > 0) pool = sentencePool;
+    }
 
     // Higher difficulty number means it should appear MORE often.
     const weightedArray = pool.flatMap(w => {
@@ -40,6 +49,20 @@ export function LearningGames({
     setActiveWordInfo({ word: randomWord, isFlipped: false });
     setUserInput('');
     setFeedback(null);
+
+    if (gameMode === 'Scramble' && randomWord) {
+      const wordsArray = randomWord.vocabulary.split(' ').filter(w => w.trim() !== '');
+      setScrambledWords([...wordsArray].sort(() => Math.random() - 0.5));
+      setScrambleAnswer([]);
+    }
+
+    if (gameMode === 'Quiz' && randomWord) {
+      // Pick 3 other random definitions
+      const otherWords = words.filter(w => w.id !== randomWord.id);
+      const decoys = [...otherWords].sort(() => Math.random() - 0.5).slice(0, 3).map(w => w.definition);
+      const options = [...decoys, randomWord.definition].sort(() => Math.random() - 0.5);
+      setQuizOptions(options);
+    }
   };
 
   const handleStart = () => {
@@ -54,6 +77,45 @@ export function LearningGames({
       setTimeout(() => {
         selectNextWord();
       }, 400); // Small delay for visual feedback
+    }
+  };
+
+  const toggleScrambleWord = (wordValue: string, index: number) => {
+    if (feedback) return;
+    setScrambledWords(prev => prev.filter((_, i) => i !== index));
+    setScrambleAnswer(prev => [...prev, wordValue]);
+  };
+
+  const removeFromAnswer = (wordValue: string, index: number) => {
+    if (feedback) return;
+    setScrambleAnswer(prev => prev.filter((_, i) => i !== index));
+    setScrambledWords(prev => [...prev, wordValue]);
+  };
+
+  const checkScramble = () => {
+    if (!activeWordInfo.word) return;
+    const currentAnswer = scrambleAnswer.join(' ').toLowerCase();
+    const correctAnswer = activeWordInfo.word.vocabulary.toLowerCase();
+    
+    if (currentAnswer === correctAnswer) {
+      setFeedback('correct');
+      handleScore(1);
+    } else {
+      setFeedback('incorrect');
+      updateWordDifficulty(activeWordInfo.word.id, 3);
+      setStreak(0);
+    }
+  };
+
+  const handleQuizSelect = (option: string) => {
+    if (feedback) return;
+    if (option === activeWordInfo.word?.definition) {
+      setFeedback('correct');
+      handleScore(1);
+    } else {
+      setFeedback('incorrect');
+      updateWordDifficulty(activeWordInfo.word!.id, 3);
+      setStreak(0);
     }
   };
 
@@ -104,6 +166,18 @@ export function LearningGames({
               className={cn("px-4 py-2 border-2 text-sm font-bold uppercase tracking-widest rounded-full", gameMode === 'Typing' ? "bg-ink text-paper border-ink" : "border-ink/20")}
             >
               Typing Test
+            </button>
+            <button 
+              onClick={() => setGameMode('Scramble')} 
+              className={cn("px-4 py-2 border-2 text-sm font-bold uppercase tracking-widest rounded-full", gameMode === 'Scramble' ? "bg-ink text-paper border-ink" : "border-ink/20")}
+            >
+              Scramble
+            </button>
+            <button 
+              onClick={() => setGameMode('Quiz')} 
+              className={cn("px-4 py-2 border-2 text-sm font-bold uppercase tracking-widest rounded-full", gameMode === 'Quiz' ? "bg-ink text-paper border-ink" : "border-ink/20")}
+            >
+              Quiz
             </button>
           </div>
         </div>
@@ -194,7 +268,7 @@ export function LearningGames({
               </button>
            </div>
          </>
-       ) : (
+       ) : gameMode === 'Typing' ? (
          <div className="w-full">
             {/* Typing Mode */}
             <div className="sketch-border bg-white p-6 md:p-8 mb-6 shadow-xl">
@@ -243,6 +317,95 @@ export function LearningGames({
                    <p className="text-lg font-sans mb-4 opacity-60">{word.ipa}</p>
                  </div>
                )}
+            </div>
+         </div>
+       ) : gameMode === 'Quiz' ? (
+         <div className="w-full">
+            {/* Quiz Mode */}
+            <div className="sketch-border bg-white p-6 md:p-8 mb-6 shadow-xl flex flex-col items-center">
+              <div className="mb-8 text-center w-full">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Select correct definition</span>
+                <h2 className="text-4xl md:text-5xl font-sans font-black tracking-tight mt-4 text-ink">{word.vocabulary}</h2>
+                <p className="text-lg font-sans text-ink/60 mt-2 italic">{word.ipa} • {word.wordType}</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 w-full">
+                {quizOptions.map((opt, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => handleQuizSelect(opt)}
+                    className={cn(
+                      "p-4 sketch-border text-left font-sans transition-all",
+                      feedback === 'correct' && opt === word.definition ? "bg-green-100 border-green-600 text-green-800" :
+                      feedback === 'incorrect' && opt === word.definition ? "bg-green-50 border-green-400" :
+                      feedback === 'incorrect' && opt !== word.definition ? "bg-red-50 opacity-40" :
+                      "hover:bg-ink/5 bg-white"
+                    )}
+                  >
+                    <span className="font-bold mr-3">{String.fromCharCode(65 + i)}.</span>
+                    {opt}
+                  </button>
+                ))}
+              </div>
+
+              {feedback === 'incorrect' && (
+                <div className="mt-8 text-center animate-in fade-in">
+                   <p className="text-crimson font-bold uppercase text-[10px] tracking-widest mb-2">Incorrect Selection</p>
+                   <button onClick={() => selectNextWord()} className="sketch-button py-2 px-8">Next Question</button>
+                </div>
+              )}
+            </div>
+         </div>
+       ) : (
+         <div className="w-full">
+            {/* Scramble Mode */}
+            <div className="sketch-border bg-white p-6 md:p-8 mb-6 shadow-xl flex flex-col items-center">
+              <div className="mb-8 text-center w-full">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Reconstruct the Sentence</span>
+                <p className="text-lg font-sans font-medium mt-2">{word.definition}</p>
+              </div>
+
+              <div className="min-h-[100px] w-full p-4 bg-ink/5 rounded-xl sketch-border border-dashed border-ink/20 flex flex-wrap gap-2 justify-center content-center mb-8">
+                {scrambleAnswer.map((w, i) => (
+                  <button 
+                    key={`${w}-${i}`} 
+                    onClick={() => removeFromAnswer(w, i)}
+                    className="px-4 py-2 bg-white sketch-border text-lg font-sans font-bold hover:scale-105 transition-transform"
+                  >
+                    {w}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-3 justify-center">
+                {scrambledWords.map((w, i) => (
+                  <button 
+                    key={`${w}-${i}`} 
+                    onClick={() => toggleScrambleWord(w, i)}
+                    className="px-4 py-2 bg-ink/5 sketch-border border-ink/20 text-lg font-sans hover:bg-ink hover:text-white transition-colors"
+                  >
+                    {w}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-12 flex gap-4">
+                {feedback === null && scrambleAnswer.length > 0 && (
+                  <button onClick={checkScramble} className="sketch-button sketch-button-primary px-12 py-2 text-xl">
+                    Check Answer
+                  </button>
+                )}
+                
+                {feedback === 'incorrect' && (
+                  <div className="text-center animate-in zoom-in-95">
+                    <p className="text-crimson font-black uppercase text-xs tracking-widest mb-2">Sequence Invalid</p>
+                    <p className="text-lg mb-4 italic">"{word.vocabulary}"</p>
+                    <button onClick={() => selectNextWord()} className="sketch-button px-8 py-2">
+                      Continue
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
          </div>
        )}
