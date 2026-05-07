@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import type { FormEvent } from "react";
-import { BrainCircuit, RotateCcw, ShieldCheck } from "lucide-react";
+import { BrainCircuit, RotateCcw, ShieldCheck, Layers, Keyboard, Shuffle, ListTodo, Headphones, Mic } from "lucide-react";
 import type { Word } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -182,39 +182,39 @@ export function LearningGames({
           <div className="grid grid-cols-2 gap-2 md:flex md:gap-4 justify-center px-2">
             <button 
               onClick={() => setGameMode('Flashcard')} 
-              className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-colors", gameMode === 'Flashcard' ? "bg-ink text-paper border-ink" : "border-ink/20")}
+              className={cn("flex items-center gap-2 px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-all", gameMode === 'Flashcard' ? "bg-ink text-paper border-ink scale-105" : "border-ink/20")}
             >
-              Flashcards
+              <Layers className="w-3 h-3 md:w-4 md:h-4" style={{ filter: 'url(#hand-drawn-filter)' }} /> Flashcards
             </button>
             <button 
               onClick={() => setGameMode('Typing')} 
-              className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-colors", gameMode === 'Typing' ? "bg-ink text-paper border-ink" : "border-ink/20")}
+              className={cn("flex items-center gap-2 px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-all", gameMode === 'Typing' ? "bg-ink text-paper border-ink scale-105" : "border-ink/20")}
             >
-              Typing Test
+              <Keyboard className="w-3 h-3 md:w-4 md:h-4" style={{ filter: 'url(#hand-drawn-filter)' }} /> Typing
             </button>
             <button 
               onClick={() => setGameMode('Scramble')} 
-              className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-colors", gameMode === 'Scramble' ? "bg-ink text-paper border-ink" : "border-ink/20")}
+              className={cn("flex items-center gap-2 px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-all", gameMode === 'Scramble' ? "bg-ink text-paper border-ink scale-105" : "border-ink/20")}
             >
-              Scramble
+              <Shuffle className="w-3 h-3 md:w-4 md:h-4" style={{ filter: 'url(#hand-drawn-filter)' }} /> Scramble
             </button>
             <button 
               onClick={() => setGameMode('Quiz')} 
-              className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-colors", gameMode === 'Quiz' ? "bg-ink text-paper border-ink" : "border-ink/20")}
+              className={cn("flex items-center gap-2 px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-all", gameMode === 'Quiz' ? "bg-ink text-paper border-ink scale-105" : "border-ink/20")}
             >
-              Quiz
+              <ListTodo className="w-3 h-3 md:w-4 md:h-4" style={{ filter: 'url(#hand-drawn-filter)' }} /> Quiz
             </button>
             <button 
               onClick={() => setGameMode('Dictation')} 
-              className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-colors", gameMode === 'Dictation' ? "bg-ink text-paper border-ink" : "border-ink/20")}
+              className={cn("flex items-center gap-2 px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-all", gameMode === 'Dictation' ? "bg-ink text-paper border-ink scale-105" : "border-ink/20")}
             >
-              Dictation
+              <Headphones className="w-3 h-3 md:w-4 md:h-4" style={{ filter: 'url(#hand-drawn-filter)' }} /> Dictation
             </button>
             <button 
               onClick={() => setActiveEnglishSubTab?.('Speech')} 
-              className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full border-crimson/30 text-crimson")}
+              className={cn("flex items-center gap-2 px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full border-crimson/30 text-crimson hover:bg-crimson/5 transition-all")}
             >
-              Pronunciation 🎙️
+              <Mic className="w-3 h-3 md:w-4 md:h-4" style={{ filter: 'url(#hand-drawn-filter)' }} /> Speech
             </button>
           </div>
         </div>

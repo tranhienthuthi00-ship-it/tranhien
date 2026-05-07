@@ -28,6 +28,11 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
       recognitionRef.current.interimResults = false;
       recognitionRef.current.lang = "en-US";
 
+      recognitionRef.current.onstart = () => {
+        setIsRecording(true);
+        setFeedback(null);
+      };
+
       recognitionRef.current.onresult = (event: any) => {
         const result = event.results[0][0].transcript;
         setTranscript(result);

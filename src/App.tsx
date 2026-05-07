@@ -13,7 +13,7 @@ import { AssetsManager } from "./components/AssetsManager";
 import { YouTubeDictation } from "./components/YouTubeDictation";
 import { SpeechGame } from "./components/SpeechGame";
 import { useFirebaseSync } from "./lib/useFirebaseSync";
-import { Loader2 } from "lucide-react";
+import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet } from "lucide-react";
 
 export default function App() {
   const {
@@ -103,26 +103,30 @@ export default function App() {
             <div className="flex justify-center gap-2 md:gap-4 mb-2 px-2 flex-wrap">
               <button 
                 onClick={() => setActiveEnglishSubTab("Academy")}
-                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1 rounded-full border-2 transition-colors ${activeEnglishSubTab === "Academy" ? "bg-ink text-paper border-ink" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "Academy" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
               >
+                <BookText className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />
                 Vocab
               </button>
               <button 
                 onClick={() => setActiveEnglishSubTab("Learning Games")}
-                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1 rounded-full border-2 transition-colors ${activeEnglishSubTab === "Learning Games" ? "bg-ink text-paper border-ink" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "Learning Games" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
               >
+                <Gamepad2 className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />
                 Practice
               </button>
               <button 
                 onClick={() => setActiveEnglishSubTab("Dictation")}
-                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1 rounded-full border-2 transition-colors ${activeEnglishSubTab === "Dictation" ? "bg-ink text-paper border-ink" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "Dictation" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
               >
+                <Headphones className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />
                 Dictation
               </button>
               <button 
                 onClick={() => setActiveEnglishSubTab("Speech")}
-                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1 rounded-full border-2 transition-colors ${activeEnglishSubTab === "Speech" ? "bg-ink text-paper border-ink" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "Speech" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
               >
+                <Mic className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />
                 Speech
               </button>
             </div>
@@ -135,13 +139,17 @@ export default function App() {
         
         {activeTab === "Collections" && (
           <div className="flex flex-col gap-4">
-            <div className="flex justify-center flex-wrap gap-2 mb-2 px-4">
+            <div className="flex justify-center flex-wrap gap-2 mb-2 px-4 text-ink/60">
               {(["Lists", "Places", "Content", "Assets"] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveCollectionSubTab(tab)}
-                  className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-4 py-1.5 rounded-full border-2 transition-colors ${activeCollectionSubTab === tab ? "bg-ink text-paper border-ink" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                  className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeCollectionSubTab === tab ? "bg-ink text-paper border-ink scale-105 shadow-md" : "border-ink/20 hover:border-ink/50"}`}
                 >
+                  {tab === "Lists" && <ClipboardList className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
+                  {tab === "Places" && <MapPin className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
+                  {tab === "Content" && <Lightbulb className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
+                  {tab === "Assets" && <Wallet className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Content" ? "TREND / CONTENT" : tab === "Assets" ? "TÀI SẢN" : tab}
                 </button>
               ))}
