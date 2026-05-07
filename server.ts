@@ -22,13 +22,28 @@ async function startServer() {
         return res.status(400).json({ error: "videoId is required" });
       }
 
-      const transcript = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
+      console.log(`Fetching transcript for videoId: ${videoId}`);
+      
+      let transcript;
+      try {
+        // Try English first
+        transcript = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
+      } catch (e) {
+        console.log(`Failed to fetch 'en' transcript, trying default...`);
+        // Fallback to whatever is available
+        transcript = await YoutubeTranscript.fetchTranscript(videoId);
+      }
+      
       res.json({ transcript });
     } catch (error: any) {
+      console.error("Transcript fetch error:", error);
       if (error.message?.includes('Transcript is disabled')) {
-         return res.status(404).json({ error: "Phụ đề tự động của video này đã bị tắt hoặc quyền truy cập bị YouTube chặn." });
+         return res.status(404).json({ error: "Phụ đề của video này đã bị tắt hoặc không tồn tại." });
       }
-      res.status(500).json({ error: "Lỗi nội bộ khi tải phụ đề tự động. Vui lòng cung cấp phụ đề thủ công." });
+      if (error.message?.includes('Could not find transcript')) {
+        return res.status(404).json({ error: "YouTube không trả về phụ đề cho video này. Có thể video không có phụ đề tự động." });
+      }
+      res.status(500).json({ error: `Lỗi khi tải phụ đề: ${error.message}. Vui lòng dán thủ công.` });
     }
   });
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { VideoDictation } from '../types';
 import { cn } from '../lib/utils';
-import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2, Mic } from 'lucide-react';
 import { YoutubeTranscript } from 'youtube-transcript';
 
 import YouTube from 'react-youtube';
@@ -16,6 +16,60 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const playerRef = useRef<any>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = "en-US";
+
+      recognitionRef.current.onresult = (event: any) => {
+        let finalTranscript = "";
+        let foundPeriod = false;
+        
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const text = event.results[i][0].transcript;
+          finalTranscript += text;
+          if (text.includes(".")) {
+             foundPeriod = true;
+          }
+        }
+        
+        if (finalTranscript) {
+          const trimmed = finalTranscript.trim();
+          setUserInput(prev => {
+            const p = prev.trim();
+            return p ? `${p} ${trimmed}` : trimmed;
+          });
+          
+          if (foundPeriod) {
+            recognitionRef.current.stop();
+          }
+        }
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsRecording(false);
+      };
+      
+      recognitionRef.current.onstart = () => {
+        setIsRecording(true);
+      };
+    }
+  }, []);
+
+  const toggleRecording = () => {
+    if (!recognitionRef.current) return;
+    if (isRecording) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
+    }
+  };
 
   const extractYoutubeId = (url: string) => {
     const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
@@ -457,6 +511,16 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                         spellCheck="false"
                         autoFocus
                       />
+                      <button 
+                        onClick={toggleRecording}
+                        className={cn(
+                          "absolute bottom-12 right-6 p-4 rounded-full transition-all border-4",
+                          isRecording ? "bg-crimson text-white animate-pulse border-white" : "bg-white text-ink border-ink/10 hover:border-ink hover:scale-110 shadow-lg"
+                        )}
+                        title={isRecording ? "Stop Voice Dictation" : "Start Voice Dictation"}
+                      >
+                         <Mic fill={isRecording ? "currentColor" : "none"} />
+                      </button>
                       <div className="mt-2 text-right">
                          <button 
                            onClick={() => {

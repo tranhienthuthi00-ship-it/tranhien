@@ -24,8 +24,8 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
       recognitionRef.current.lang = "en-US";
 
       recognitionRef.current.onstart = () => {
@@ -34,9 +34,23 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
       };
 
       recognitionRef.current.onresult = (event: any) => {
-        const result = event.results[0][0].transcript;
-        setTranscript(result);
-        validateSpeech(result);
+        let finalTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+        
+        if (finalTranscript) {
+          const processed = finalTranscript.trim();
+          setTranscript(processed);
+          
+          // If the word is correct or ending with period, stop
+          if (processed.includes(".") || processed.toLowerCase().includes(activeWord?.vocabulary.toLowerCase() || "")) {
+             validateSpeech(processed);
+             recognitionRef.current.stop();
+          }
+        }
       };
 
       recognitionRef.current.onerror = (event: any) => {
@@ -74,8 +88,16 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
     setTranscript("");
     setScore(null);
     setFeedback(null);
-    setIsRecording(true);
-    recognitionRef.current.start();
+    try {
+      recognitionRef.current.start();
+    } catch (err) {
+      console.error("Start error:", err);
+      // If already started, just ignore or stop first
+      try {
+        recognitionRef.current.stop();
+        setTimeout(() => recognitionRef.current.start(), 100);
+      } catch (e) {}
+    }
   };
 
   const stopRecording = () => {
