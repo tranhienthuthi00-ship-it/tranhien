@@ -11,6 +11,7 @@ import { Login } from "./components/Login";
 import { ContentManager } from "./components/ContentManager";
 import { AssetsManager } from "./components/AssetsManager";
 import { YouTubeDictation } from "./components/YouTubeDictation";
+import { SpeechGame } from "./components/SpeechGame";
 import { useFirebaseSync } from "./lib/useFirebaseSync";
 import { Loader2 } from "lucide-react";
 
@@ -30,7 +31,7 @@ export default function App() {
   } = useFirebaseSync();
 
   const [activeTab, setActiveTab] = useState<Tab>("English Hub");
-  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation">("Academy");
+  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation" | "Speech">("Academy");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Places" | "Content" | "Assets">("Lists");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
@@ -118,10 +119,17 @@ export default function App() {
               >
                 Dictation
               </button>
+              <button 
+                onClick={() => setActiveEnglishSubTab("Speech")}
+                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1 rounded-full border-2 transition-colors ${activeEnglishSubTab === "Speech" ? "bg-ink text-paper border-ink" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+              >
+                Speech
+              </button>
             </div>
             {activeEnglishSubTab === "Academy" && <Academy words={words} setWords={setWords} tags={tags} setTags={setTags} />}
-            {activeEnglishSubTab === "Learning Games" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} />}
+            {activeEnglishSubTab === "Learning Games" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={setActiveEnglishSubTab} />}
             {activeEnglishSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} />}
+            {activeEnglishSubTab === "Speech" && <SpeechGame words={words} updateWordDifficulty={updateWordDifficulty} />}
           </div>
         )}
         

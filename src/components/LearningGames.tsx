@@ -7,9 +7,11 @@ import { cn } from "@/lib/utils";
 export function LearningGames({
   words,
   updateWordDifficulty,
+  setActiveEnglishSubTab,
 }: {
   words: Word[];
   updateWordDifficulty: (id: string, newDifficulty: number) => void;
+  setActiveEnglishSubTab?: (tab: "Academy" | "Learning Games" | "Dictation" | "Speech") => void;
 }) {
   const [activeWordInfo, setActiveWordInfo] = useState<{ word: Word | null, isFlipped: boolean }>({ word: null, isFlipped: false });
   const [streak, setStreak] = useState(0);
@@ -207,6 +209,12 @@ export function LearningGames({
               className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full transition-colors", gameMode === 'Dictation' ? "bg-ink text-paper border-ink" : "border-ink/20")}
             >
               Dictation
+            </button>
+            <button 
+              onClick={() => setActiveEnglishSubTab?.('Speech')} 
+              className={cn("px-2 py-2 md:px-4 md:py-2 border-2 text-[10px] md:text-sm font-bold uppercase tracking-widest rounded-full border-crimson/30 text-crimson")}
+            >
+              Pronunciation 🎙️
             </button>
           </div>
         </div>
