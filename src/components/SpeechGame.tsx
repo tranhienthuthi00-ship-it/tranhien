@@ -48,19 +48,18 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
         }
         
         const currentTranscript = (finalTranscript || interimTranscript).trim();
-        if (currentTranscript) {
+        if (currentTranscript && !isValidating) {
           setTranscript(currentTranscript);
           
-          // If it's a final result or if the recognized text clearly matches the target word
-          if (finalTranscript || currentTranscript.toLowerCase().includes(activeWord?.vocabulary.toLowerCase() || "")) {
-             const targetWord = activeWord?.vocabulary.toLowerCase() || "";
-             const heardWord = currentTranscript.toLowerCase();
-             
-             // If we heard something very close to the target, we can auto-validate
-             if (heardWord.includes(targetWord) || finalTranscript) {
-                validateSpeech(currentTranscript);
-                if (finalTranscript) recognitionRef.current.stop();
-             }
+          const targetWord = activeWord?.vocabulary.toLowerCase() || "";
+          const heardWord = currentTranscript.toLowerCase();
+          
+          // Auto-validate if we hear the word even in interim results OR if we got a final result
+          if (heardWord.includes(targetWord) || finalTranscript) {
+            validateSpeech(currentTranscript);
+            try {
+              recognitionRef.current.stop();
+            } catch (e) {}
           }
         }
       };
