@@ -17,6 +17,7 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
   const [score, setScore] = useState<number | null>(null);
   const [streak, setStreak] = useState(0);
   const [feedback, setFeedback] = useState<{ message: string; color: string } | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
@@ -34,21 +35,32 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
       };
 
       recognitionRef.current.onresult = (event: any) => {
+        let interimTranscript = "";
         let finalTranscript = "";
+
         for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcriptText = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
+            finalTranscript += transcriptText;
+          } else {
+            interimTranscript += transcriptText;
           }
         }
         
-        if (finalTranscript) {
-          const processed = finalTranscript.trim();
-          setTranscript(processed);
+        const currentTranscript = (finalTranscript || interimTranscript).trim();
+        if (currentTranscript) {
+          setTranscript(currentTranscript);
           
-          // If the word is correct or ending with period, stop
-          if (processed.includes(".") || processed.toLowerCase().includes(activeWord?.vocabulary.toLowerCase() || "")) {
-             validateSpeech(processed);
-             recognitionRef.current.stop();
+          // If it's a final result or if the recognized text clearly matches the target word
+          if (finalTranscript || currentTranscript.toLowerCase().includes(activeWord?.vocabulary.toLowerCase() || "")) {
+             const targetWord = activeWord?.vocabulary.toLowerCase() || "";
+             const heardWord = currentTranscript.toLowerCase();
+             
+             // If we heard something very close to the target, we can auto-validate
+             if (heardWord.includes(targetWord) || finalTranscript) {
+                validateSpeech(currentTranscript);
+                if (finalTranscript) recognitionRef.current.stop();
+             }
           }
         }
       };
@@ -78,6 +90,7 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
     setTranscript("");
     setScore(null);
     setFeedback(null);
+    setIsValidating(false);
   };
 
   const startRecording = () => {
@@ -88,6 +101,7 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
     setTranscript("");
     setScore(null);
     setFeedback(null);
+    setIsValidating(false);
     try {
       recognitionRef.current.start();
     } catch (err) {
@@ -118,7 +132,8 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
   };
 
   const validateSpeech = (speech: string) => {
-    if (!activeWord) return;
+    if (!activeWord || isValidating) return;
+    setIsValidating(true);
 
     const target = activeWord.vocabulary.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "");
     const recognized = speech.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "");
