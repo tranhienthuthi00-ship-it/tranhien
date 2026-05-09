@@ -363,56 +363,69 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
     const isCompleted = sentences.length > 0 && progressIndex >= sentences.length;
 
     return (
-      <div className="max-w-6xl mx-auto p-2 md:p-4 font-sans min-h-[calc(100vh-140px)] flex flex-col overflow-x-hidden">
-        <div className="flex justify-between items-center mb-4 shrink-0 p-2 md:p-0">
+      <div className="max-w-7xl mx-auto p-2 md:p-4 font-sans h-full md:h-[calc(100vh-120px)] flex flex-col overflow-hidden">
+        <div className="flex justify-between items-center mb-4 shrink-0 px-2 lg:px-0">
           <button 
             onClick={() => setActiveSessionId(null)}
-            className="flex items-center gap-1 text-ink/60 hover:text-ink transition-colors font-bold text-xs uppercase tracking-widest"
+            className="flex items-center gap-1 text-ink/60 hover:text-ink transition-colors font-bold text-[10px] uppercase tracking-widest shrink-0"
           >
             <ChevronLeft size={16} /> Quay lại
           </button>
           
-          <div className="flex-1 max-w-md mx-4">
+          <div className="flex-1 max-w-sm mx-4">
              <input 
                type="text" 
                value={activeSession.title}
                onChange={(e) => updateSession(activeSession.id, 'title', e.target.value)}
-               className="w-full bg-transparent border-b-2 border-dashed border-ink/20 focus:border-ink/60 outline-none text-xl font-bold font-logo text-center py-1 transition-colors"
+               className="w-full bg-transparent border-b border-dashed border-ink/20 focus:border-ink/60 outline-none text-lg font-bold font-logo text-center py-1 transition-colors"
                placeholder="Tiêu đề bài nghe..."
              />
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 shrink-0">
             <button 
               onClick={() => setMode('transcript')}
-              className={cn("px-3 py-1.5 text-xs font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1.5", 
+              className={cn("px-2 md:px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1", 
                 mode === 'transcript' ? "bg-ink text-paper" : "bg-ink/5 text-ink/60 hover:bg-ink/10"
               )}
             >
-              <Type size={14} /> Transcript
+              <Type size={12} /> <span className="hidden sm:inline">Transcript</span>
             </button>
             <button 
-              onClick={() => { setMode('practice'); if (playerRef.current) playerRef.current.pauseVideo(); }}
-              className={cn("px-3 py-1.5 text-xs font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1.5", 
+              onClick={() => {
+                if (!activeSession.content) {
+                  alert("Vui lòng nhập transcript trước.");
+                  return;
+                }
+                setMode('practice');
+                if (playerRef.current) playerRef.current.pauseVideo();
+              }}
+              className={cn("px-2 md:px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1", 
                 mode === 'practice' ? "bg-ink text-paper" : "bg-ink/5 text-ink/60 hover:bg-ink/10"
               )}
             >
-              <Headphones size={14} /> Practice
+              <Headphones size={12} /> <span className="hidden sm:inline">Practice</span>
             </button>
             <button 
-              onClick={() => setMode('shadowing')}
-              className={cn("px-3 py-1.5 text-xs font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1.5", 
+              onClick={() => {
+                if (!activeSession.content) {
+                  alert("Vui lòng nhập transcript trước.");
+                  return;
+                }
+                setMode('shadowing');
+              }}
+              className={cn("px-2 md:px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1", 
                 mode === 'shadowing' ? "bg-ink text-paper" : "bg-ink/5 text-ink/60 hover:bg-ink/10"
               )}
             >
-              <Video size={14} /> Shadowing
+              <Video size={12} /> <span className="hidden sm:inline">Shadowing</span>
             </button>
           </div>
         </div>
         
-        <div className="flex flex-col md:flex-row gap-4 md:gap-6 flex-1">
-          <div className="w-full md:w-5/12 flex flex-col gap-2 shrink-0 h-auto md:h-full">
-            <div className="w-full aspect-video sketch-border p-1 bg-white relative">
+        <div className="flex flex-col md:flex-row gap-4 flex-1 min-h-0 overflow-hidden">
+          <div className="w-full md:w-5/12 flex flex-col gap-3 shrink-0 h-auto md:h-full min-h-0 overflow-y-auto custom-scrollbar md:pr-1">
+            <div className="w-full aspect-video sketch-border p-1 bg-white relative shadow-md shrink-0">
               <YouTube 
                 videoId={activeSession.youtubeId} 
                 onReady={(e) => {
@@ -422,17 +435,12 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                 }}
                 onError={(e) => {
                   const errorData = e.data;
-                  let msg = "Lỗi khi tải video.";
-                  if (errorData === 101 || errorData === 150) {
-                     msg = "Video này không cho phép phát trong ứng dụng (bị chặn nhúng). Vui lòng thử video khác.";
-                  } else if (errorData === 100) {
-                     msg = "Video không tồn tại hoặc đã bị xóa.";
-                  } else if (errorData === 2) {
-                     msg = "ID video không hợp lệ.";
-                  }
+                  let msg = "Lỗi video.";
+                  if (errorData === 101 || errorData === 150) msg = "Video bị chặn nhúng.";
+                  else if (errorData === 100) msg = "Video đã bị xóa.";
                   setVideoError(msg);
                 }}
-                opts={{ width: '100%', height: '100%', playerVars: { autoplay: 0, rel: 0 } }}
+                opts={{ width: '100%', height: '100%', playerVars: { autoplay: 0, rel: 0, modestbranding: 1, playsinline: 1 } }}
                 className="w-full h-full rounded-sm overflow-hidden" 
               />
               {videoError && (
@@ -448,67 +456,78 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                  </div>
               )}
             </div>
-            <div className="bg-ink/5 p-3 rounded text-xs text-ink/60 sketch-border border-dashed flex-1 overflow-y-auto">
-              <p className="font-bold uppercase tracking-widest mb-1 text-ink/80 text-[10px]">Mẹo nghe chép:</p>
-              <ul className="list-disc pl-4 space-y-1 mb-2">
-                <li><kbd className="bg-white px-1 font-sans border border-ink/20 rounded shadow-sm">Ctrl</kbd> + <kbd className="bg-white font-sans px-1 border border-ink/20 rounded shadow-sm">Space</kbd> để Dừng/Phát khi đang gõ chữ.</li>
-                <li>Phím <kbd className="bg-white px-1 border border-ink/20 rounded shadow-sm">J</kbd> lùi 10s, <kbd className="bg-white px-1 border border-ink/20 rounded shadow-sm">L</kbd> tiến 10s</li>
-                <li><kbd className="bg-white px-1 border border-ink/20 rounded shadow-sm">Shift</kbd> + <kbd className="bg-white px-1 border border-ink/20 rounded shadow-sm">,</kbd> giảm tốc độ</li>
+            
+            <div className="bg-ink/5 p-4 rounded text-xs text-ink/60 sketch-border border-dashed shrink-0">
+              <p className="font-bold uppercase tracking-widest mb-2 text-ink/80 text-[10px]">Hướng dẫn học:</p>
+              <ul className="space-y-1.5 ml-4 list-disc marker:text-crimson">
+                <li><span className="font-bold text-ink">Transcript</span>: Lấy phụ đề (Tự động hoặc Dán thủ công).</li>
+                <li><span className="font-bold text-ink">Practice</span>: Chép chính tả để luyện nghe.</li>
+                <li><span className="font-bold text-ink">Shadowing</span>: Nói đuổi theo video để tập nói.</li>
               </ul>
-              <p className="mb-4 text-[10px] italic text-amber-700/80 bg-amber-50 p-1.5 rounded border border-amber-200">
-                * Video sẽ tự động bám theo câu và dừng nếu tải <span className="font-bold">Transcript Tự động</span> thành công. Nếu không, hãy dùng Ctrl+Space phím tắt.
-              </p>
-              
-              {(mode === 'practice' || mode === 'shadowing') && sentences.length > 0 && (
-                <div className="mt-4 border-t border-dashed border-ink/20 pt-4">
-                   <p className="font-bold uppercase tracking-widest text-ink/80 text-[10px] mb-2">Tiến độ ({progressIndex}/{sentences.length})</p>
-                   <div className="space-y-2">
-                     {sentences.map((s, i) => (
-                       <button 
-                         key={i} 
-                         onClick={() => {
-                           updateSession(activeSession.id, 'progress', i);
-                           playSentence(i);
-                         }}
-                         className={cn("p-2 rounded text-xs transition-colors w-full text-left cursor-pointer hover:bg-ink/10 block", 
-                           i < progressIndex ? "bg-green-100/50 text-green-800 line-through opacity-60" : 
-                           i === progressIndex ? "bg-amber-100/80 text-amber-900 font-bold border border-amber-200 shadow-sm" : "text-ink/40"
-                         )}>
-                         {i < progressIndex ? s : i === progressIndex ? (mode === 'shadowing' ? s : "...") : "..."}
-                       </button>
-                     ))}
-                   </div>
-                </div>
-              )}
             </div>
+
+            {(mode === 'practice' || mode === 'shadowing') && sentences.length > 0 && (
+              <div className="bg-white p-3 rounded sketch-border border-ink/10 flex-1 min-h-0 flex flex-col overflow-hidden">
+                 <p className="font-bold uppercase tracking-widest text-ink/80 text-[10px] mb-2 font-logo shrink-0">Tiến độ: {progressIndex}/{sentences.length} câu</p>
+                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-1">
+                   {sentences.map((s, i) => (
+                     <button 
+                       key={i} 
+                       onClick={() => {
+                         updateSession(activeSession.id, 'progress', i);
+                         playSentence(i);
+                       }}
+                       className={cn("p-1.5 rounded text-[10px] transition-all w-full text-left cursor-pointer hover:bg-ink/10 block break-words", 
+                         i < progressIndex ? "bg-green-100/40 text-green-700 line-through opacity-50" : 
+                         i === progressIndex ? "bg-ink text-paper font-bold shadow-sm" : "text-ink/40"
+                       )}>
+                       {i < progressIndex ? s : i === progressIndex ? (mode === 'shadowing' || isCompleted ? s : "Câu hiện tại") : `Câu ${i + 1}`}
+                     </button>
+                   ))}
+                 </div>
+              </div>
+            )}
           </div>
           
-          <div className="flex-1 flex flex-col min-h-0 bg-white/60 sketch-border p-2 md:p-4 relative">
+          <div className="flex-1 flex flex-col min-h-0 bg-white sketch-border shadow-2xl relative overflow-hidden">
             {mode === 'transcript' ? (
-              <>
-                <div className="mb-2 flex justify-between items-center">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Sửa Transcript</span>
+              <div className="flex-1 flex flex-col p-4 md:p-6 min-h-0">
+                <div className="flex justify-between items-center mb-4 shrink-0">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-ink/40">Transcript Editor</h3>
                   <button 
                     onClick={() => loadTranscript(activeSession.youtubeId, activeSession.id)}
                     disabled={isLoadingTranscript}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-widest bg-ink text-paper hover:bg-ink/90 rounded disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-ink text-paper hover:bg-ink/90 rounded disabled:opacity-50 transition-all"
                   >
-                    {isLoadingTranscript ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                    {isLoadingTranscript ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
                     Tự động lấy Transcript
                   </button>
                 </div>
-                {transcriptError && <div className="mb-2 p-2 bg-crimson/10 text-crimson text-xs rounded border border-crimson/20">{transcriptError}</div>}
+                
+                {transcriptError && (
+                  <div className="mb-4 p-3 bg-crimson/5 text-crimson text-[11px] leading-relaxed rounded border border-crimson/20 italic shrink-0">
+                    ⚠️ {transcriptError}
+                  </div>
+                )}
+                
+                <div className="flex-1 flex flex-col min-h-0 p-1 sketch-border border-dashed bg-ink/[0.02] overflow-hidden">
                   <textarea
                     value={activeSession.content}
                     onChange={(e) => updateSession(activeSession.id, 'content', e.target.value)}
-                    placeholder="CHƯA CÓ TRANSCRIPT. Bạn có thể:
-1. Bấm nút 'Tự động lấy Transcript' ở trên.
-2. Tự copy phụ đề từ YouTube và DÁN VÀO ĐÂY để bắt đầu học.
-(Video sẽ tự động tách câu theo dấu chấm)..."
-                    className="w-full flex-1 min-h-[300px] resize-none bg-transparent outline-none font-sans text-base leading-relaxed p-4 custom-scrollbar bg-ink/5 rounded sketch-border border-dashed"
+                    placeholder="CHƯA CÓ TRANSCRIPT.
+                    
+CÁCH 1: Bấm nút 'Tự động lấy' ở trên.
+CÁCH 2: Dùng laptop/máy tính mở video YouTube, mở tab Phụ đề (Transcript), Copy rồi DÁN VÀO ĐÂY.
+
+Hệ thống sẽ tự động tách câu sau khi bạn dán xong để bạn bắt đầu học."
+                    className="w-full h-full resize-none bg-transparent outline-none font-sans text-base leading-relaxed p-3 custom-scrollbar"
                     spellCheck="false"
                   />
-              </>
+                </div>
+                <div className="mt-2 text-[10px] text-ink/40 italic text-center shrink-0">
+                  Phụ đề sẽ được tự động lưu ngay khi bạn thay đổi.
+                </div>
+              </div>
             ) : mode === 'shadowing' ? (
               <div className="flex-1 flex flex-col pt-4 overflow-y-auto">
                  {sentences.length === 0 ? (
