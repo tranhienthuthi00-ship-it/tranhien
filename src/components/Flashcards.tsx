@@ -14,6 +14,9 @@ export default function Flashcards({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
+  const [reviewMode, setReviewMode] = useState<'flip' | 'type'>('flip');
+  const [userInput, setUserInput] = useState('');
+  const [showResult, setShowResult] = useState(false);
 
   const dueWords = useMemo(() => {
     return words.filter(w => !w.nextReview || new Date(w.nextReview) <= new Date())
@@ -32,13 +35,12 @@ export default function Flashcards({
     if (!currentCard) return;
 
     let newInterval = 1;
-    let newEF = currentCard.difficulty || 2.5; // Difficulty used as EF
+    let newEF = currentCard.difficulty || 2.5; 
     
     if (quality >= 3) {
-      if (!currentCard.lastReviewed) { // First time
+      if (!currentCard.lastReviewed) {
         newInterval = 1;
       } else if (new Date(currentCard.nextReview).getTime() - new Date(currentCard.lastReviewed).getTime() < 2 * 86400000) { 
-        // Approx 1-2 days interval previously
         newInterval = 6;
       } else {
         const last = new Date(currentCard.lastReviewed).getTime();
@@ -47,7 +49,6 @@ export default function Flashcards({
         newInterval = Math.ceil(prevInterval * newEF);
       }
       
-      // EF = EF + (0.1 - (5-q)*(0.08 + (5-q)*0.02))
       newEF = newEF + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
       if (newEF < 1.3) newEF = 1.3;
     } else {
@@ -67,11 +68,21 @@ export default function Flashcards({
     if (currentIndex < dueWords.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setIsFlipped(false);
+      setUserInput('');
+      setShowResult(false);
     } else {
       setSessionActive(false);
       setCurrentIndex(0);
       setIsFlipped(false);
+      setUserInput('');
+      setShowResult(false);
     }
+  };
+
+  const checkTyping = (e: React.FormEvent) => {
+    e.preventDefault();
+    setShowResult(true);
+    setIsFlipped(true);
   };
 
   if (!sessionActive) {
@@ -88,14 +99,24 @@ export default function Flashcards({
               : "Amazing! No words due for review right now."}
           </p>
           
-          {dueWords.length > 0 ? (
-            <button 
-              onClick={() => setSessionActive(true)}
-              className="sketch-button bg-crimson text-white px-10 py-4 font-bold uppercase tracking-widest hover:scale-105 transition-transform"
-            >
-              Start Session
-            </button>
-          ) : (
+          {dueWords.length > 0 && (
+            <div className="flex flex-col gap-4 max-w-xs mx-auto">
+              <button 
+                onClick={() => { setReviewMode('flip'); setSessionActive(true); }}
+                className="sketch-button bg-crimson text-white px-6 py-4 font-bold uppercase tracking-widest hover:scale-105 transition-transform"
+              >
+                Classic Flip
+              </button>
+              <button 
+                onClick={() => { setReviewMode('type'); setSessionActive(true); }}
+                className="sketch-button bg-white text-ink border-ink px-6 py-4 font-bold uppercase tracking-widest hover:scale-105 transition-transform"
+              >
+                Typing Challenge ⌨️
+              </button>
+            </div>
+          )}
+          
+          {dueWords.length === 0 && (
             <div className="pt-4">
               <p className="text-xs font-bold uppercase tracking-widest text-ink/20">Check back later or add more words</p>
             </div>
@@ -110,14 +131,14 @@ export default function Flashcards({
       <div className="flex flex-col items-center">
         <div className="mb-6 flex justify-between w-full text-[10px] uppercase font-bold tracking-widest text-ink/40">
           <button onClick={() => setSessionActive(false)} className="flex items-center gap-1 hover:text-ink transition-colors">
-            <ArrowLeft size={12} /> Quit Session
+            <ArrowLeft size={12} /> Quit
           </button>
           <span>Progress: {currentIndex + 1} / {dueWords.length}</span>
         </div>
 
         <div 
           className="w-full aspect-video md:aspect-[2/1] relative perspective-1000 cursor-pointer mb-8"
-          onClick={() => setIsFlipped(!isFlipped)}
+          onClick={() => reviewMode === 'flip' && setIsFlipped(!isFlipped)}
         >
           <motion.div
             className="w-full h-full relative preserve-3d"
@@ -126,26 +147,56 @@ export default function Flashcards({
             transition={{ duration: 0.6, type: 'spring', stiffness: 260, damping: 20 }}
           >
             {/* Front */}
-            <div className="absolute inset-0 backface-hidden sketch-border bg-white flex flex-col items-center justify-center p-8 text-center shadow-xl">
-              <span className="text-[10px] uppercase text-ink/10 absolute top-4 font-bold tracking-widest">Front</span>
-              <h2 className="text-4xl font-black tracking-tighter mb-4">{currentCard?.vocabulary}</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-ink/40 font-bold uppercase tracking-widest">{currentCard?.ipa}</span>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); speak(currentCard?.vocabulary || ''); }}
-                  className="p-1.5 hover:bg-ink/5 rounded-full"
-                >
-                  <Volume2 size={16} className="text-ink/30" />
-                </button>
-              </div>
+            <div className="absolute inset-0 backface-hidden sketch-border bg-white flex flex-col items-center justify-center p-6 md:p-8 text-center shadow-xl overflow-hidden">
+              <span className="text-[10px] uppercase text-ink/10 absolute top-2 font-bold tracking-widest">Question</span>
+              {reviewMode === 'flip' ? (
+                <>
+                  <h2 className="text-2xl md:text-4xl font-black tracking-tighter mb-4 break-words w-full px-4">{currentCard?.vocabulary}</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-ink/40 font-bold uppercase tracking-widest break-all">{currentCard?.ipa}</span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); speak(currentCard?.vocabulary || ''); }}
+                      className="p-1.5 hover:bg-ink/5 rounded-full"
+                    >
+                      <Volume2 size={16} className="text-ink/30" />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="w-full space-y-4">
+                  <h2 className="text-xl md:text-2xl font-bold italic text-ink/60 mb-2 truncate px-4">{currentCard?.definition}</h2>
+                  {!showResult ? (
+                    <form onSubmit={checkTyping} className="w-full max-w-sm mx-auto px-4">
+                      <input 
+                        autoFocus
+                        value={userInput}
+                        onChange={e => setUserInput(e.target.value)}
+                        className="w-full sketch-input text-center text-xl font-bold bg-ink/5"
+                        placeholder="Type the word..."
+                        onClick={e => e.stopPropagation()}
+                      />
+                      <button className="hidden" type="submit">Submit</button>
+                    </form>
+                  ) : (
+                    <div className="animate-in fade-in zoom-in duration-300">
+                       <p className="text-[10px] font-bold uppercase text-ink/20">Your Answer</p>
+                       <p className={cn("text-2xl font-black", userInput.toLowerCase().trim() === currentCard?.vocabulary.toLowerCase().trim() ? "text-green-600" : "text-crimson scale-110")}>
+                         {userInput || "(Empty)"}
+                       </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Back */}
-            <div className="absolute inset-0 backface-hidden sketch-border bg-paper flex flex-col items-center justify-center p-8 text-center shadow-xl [transform:rotateY(180deg)]">
-              <span className="text-[10px] uppercase text-ink/10 absolute top-4 font-bold tracking-widest">Back</span>
-              <h2 className="text-2xl font-bold text-crimson mb-4">{currentCard?.definition}</h2>
+            <div className="absolute inset-0 backface-hidden sketch-border bg-paper flex flex-col items-center justify-center p-6 md:p-8 text-center shadow-xl [transform:rotateY(180deg)] overflow-hidden">
+              <span className="text-[10px] uppercase text-ink/10 absolute top-2 font-bold tracking-widest">Answer</span>
+              <h2 className="text-xl md:text-3xl font-bold text-crimson mb-2 break-words w-full px-4">
+                {reviewMode === 'type' ? currentCard?.vocabulary : currentCard?.definition}
+              </h2>
               {currentCard?.examples[0] && (
-                <p className="hand-text text-xl text-ink/80 italic">"{currentCard.examples[0]}"</p>
+                <p className="hand-text text-lg md:text-xl text-ink/80 italic line-clamp-3 px-4 leading-tight">"{currentCard.examples[0]}"</p>
               )}
             </div>
           </motion.div>
@@ -162,7 +213,7 @@ export default function Flashcards({
                <button 
                  key={btn.q}
                  onClick={(e) => { e.stopPropagation(); handleSRSScore(btn.q); }}
-                 className={cn("sketch-border py-3 flex flex-col items-center transition-all hover:scale-105", btn.color)}
+                 className={cn("sketch-border py-3 flex flex-col items-center transition-all hover:scale-105 active:scale-95", btn.color)}
                >
                  <span className="text-xs font-black uppercase tracking-tight">{btn.label}</span>
                  <span className="text-[10px] opacity-60 font-mono">{btn.sub}</span>
@@ -171,10 +222,15 @@ export default function Flashcards({
            </div>
         ) : (
           <div className="text-center">
-            <p className="text-sm text-ink/40 font-bold uppercase tracking-widest animate-pulse">Tap card to show answer</p>
+            {reviewMode === 'flip' ? (
+              <p className="text-sm text-ink/40 font-bold uppercase tracking-widest animate-pulse">Tap card to show answer</p>
+            ) : (
+              <p className="text-sm text-ink/40 font-bold uppercase tracking-widest">Type the word and press Enter</p>
+            )}
           </div>
         )}
       </div>
     </div>
+
   );
 }
