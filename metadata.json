@@ -1,6 +1,6 @@
 {
   "name": "Minh's Digital Journal & English Hub",
-  "description": "Personal productivity, monthly diary calendar, and English learning academy tailored for Tourism & Hospitality.",
+  "description": "Personal productivity, monthly diary, English academy, and curated Video Speech Library with subtitled YouTube integration for speaking practice.",
   "requestFramePermissions": ["microphone"],
   "majorCapabilities": []
 }

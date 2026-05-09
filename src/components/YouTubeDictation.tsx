@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { VideoDictation } from '../types';
 import { cn } from '../lib/utils';
-import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2, Mic } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2, Mic, Library, PlayCircle, Star, MicOff } from 'lucide-react';
 import { YoutubeTranscript } from 'youtube-transcript';
-
 import YouTube from 'react-youtube';
+import { RECOMMENDED_VIDEOS } from '../constants/recommendedVideos';
+import stringSimilarity from "string-similarity";
 
 export function YouTubeDictation({ dictations, setDictations }: { dictations: VideoDictation[], setDictations: (d: VideoDictation[]) => void }) {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -18,6 +19,8 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [speechScore, setSpeechScore] = useState<number | null>(null);
 
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -41,10 +44,14 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
         
         if (finalTranscript) {
           const trimmed = finalTranscript.trim();
-          setUserInput(prev => {
-            const p = prev.trim();
-            return p ? `${p} ${trimmed}` : trimmed;
-          });
+          if (mode === 'practice') {
+            setUserInput(prev => {
+              const p = prev.trim();
+              return p ? `${p} ${trimmed}` : trimmed;
+            });
+          } else if (mode === 'shadowing') {
+            validateSpeech(trimmed);
+          }
           
           if (foundPeriod) {
             recognitionRef.current.stop();
@@ -60,7 +67,58 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
         setIsRecording(true);
       };
     }
-  }, []);
+  }, [mode]);
+
+  const activeSession = dictations.find(d => d.id === activeSessionId);
+
+  const playSentence = (index: number) => {
+    if (!activeSession) return;
+    const sentences = getSentences(activeSession.content);
+    // Find offset from transcriptItems by matching text if possible, or just play video
+    if (playerRef.current && activeSession.transcriptItems) {
+       // rough match by finding the FIRST transcript item that contains part of the sentence
+       // since sentences might span multiple items
+       const targetSentence = sentences[index].toLowerCase();
+       const targetItem = activeSession.transcriptItems.find(item => 
+         targetSentence.includes(item.text.toLowerCase()) || 
+         item.text.toLowerCase().includes(targetSentence.substring(0, 20))
+       );
+       
+       if (targetItem) {
+         playerRef.current.seekTo(targetItem.offset / 1000, true);
+         playerRef.current.playVideo();
+       } else {
+         playerRef.current.playVideo();
+       }
+    } else if (playerRef.current) {
+      playerRef.current.playVideo();
+    }
+  };
+
+  const validateSpeech = (speech: string) => {
+    if (!activeSession) return;
+    const sentences = getSentences(activeSession.content);
+    const target = sentences[activeSession.progress || 0];
+    if (!target) return;
+
+    const similarity = stringSimilarity.compareTwoStrings(
+      normalizeString(target), 
+      normalizeString(speech)
+    );
+    const score = Math.round(similarity * 100);
+    setSpeechScore(score);
+    
+    if (score >= 70) {
+      setTimeout(() => {
+        const nextIndex = (activeSession.progress || 0) + 1;
+        if (nextIndex < sentences.length) {
+           updateSession(activeSession.id, 'progress', nextIndex);
+           setSpeechScore(null);
+           playSentence(nextIndex);
+        }
+      }, 1500);
+    }
+  };
 
   const toggleRecording = () => {
     if (!recognitionRef.current) return;
@@ -144,8 +202,6 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
   const normalizeString = (str: string) => {
     return str.toLowerCase().replace(/[.,!?;:()"'’\-]/g, '').replace(/\s+/g, ' ').trim();
   };
-
-  const activeSession = dictations.find(d => d.id === activeSessionId);
 
   useEffect(() => {
     let interval: any;
@@ -237,28 +293,6 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
     const sentences = getSentences(activeSession.content);
     const progressIndex = activeSession.progress || 0;
     const isCompleted = sentences.length > 0 && progressIndex >= sentences.length;
-
-    const playSentence = (index: number) => {
-      // Find offset from transcriptItems by matching text if possible, or just play video
-      if (playerRef.current && activeSession.transcriptItems) {
-         // rough match by finding the FIRST transcript item that contains part of the sentence
-         // since sentences might span multiple items
-         const targetSentence = sentences[index].toLowerCase();
-         const targetItem = activeSession.transcriptItems.find(item => 
-           targetSentence.includes(item.text.toLowerCase()) || 
-           item.text.toLowerCase().includes(targetSentence.substring(0, 20))
-         );
-         
-         if (targetItem) {
-           playerRef.current.seekTo(targetItem.offset / 1000, true);
-           playerRef.current.playVideo();
-         } else {
-           playerRef.current.playVideo();
-         }
-      } else if (playerRef.current) {
-        playerRef.current.playVideo();
-      }
-    };
 
     return (
       <div className="max-w-6xl mx-auto p-2 md:p-4 font-sans h-[calc(100vh-140px)] flex flex-col">
@@ -413,11 +447,22 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                          >
                            Câu trước
                          </button>
+                         
+                         <button
+                           onClick={toggleRecording}
+                           className={cn(
+                             "w-16 h-16 rounded-full flex items-center justify-center transition-all bg-white shadow-lg sketch-border border-2",
+                             isRecording ? "text-crimson border-crimson" : "text-ink border-ink/40 hover:scale-110"
+                           )}
+                         >
+                            {isRecording ? <MicOff size={24} /> : <Mic size={24} />}
+                         </button>
+
                          <button 
                            onClick={() => playSentence(progressIndex)}
                            className="sketch-button py-2 px-8 bg-ink text-paper hover:bg-ink/80 hover:text-paper"
                          >
-                           Nghe lại câu này
+                           Nghe lại
                          </button>
                          <button 
                            onClick={() => {
@@ -428,7 +473,7 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                            disabled={progressIndex === sentences.length - 1}
                            className="sketch-button py-2 px-6 disabled:opacity-50"
                          >
-                           Câu tiếp theo
+                           Câu tiếp
                          </button>
                        </div>
                     </div>
@@ -539,8 +584,92 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                 )}
               </div>
             )}
+            
+            {mode === 'shadowing' && isRecording && (
+               <div className="absolute top-4 right-4 bg-crimson text-white px-3 py-1 rounded-full text-[10px] font-bold animate-pulse flex items-center gap-1">
+                  <Mic size={12} /> Đang nghe...
+               </div>
+            )}
+            
+            {speechScore !== null && (
+               <div className={cn(
+                 "absolute top-4 left-4 px-4 py-2 rounded-lg sketch-border font-bold text-xl transition-all animate-in zoom-in",
+                 speechScore >= 70 ? "bg-green-100 text-green-700 border-green-200" : "bg-crimson/10 text-crimson border-crimson/20"
+               )}>
+                 {speechScore}% {speechScore >= 70 ? "🎯" : "💪"}
+               </div>
+            )}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  const addFromLibrary = (video: any) => {
+    const existing = dictations.find(d => d.youtubeId === video.youtubeId);
+    if (existing) {
+       setActiveSessionId(existing.id);
+       setShowLibrary(false);
+       return;
+    }
+
+    const newSession: VideoDictation = {
+      id: crypto.randomUUID(),
+      youtubeId: video.youtubeId,
+      title: video.title,
+      content: "",
+      progress: 0,
+      lastModified: Date.now()
+    };
+    setDictations([newSession, ...dictations]);
+    setActiveSessionId(newSession.id);
+    setMode('transcript');
+    setShowLibrary(false);
+    loadTranscript(video.youtubeId, newSession.id);
+  };
+
+  if (showLibrary) {
+    return (
+      <div className="max-w-6xl mx-auto p-4 md:p-6 font-sans">
+         <div className="flex justify-between items-center mb-8">
+            <button 
+              onClick={() => setShowLibrary(false)}
+              className="flex items-center gap-1 text-ink/60 hover:text-ink transition-colors font-bold text-xs uppercase tracking-widest"
+            >
+              <ChevronLeft size={16} /> Quay lại
+            </button>
+            <h2 className="text-2xl font-black font-logo tracking-wide">Kho Video Học Tiếng Anh</h2>
+            <div className="w-20" />
+         </div>
+
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {RECOMMENDED_VIDEOS.map(video => (
+              <div 
+                key={video.id}
+                onClick={() => addFromLibrary(video)}
+                className="sketch-border bg-white rounded-lg overflow-hidden group cursor-pointer hover:translate-y-[-4px] transition-all shadow-md hover:shadow-xl"
+              >
+                 <div className="aspect-video relative overflow-hidden">
+                    <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-ink/20 group-hover:bg-ink/10 transition-colors" />
+                    <div className="absolute bottom-2 right-2 bg-ink/80 text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                       {video.level}
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                       <PlayCircle size={48} className="text-white drop-shadow-lg" />
+                    </div>
+                 </div>
+                 <div className="p-4">
+                    <div className="flex items-center gap-1 text-[10px] font-black text-crimson uppercase tracking-widest mb-1">
+                       <Star size={10} fill="currentColor" /> {video.category}
+                    </div>
+                    <h3 className="font-bold text-ink leading-snug line-clamp-2 h-10 group-hover:text-crimson transition-colors">
+                       {video.title}
+                    </h3>
+                 </div>
+              </div>
+            ))}
+         </div>
       </div>
     );
   }
@@ -548,27 +677,38 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6 font-sans">
       <div className="text-center mb-8">
-        <div className="w-16 h-16 mx-auto bg-ink text-paper rounded-full flex items-center justify-center mb-4 sketch-border shadow-md">
-           <Video size={28} />
+        <div className="flex justify-center gap-4 mb-4">
+          <div className="w-16 h-16 bg-ink text-paper rounded-full flex items-center justify-center sketch-border shadow-md">
+             <Video size={28} />
+          </div>
         </div>
-        <h2 className="text-3xl font-black font-logo tracking-wide mb-2">Video Dictation</h2>
-        <p className="text-ink/60 text-sm font-medium">Luyện nghe chép chính tả với YouTube</p>
+        <h2 className="text-3xl font-black font-logo tracking-wide mb-2 uppercase">Video Dictation & Speech</h2>
+        <p className="text-ink/60 text-sm font-medium">Luyện nghe chép & Shadowing với YouTube</p>
       </div>
 
-      <div className="skew-x-1 sm:skew-x-2 sketch-border bg-white p-6 shadow-xl relative z-10 max-w-2xl mx-auto mb-10">
-         <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-3">
-           <input 
-             type="text"
-             value={newUrl}
-             onChange={e => setNewUrl(e.target.value)}
-             placeholder="Dán link YouTube vào đây..."
-             className="sketch-input flex-1 bg-white/50 text-sm py-2 px-4 focus:ring-2 focus:ring-ink/20 transition-all outline-none"
-             required
-           />
-           <button type="submit" className="sketch-button flex items-center justify-center gap-2 px-6 py-2 shrink-0 text-sm bg-ink text-white border-ink hover:text-ink hover:bg-white hover:border-ink/80 transition-colors">
-              <Plus size={16} /> Bắt đầu
-           </button>
-         </form>
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-10">
+        <div className="sketch-border bg-white p-2 shadow-lg flex-1 max-w-lg w-full">
+           <form onSubmit={handleCreate} className="flex gap-2">
+             <input 
+               type="text"
+               value={newUrl}
+               onChange={e => setNewUrl(e.target.value)}
+               placeholder="Dán link YouTube mới..."
+               className="sketch-input flex-1 bg-white/50 text-sm py-2 px-3 focus:ring-2 focus:ring-ink/20 transition-all outline-none"
+               required
+             />
+             <button type="submit" className="bg-ink text-white px-4 py-2 rounded font-bold text-xs uppercase tracking-widest hover:bg-ink/80 transition-all whitespace-nowrap">
+                Học video này
+             </button>
+           </form>
+        </div>
+
+        <button 
+          onClick={() => setShowLibrary(true)}
+          className="sketch-button bg-crimson text-white border-crimson py-3 px-8 flex items-center gap-2 font-bold uppercase tracking-widest hover:scale-105 transition-all w-full sm:w-auto"
+        >
+          <Library size={18} /> Vào Kho Video
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
