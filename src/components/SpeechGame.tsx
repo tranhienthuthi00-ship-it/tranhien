@@ -200,14 +200,21 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
         animate={{ opacity: 1, y: 0 }}
         className="w-full sketch-border bg-white p-8 mb-6 shadow-xl flex flex-col items-center text-center relative overflow-hidden"
       >
-        <div className="absolute top-4 right-4">
-           {score !== null && (
+        <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+           {score !== null ? (
              <div className={cn(
-               "w-16 h-16 rounded-full flex items-center justify-center border-4 font-sans font-black text-xl",
+               "w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center border-4 font-sans font-black text-lg md:text-xl",
                score >= 80 ? "border-green-500 text-green-500" : score >= 50 ? "border-orange-500 text-orange-500" : "border-crimson text-crimson"
              )}>
                {score}%
              </div>
+           ) : (
+             <button 
+               onClick={selectNextWord} 
+               className="flex items-center gap-1 bg-ink/5 hover:bg-ink/10 px-3 py-1.5 rounded-full text-[10px] uppercase font-bold text-ink/40 hover:text-ink transition-all"
+             >
+               Bỏ qua <Play className="w-3 h-3 fill-current" />
+             </button>
            )}
         </div>
 
@@ -237,16 +244,27 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
           <div className="w-12 h-12" /> {/* Spacer for symmetry */}
         </div>
 
-        <div className="mt-8 min-h-[60px] w-full">
+        <div className="mt-8 min-h-[60px] w-full flex flex-col items-center">
           <AnimatePresence mode="wait">
             {transcript && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="space-y-2"
+                className="space-y-4 w-full"
               >
-                <p className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Kết quả nhận dạng:</p>
-                <p className="text-2xl hand-text text-ink/80 italic">"{transcript}"</p>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Kết quả nhận dạng:</p>
+                  <p className="text-2xl hand-text text-ink/80 italic">"{transcript}"</p>
+                </div>
+                
+                {!score && !isValidating && (
+                  <button 
+                    onClick={() => validateSpeech(transcript)}
+                    className="sketch-button bg-paper text-ink border-ink/20 py-1 px-4 text-xs font-bold uppercase tracking-widest hover:border-ink transition-all"
+                  >
+                    Chấm điểm thủ công
+                  </button>
+                )}
               </motion.div>
             )}
             {!transcript && isRecording && (
@@ -285,11 +303,7 @@ export function SpeechGame({ words, updateWordDifficulty }: SpeechGameProps) {
         )}
       </motion.div>
       
-      {score !== null && score < 80 && (
-        <button onClick={selectNextWord} className="text-sm text-ink/40 hover:text-ink font-sans">
-          Bỏ qua từ này
-        </button>
-      )}
+      {/* Skip button moved to card top right */}
     </div>
   );
 }

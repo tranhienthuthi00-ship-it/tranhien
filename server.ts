@@ -3,18 +3,26 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { YoutubeTranscript } from 'youtube-transcript';
 import { Innertube } from 'youtubei.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { getSubtitles } = require('youtube-captions-scraper');
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
   
   let yt: any = null;
-  Innertube.create().then(inner => {
-     yt = inner;
-     console.log("YouTube InnerTube client initialized");
-  }).catch(err => {
-     console.error("Failed to initialize YouTube client:", err);
-  });
+  
+  // Initialize InnerTube
+  async function initYT() {
+    try {
+      yt = await Innertube.create();
+      console.log("YouTube InnerTube client initialized");
+    } catch (err) {
+      console.error("Failed to initialize YouTube client:", err);
+    }
+  }
+  initYT();
 
   // Add CORS headers for API routes
   app.use("/api", (req, res, next) => {
@@ -25,60 +33,83 @@ async function startServer() {
 
   // API route for fetching YouTube Transcript
   app.get("/api/transcript", async (req, res) => {
-    try {
-      const videoId = req.query.videoId as string;
-      if (!videoId) {
-        return res.status(400).json({ error: "videoId is required" });
-      }
-
-      console.log(`Fetching transcript for videoId: ${videoId}`);
-      
-      let transcript;
-
-      // Method 1: Try YouTubei.js (Most robust)
-      if (yt) {
-        try {
-          console.log("Trying YouTubei.js...");
-          const info = await yt.getInfo(videoId);
-          const transcriptData = await info.getTranscript();
-          
-          if (transcriptData && transcriptData.transcript?.content?.body?.initial_segments) {
-             const segments = transcriptData.transcript.content.body.initial_segments;
-             transcript = segments.map((s: any) => ({
-                text: s.snippet?.text || s.text || "",
-                offset: parseInt(s.start_ms || "0"),
-                duration: parseInt(s.duration_ms || "0")
-             }));
-             console.log("YouTubei.js transcript fetch successful");
-          }
-        } catch (e) {
-          console.log("YouTubei.js failed:", e instanceof Error ? e.message : String(e));
-        }
-      }
-
-      // Method 2: Fallback to YoutubeTranscript library
-      if (!transcript) {
-        try {
-          console.log("Trying YoutubeTranscript fallback...");
-          transcript = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
-        } catch (e) {
-          console.log(`Failed to fetch 'en' transcript, trying default...`);
-          transcript = await YoutubeTranscript.fetchTranscript(videoId);
-        }
-      }
-      
-      if (!transcript) {
-         throw new Error("Could not find transcript using any method");
-      }
-
-      res.json({ transcript });
-    } catch (error: any) {
-      console.error("Transcript fetch error:", error);
-      if (error.message?.includes('Transcript is disabled') || error.message?.includes('not available')) {
-         return res.status(404).json({ error: "Phụ đề của video này đã bị tắt hoặc không tồn tại." });
-      }
-      res.status(500).json({ error: `Lỗi khi tải phụ đề: ${error.message}. Vui lòng dán thủ công.` });
+    const videoId = req.query.videoId as string;
+    if (!videoId) {
+      return res.status(400).json({ error: "videoId is required" });
     }
+
+    console.log(`[Transcript] Requesting ID: ${videoId}`);
+    
+    let transcriptData: any = null;
+
+    // Method 1: YouTubei.js
+    if (yt) {
+      try {
+        console.log(`[Transcript] Method: YouTubei.js - Fetching for ${videoId}`);
+        const info = await yt.getInfo(videoId);
+        const transcript = await info.getTranscript();
+        
+        if (transcript && transcript.transcript?.content?.body?.initial_segments) {
+           const segments = transcript.transcript.content.body.initial_segments;
+           transcriptData = segments.map((s: any) => ({
+              text: s.snippet?.text || s.text?.toString() || "",
+              offset: parseInt(s.start_ms || "0"),
+              duration: parseInt(s.duration_ms || "0")
+           }));
+           console.log(`[Transcript] YouTubei.js Success: ${transcriptData.length} segments`);
+        }
+      } catch (e: any) {
+        console.warn(`[Transcript] YouTubei.js Failed: ${e.message}`);
+      }
+    }
+
+    // Method 2: youtube-captions-scraper fallback
+    if (!transcriptData) {
+      try {
+        console.log(`[Transcript] Method: youtube-captions-scraper - Fetching for ${videoId}`);
+        const captions = await getSubtitles({
+          videoID: videoId,
+          lang: 'en'
+        });
+        if (captions && captions.length > 0) {
+          transcriptData = captions.map((c: any) => ({
+            text: c.text || "",
+            offset: parseFloat(c.start || "0") * 1000,
+            duration: parseFloat(c.dur || "0") * 1000
+          }));
+          console.log(`[Transcript] youtube-captions-scraper Success: ${transcriptData.length} segments`);
+        }
+      } catch (e: any) {
+        console.warn(`[Transcript] youtube-captions-scraper Failed: ${e.message}`);
+      }
+    }
+
+    // Method 3: youtube-transcript fallback
+    if (!transcriptData) {
+      try {
+        console.log(`[Transcript] Method: youtube-transcript - Trying English`);
+        transcriptData = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
+        console.log(`[Transcript] youtube-transcript (en) Success`);
+      } catch (e: any) {
+        console.warn(`[Transcript] youtube-transcript (en) Failed: ${e.message}`);
+        try {
+          console.log(`[Transcript] Method: youtube-transcript - Trying default lang`);
+          transcriptData = await YoutubeTranscript.fetchTranscript(videoId);
+          console.log(`[Transcript] youtube-transcript (default) Success`);
+        } catch (ee: any) {
+          console.warn(`[Transcript] youtube-transcript (default) Failed: ${ee.message}`);
+        }
+      }
+    }
+
+    if (transcriptData) {
+      return res.json({ transcript: transcriptData });
+    }
+
+    console.error(`[Transcript] All methods failed for video ${videoId}`);
+    return res.status(404).json({ 
+      error: "Không thể lấy được phụ đề cho video này. Vui lòng kiểm tra xem video có phụ đề (CC) hay không, hoặc thử dán phụ đề thủ công." 
+    });
   });
 
   // Vite middleware for development

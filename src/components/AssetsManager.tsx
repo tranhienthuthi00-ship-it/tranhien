@@ -24,6 +24,9 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   setCategories: (c: AssetCategory[]) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"name" | "value" | "date">("date");
 
   const defaultCatID = categories.length > 0 ? categories[0].id : '';
   const [newName, setNewName] = useState("");
@@ -209,6 +212,34 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     return Array.from(dataMap.values()).filter(d => d.value > 0);
   }, [assets, categories, getCategory, getCategoryColor, getValueInVND]);
 
+  const filteredAssets = useMemo(() => {
+    let result = assets.filter(a => {
+      const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (a.notes || "").toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = filterCategory === "all" || a.category === filterCategory;
+      return matchesSearch && matchesCategory;
+    });
+
+    if (sortBy === "name") {
+      result.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy === "value") {
+      result.sort((a, b) => getValueInVND(b.value, b.currency) - getValueInVND(a.value, a.currency));
+    } else {
+      result.sort((a, b) => (b.acquiredAt || 0) - (a.acquiredAt || 0));
+    }
+
+    return result;
+  }, [assets, searchQuery, filterCategory, sortBy, getValueInVND]);
+
+  const assetsByCategory = useMemo(() => {
+    const groups: Record<string, Asset[]> = {};
+    filteredAssets.forEach(a => {
+      if (!groups[a.category]) groups[a.category] = [];
+      groups[a.category].push(a);
+    });
+    return groups;
+  }, [filteredAssets]);
+
   return (
     <div className="max-w-4xl mx-auto px-4 font-sans pb-10">
       <div className="mb-8 text-center flex flex-col items-center">
@@ -286,30 +317,69 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
       )}
 
       {(pieData.length > 0) && (
-        <div className="h-64 mb-10 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
-                dataKey="value"
-                stroke="#faf9f6"
-                strokeWidth={2}
-              >
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                ))}
-              </Pie>
-              <RechartsTooltip formatter={(value: number) => formatCurrency(value, 'VND')} contentStyle={{ borderRadius: '8px', border: '2px solid var(--color-ink)' }} />
-              <Legend verticalAlign="bottom" height={36} iconType="circle" />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="flex flex-col md:flex-row items-center gap-6 mb-10 bg-white/40 p-6 sketch-border">
+          <div className="h-48 w-48 shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                  stroke="#faf9f6"
+                  strokeWidth={2}
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <RechartsTooltip formatter={(value: number) => formatCurrency(value, 'VND')} contentStyle={{ borderRadius: '8px', border: '2px solid var(--color-ink)' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-2">
+             {pieData.map(d => (
+               <div key={d.catId} className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.fill }} />
+                    <span className="text-[10px] font-bold uppercase tracking-tight text-ink/70 truncate">{d.name}</span>
+                  </div>
+                  <span className="text-xs font-bold pl-4">{Math.round((d.value / totalAssetsVND) * 100)}%</span>
+               </div>
+             ))}
+          </div>
         </div>
       )}
+
+      {/* Search and Filters */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex-1 relative">
+           <input 
+             type="text" 
+             placeholder="Tìm kiếm tài sản..." 
+             value={searchQuery}
+             onChange={e => setSearchQuery(e.target.value)}
+             className="w-full sketch-input pl-10 py-2 bg-white/50"
+           />
+           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/30">
+             <Settings size={18} />
+           </div>
+        </div>
+        <div className="flex gap-2">
+          <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="sketch-input text-xs bg-white/50">
+            <option value="all">Tất cả danh mục</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="sketch-input text-xs bg-white/50">
+            <option value="date">Mới nhất</option>
+            <option value="value">Giá trị giảm dần</option>
+            <option value="name">Tên A-Z</option>
+          </select>
+        </div>
+      </div>
 
       <form onSubmit={addAsset} className="bg-paper p-5 sketch-border border-dashed border-ink/30 mb-8 mt-8 space-y-4 relative">
         <div className="absolute -top-3 -left-3 rotate-[-10deg] z-10">
@@ -400,59 +470,76 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         </div>
       </form>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {assets.map(asset => {
-          const cat = getCategory(asset.category);
+      <div className="space-y-12">
+        {(Object.entries(assetsByCategory) as [string, Asset[]][]).map(([catId, items]) => {
+          const cat = getCategory(catId);
+          const catTotal = items.reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
+          
           return (
-          <div key={asset.id} className={cn(
-            "p-4 bg-white/60 sketch-border flex flex-col justify-between group relative overflow-hidden",
-            asset.isDebt ? "border-l-4 border-l-crimson" : ""
-          )} style={{ borderTopWidth: '4px', borderTopColor: getCategoryColor(asset.category) }}>
-            <div className="absolute top-1 right-1 flex items-center justify-end px-2 gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity z-20">
-               <button 
-                 onClick={() => startEdit(asset)}
-                 className="p-1.5 bg-ink text-white rounded-lg shadow-sm hover:scale-110 transition-transform"
-                 title="Sửa"
-               >
-                 <Edit2 size={12} />
-               </button>
-               <button 
-                 onClick={() => removeAsset(asset.id)}
-                 className="p-1.5 bg-crimson text-white rounded-lg shadow-sm hover:scale-110 transition-transform"
-                 title="Xóa"
-               >
-                 <Trash2 size={12} />
-               </button>
-            </div>
-
-            <div className="flex justify-between items-start mb-2 relative z-10 pointer-events-none">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 text-white rounded-lg shadow-sm" style={{ backgroundColor: getCategoryColor(asset.category) }}>
-                  {renderIcon(cat.icon, 20)}
-                </span>
-                <div>
-                  <h3 className="font-bold text-lg leading-tight">{asset.name}</h3>
-                  <p className="text-[10px] uppercase font-bold tracking-widest" style={{ color: getCategoryColor(asset.category) }}>{cat.name}</p>
+            <div key={catId} className="animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-end justify-between mb-4 border-b-2 border-ink pb-2">
+                <div className="flex items-center gap-3">
+                  <span className="p-2 text-white rounded-xl" style={{ backgroundColor: getCategoryColor(catId) }}>
+                    {renderIcon(cat.icon, 20)}
+                  </span>
+                  <div>
+                    <h2 className="text-xl font-bold uppercase tracking-tight">{cat.name}</h2>
+                    <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">{items.length} tài sản</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Phân bổ</p>
+                  <p className="text-lg font-bold">{formatCurrency(catTotal, 'VND')}</p>
                 </div>
               </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {items.map(asset => (
+                  <div key={asset.id} className={cn(
+                    "p-4 bg-white/60 sketch-border flex flex-col justify-between group relative overflow-hidden transition-all hover:bg-white hover:shadow-lg",
+                    asset.isDebt ? "border-l-4 border-l-crimson" : ""
+                  )}>
+                    <div className="absolute top-1 right-1 flex items-center justify-end px-2 gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                      <button 
+                        onClick={() => startEdit(asset)}
+                        className="p-1.5 bg-ink text-white rounded-lg shadow-sm hover:scale-110 transition-transform"
+                        title="Sửa"
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                      <button 
+                        onClick={() => removeAsset(asset.id)}
+                        className="p-1.5 bg-crimson text-white rounded-lg shadow-sm hover:scale-110 transition-transform"
+                        title="Xóa"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+
+                    <div className="flex justify-between items-start mb-2 relative z-10 pointer-events-none">
+                      <h3 className="font-bold text-lg leading-tight truncate pr-16">{asset.name}</h3>
+                    </div>
+                    
+                    <div className="text-2xl font-mono font-bold tracking-tight mt-2 flex items-baseline gap-2">
+                      <span className={asset.isDebt ? "text-crimson" : "text-ink/90"}>
+                        {asset.isDebt ? "-" : ""}{formatCurrency(asset.value, asset.currency)}
+                      </span>
+                      {asset.isDebt && <span className="text-[10px] uppercase font-bold text-crimson bg-crimson/5 px-1 rounded">Nợ</span>}
+                    </div>
+                    
+                    {asset.notes && <div className="text-xs text-ink/60 mt-2 bg-ink/5 p-2 rounded italic font-hand">{asset.notes}</div>}
+                  </div>
+                ))}
+              </div>
             </div>
-            
-            <div className="text-2xl font-mono font-bold tracking-tight mt-2 flex items-baseline gap-2">
-              <span className={asset.isDebt ? "text-crimson" : "text-ink/90"}>
-                {asset.isDebt ? "-" : ""}{formatCurrency(asset.value, asset.currency)}
-              </span>
-              {asset.isDebt && <span className="text-[10px] uppercase font-bold text-crimson bg-crimson/5 px-1 rounded">Nợ</span>}
-            </div>
-            
-            {asset.notes && <div className="text-xs text-ink/60 mt-2 bg-ink/5 p-2 rounded">{asset.notes}</div>}
-          </div>
-        )})}
+          );
+        })}
       </div>
       
-      {assets.length === 0 && (
-        <div className="text-center py-10 opacity-30 mt-10">
+      {filteredAssets.length === 0 && (
+        <div className="text-center py-20 opacity-30">
           <Wallet size={48} className="mx-auto mb-4" />
-          <p className="font-hand text-xl">Chưa có tài sản nào được ghi nhận</p>
+          <p className="font-hand text-xl">Không tìm thấy tài sản nào</p>
         </div>
       )}
     </div>
