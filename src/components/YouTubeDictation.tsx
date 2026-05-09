@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { VideoDictation } from '../types';
 import { cn } from '../lib/utils';
-import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2, Mic, Library, PlayCircle, Star, MicOff, Sparkles, Wand2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2, Mic, Library, PlayCircle, Star, MicOff } from 'lucide-react';
 import { YoutubeTranscript } from 'youtube-transcript';
 import YouTube from 'react-youtube';
 import { RECOMMENDED_VIDEOS } from '../constants/recommendedVideos';
 import stringSimilarity from "string-similarity";
-import { geminiService } from '../services/geminiService';
 
 export function YouTubeDictation({ dictations, setDictations }: { dictations: VideoDictation[], setDictations: (d: VideoDictation[]) => void }) {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -14,7 +13,6 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
   const [mode, setMode] = useState<'transcript' | 'practice' | 'shadowing'>('practice');
   const [userInput, setUserInput] = useState('');
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
-  const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [transcriptError, setTranscriptError] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const playerRef = useRef<any>(null);
@@ -217,38 +215,6 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
       setTranscriptError(err.message || 'Không thể lấy phụ đề tự động do giới hạn từ YouTube. Vui lòng copy phụ đề và dán thủ công.');
     } finally {
       setIsLoadingTranscript(false);
-    }
-  };
-
-  const handleAiFormat = async () => {
-    if (!activeSession || !activeSession.content) return;
-    setIsAiProcessing(true);
-    try {
-      const formatted = await geminiService.formatTranscript(activeSession.content);
-      updateSession(activeSession.id, 'content', formatted);
-    } catch (err) {
-      alert("Lỗi khi xử lý AI. Vui lòng thử lại.");
-    } finally {
-      setIsAiProcessing(false);
-    }
-  };
-
-  const handleAiFetch = async () => {
-    if (!activeSession) return;
-    setIsAiProcessing(true);
-    setTranscriptError('');
-    try {
-      const videoUrl = `https://www.youtube.com/watch?v=${activeSession.youtubeId}`;
-      const transcript = await geminiService.fetchTranscriptWithAI(videoUrl);
-      if (transcript && transcript.length > 50) {
-        updateSession(activeSession.id, 'content', transcript);
-      } else {
-        setTranscriptError("AI không thể tìm thấy phụ đề cho video này. Bạn vui lòng dán thủ công nhé.");
-      }
-    } catch (err) {
-      setTranscriptError("Lỗi khi dùng AI lấy phụ đề. Thử lại sau hoặc dán thủ công.");
-    } finally {
-      setIsAiProcessing(false);
     }
   };
 
@@ -502,7 +468,7 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
             </div>
 
             <div className="bg-ink/5 p-4 rounded text-xs text-ink/60 sketch-border border-dashed shrink-0">
-              <p className="font-bold uppercase tracking-widest mb-2 text-ink/80 text-[10px] flex items-center justify-between">
+              <p className="font-bold uppercase tracking-widest mb-1.5 text-ink/80 text-[9px] flex items-center justify-between">
                 <span>HƯỚNG DẪN:</span>
                 <a 
                   href={`https://www.youtube.com/watch?v=${activeSession.youtubeId}`} 
@@ -510,34 +476,112 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                   rel="noreferrer"
                   className="text-crimson hover:underline normal-case font-bold flex items-center gap-1"
                 >
-                  Mở trên YouTube <Type size={10} />
+                  YouTube <Type size={10} />
                 </a>
               </p>
-              <ul className="space-y-1.5 ml-4 list-disc marker:text-crimson">
-                <li><span className="font-bold text-ink hover:text-crimson cursor-pointer" onClick={() => setMode('transcript')}>Transcript</span>: Lấy phụ đề.</li>
-                <li><span className="font-bold text-ink hover:text-crimson cursor-pointer" onClick={() => { if(activeSession.content) setMode('practice'); }}>Practice</span>: Nghe & gõ chính tả.</li>
-                <li><span className="font-bold text-ink hover:text-crimson cursor-pointer" onClick={() => { if(activeSession.content) setMode('shadowing'); }}>Shadowing</span>: Nói đuổi theo video.</li>
-              </ul>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px]">
+                <span className="font-bold text-ink hover:text-crimson cursor-pointer" onClick={() => setMode('transcript')}>1. Transcript</span>
+                <span className="font-bold text-ink hover:text-crimson cursor-pointer" onClick={() => { if(activeSession.content) setMode('practice'); }}>2. Nghe Chép</span>
+                <span className="font-bold text-ink hover:text-crimson cursor-pointer" onClick={() => { if(activeSession.content) setMode('shadowing'); }}>3. Bóng Ma</span>
+              </div>
             </div>
+
+            {mode === 'practice' && !isCompleted && sentences.length > 0 && (
+              <div className="flex flex-col gap-2 shrink-0">
+                <div className="p-3 bg-ink/5 rounded-lg border border-dashed border-ink/20 text-sm leading-relaxed font-mono">
+                    {(() => {
+                      const targetStr = sentences[progressIndex];
+                      const targetWords = targetStr.split(' ');
+                      const userWords = userInput.trim().split(/\s+/);
+                      
+                      return targetWords.map((word, wIdx) => {
+                        const cleanTarget = normalizeString(word);
+                        const cleanUser = userWords[wIdx] ? normalizeString(userWords[wIdx]) : undefined;
+                        const isCurrentWord = wIdx === (userInput.endsWith(' ') ? userWords.length : userWords.length - 1);
+                        
+                        if (cleanUser === cleanTarget) {
+                          return <span key={wIdx} className="inline-block mr-1.5 text-green-600 bg-green-100/50 px-0.5 rounded">{word}</span>;
+                        } else if (cleanUser !== undefined && !isCurrentWord) {
+                          return <span key={wIdx} className="inline-block mr-1.5 text-red-500">{"*".repeat(word.length)}</span>;
+                        } else {
+                          const masked = word.replace(/[a-zA-Z0-9À-ỹ]/g, '*');
+                          return <span key={wIdx} className="inline-block mr-1.5 text-ink/30 italic">{masked}</span>;
+                        }
+                      });
+                    })()}
+                </div>
+                <div className="relative">
+                  <textarea
+                    ref={inputRef}
+                    value={userInput}
+                    onChange={(e) => setUserInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                      } else if (e.code === 'Space' && e.ctrlKey) {
+                          e.preventDefault();
+                          if (playerRef.current && typeof playerRef.current.getPlayerState === 'function') {
+                            try {
+                                const state = playerRef.current.getPlayerState();
+                                if (state === 1) playerRef.current.pauseVideo();
+                                else playerRef.current.playVideo();
+                            } catch (err) {}
+                          }
+                      }
+                    }}
+                    placeholder="Nghe và gõ vào đây..."
+                    className="w-full h-24 resize-none bg-white outline-none font-sans text-lg leading-relaxed p-3 custom-scrollbar sketch-border shadow-inner"
+                    spellCheck="false"
+                    autoFocus
+                  />
+                  <div className="absolute top-1 right-2 flex gap-2">
+                    <button 
+                       onClick={() => {
+                         if (confirm(`Bạn muốn xem đáp án câu này không?\n\n"${sentences[progressIndex]}"`)) {
+                           setUserInput(sentences[progressIndex]);
+                         }
+                       }}
+                       className="text-[9px] uppercase tracking-widest text-ink/30 hover:text-ink font-bold"
+                     >
+                       Gợi ý
+                    </button>
+                    <button 
+                      onClick={toggleRecording}
+                      className={cn(
+                        "text-ink/30 hover:text-crimson transition-colors",
+                        isRecording && "text-crimson animate-pulse"
+                      )}
+                    >
+                      <Mic size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {(mode === 'practice' || mode === 'shadowing') && sentences.length > 0 && (
               <div className="bg-white p-3 rounded sketch-border border-ink/10 flex-1 min-h-0 flex flex-col overflow-hidden shadow-sm">
-                 <p className="font-bold uppercase tracking-widest text-ink/80 text-[10px] mb-2 font-logo shrink-0">Tiến độ: {progressIndex}/{sentences.length} câu</p>
-                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-1">
-                   {sentences.map((s, i) => (
-                     <button 
-                       key={i} 
-                       onClick={() => {
-                         updateSession(activeSession.id, 'progress', i);
-                         playSentence(i);
-                       }}
-                       className={cn("p-1.5 rounded text-[10px] transition-all w-full text-left cursor-pointer hover:bg-ink/10 block break-words", 
-                         i < progressIndex ? "bg-green-100/40 text-green-700 line-through opacity-50" : 
-                         i === progressIndex ? "bg-ink text-paper font-bold shadow-sm" : "text-ink/40"
-                       )}>
-                       {i < progressIndex ? s : i === progressIndex ? (mode === 'shadowing' || isCompleted ? s : "Đang học câu này") : `Câu ${i + 1}`}
-                     </button>
-                   ))}
+                 <p className="font-bold uppercase tracking-widest text-ink/80 text-[10px] mb-2 font-logo shrink-0 flex justify-between">
+                   <span>Tiến độ:</span>
+                   <span>{progressIndex}/{sentences.length}</span>
+                 </p>
+                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                   <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-6 lg:grid-cols-8 gap-1.5 p-0.5">
+                     {sentences.map((_, i) => (
+                       <button 
+                         key={i} 
+                         onClick={() => {
+                           updateSession(activeSession.id, 'progress', i);
+                           playSentence(i);
+                         }}
+                         className={cn("aspect-square rounded flex items-center justify-center text-[9px] font-bold transition-all border", 
+                           i < progressIndex ? "bg-green-500 text-white border-green-600 opacity-60" : 
+                           i === progressIndex ? "bg-ink text-paper border-ink shadow-md scale-110 z-10" : "text-ink/40 border-ink/10 bg-ink/5 hover:bg-ink/10"
+                         )}>
+                         {i + 1}
+                       </button>
+                     ))}
+                   </div>
                  </div>
               </div>
             )}
@@ -554,32 +598,12 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                   <div className="flex flex-wrap gap-2">
                     <button 
                       onClick={() => loadTranscript(activeSession.youtubeId, activeSession.id)}
-                      disabled={isLoadingTranscript || isAiProcessing}
+                      disabled={isLoadingTranscript}
                       className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-ink text-paper hover:bg-ink/90 rounded disabled:opacity-50 transition-all shadow-sm"
                     >
                       {isLoadingTranscript ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-                      Tự động
+                      Lấy từ YouTube
                     </button>
-                    
-                    <button 
-                      onClick={handleAiFetch}
-                      disabled={isLoadingTranscript || isAiProcessing}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-purple-600 text-white hover:bg-purple-700 rounded disabled:opacity-50 transition-all shadow-sm"
-                    >
-                      {isAiProcessing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                      AI Tìm Sub
-                    </button>
-
-                    {activeSession.content && (
-                      <button 
-                        onClick={handleAiFormat}
-                        disabled={isLoadingTranscript || isAiProcessing}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-amber-500 text-white hover:bg-amber-600 rounded disabled:opacity-50 transition-all shadow-sm"
-                      >
-                        {isAiProcessing ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                        AI Sửa Dấu Câu
-                      </button>
-                    )}
                   </div>
                 </div>
                 
@@ -620,20 +644,20 @@ It will be split into three parts for you to practice.
                 </div>
               </div>
             ) : mode === 'shadowing' ? (
-              <div className="flex-1 flex flex-col pt-4 overflow-y-auto">
+              <div className="flex-1 flex flex-col pt-4 overflow-y-auto custom-scrollbar">
                  {sentences.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-ink/60">
                       <Video size={32} className="mb-4 opacity-50" />
                       <p className="mb-4 text-sm">Chưa có Transcript để Shadowing.</p>
                     </div>
                  ) : (
-                    <div className="flex-1 flex flex-col h-full">
+                    <div className="flex-1 flex flex-col h-full p-6">
                        <p className="text-[10px] font-bold uppercase tracking-widest text-ink/40 mb-2">Shadowing - Câu {progressIndex + 1}</p>
                        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-ink/5 rounded-lg border border-dashed border-ink/20 text-center relative max-h-[50vh]">
                          {progressIndex > 0 && (
                            <p className="text-ink/30 text-lg mb-8 italic line-clamp-2 blur-[1px]"> {sentences[progressIndex - 1]} </p>
                          )}
-                         <p className="text-2xl md:text-4xl font-bold text-ink mb-8 leading-tight">
+                         <p className="text-xl md:text-3xl font-bold text-ink mb-8 leading-tight">
                            {sentences[progressIndex]}
                          </p>
                          {progressIndex < sentences.length - 1 && (
@@ -641,7 +665,7 @@ It will be split into three parts for you to practice.
                          )}
                        </div>
                        
-                       <div className="flex justify-center gap-4 mt-6">
+                       <div className="flex justify-center gap-4 mt-8">
                          <button 
                            onClick={() => {
                              const p = Math.max(0, progressIndex - 1);
@@ -686,107 +710,64 @@ It will be split into three parts for you to practice.
                  )}
               </div>
             ) : (
-              <div className="flex-1 flex flex-col pt-4 overflow-y-auto">
+              <div className="flex-1 flex flex-col p-6 overflow-y-auto custom-scrollbar bg-ink/[0.01]">
                 {sentences.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-ink/60">
+                  <div className="flex-1 flex flex-col items-center justify-center text-center text-ink/60">
                     <Type size={32} className="mb-4 opacity-50" />
                     <p className="mb-4 text-sm">Chưa có Transcript để thực hành.</p>
-                    <button 
-                      onClick={() => setMode('transcript')}
-                      className="sketch-button py-2 px-6"
-                    >
-                      Thêm Transcript
-                    </button>
                   </div>
                 ) : isCompleted ? (
-                   <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                     <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4 sketch-border border-green-200">
-                        <Check size={32} />
-                     </div>
-                     <h3 className="text-xl font-bold mb-2">Hoàn thành xuất sắc!</h3>
-                     <p className="text-ink/60 text-sm mb-6">Bạn đã nghe chép đúng tất cả các câu.</p>
-                     <button onClick={() => updateSession(activeSession.id, 'progress', 0)} className="sketch-button py-2 px-6">
-                       Nghe lại từ đầu
-                     </button>
-                   </div>
+                  <div className="flex-1 flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4 sketch-border border-green-200">
+                       <Check size={32} />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2 font-logo">Hoàn thành xuất sắc!</h3>
+                    <p className="text-ink/60 text-sm mb-6">Bạn đã nghe chép đúng tất cả các câu.</p>
+                    <button onClick={() => updateSession(activeSession.id, 'progress', 0)} className="sketch-button py-2 px-6">
+                      Nghe lại từ đầu
+                    </button>
+                  </div>
                 ) : (
-                  <>
-                    <div className="mb-4">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-ink/40 mb-2">Câu số {progressIndex + 1}</p>
-                      <div className="p-4 bg-ink/5 rounded-lg border border-dashed border-ink/20 text-lg leading-relaxed font-mono">
-                         {(() => {
-                           const targetStr = sentences[progressIndex];
-                           const targetWords = targetStr.split(' ');
-                           const userWords = userInput.trim().split(/\s+/);
-                           
-                           return targetWords.map((word, wIdx) => {
-                             const cleanTarget = normalizeString(word);
-                             const cleanUser = userWords[wIdx] ? normalizeString(userWords[wIdx]) : undefined;
-                             const isCurrentWord = wIdx === (userInput.endsWith(' ') ? userWords.length : userWords.length - 1);
-                             
-                             if (cleanUser === cleanTarget) {
-                               return <span key={wIdx} className="inline-block mr-2 text-green-600 bg-green-100/50 px-1 rounded">{word}</span>;
-                             } else if (cleanUser !== undefined && !isCurrentWord) {
-                               return <span key={wIdx} className="inline-block mr-2 text-red-500">{"*".repeat(word.length)}</span>;
-                             } else {
-                               // Unreached or currently typing
-                               // Only show punctuation, replace letters with *
-                               const masked = word.replace(/[a-zA-Z0-9À-ỹ]/g, '*');
-                               return <span key={wIdx} className="inline-block mr-2 text-ink/40">{masked}</span>;
-                             }
-                           });
-                         })()}
+                  <div className="space-y-6">
+                    <div className="bg-paper p-6 rounded-xl sketch-border shadow-inner relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-2">
+                         <PlayCircle size={40} className="text-ink/5" />
+                      </div>
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-ink/40 mb-4">Study Room: Nghe Chép Chính Tả</h4>
+                      <div className="flex flex-col items-center gap-4 text-center">
+                        <div className="w-10 h-10 bg-ink text-paper rounded-full flex items-center justify-center text-sm font-black shadow-lg">
+                          {progressIndex + 1}
+                        </div>
+                        <p className="text-ink/80 text-xs md:text-sm italic leading-relaxed max-w-sm">
+                          Video sẽ dừng tự động ở cuối câu. Hãy tập trung nghe và gõ lại chính xác vào ô bên trái.
+                        </p>
                       </div>
                     </div>
-                    <div className="flex-1 flex flex-col">
-                      <textarea
-                        ref={inputRef}
-                        value={userInput}
-                        onChange={(e) => setUserInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault(); // prevent new lines in input
-                          } else if (e.code === 'Space' && e.ctrlKey) {
-                             e.preventDefault();
-                             if (playerRef.current && typeof playerRef.current.getPlayerState === 'function') {
-                               try {
-                                  const state = playerRef.current.getPlayerState();
-                                  if (state === 1) playerRef.current.pauseVideo();
-                                  else playerRef.current.playVideo();
-                               } catch (err) {}
-                             }
-                          }
-                        }}
-                        placeholder="Gõ chính xác câu bạn nghe được... (Bấm Ctrl+Space để dừng/phát)"
-                        className="w-full flex-1 resize-none bg-transparent outline-none font-sans text-xl md:text-2xl leading-relaxed p-4 custom-scrollbar sketch-border"
-                        spellCheck="false"
-                        autoFocus
-                      />
-                      <button 
-                        onClick={toggleRecording}
-                        className={cn(
-                          "absolute bottom-12 right-6 p-4 rounded-full transition-all border-4",
-                          isRecording ? "bg-crimson text-white animate-pulse border-white" : "bg-white text-ink border-ink/10 hover:border-ink hover:scale-110 shadow-lg"
-                        )}
-                        title={isRecording ? "Stop Voice Dictation" : "Start Voice Dictation"}
-                      >
-                         <Mic fill={isRecording ? "currentColor" : "none"} />
-                      </button>
-                      <div className="mt-2 text-right">
-                         <button 
-                           onClick={() => {
-                             // Reveal correct answer if stuck
-                             if (confirm(`Bạn muốn xem đáp án câu này không?\n\n"${sentences[progressIndex]}"`)) {
-                               setUserInput(sentences[progressIndex]);
-                             }
-                           }}
-                           className="text-[10px] uppercase tracking-widest text-ink/40 hover:text-ink font-bold"
-                         >
-                           Gợi ý đáp án
-                         </button>
+                    
+                    <div className="p-4 bg-white rounded-lg sketch-border border-ink/10 shadow-sm">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-ink/40 mb-4 border-b border-ink/5 pb-2">Toàn bộ Phụ đề:</p>
+                      <div className="text-xs md:text-sm leading-relaxed space-y-3 custom-scrollbar max-h-[40vh] overflow-y-auto pr-2">
+                         {sentences.map((s, i) => (
+                           <p 
+                             key={i} 
+                             onClick={() => {
+                               updateSession(activeSession.id, 'progress', i);
+                               playSentence(i);
+                             }}
+                             className={cn(
+                               "cursor-pointer transition-colors p-1 rounded",
+                               i < progressIndex ? "text-ink/30 line-through" : 
+                               i === progressIndex ? "text-crimson font-bold bg-crimson/5 scale-[1.02] transform origin-left" : 
+                               "text-ink/60 hover:text-ink hover:bg-ink/5"
+                             )}
+                           >
+                             <span className="text-[10px] opacity-40 mr-2 font-mono">{String(i+1).padStart(2, '0')}.</span>
+                             {i < progressIndex ? s : i === progressIndex ? "→ " + s : s.substring(0, 30) + "..."}
+                           </p>
+                         ))}
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             )}
