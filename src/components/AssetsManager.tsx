@@ -192,25 +192,17 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   };
 
   const pieData = useMemo(() => {
-    const dataMap = new Map<string, { value: number, name: string, catId: string, fill: string }>();
-    assets.forEach(a => {
-      const val = getValueInVND(a.value, a.currency);
-      const cat = getCategory(a.category);
-      const adjustedVal = a.isDebt ? -val : val;
-
-      if (dataMap.has(cat.id)) {
-        dataMap.get(cat.id)!.value += adjustedVal;
-      } else {
-        dataMap.set(cat.id, { 
-          value: adjustedVal, 
-          name: cat.name, 
-          catId: cat.id,
-          fill: getCategoryColor(cat.id)
-        });
-      }
-    });
-    return Array.from(dataMap.values()).filter(d => d.value > 0);
-  }, [assets, categories, getCategory, getCategoryColor, getValueInVND]);
+    return assets
+      .filter(a => !a.isDebt)
+      .map(a => ({
+        id: a.id,
+        name: a.name,
+        value: getValueInVND(a.value, a.currency),
+        fill: getCategoryColor(a.category)
+      }))
+      .filter(d => d.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [assets, getCategoryColor, getValueInVND]);
 
   const filteredAssets = useMemo(() => {
     let result = [...assets];
@@ -337,13 +329,13 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
           </div>
           <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-2">
              {pieData.map(d => (
-               <div key={d.catId} className="flex flex-col">
+               <div key={d.id} className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.fill }} />
                     <span className="text-[10px] font-bold uppercase tracking-tight text-ink/70 truncate">{d.name}</span>
                   </div>
                   <span className="text-xs font-bold pl-4">
-                    {totalVND > 0 ? Math.round((d.value / totalVND) * 100) : 0}%
+                    {totalAssetsVND > 0 ? Math.round((d.value / totalAssetsVND) * 100) : 0}%
                   </span>
                </div>
              ))}
