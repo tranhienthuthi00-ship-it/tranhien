@@ -351,10 +351,10 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                  playerRef.current.playVideo();
                }
              }
-          }
-        }
-      }
-    }
+           }
+         }
+       }
+     }
   }, [userInput, activeSession, mode]);
 
   if (activeSession) {
@@ -363,8 +363,8 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
     const isCompleted = sentences.length > 0 && progressIndex >= sentences.length;
 
     return (
-      <div className="max-w-7xl mx-auto p-2 md:p-4 font-sans h-full md:h-[calc(100vh-120px)] flex flex-col overflow-hidden">
-        <div className="flex justify-between items-center mb-4 shrink-0 px-2 lg:px-0">
+      <div className="max-w-7xl mx-auto p-2 md:p-3 font-sans h-full md:h-[calc(100vh-140px)] flex flex-col overflow-hidden">
+        <div className="flex justify-between items-center mb-3 shrink-0 px-2 lg:px-0">
           <button 
             onClick={() => setActiveSessionId(null)}
             className="flex items-center gap-1 text-ink/60 hover:text-ink transition-colors font-bold text-[10px] uppercase tracking-widest shrink-0"
@@ -377,15 +377,15 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                type="text" 
                value={activeSession.title}
                onChange={(e) => updateSession(activeSession.id, 'title', e.target.value)}
-               className="w-full bg-transparent border-b border-dashed border-ink/20 focus:border-ink/60 outline-none text-lg font-bold font-logo text-center py-1 transition-colors"
+               className="w-full bg-transparent border-b border-dashed border-ink/20 focus:border-ink/60 outline-none text-base md:text-lg font-bold font-logo text-center py-1 transition-colors"
                placeholder="Tiêu đề bài nghe..."
              />
           </div>
           
-          <div className="flex gap-1.5 shrink-0">
+          <div className="flex gap-1 shrink-0">
             <button 
               onClick={() => setMode('transcript')}
-              className={cn("px-2 md:px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1", 
+              className={cn("px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1", 
                 mode === 'transcript' ? "bg-ink text-paper" : "bg-ink/5 text-ink/60 hover:bg-ink/10"
               )}
             >
@@ -393,14 +393,11 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
             </button>
             <button 
               onClick={() => {
-                if (!activeSession.content) {
-                  alert("Vui lòng nhập transcript trước.");
-                  return;
-                }
+                if (!activeSession.content) { alert("Vui lòng nhập transcript trước."); return; }
                 setMode('practice');
                 if (playerRef.current) playerRef.current.pauseVideo();
               }}
-              className={cn("px-2 md:px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1", 
+              className={cn("px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1", 
                 mode === 'practice' ? "bg-ink text-paper" : "bg-ink/5 text-ink/60 hover:bg-ink/10"
               )}
             >
@@ -408,13 +405,10 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
             </button>
             <button 
               onClick={() => {
-                if (!activeSession.content) {
-                  alert("Vui lòng nhập transcript trước.");
-                  return;
-                }
+                if (!activeSession.content) { alert("Vui lòng nhập transcript trước."); return; }
                 setMode('shadowing');
               }}
-              className={cn("px-2 md:px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1", 
+              className={cn("px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1", 
                 mode === 'shadowing' ? "bg-ink text-paper" : "bg-ink/5 text-ink/60 hover:bg-ink/10"
               )}
             >
@@ -423,7 +417,7 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
           </div>
         </div>
         
-        <div className="flex flex-col md:flex-row gap-4 flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-col md:flex-row gap-3 flex-1 min-h-0 overflow-hidden mb-2">
           <div className="w-full md:w-5/12 flex flex-col gap-3 shrink-0 h-auto md:h-full min-h-0 overflow-y-auto custom-scrollbar md:pr-1">
             <div className="w-full aspect-video sketch-border p-1 bg-white relative shadow-md shrink-0">
               <YouTube 
@@ -447,273 +441,120 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                  <div className="absolute inset-0 bg-ink/90 flex flex-col items-center justify-center p-4 text-center z-20">
                     <Video size={32} className="text-crimson mb-2" />
                     <p className="text-white text-xs font-bold mb-4">{videoError}</p>
-                    <button 
-                      onClick={() => { setVideoError(''); setActiveSessionId(null); }}
-                      className="text-[10px] uppercase font-bold text-white/60 hover:text-white underline"
-                    >
-                      Chọn video khác
-                    </button>
+                    <button onClick={() => { setVideoError(''); setActiveSessionId(null); }} className="text-[10px] uppercase font-bold text-white/60 hover:text-white underline">Chọn video khác</button>
                  </div>
               )}
             </div>
             
-            <div className="bg-ink/5 p-4 rounded text-xs text-ink/60 sketch-border border-dashed shrink-0">
-              <p className="font-bold uppercase tracking-widest mb-2 text-ink/80 text-[10px]">Hướng dẫn học:</p>
-              <ul className="space-y-1.5 ml-4 list-disc marker:text-crimson">
-                <li><span className="font-bold text-ink">Transcript</span>: Lấy phụ đề (Tự động hoặc Dán thủ công).</li>
-                <li><span className="font-bold text-ink">Practice</span>: Chép chính tả để luyện nghe.</li>
-                <li><span className="font-bold text-ink">Shadowing</span>: Nói đuổi theo video để tập nói.</li>
+            <div className="bg-ink/3 p-3 rounded text-[11px] text-ink/60 sketch-border border-dashed shrink-0">
+              <p className="font-bold uppercase tracking-widest mb-1.5 text-ink/80 text-[9px]">Lưu ý:</p>
+              <ul className="space-y-1 ml-3 list-disc marker:text-crimson">
+                <li><span className="font-semibold">Phím tắt</span>: Ctrl+Space để Dừng/Phát.</li>
+                <li><span className="font-semibold">Tự động</span>: Video sẽ tự dừng sau mỗi câu nếu có transcript.</li>
               </ul>
+            </div>
+          </div>
+          
+          <div className="flex-1 flex flex-col min-h-0 bg-white sketch-border shadow-lg relative overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              {mode === 'transcript' ? (
+                <div className="flex-1 flex flex-col p-3 md:p-5 min-h-0">
+                  <div className="flex justify-between items-center mb-3 shrink-0">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-ink/40">Transcript Editor</h3>
+                    <button 
+                      onClick={() => loadTranscript(activeSession.youtubeId, activeSession.id)}
+                      disabled={isLoadingTranscript}
+                      className="flex items-center gap-1 px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-ink text-paper hover:bg-ink/90 rounded disabled:opacity-50 transition-all shrink-0"
+                    >
+                      {isLoadingTranscript ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                      Tự động lấy
+                    </button>
+                  </div>
+                  {transcriptError && <div className="mb-2 p-2 bg-crimson/5 text-crimson text-[10px] leading-relaxed rounded border border-crimson/20 italic shrink-0">⚠️ {transcriptError}</div>}
+                  <div className="flex-1 min-h-0 p-1 sketch-border border-dashed bg-ink/[0.02] overflow-hidden">
+                    <textarea value={activeSession.content} onChange={(e) => updateSession(activeSession.id, 'content', e.target.value)} placeholder="Dán phụ đề hoặc bấm lấy tự động..." className="w-full h-full resize-none bg-transparent outline-none font-sans text-sm md:text-base leading-relaxed p-2 custom-scrollbar" spellCheck="false" />
+                  </div>
+                </div>
+              ) : mode === 'shadowing' ? (
+                <div className="flex-1 flex flex-col p-3 md:p-4 overflow-y-auto min-h-0">
+                  {sentences.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-ink/60"><Video size={32} className="mb-4 opacity-50" /><p className="text-sm">Chưa có Transcript.</p></div>
+                  ) : (
+                    <div className="flex-1 flex flex-col h-full min-h-0 justify-center">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-ink/40 mb-2">Shadowing - Câu {progressIndex + 1}</p>
+                      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-ink/5 rounded-lg border border-dashed border-ink/20 text-center relative min-h-[140px] md:min-h-[180px]">
+                        {progressIndex > 0 && <p className="text-ink/30 text-xs md:text-base mb-4 italic line-clamp-1 blur-[1px]"> {sentences[progressIndex - 1]} </p>}
+                        <p className="text-xl md:text-3xl font-bold text-ink mb-4 md:mb-8 leading-tight px-2">{sentences[progressIndex]}</p>
+                        {progressIndex < sentences.length - 1 && <p className="text-ink/30 text-xs md:text-base italic line-clamp-1 blur-[1px]"> {sentences[progressIndex + 1]} </p>}
+                      </div>
+                      <div className="flex justify-center flex-wrap gap-2 md:gap-4 mt-4 shrink-0">
+                        <button onClick={() => { const p = Math.max(0, progressIndex - 1); updateSession(activeSession.id, 'progress', p); playSentence(p); }} disabled={progressIndex === 0} className="sketch-button py-1.5 px-3 text-[10px] disabled:opacity-50">Trước</button>
+                        <button onClick={toggleRecording} className={cn("w-12 h-12 rounded-full flex items-center justify-center transition-all bg-white shadow-lg sketch-border border-2", isRecording ? "text-crimson border-crimson" : "text-ink border-ink/40 hover:scale-110")}>{isRecording ? <MicOff size={20} /> : <Mic size={20} />}</button>
+                        <button onClick={() => playSentence(progressIndex)} className="sketch-button py-1.5 px-4 text-[10px] bg-ink text-paper hover:bg-ink/80 hover:text-paper">Nghe lại</button>
+                        <button onClick={() => { const p = Math.min(sentences.length - 1, progressIndex + 1); updateSession(activeSession.id, 'progress', p); playSentence(p); }} disabled={progressIndex === sentences.length - 1} className="sketch-button py-1.5 px-3 text-[10px] disabled:opacity-50">Tiếp</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col p-3 md:p-4 overflow-y-auto min-h-0">
+                  {sentences.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-ink/60"><Type size={28} className="mb-2 opacity-50" /><p className="mb-3 text-xs">Chưa có Transcript.</p><button onClick={() => setMode('transcript')} className="sketch-button py-1.5 px-4 text-xs">Thêm</button></div>
+                  ) : isCompleted ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-8"><div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-3 sketch-border border-green-200"><Check size={24} /></div><h3 className="text-lg font-bold mb-1">Xong!</h3><button onClick={() => updateSession(activeSession.id, 'progress', 0)} className="sketch-button py-1.5 px-4 text-[10px]">Luyện lại</button></div>
+                  ) : (
+                    <div className="flex flex-col h-full">
+                      <div className="mb-3 shrink-0">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-ink/40 mb-1">Câu {progressIndex + 1}</p>
+                        <div className="p-3 bg-ink/5 rounded-lg border border-dashed border-ink/20 text-sm md:text-base leading-relaxed font-mono">
+                          {sentences[progressIndex].split(' ').map((word, wIdx) => {
+                            const cleanTarget = normalizeString(word);
+                            const userWords = userInput.trim().split(/\s+/);
+                            const cleanUser = userWords[wIdx] ? normalizeString(userWords[wIdx]) : undefined;
+                            const isCurrentWord = wIdx === (userInput.endsWith(' ') ? userWords.length : userWords.length - 1);
+                            if (cleanUser === cleanTarget) return <span key={wIdx} className="inline-block mr-1 text-green-600 bg-green-100/50 px-1 rounded">{word}</span>;
+                            else if (cleanUser !== undefined && !isCurrentWord) return <span key={wIdx} className="inline-block mr-1 text-red-500">{"*".repeat(word.length)}</span>;
+                            else return <span key={wIdx} className="inline-block mr-1 text-ink/40">{word.replace(/[a-zA-Z0-9À-ỹ]/g, '*')}</span>;
+                          })}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-h-0 relative">
+                        <textarea ref={inputRef} value={userInput} onChange={(e) => setUserInput(e.target.value)} onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.preventDefault();
+                          else if (e.code === 'Space' && e.ctrlKey) {
+                            e.preventDefault();
+                            if (playerRef.current?.getPlayerState) {
+                              const state = playerRef.current.getPlayerState();
+                              if (state === 1) playerRef.current.pauseVideo(); else playerRef.current.playVideo();
+                            }
+                          }
+                        }} placeholder="Gõ lại câu vừa nghe..." className="w-full h-full resize-none bg-transparent outline-none font-sans text-base md:text-lg leading-relaxed p-3 custom-scrollbar sketch-border" spellCheck="false" autoFocus />
+                        <button onClick={toggleRecording} className={cn("absolute bottom-3 right-3 p-3 rounded-full transition-all border-4 z-10 shadow-lg", isRecording ? "bg-crimson text-white animate-pulse border-white" : "bg-white text-ink border-ink/10 hover:scale-110")}><Mic size={18} fill={isRecording ? "white" : "none"} /></button>
+                        <div className="mt-1 text-right shrink-0"><button onClick={() => { if (confirm(`Đáp án: "${sentences[progressIndex]}"`)) setUserInput(sentences[progressIndex]); }} className="text-[9px] uppercase tracking-widest text-ink/40 hover:text-ink font-bold">Gợi ý</button></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {(mode === 'practice' || mode === 'shadowing') && sentences.length > 0 && (
-              <div className="bg-white p-3 rounded sketch-border border-ink/10 flex-1 min-h-0 flex flex-col overflow-hidden">
-                 <p className="font-bold uppercase tracking-widest text-ink/80 text-[10px] mb-2 font-logo shrink-0">Tiến độ: {progressIndex}/{sentences.length} câu</p>
-                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-1">
-                   {sentences.map((s, i) => (
-                     <button 
-                       key={i} 
-                       onClick={() => {
-                         updateSession(activeSession.id, 'progress', i);
-                         playSentence(i);
-                       }}
-                       className={cn("p-1.5 rounded text-[10px] transition-all w-full text-left cursor-pointer hover:bg-ink/10 block break-words", 
-                         i < progressIndex ? "bg-green-100/40 text-green-700 line-through opacity-50" : 
-                         i === progressIndex ? "bg-ink text-paper font-bold shadow-sm" : "text-ink/40"
-                       )}>
-                       {i < progressIndex ? s : i === progressIndex ? (mode === 'shadowing' || isCompleted ? s : "Câu hiện tại") : `Câu ${i + 1}`}
-                     </button>
+              <div className="bg-ink/5 border-t border-dashed border-ink/20 px-3 py-1.5 shrink-0">
+                <div className="flex items-center gap-2 mb-1">
+                   <span className="text-[8px] font-black uppercase tracking-widest text-ink/40 shrink-0">BÀI HỌC</span>
+                   <div className="flex-1 h-1 bg-ink/10 rounded-full overflow-hidden"><div className="h-full bg-crimson transition-all duration-500" style={{ width: `${(Math.min(progressIndex, sentences.length) / sentences.length) * 100}%` }} /></div>
+                   <span className="text-[8px] font-bold text-ink/60 shrink-0">{progressIndex}/{sentences.length}</span>
+                </div>
+                <div className="flex gap-1 overflow-x-auto no-scrollbar py-0.5">
+                   {sentences.map((_, i) => (
+                      <button key={i} onClick={() => { updateSession(activeSession.id, 'progress', i); playSentence(i); }} className={cn("flex-none w-5 h-5 rounded flex items-center justify-center text-[9px] transition-all font-bold", i < progressIndex ? "bg-green-100 text-green-700" : i === progressIndex ? "bg-ink text-paper scale-110 shadow-sm" : "bg-white text-ink/30 border border-ink/5")}>{i + 1}</button>
                    ))}
-                 </div>
+                </div>
               </div>
             )}
-          </div>
-          
-          <div className="flex-1 flex flex-col min-h-0 bg-white sketch-border shadow-2xl relative overflow-hidden">
-            {mode === 'transcript' ? (
-              <div className="flex-1 flex flex-col p-4 md:p-6 min-h-0">
-                <div className="flex justify-between items-center mb-4 shrink-0">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-ink/40">Transcript Editor</h3>
-                  <button 
-                    onClick={() => loadTranscript(activeSession.youtubeId, activeSession.id)}
-                    disabled={isLoadingTranscript}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-ink text-paper hover:bg-ink/90 rounded disabled:opacity-50 transition-all"
-                  >
-                    {isLoadingTranscript ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-                    Tự động lấy Transcript
-                  </button>
-                </div>
-                
-                {transcriptError && (
-                  <div className="mb-4 p-3 bg-crimson/5 text-crimson text-[11px] leading-relaxed rounded border border-crimson/20 italic shrink-0">
-                    ⚠️ {transcriptError}
-                  </div>
-                )}
-                
-                <div className="flex-1 flex flex-col min-h-0 p-1 sketch-border border-dashed bg-ink/[0.02] overflow-hidden">
-                  <textarea
-                    value={activeSession.content}
-                    onChange={(e) => updateSession(activeSession.id, 'content', e.target.value)}
-                    placeholder="CHƯA CÓ TRANSCRIPT.
-                    
-CÁCH 1: Bấm nút 'Tự động lấy' ở trên.
-CÁCH 2: Dùng laptop/máy tính mở video YouTube, mở tab Phụ đề (Transcript), Copy rồi DÁN VÀO ĐÂY.
 
-Hệ thống sẽ tự động tách câu sau khi bạn dán xong để bạn bắt đầu học."
-                    className="w-full h-full resize-none bg-transparent outline-none font-sans text-base leading-relaxed p-3 custom-scrollbar"
-                    spellCheck="false"
-                  />
-                </div>
-                <div className="mt-2 text-[10px] text-ink/40 italic text-center shrink-0">
-                  Phụ đề sẽ được tự động lưu ngay khi bạn thay đổi.
-                </div>
-              </div>
-            ) : mode === 'shadowing' ? (
-              <div className="flex-1 flex flex-col pt-4 overflow-y-auto">
-                 {sentences.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-ink/60">
-                      <Video size={32} className="mb-4 opacity-50" />
-                      <p className="mb-4 text-sm">Chưa có Transcript để Shadowing.</p>
-                    </div>
-                 ) : (
-                    <div className="flex-1 flex flex-col h-full">
-                       <p className="text-[10px] font-bold uppercase tracking-widest text-ink/40 mb-2">Shadowing - Câu {progressIndex + 1}</p>
-                       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-ink/5 rounded-lg border border-dashed border-ink/20 text-center relative max-h-[50vh]">
-                         {progressIndex > 0 && (
-                           <p className="text-ink/30 text-lg mb-8 italic line-clamp-2 blur-[1px]"> {sentences[progressIndex - 1]} </p>
-                         )}
-                         <p className="text-2xl md:text-4xl font-bold text-ink mb-8 leading-tight">
-                           {sentences[progressIndex]}
-                         </p>
-                         {progressIndex < sentences.length - 1 && (
-                           <p className="text-ink/30 text-lg italic line-clamp-2 blur-[1px]"> {sentences[progressIndex + 1]} </p>
-                         )}
-                       </div>
-                       
-                       <div className="flex justify-center gap-4 mt-6">
-                         <button 
-                           onClick={() => {
-                             const p = Math.max(0, progressIndex - 1);
-                             updateSession(activeSession.id, 'progress', p);
-                             playSentence(p);
-                           }}
-                           disabled={progressIndex === 0}
-                           className="sketch-button py-2 px-6 disabled:opacity-50"
-                         >
-                           Câu trước
-                         </button>
-                         
-                         <button
-                           onClick={toggleRecording}
-                           className={cn(
-                             "w-16 h-16 rounded-full flex items-center justify-center transition-all bg-white shadow-lg sketch-border border-2",
-                             isRecording ? "text-crimson border-crimson" : "text-ink border-ink/40 hover:scale-110"
-                           )}
-                         >
-                            {isRecording ? <MicOff size={24} /> : <Mic size={24} />}
-                         </button>
-
-                         <button 
-                           onClick={() => playSentence(progressIndex)}
-                           className="sketch-button py-2 px-8 bg-ink text-paper hover:bg-ink/80 hover:text-paper"
-                         >
-                           Nghe lại
-                         </button>
-                         <button 
-                           onClick={() => {
-                             const p = Math.min(sentences.length - 1, progressIndex + 1);
-                             updateSession(activeSession.id, 'progress', p);
-                             playSentence(p);
-                           }}
-                           disabled={progressIndex === sentences.length - 1}
-                           className="sketch-button py-2 px-6 disabled:opacity-50"
-                         >
-                           Câu tiếp
-                         </button>
-                       </div>
-                    </div>
-                 )}
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col pt-4 overflow-y-auto">
-                {sentences.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-ink/60">
-                    <Type size={32} className="mb-4 opacity-50" />
-                    <p className="mb-4 text-sm">Chưa có Transcript để thực hành.</p>
-                    <button 
-                      onClick={() => setMode('transcript')}
-                      className="sketch-button py-2 px-6"
-                    >
-                      Thêm Transcript
-                    </button>
-                  </div>
-                ) : isCompleted ? (
-                   <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                     <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4 sketch-border border-green-200">
-                        <Check size={32} />
-                     </div>
-                     <h3 className="text-xl font-bold mb-2">Hoàn thành xuất sắc!</h3>
-                     <p className="text-ink/60 text-sm mb-6">Bạn đã nghe chép đúng tất cả các câu.</p>
-                     <button onClick={() => updateSession(activeSession.id, 'progress', 0)} className="sketch-button py-2 px-6">
-                       Nghe lại từ đầu
-                     </button>
-                   </div>
-                ) : (
-                  <>
-                    <div className="mb-4">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-ink/40 mb-2">Câu số {progressIndex + 1}</p>
-                      <div className="p-4 bg-ink/5 rounded-lg border border-dashed border-ink/20 text-lg leading-relaxed font-mono">
-                         {(() => {
-                           const targetStr = sentences[progressIndex];
-                           const targetWords = targetStr.split(' ');
-                           const userWords = userInput.trim().split(/\s+/);
-                           
-                           return targetWords.map((word, wIdx) => {
-                             const cleanTarget = normalizeString(word);
-                             const cleanUser = userWords[wIdx] ? normalizeString(userWords[wIdx]) : undefined;
-                             const isCurrentWord = wIdx === (userInput.endsWith(' ') ? userWords.length : userWords.length - 1);
-                             
-                             if (cleanUser === cleanTarget) {
-                               return <span key={wIdx} className="inline-block mr-2 text-green-600 bg-green-100/50 px-1 rounded">{word}</span>;
-                             } else if (cleanUser !== undefined && !isCurrentWord) {
-                               return <span key={wIdx} className="inline-block mr-2 text-red-500">{"*".repeat(word.length)}</span>;
-                             } else {
-                               // Unreached or currently typing
-                               // Only show punctuation, replace letters with *
-                               const masked = word.replace(/[a-zA-Z0-9À-ỹ]/g, '*');
-                               return <span key={wIdx} className="inline-block mr-2 text-ink/40">{masked}</span>;
-                             }
-                           });
-                         })()}
-                      </div>
-                    </div>
-                    <div className="flex-1 flex flex-col">
-                      <textarea
-                        ref={inputRef}
-                        value={userInput}
-                        onChange={(e) => setUserInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault(); // prevent new lines in input
-                          } else if (e.code === 'Space' && e.ctrlKey) {
-                             e.preventDefault();
-                             if (playerRef.current && typeof playerRef.current.getPlayerState === 'function') {
-                               try {
-                                  const state = playerRef.current.getPlayerState();
-                                  if (state === 1) playerRef.current.pauseVideo();
-                                  else playerRef.current.playVideo();
-                               } catch (err) {}
-                             }
-                          }
-                        }}
-                        placeholder="Gõ chính xác câu bạn nghe được... (Bấm Ctrl+Space để dừng/phát)"
-                        className="w-full flex-1 resize-none bg-transparent outline-none font-sans text-xl md:text-2xl leading-relaxed p-4 custom-scrollbar sketch-border"
-                        spellCheck="false"
-                        autoFocus
-                      />
-                      <button 
-                        onClick={toggleRecording}
-                        className={cn(
-                          "absolute bottom-12 right-6 p-4 rounded-full transition-all border-4",
-                          isRecording ? "bg-crimson text-white animate-pulse border-white" : "bg-white text-ink border-ink/10 hover:border-ink hover:scale-110 shadow-lg"
-                        )}
-                        title={isRecording ? "Stop Voice Dictation" : "Start Voice Dictation"}
-                      >
-                         <Mic fill={isRecording ? "currentColor" : "none"} />
-                      </button>
-                      <div className="mt-2 text-right">
-                         <button 
-                           onClick={() => {
-                             // Reveal correct answer if stuck
-                             if (confirm(`Bạn muốn xem đáp án câu này không?\n\n"${sentences[progressIndex]}"`)) {
-                               setUserInput(sentences[progressIndex]);
-                             }
-                           }}
-                           className="text-[10px] uppercase tracking-widest text-ink/40 hover:text-ink font-bold"
-                         >
-                           Gợi ý đáp án
-                         </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-            
-            {mode === 'shadowing' && isRecording && (
-               <div className="absolute top-4 right-4 bg-crimson text-white px-3 py-1 rounded-full text-[10px] font-bold animate-pulse flex items-center gap-1">
-                  <Mic size={12} /> Đang nghe...
-               </div>
-            )}
-            
-            {speechScore !== null && (
-               <div className={cn(
-                 "absolute top-4 left-4 px-4 py-2 rounded-lg sketch-border font-bold text-xl transition-all animate-in zoom-in",
-                 speechScore >= 70 ? "bg-green-100 text-green-700 border-green-200" : "bg-crimson/10 text-crimson border-crimson/20"
-               )}>
-                 {speechScore}% {speechScore >= 70 ? "🎯" : "💪"}
-               </div>
-            )}
+            {mode === 'shadowing' && isRecording && <div className="absolute top-2 right-2 bg-crimson text-white px-2 py-0.5 rounded-full text-[8px] font-bold animate-pulse z-20">RECORDING</div>}
+            {speechScore !== null && <div className={cn("absolute top-10 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full sketch-border font-bold text-xs transition-all animate-in zoom-in z-30 shadow-xl", speechScore >= 70 ? "bg-green-100 text-green-700 border-green-200" : "bg-crimson text-white border-white")}>{speechScore}% {speechScore >= 70 ? "🎯" : "💪"}</div>}
           </div>
         </div>
       </div>
