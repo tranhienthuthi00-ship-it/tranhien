@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Search, BookA, Tag as TagIcon, Plus, X } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Search, BookA, Tag as TagIcon, Plus, X, Check } from "lucide-react";
 import type { Word, WordTag } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -16,10 +16,71 @@ export function Academy({
   tags: string[];
   setTags: (tags: string[]) => void;
 }) {
-  const [activeView, setActiveView] = useState<'log' | 'bank'>('log');
+  const [activeView, setActiveView] = useState<'log' | 'bank' | 'review'>('log');
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<WordTag | null>(null);
   const [editingWordId, setEditingWordId] = useState<string | null>(null);
+  
+  // SRS Review State
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  const dueWords = useMemo(() => {
+    return words.filter(w => !w.nextReview || new Date(w.nextReview) <= new Date())
+      .sort((a, b) => new Date(a.nextReview || 0).getTime() - new Date(b.nextReview || 0).getTime());
+  }, [words]);
+
+  const handleSRSScore = (wordId: string, quality: number) => {
+    const word = words.find(w => w.id === wordId);
+    if (!word) return;
+
+    let newInterval = 1;
+    let newDifficulty = word.difficulty || 2.5; // Using difficulty as EF (Easiness Factor)
+    
+    // Simple state tracking: we'll use a hidden property or derivation for 'repetitionCount'
+    // For now, let's estimate repetitionCount based on current interval
+    // If interval > 1, assume repetitionCount > 2
+    
+    if (quality >= 3) {
+      if (!word.lastReviewed) { // First time
+        newInterval = 1;
+      } else if (new Date(word.nextReview).getTime() - new Date(word.lastReviewed).getTime() < 2 * 86400000) { 
+        // Second time (prev interval was 1 day)
+        newInterval = 6;
+      } else {
+        // Find previous interval
+        const last = new Date(word.lastReviewed).getTime();
+        const next = new Date(word.nextReview).getTime();
+        const prevInterval = Math.max(1, Math.ceil((next - last) / 86400000));
+        newInterval = Math.ceil(prevInterval * newDifficulty);
+      }
+      
+      // Update EF
+      newDifficulty = newDifficulty + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+      if (newDifficulty < 1.3) newDifficulty = 1.3;
+    } else {
+      newInterval = 1;
+      newDifficulty = Math.max(1.3, newDifficulty - 0.2);
+    }
+
+    const updatedWords = words.map(w => w.id === wordId ? {
+      ...w,
+      difficulty: newDifficulty,
+      lastReviewed: new Date().toISOString(),
+      nextReview: new Date(Date.now() + newInterval * 86400000).toISOString()
+    } : w);
+
+    setWords(updatedWords);
+    
+    if (reviewIndex < dueWords.length - 1) {
+      setReviewIndex(reviewIndex + 1);
+      setIsFlipped(false);
+    } else {
+      setActiveView('bank');
+      setReviewIndex(0);
+      setIsFlipped(false);
+    }
+  };
 
   // Form State
   const [vocab, setVocab] = useState("");
@@ -97,7 +158,7 @@ export function Academy({
 
   return (
     <div className="max-w-4xl mx-auto p-2 md:p-4">
-       <div className="flex justify-center gap-6 mb-4">
+       <div className="flex justify-center gap-4 md:gap-8 mb-4">
          <button 
            onClick={() => {
              if (editingWordId) {
@@ -106,15 +167,30 @@ export function Academy({
              }
              setActiveView('log');
            }}
-           className={cn("text-xl font-sans font-bold transition-opacity", activeView === 'log' ? "opacity-100 border-b-4 border-ink" : "opacity-40 hover:opacity-70")}
+           className={cn("text-lg md:text-xl font-sans font-bold transition-opacity pb-1", activeView === 'log' ? "opacity-100 border-b-4 border-ink" : "opacity-40 hover:opacity-70")}
          >
-           {editingWordId ? "Edit Word" : "Log New Word"}
+           {editingWordId ? "Edit" : "Log Word"}
          </button>
          <button 
            onClick={() => setActiveView('bank')}
-           className={cn("text-xl font-sans font-bold transition-opacity", activeView === 'bank' ? "opacity-100 border-b-4 border-ink" : "opacity-40 hover:opacity-70")}
+           className={cn("text-lg md:text-xl font-sans font-bold transition-opacity pb-1", activeView === 'bank' ? "opacity-100 border-b-4 border-ink" : "opacity-40 hover:opacity-70")}
          >
-           Word Bank
+           Bank
+         </button>
+         <button 
+           onClick={() => {
+             setReviewIndex(0);
+             setIsFlipped(false);
+             setActiveView('review');
+           }}
+           className={cn("text-lg md:text-xl font-sans font-bold transition-opacity pb-1 relative", activeView === 'review' ? "opacity-100 border-b-4 border-crimson text-crimson" : "opacity-40 hover:opacity-70")}
+         >
+           Review
+           {dueWords.length > 0 && (
+             <span className="absolute -top-1 -right-4 bg-crimson text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+               {dueWords.length}
+             </span>
+           )}
          </button>
        </div>
 
@@ -224,6 +300,83 @@ export function Academy({
                </button>
              </div>
            </form>
+         </div>
+       )}
+
+       {activeView === 'review' && (
+         <div className="max-w-2xl mx-auto py-8">
+           {dueWords.length > 0 ? (
+             <div className="flex flex-col items-center">
+               <div className="mb-6 flex justify-between w-full text-[10px] uppercase font-bold tracking-widest text-ink/40">
+                 <span>Due to review: {dueWords.length} words left</span>
+                 <span>Progress: {reviewIndex + 1} / {dueWords.length}</span>
+               </div>
+
+               <div 
+                 className="w-full aspect-video md:aspect-[2/1] relative perspective-1000 cursor-pointer mb-8"
+                 onClick={() => setIsFlipped(!isFlipped)}
+               >
+                 <div className={cn(
+                   "w-full h-full relative transition-all duration-500 preserve-3d",
+                   isFlipped ? "rotate-y-180" : ""
+                 )}>
+                   {/* Front */}
+                   <div className="absolute inset-0 backface-hidden sketch-border bg-white flex flex-col items-center justify-center p-8 text-center shadow-xl">
+                     <span className="text-[10px] uppercase text-ink/10 absolute top-4 font-bold tracking-widest">Question</span>
+                     <h2 className="text-4xl font-black tracking-tighter mb-2">{dueWords[reviewIndex].vocabulary}</h2>
+                     <p className="text-xs text-ink/40 font-bold uppercase tracking-widest">{dueWords[reviewIndex].ipa}</p>
+                   </div>
+
+                   {/* Back */}
+                   <div className="absolute inset-0 backface-hidden sketch-border bg-paper flex flex-col items-center justify-center p-8 text-center shadow-xl rotate-y-180">
+                     <span className="text-[10px] uppercase text-ink/10 absolute top-4 font-bold tracking-widest">Answer</span>
+                     <h2 className="text-2xl font-bold text-crimson mb-4">{dueWords[reviewIndex].definition}</h2>
+                     {dueWords[reviewIndex].examples[0] && (
+                       <p className="hand-text text-xl text-ink/80 italic">"{dueWords[reviewIndex].examples[0]}"</p>
+                     )}
+                   </div>
+                 </div>
+               </div>
+
+               {isFlipped ? (
+                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+                   {[
+                     { q: 0, label: 'Try Again', sub: '< 1m', color: 'bg-crimson text-white' },
+                     { q: 3, label: 'Hard', sub: '2d', color: 'bg-orange-100 text-orange-700' },
+                     { q: 4, label: 'Good', sub: '4d', color: 'bg-green-100 text-green-700' },
+                     { q: 5, label: 'Easy', sub: '7d', color: 'bg-blue-100 text-blue-700' }
+                   ].map((btn) => (
+                     <button 
+                       key={btn.q}
+                       onClick={(e) => { e.stopPropagation(); handleSRSScore(dueWords[reviewIndex].id, btn.q); }}
+                       className={cn("sketch-button py-3 flex flex-col items-center", btn.color)}
+                     >
+                       <span className="text-xs font-black uppercase tracking-tight">{btn.label}</span>
+                       <span className="text-[10px] opacity-60 font-mono">{btn.sub}</span>
+                     </button>
+                   ))}
+                 </div>
+               ) : (
+                 <div className="text-center">
+                   <p className="text-sm text-ink/40 font-bold uppercase tracking-widest animate-pulse">Tap card to show answer</p>
+                 </div>
+               )}
+             </div>
+           ) : (
+             <div className="py-20 text-center space-y-4">
+               <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                 <Check size={40} />
+               </div>
+               <h2 className="text-3xl font-black uppercase tracking-tighter">All Clean!</h2>
+               <p className="hand-text text-xl">You've reviewed all pending words. Come back later!</p>
+               <button 
+                 onClick={() => setActiveView('bank')}
+                 className="sketch-button bg-ink text-white px-8 py-3 font-bold uppercase"
+               >
+                 Back to Library
+               </button>
+             </div>
+           )}
          </div>
        )}
 

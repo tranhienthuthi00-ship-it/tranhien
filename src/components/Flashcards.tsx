@@ -1,51 +1,26 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RotateCcw, Brain, Check, X, Plus, Trash2, Volume2 } from 'lucide-react';
+import { Brain, Check, Volume2, ArrowLeft } from 'lucide-react';
 import { cn } from '../lib/utils';
+import type { Word } from '../types';
 
-interface Card {
-  id: string;
-  front: string;
-  back: string;
-  example?: string;
-  strength: number; // 0 to 5
-}
-
-export default function Flashcards() {
-  const [cards, setCards] = useState<Card[]>([
-    { id: '1', front: 'Serendipity', back: 'Sự tình cờ may mắn', example: 'Meeting my old friend was a serendipity.', strength: 0 },
-    { id: '2', front: 'Eloquent', back: 'Hùng hồn, có khả năng diễn đạt tốt', example: 'His speech was eloquent and moving.', strength: 0 },
-    { id: '3', front: 'Pensive', back: 'Trầm tư, suy nghĩ sâu xa', example: 'She looked pensive as she stared out the window.', strength: 0 },
-  ]);
-
-  const [isAdding, setIsAdding] = useState(false);
-  const [newFront, setNewFront] = useState('');
-  const [newBack, setNewBack] = useState('');
-  
+export default function Flashcards({ 
+  words, 
+  setWords 
+}: { 
+  words: Word[]; 
+  setWords: (words: Word[]) => void;
+}) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
 
-  const currentCard = sessionActive ? cards[currentIndex] : null;
+  const dueWords = useMemo(() => {
+    return words.filter(w => !w.nextReview || new Date(w.nextReview) <= new Date())
+      .sort((a, b) => new Date(a.nextReview || 0).getTime() - new Date(b.nextReview || 0).getTime());
+  }, [words]);
 
-  const addCard = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newFront || !newBack) return;
-    const nc: Card = {
-      id: Date.now().toString(),
-      front: newFront,
-      back: newBack,
-      strength: 0
-    };
-    setCards([nc, ...cards]);
-    setNewFront('');
-    setNewBack('');
-    setIsAdding(false);
-  };
-
-  const removeCard = (id: string) => {
-    setCards(cards.filter(c => c.id !== id));
-  };
+  const currentCard = sessionActive ? dueWords[currentIndex] : null;
 
   const speak = (text: string) => {
     const utterance = new SpeechSynthesisUtterance(text);
@@ -53,187 +28,153 @@ export default function Flashcards() {
     window.speechSynthesis.speak(utterance);
   };
 
-  const handleScore = (success: boolean) => {
-    const updated = [...cards];
-    if (success) {
-      updated[currentIndex].strength = Math.min(5, updated[currentIndex].strength + 1);
-    } else {
-      updated[currentIndex].strength = Math.max(0, updated[currentIndex].strength - 1);
-    }
-    setCards(updated);
+  const handleSRSScore = (quality: number) => {
+    if (!currentCard) return;
+
+    let newInterval = 1;
+    let newEF = currentCard.difficulty || 2.5; // Difficulty used as EF
     
-    if (currentIndex < cards.length - 1) {
+    if (quality >= 3) {
+      if (!currentCard.lastReviewed) { // First time
+        newInterval = 1;
+      } else if (new Date(currentCard.nextReview).getTime() - new Date(currentCard.lastReviewed).getTime() < 2 * 86400000) { 
+        // Approx 1-2 days interval previously
+        newInterval = 6;
+      } else {
+        const last = new Date(currentCard.lastReviewed).getTime();
+        const next = new Date(currentCard.nextReview).getTime();
+        const prevInterval = Math.max(1, Math.ceil((next - last) / 86400000));
+        newInterval = Math.ceil(prevInterval * newEF);
+      }
+      
+      // EF = EF + (0.1 - (5-q)*(0.08 + (5-q)*0.02))
+      newEF = newEF + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+      if (newEF < 1.3) newEF = 1.3;
+    } else {
+      newInterval = 1;
+      newEF = Math.max(1.3, newEF - 0.2);
+    }
+
+    const updatedWords = words.map(w => w.id === currentCard.id ? {
+      ...w,
+      difficulty: newEF,
+      lastReviewed: new Date().toISOString(),
+      nextReview: new Date(Date.now() + newInterval * 86400000).toISOString()
+    } : w);
+
+    setWords(updatedWords);
+    
+    if (currentIndex < dueWords.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setIsFlipped(false);
     } else {
       setSessionActive(false);
       setCurrentIndex(0);
+      setIsFlipped(false);
     }
   };
 
+  if (!sessionActive) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="sketch-border bg-white p-8 text-center space-y-6">
+          <div className="w-20 h-20 bg-crimson/10 text-crimson rounded-full flex items-center justify-center mx-auto mb-4">
+            <Brain size={40} />
+          </div>
+          <h2 className="text-3xl font-black uppercase tracking-tighter">SRS Flashcards</h2>
+          <p className="hand-text text-xl opacity-60">
+            {dueWords.length > 0 
+              ? `You have ${dueWords.length} words due for review today.` 
+              : "Amazing! No words due for review right now."}
+          </p>
+          
+          {dueWords.length > 0 ? (
+            <button 
+              onClick={() => setSessionActive(true)}
+              className="sketch-button bg-crimson text-white px-10 py-4 font-bold uppercase tracking-widest hover:scale-105 transition-transform"
+            >
+              Start Session
+            </button>
+          ) : (
+            <div className="pt-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-ink/20">Check back later or add more words</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 font-sans">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-black uppercase tracking-tighter">Vocabulary Flashcards</h1>
-          <p className="text-sm text-ink/40 font-bold uppercase italic">Master new words every day</p>
-        </div>
-        {!sessionActive && (
-          <button 
-            onClick={() => setSessionActive(true)}
-            className="sketch-button bg-crimson text-white px-6 py-2 flex items-center gap-2"
-            disabled={cards.length === 0}
-          >
-            <Brain size={18} /> ÔN TẬP
+      <div className="flex flex-col items-center">
+        <div className="mb-6 flex justify-between w-full text-[10px] uppercase font-bold tracking-widest text-ink/40">
+          <button onClick={() => setSessionActive(false)} className="flex items-center gap-1 hover:text-ink transition-colors">
+            <ArrowLeft size={12} /> Quit Session
           </button>
-        )}
-      </div>
+          <span>Progress: {currentIndex + 1} / {dueWords.length}</span>
+        </div>
 
-      <AnimatePresence mode="wait">
-        {sessionActive ? (
-          <motion.div 
-            key="session"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col items-center"
+        <div 
+          className="w-full aspect-video md:aspect-[2/1] relative perspective-1000 cursor-pointer mb-8"
+          onClick={() => setIsFlipped(!isFlipped)}
+        >
+          <motion.div
+            className="w-full h-full relative preserve-3d"
+            initial={false}
+            animate={{ rotateY: isFlipped ? 180 : 0 }}
+            transition={{ duration: 0.6, type: 'spring', stiffness: 260, damping: 20 }}
           >
-            <div className="mb-4 flex justify-between w-full text-[10px] uppercase font-bold tracking-widest text-ink/40">
-              <span>Tiến độ: {currentIndex + 1} / {cards.length}</span>
-              <button onClick={() => setSessionActive(false)} className="hover:text-crimson">Thoát</button>
-            </div>
-
-            <div 
-              className="w-full aspect-[4/3] relative perspective-1000 cursor-pointer mb-8"
-              onClick={() => setIsFlipped(!isFlipped)}
-            >
-              <motion.div
-                className="w-full h-full relative preserve-3d"
-                initial={false}
-                animate={{ rotateY: isFlipped ? 180 : 0 }}
-                transition={{ duration: 0.6, type: 'spring', stiffness: 260, damping: 20 }}
-              >
-                {/* Front */}
-                <div className="absolute inset-0 backface-hidden sketch-border bg-white flex flex-col items-center justify-center p-8 text-center shadow-xl">
-                  <span className="text-[10px] uppercase text-ink/20 absolute top-4">Mặt trước</span>
-                  <h2 className="text-4xl font-bold mb-4">{currentCard?.front}</h2>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); speak(currentCard?.front || ''); }}
-                    className="p-2 hover:bg-ink/5 rounded-full"
-                  >
-                    <Volume2 size={24} className="text-ink/30" />
-                  </button>
-                </div>
-
-                {/* Back */}
-                <div className="absolute inset-0 backface-hidden sketch-border bg-paper flex flex-col items-center justify-center p-8 text-center shadow-xl [transform:rotateY(180deg)]">
-                  <span className="text-[10px] uppercase text-ink/20 absolute top-4">Mặt sau</span>
-                  <h2 className="text-3xl font-bold mb-4 text-crimson">{currentCard?.back}</h2>
-                  {currentCard?.example && (
-                    <p className="text-sm italic text-ink/60 font-hand">"{currentCard.example}"</p>
-                  )}
-                </div>
-              </motion.div>
-            </div>
-
-            {isFlipped && (
-              <div className="flex gap-4 w-full">
+            {/* Front */}
+            <div className="absolute inset-0 backface-hidden sketch-border bg-white flex flex-col items-center justify-center p-8 text-center shadow-xl">
+              <span className="text-[10px] uppercase text-ink/10 absolute top-4 font-bold tracking-widest">Front</span>
+              <h2 className="text-4xl font-black tracking-tighter mb-4">{currentCard?.vocabulary}</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-ink/40 font-bold uppercase tracking-widest">{currentCard?.ipa}</span>
                 <button 
-                  onClick={() => handleScore(false)}
-                  className="flex-1 sketch-button py-4 bg-white text-crimson border-crimson flex items-center justify-center gap-2"
+                  onClick={(e) => { e.stopPropagation(); speak(currentCard?.vocabulary || ''); }}
+                  className="p-1.5 hover:bg-ink/5 rounded-full"
                 >
-                  <X /> QUÊN RỒI
-                </button>
-                <button 
-                  onClick={() => handleScore(true)}
-                  className="flex-1 sketch-button py-4 bg-white text-green-600 border-green-600 flex items-center justify-center gap-2"
-                >
-                  <Check /> ĐÃ NHỚ
+                  <Volume2 size={16} className="text-ink/30" />
                 </button>
               </div>
-            )}
-            {!isFlipped && (
-              <p className="text-sm text-ink/40 font-bold uppercase animate-pulse">Chạm để lật thẻ</p>
-            )}
-          </motion.div>
-        ) : (
-          <motion.div 
-            key="list"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-6"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button 
-                onClick={() => setIsAdding(true)}
-                className="sketch-border border-dashed p-6 flex flex-col items-center justify-center gap-2 text-ink/40 hover:text-ink hover:bg-white/50 transition-all border-2"
-              >
-                <Plus size={32} />
-                <span className="font-bold uppercase text-xs">Thêm thẻ mới</span>
-              </button>
+            </div>
 
-              {cards.map(card => (
-                <div key={card.id} className="sketch-border bg-white/60 p-4 relative group">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-lg">{card.front}</h3>
-                    <button onClick={() => removeCard(card.id)} className="opacity-0 group-hover:opacity-100 text-crimson transition-opacity p-1">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                  <p className="text-sm text-ink/60 italic">{card.back}</p>
-                  <div className="mt-3 flex gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className={cn("w-2 h-2 rounded-full", i < card.strength ? "bg-crimson" : "bg-ink/10")} />
-                    ))}
-                  </div>
-                </div>
-              ))}
+            {/* Back */}
+            <div className="absolute inset-0 backface-hidden sketch-border bg-paper flex flex-col items-center justify-center p-8 text-center shadow-xl [transform:rotateY(180deg)]">
+              <span className="text-[10px] uppercase text-ink/10 absolute top-4 font-bold tracking-widest">Back</span>
+              <h2 className="text-2xl font-bold text-crimson mb-4">{currentCard?.definition}</h2>
+              {currentCard?.examples[0] && (
+                <p className="hand-text text-xl text-ink/80 italic">"{currentCard.examples[0]}"</p>
+              )}
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </div>
 
-      <AnimatePresence>
-        {isAdding && (
-          <div className="fixed inset-0 bg-ink/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-paper p-8 sketch-border w-full max-w-md relative"
-            >
-              <button onClick={() => setIsAdding(false)} className="absolute top-4 right-4 text-ink/40 hover:text-ink">
-                <X />
-              </button>
-              <h2 className="text-xl font-bold uppercase mb-6">Thêm thẻ mới</h2>
-              <form onSubmit={addCard} className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase mb-1">Mặt trước (Tiếng Anh)</label>
-                  <input 
-                    autoFocus
-                    value={newFront}
-                    onChange={e => setNewFront(e.target.value)}
-                    className="w-full sketch-input"
-                    placeholder="E.g. Melancholy"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase mb-1">Mặt sau (Tiếng Việt)</label>
-                  <input 
-                    value={newBack}
-                    onChange={e => setNewBack(e.target.value)}
-                    className="w-full sketch-input"
-                    placeholder="Nghĩa của từ..."
-                  />
-                </div>
-                <button type="submit" className="w-full sketch-button bg-ink text-white py-3 font-bold uppercase">
-                  LƯU THẺ
-                </button>
-              </form>
-            </motion.div>
+        {isFlipped ? (
+           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+             {[
+               { q: 0, label: 'Again', sub: '< 1m', color: 'bg-crimson text-white' },
+               { q: 3, label: 'Hard', sub: '2d', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+               { q: 4, label: 'Good', sub: '4d', color: 'bg-green-50 text-green-700 border-green-200' },
+               { q: 5, label: 'Easy', sub: '7d', color: 'bg-blue-50 text-blue-700 border-blue-200' }
+             ].map((btn) => (
+               <button 
+                 key={btn.q}
+                 onClick={(e) => { e.stopPropagation(); handleSRSScore(btn.q); }}
+                 className={cn("sketch-border py-3 flex flex-col items-center transition-all hover:scale-105", btn.color)}
+               >
+                 <span className="text-xs font-black uppercase tracking-tight">{btn.label}</span>
+                 <span className="text-[10px] opacity-60 font-mono">{btn.sub}</span>
+               </button>
+             ))}
+           </div>
+        ) : (
+          <div className="text-center">
+            <p className="text-sm text-ink/40 font-bold uppercase tracking-widest animate-pulse">Tap card to show answer</p>
           </div>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   );
 }
