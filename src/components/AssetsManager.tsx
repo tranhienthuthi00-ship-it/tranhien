@@ -446,7 +446,10 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
       <div className="space-y-12">
         {(Object.entries(assetsByCategory) as [string, Asset[]][]).map(([catId, items]) => {
           const cat = getCategory(catId);
-          const catTotal = items.reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
+          const catTotal = items.reduce((acc, curr) => {
+            const val = getValueInVND(curr.value, curr.currency);
+            return curr.isDebt ? acc - val : acc + val;
+          }, 0);
           
           return (
             <div key={catId} className="animate-in fade-in slide-in-from-bottom-2">
@@ -461,8 +464,10 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Phân bổ</p>
-                  <p className="text-lg font-bold">{formatCurrency(catTotal, 'VND')}</p>
+                  <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Số dư</p>
+                  <p className={cn("text-lg font-bold", catTotal < 0 ? "text-crimson" : "text-ink")}>
+                    {catTotal < 0 ? "-" : ""}{formatCurrency(Math.abs(catTotal), 'VND')}
+                  </p>
                 </div>
               </div>
               
