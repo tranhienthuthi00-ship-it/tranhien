@@ -72,6 +72,8 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
     }
   }, [mode]);
 
+  const [videoError, setVideoError] = useState('');
+
   const activeSession = dictations.find(d => d.id === activeSessionId);
 
   const playSentence = (index: number) => {
@@ -184,12 +186,27 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
 
       if (data.transcript && Array.isArray(data.transcript)) {
         updateSession(sessionId, 'transcriptItems', data.transcript);
-        const fullText = data.transcript.map((item: any) => item.text).join(' ').replace(/\s+/g, ' ');
-        // Better formatting: ensure spacing after periods if missing, but be careful with abbreviations
-        const formattedText = fullText
-          .replace(/([.!?])([A-Z])/g, '$1 $2') // Ensure space after sentence end
-          .replace(/\s+/g, ' ')
-          .trim();
+        
+        const hasPunctuation = data.transcript.some((item: any) => /[.!?]/.test(item.text));
+        let formattedText = "";
+        
+        if (hasPunctuation) {
+          const fullText = data.transcript.map((item: any) => item.text).join(' ').replace(/\s+/g, ' ');
+          formattedText = fullText
+            .replace(/([.!?])([A-Z])/g, '$1 $2')
+            .replace(/\s+/g, ' ')
+            .trim();
+        } else {
+          // Fallback for auto-generated: group every 2-3 segments as a "sentence" to keep it manageable
+          const segments = data.transcript;
+          const grouped: string[] = [];
+          for (let i = 0; i < segments.length; i += 3) {
+            const group = segments.slice(i, i + 3).map((s: any) => s.text).join(' ');
+            if (group) grouped.push(group.trim() + ".");
+          }
+          formattedText = grouped.join(' ');
+        }
+        
         updateSession(sessionId, 'content', formattedText);
       } else {
          throw new Error("Transcript data is invalid");
@@ -220,6 +237,7 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
     setNewUrl('');
     setActiveSessionId(newSession.id);
     setMode('transcript'); // open transcript first for new video
+    loadTranscript(yId, newSession.id);
   };
 
   const updateSession = (id: string, field: keyof VideoDictation, value: any) => {
@@ -345,7 +363,7 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
     const isCompleted = sentences.length > 0 && progressIndex >= sentences.length;
 
     return (
-      <div className="max-w-6xl mx-auto p-2 md:p-4 font-sans h-[calc(100vh-140px)] flex flex-col">
+      <div className="max-w-6xl mx-auto p-2 md:p-4 font-sans min-h-[calc(100vh-140px)] flex flex-col overflow-x-hidden">
         <div className="flex justify-between items-center mb-4 shrink-0 p-2 md:p-0">
           <button 
             onClick={() => setActiveSessionId(null)}
@@ -392,18 +410,43 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
           </div>
         </div>
         
-        <div className="flex flex-col md:flex-row gap-4 md:gap-6 flex-1 min-h-0">
-          <div className="w-full md:w-5/12 flex flex-col gap-2 shrink-0 h-[30vh] md:h-full">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6 flex-1">
+          <div className="w-full md:w-5/12 flex flex-col gap-2 shrink-0 h-auto md:h-full">
             <div className="w-full aspect-video sketch-border p-1 bg-white relative">
               <YouTube 
                 videoId={activeSession.youtubeId} 
                 onReady={(e) => {
                   playerRef.current = e.target;
                   setIsPlayerReady(true);
+                  setVideoError('');
+                }}
+                onError={(e) => {
+                  const errorData = e.data;
+                  let msg = "Lỗi khi tải video.";
+                  if (errorData === 101 || errorData === 150) {
+                     msg = "Video này không cho phép phát trong ứng dụng (bị chặn nhúng). Vui lòng thử video khác.";
+                  } else if (errorData === 100) {
+                     msg = "Video không tồn tại hoặc đã bị xóa.";
+                  } else if (errorData === 2) {
+                     msg = "ID video không hợp lệ.";
+                  }
+                  setVideoError(msg);
                 }}
                 opts={{ width: '100%', height: '100%', playerVars: { autoplay: 0, rel: 0 } }}
                 className="w-full h-full rounded-sm overflow-hidden" 
               />
+              {videoError && (
+                 <div className="absolute inset-0 bg-ink/90 flex flex-col items-center justify-center p-4 text-center z-20">
+                    <Video size={32} className="text-crimson mb-2" />
+                    <p className="text-white text-xs font-bold mb-4">{videoError}</p>
+                    <button 
+                      onClick={() => { setVideoError(''); setActiveSessionId(null); }}
+                      className="text-[10px] uppercase font-bold text-white/60 hover:text-white underline"
+                    >
+                      Chọn video khác
+                    </button>
+                 </div>
+              )}
             </div>
             <div className="bg-ink/5 p-3 rounded text-xs text-ink/60 sketch-border border-dashed flex-1 overflow-y-auto">
               <p className="font-bold uppercase tracking-widest mb-1 text-ink/80 text-[10px]">Mẹo nghe chép:</p>
@@ -455,13 +498,16 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                   </button>
                 </div>
                 {transcriptError && <div className="mb-2 p-2 bg-crimson/10 text-crimson text-xs rounded border border-crimson/20">{transcriptError}</div>}
-                <textarea
-                  value={activeSession.content}
-                  onChange={(e) => updateSession(activeSession.id, 'content', e.target.value)}
-                  placeholder="Dán hoặc gõ Transcript tiếng Anh vào đây (Mỗi câu sẽ tự tách theo dấu chấm hoặc xuống dòng)..."
-                  className="w-full flex-1 resize-none bg-transparent outline-none font-sans text-base leading-relaxed p-2 custom-scrollbar bg-ink/5 rounded"
-                  spellCheck="false"
-                />
+                  <textarea
+                    value={activeSession.content}
+                    onChange={(e) => updateSession(activeSession.id, 'content', e.target.value)}
+                    placeholder="CHƯA CÓ TRANSCRIPT. Bạn có thể:
+1. Bấm nút 'Tự động lấy Transcript' ở trên.
+2. Tự copy phụ đề từ YouTube và DÁN VÀO ĐÂY để bắt đầu học.
+(Video sẽ tự động tách câu theo dấu chấm)..."
+                    className="w-full flex-1 min-h-[300px] resize-none bg-transparent outline-none font-sans text-base leading-relaxed p-4 custom-scrollbar bg-ink/5 rounded sketch-border border-dashed"
+                    spellCheck="false"
+                  />
               </>
             ) : mode === 'shadowing' ? (
               <div className="flex-1 flex flex-col pt-4 overflow-y-auto">
