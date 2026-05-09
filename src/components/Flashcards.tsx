@@ -26,8 +26,24 @@ export default function Flashcards({
   const currentCard = sessionActive ? dueWords[currentIndex] : null;
 
   const speak = (text: string, lang: 'en-US' | 'vi-VN' = 'en-US') => {
+    if (!text || !window.speechSynthesis) return;
+    
+    // Stop any current speaking to avoid queue issues
+    window.speechSynthesis.cancel();
+    
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
+    
+    // Check if the lang is supported or fallback
+    const voices = window.speechSynthesis.getVoices();
+    const hasVoice = voices.some(v => v.lang.startsWith(lang.split('-')[0]));
+    
+    utterance.lang = hasVoice ? lang : 'en-US';
+    utterance.rate = 0.9; // Slightly slower for clarity
+    
+    utterance.onerror = (e) => {
+      console.error("SpeechSynthesis Error:", e);
+    };
+
     window.speechSynthesis.speak(utterance);
   };
 

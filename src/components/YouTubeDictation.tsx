@@ -47,6 +47,7 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
           if (mode === 'practice') {
             setUserInput(prev => {
               const p = prev.trim();
+              if (p.toLowerCase().endsWith(trimmed.toLowerCase())) return p; // Prevent duplicates in interim results
               return p ? `${p} ${trimmed}` : trimmed;
             });
           } else if (mode === 'shadowing') {
@@ -54,7 +55,9 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
           }
           
           if (foundPeriod) {
-            recognitionRef.current.stop();
+            try {
+              recognitionRef.current.stop();
+            } catch (e) {}
           }
         }
       };
@@ -121,18 +124,52 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
   };
 
   const toggleRecording = () => {
-    if (!recognitionRef.current) return;
-    if (isRecording) {
-      recognitionRef.current.stop();
-    } else {
-      recognitionRef.current.start();
+    if (!recognitionRef.current) {
+       alert("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói (Speech Recognition). Vui lòng dùng Chrome hoặc Edge.");
+       return;
+    }
+    try {
+       if (isRecording) {
+         recognitionRef.current.stop();
+       } else {
+         recognitionRef.current.start();
+       }
+    } catch (err: any) {
+       console.error("Speech Recognition Error:", err);
+       // Handle "Recognition has already started" error
+       if (err.message && err.message.includes('already started')) {
+          setIsRecording(true);
+       } else {
+          setIsRecording(false);
+          alert("Lỗi khi khởi động nhận diện giọng nói. Vui lòng thử lại.");
+       }
     }
   };
 
   const extractYoutubeId = (url: string) => {
-    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[7].length === 11) ? match[7] : null;
+    if (!url) return null;
+    try {
+      // Clean url first
+      const trimmed = url.trim();
+      if (trimmed.length === 11 && !trimmed.includes('/') && !trimmed.includes('?')) return trimmed;
+
+      const parsedUrl = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
+      if (parsedUrl.hostname === 'youtu.be') {
+        return parsedUrl.pathname.slice(1);
+      }
+      if (parsedUrl.hostname.includes('youtube.com')) {
+        if (parsedUrl.pathname.includes('/v/') || parsedUrl.pathname.includes('/embed/') || parsedUrl.pathname.includes('/shorts/') || parsedUrl.pathname.includes('/live/')) {
+          const parts = parsedUrl.pathname.split('/');
+          return parts[parts.length - 1].split('?')[0];
+        }
+        return parsedUrl.searchParams.get('v');
+      }
+    } catch (e) {
+      const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[7].length === 11) ? match[7] : null;
+    }
+    return null;
   };
 
   const loadTranscript = async (videoId: string, sessionId: string) => {
@@ -148,7 +185,11 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
       if (data.transcript && Array.isArray(data.transcript)) {
         updateSession(sessionId, 'transcriptItems', data.transcript);
         const fullText = data.transcript.map((item: any) => item.text).join(' ').replace(/\s+/g, ' ');
-        const formattedText = fullText.replace(/([a-z])\s+([A-Z])/g, '$1. $2');
+        // Better formatting: ensure spacing after periods if missing, but be careful with abbreviations
+        const formattedText = fullText
+          .replace(/([.!?])([A-Z])/g, '$1 $2') // Ensure space after sentence end
+          .replace(/\s+/g, ' ')
+          .trim();
         updateSession(sessionId, 'content', formattedText);
       } else {
          throw new Error("Transcript data is invalid");
@@ -201,6 +242,15 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
 
   const normalizeString = (str: string) => {
     return str.toLowerCase().replace(/[.,!?;:()"'’\-]/g, '').replace(/\s+/g, ' ').trim();
+  };
+
+  const speakSentence = (text: string) => {
+    if (!text || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
   };
 
   useEffect(() => {

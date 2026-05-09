@@ -34,13 +34,14 @@ async function startServer() {
   // API route for fetching YouTube Transcript
   app.get("/api/transcript", async (req, res) => {
     const videoId = req.query.videoId as string;
-    if (!videoId) {
-      return res.status(400).json({ error: "videoId is required" });
+    if (!videoId || videoId.length !== 11) {
+      return res.status(400).json({ error: "videoId is invalid (must be 11 characters)" });
     }
 
     console.log(`[Transcript] Requesting ID: ${videoId}`);
     
     let transcriptData: any = null;
+    let lastError = "";
 
     // Method 1: YouTubei.js
     if (yt) {
@@ -59,6 +60,7 @@ async function startServer() {
            console.log(`[Transcript] YouTubei.js Success: ${transcriptData.length} segments`);
         }
       } catch (e: any) {
+        lastError = e.message;
         console.warn(`[Transcript] YouTubei.js Failed: ${e.message}`);
       }
     }
@@ -80,6 +82,7 @@ async function startServer() {
           console.log(`[Transcript] youtube-captions-scraper Success: ${transcriptData.length} segments`);
         }
       } catch (e: any) {
+        lastError = e.message;
         console.warn(`[Transcript] youtube-captions-scraper Failed: ${e.message}`);
       }
     }
@@ -91,12 +94,14 @@ async function startServer() {
         transcriptData = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
         console.log(`[Transcript] youtube-transcript (en) Success`);
       } catch (e: any) {
+        lastError = e.message;
         console.warn(`[Transcript] youtube-transcript (en) Failed: ${e.message}`);
         try {
           console.log(`[Transcript] Method: youtube-transcript - Trying default lang`);
           transcriptData = await YoutubeTranscript.fetchTranscript(videoId);
           console.log(`[Transcript] youtube-transcript (default) Success`);
         } catch (ee: any) {
+          lastError = ee.message;
           console.warn(`[Transcript] youtube-transcript (default) Failed: ${ee.message}`);
         }
       }
@@ -106,9 +111,9 @@ async function startServer() {
       return res.json({ transcript: transcriptData });
     }
 
-    console.error(`[Transcript] All methods failed for video ${videoId}`);
+    console.error(`[Transcript] All methods failed for video ${videoId}. Last error: ${lastError}`);
     return res.status(404).json({ 
-      error: "Không thể lấy được phụ đề cho video này. Vui lòng kiểm tra xem video có phụ đề (CC) hay không, hoặc thử dán phụ đề thủ công." 
+      error: `Không thể lấy được phụ đề cho video này. ${lastError ? `(${lastError})` : ""} Vui lòng kiểm tra xem video có phụ đề (CC) hay không, hoặc thử dán phụ đề thủ công.` 
     });
   });
 
