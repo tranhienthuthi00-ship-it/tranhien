@@ -24,8 +24,6 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   setCategories: (c: AssetCategory[]) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"name" | "value" | "date">("date");
 
   const defaultCatID = categories.length > 0 ? categories[0].id : '';
@@ -198,11 +196,13 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     assets.forEach(a => {
       const val = getValueInVND(a.value, a.currency);
       const cat = getCategory(a.category);
+      const adjustedVal = a.isDebt ? -val : val;
+
       if (dataMap.has(cat.id)) {
-        dataMap.get(cat.id)!.value += val;
+        dataMap.get(cat.id)!.value += adjustedVal;
       } else {
         dataMap.set(cat.id, { 
-          value: val, 
+          value: adjustedVal, 
           name: cat.name, 
           catId: cat.id,
           fill: getCategoryColor(cat.id)
@@ -213,12 +213,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   }, [assets, categories, getCategory, getCategoryColor, getValueInVND]);
 
   const filteredAssets = useMemo(() => {
-    let result = assets.filter(a => {
-      const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (a.notes || "").toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = filterCategory === "all" || a.category === filterCategory;
-      return matchesSearch && matchesCategory;
-    });
+    let result = [...assets];
 
     if (sortBy === "name") {
       result.sort((a, b) => a.name.localeCompare(b.name));
@@ -229,7 +224,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     }
 
     return result;
-  }, [assets, searchQuery, filterCategory, sortBy, getValueInVND]);
+  }, [assets, sortBy, getValueInVND]);
 
   const assetsByCategory = useMemo(() => {
     const groups: Record<string, Asset[]> = {};
@@ -347,7 +342,9 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.fill }} />
                     <span className="text-[10px] font-bold uppercase tracking-tight text-ink/70 truncate">{d.name}</span>
                   </div>
-                  <span className="text-xs font-bold pl-4">{Math.round((d.value / totalAssetsVND) * 100)}%</span>
+                  <span className="text-xs font-bold pl-4">
+                    {totalVND > 0 ? Math.round((d.value / totalVND) * 100) : 0}%
+                  </span>
                </div>
              ))}
           </div>
@@ -355,25 +352,9 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
       )}
 
       {/* Search and Filters */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="flex-1 relative">
-           <input 
-             type="text" 
-             placeholder="Tìm kiếm tài sản..." 
-             value={searchQuery}
-             onChange={e => setSearchQuery(e.target.value)}
-             className="w-full sketch-input pl-10 py-2 bg-white/50"
-           />
-           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/30">
-             <Settings size={18} />
-           </div>
-        </div>
+      <div className="flex justify-end mb-6">
         <div className="flex gap-2">
-          <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="sketch-input text-xs bg-white/50">
-            <option value="all">Tất cả danh mục</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="sketch-input text-xs bg-white/50">
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="sketch-input text-xs bg-white/50 px-4 py-2">
             <option value="date">Mới nhất</option>
             <option value="value">Giá trị giảm dần</option>
             <option value="name">Tên A-Z</option>
