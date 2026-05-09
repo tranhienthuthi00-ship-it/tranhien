@@ -43,7 +43,7 @@ async function startServer() {
     let transcriptData: any = null;
     let lastError = "";
 
-    // Method 1: YouTubei.js (Most robust as it mimics the InnerTube client)
+    // Method 1: YouTubei.js
     if (yt) {
       try {
         console.log(`[Transcript] Method: YouTubei.js - Fetching for ${videoId}`);
@@ -58,9 +58,6 @@ async function startServer() {
               duration: parseInt(s.duration_ms || "0")
            }));
            console.log(`[Transcript] YouTubei.js Success: ${transcriptData.length} segments`);
-        } else {
-           console.warn(`[Transcript] YouTubei.js: No segments found in response`);
-           lastError = "Loại video này không cung cấp dữ liệu phụ đề qua giao thức thông thường.";
         }
       } catch (e: any) {
         lastError = e.message;
@@ -68,26 +65,7 @@ async function startServer() {
       }
     }
 
-    // Method 2: youtube-transcript (Commonly used, parses HTML)
-    if (!transcriptData) {
-      try {
-        console.log(`[Transcript] Method: youtube-transcript - Trying English`);
-        transcriptData = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
-        console.log(`[Transcript] youtube-transcript (en) Success`);
-      } catch (e: any) {
-        console.warn(`[Transcript] youtube-transcript (en) Failed: ${e.message}`);
-        try {
-          console.log(`[Transcript] Method: youtube-transcript - Trying default lang`);
-          transcriptData = await YoutubeTranscript.fetchTranscript(videoId);
-          console.log(`[Transcript] youtube-transcript (default) Success`);
-        } catch (ee: any) {
-          lastError = ee.message;
-          console.warn(`[Transcript] youtube-transcript (default) Failed: ${ee.message}`);
-        }
-      }
-    }
-
-    // Method 3: youtube-captions-scraper fallback
+    // Method 2: youtube-captions-scraper fallback
     if (!transcriptData) {
       try {
         console.log(`[Transcript] Method: youtube-captions-scraper - Fetching for ${videoId}`);
@@ -109,25 +87,33 @@ async function startServer() {
       }
     }
 
+    // Method 3: youtube-transcript fallback
+    if (!transcriptData) {
+      try {
+        console.log(`[Transcript] Method: youtube-transcript - Trying English`);
+        transcriptData = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
+        console.log(`[Transcript] youtube-transcript (en) Success`);
+      } catch (e: any) {
+        lastError = e.message;
+        console.warn(`[Transcript] youtube-transcript (en) Failed: ${e.message}`);
+        try {
+          console.log(`[Transcript] Method: youtube-transcript - Trying default lang`);
+          transcriptData = await YoutubeTranscript.fetchTranscript(videoId);
+          console.log(`[Transcript] youtube-transcript (default) Success`);
+        } catch (ee: any) {
+          lastError = ee.message;
+          console.warn(`[Transcript] youtube-transcript (default) Failed: ${ee.message}`);
+        }
+      }
+    }
+
     if (transcriptData) {
       return res.json({ transcript: transcriptData });
     }
 
-    // Final fallback message
     console.error(`[Transcript] All methods failed for video ${videoId}. Last error: ${lastError}`);
-    
-    let userMessage = "Không thể lấy phụ đề tự động.";
-    if (lastError.includes("Could not find captions")) {
-       userMessage = "Video này không có phụ đề (CC). Hãy chọn video khác hoặc dán phụ đề thủ công.";
-    } else if (lastError.includes("403") || lastError.includes("429")) {
-       userMessage = "YouTube đang chặn các yêu cầu tự động. Vui lòng dán phụ đề thủ công bằng cách Copy từ YouTube.";
-    } else if (lastError.includes("Transcription is disabled")) {
-       userMessage = "Chủ sở hữu video đã tắt tính năng lấy phụ đề.";
-    }
-
     return res.status(404).json({ 
-      error: userMessage,
-      details: lastError
+      error: `Không thể lấy được phụ đề cho video này. ${lastError ? `(${lastError})` : ""} Vui lòng kiểm tra xem video có phụ đề (CC) hay không, hoặc thử dán phụ đề thủ công.` 
     });
   });
 

@@ -86,7 +86,7 @@ export default function App() {
   const dueCount = words.filter(w => new Date(w.nextReview) <= new Date()).length;
 
   return (
-    <div className="h-screen flex flex-col relative overflow-hidden bg-[#f4f1ea]">
+    <div className="min-h-screen pb-20 relative overflow-x-hidden">
       <Doodles />
       <svg width="0" height="0" className="absolute pointer-events-none" style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
@@ -96,14 +96,12 @@ export default function App() {
           </filter>
         </defs>
       </svg>
-      <div className="shrink-0">
-        <NavBar activeTab={activeTab} setActiveTab={setActiveTab} lastSaved={lastSaved} onLogout={handleLogout} dueCount={dueCount} />
-      </div>
+      <NavBar activeTab={activeTab} setActiveTab={setActiveTab} lastSaved={lastSaved} onLogout={handleLogout} dueCount={dueCount} />
       
-      <main className="flex-1 mt-4 relative z-10 animate-in fade-in duration-500 min-h-0 overflow-y-auto custom-scrollbar md:pb-24 pb-32">
+      <main className="mt-4 relative z-10 animate-in fade-in duration-500">
         {activeTab === "English Hub" && (
-          <div className="flex flex-col gap-4 h-full">
-            <div className="flex justify-center gap-2 md:gap-4 mb-2 px-2 flex-wrap shrink-0">
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-center gap-2 md:gap-4 mb-2 px-2 flex-wrap">
               <button 
                 onClick={() => setActiveEnglishSubTab("Academy")}
                 className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "Academy" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
