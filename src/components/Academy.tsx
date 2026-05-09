@@ -321,19 +321,25 @@ export function Academy({
                    isFlipped ? "rotate-y-180" : ""
                  )}>
                    {/* Front */}
-                   <div className="absolute inset-0 backface-hidden sketch-border bg-white flex flex-col items-center justify-center p-6 md:p-8 text-center shadow-xl overflow-hidden">
-                     <span className="text-[10px] uppercase text-ink/10 absolute top-2 font-bold tracking-widest">Question</span>
-                     <h2 className="text-2xl md:text-4xl font-black tracking-tighter mb-2 break-words w-full px-4">{dueWords[reviewIndex].vocabulary}</h2>
-                     <p className="text-xs text-ink/40 font-bold uppercase tracking-widest break-all">{dueWords[reviewIndex].ipa}</p>
+                   <div className="absolute inset-0 backface-hidden sketch-border bg-white shadow-xl overflow-y-auto custom-scrollbar">
+                     <div className="min-h-full flex flex-col items-center justify-center p-6 md:p-8 text-center relative">
+                       <span className="text-[10px] uppercase text-ink/10 absolute top-2 font-bold tracking-widest">Question</span>
+                       <h2 className="text-2xl md:text-4xl font-black tracking-tighter mb-2 break-words w-full">{dueWords[reviewIndex].vocabulary}</h2>
+                       <p className="text-xs text-ink/40 font-bold uppercase tracking-widest break-all">{dueWords[reviewIndex].ipa}</p>
+                     </div>
                    </div>
 
                    {/* Back */}
-                   <div className="absolute inset-0 backface-hidden sketch-border bg-paper flex flex-col items-center justify-center p-6 md:p-8 text-center shadow-xl rotate-y-180 overflow-hidden">
-                     <span className="text-[10px] uppercase text-ink/10 absolute top-2 font-bold tracking-widest">Answer</span>
-                     <h2 className="text-xl md:text-2xl font-bold text-crimson mb-2 break-words w-full px-4">{dueWords[reviewIndex].definition}</h2>
-                     {dueWords[reviewIndex].examples[0] && (
-                       <p className="hand-text text-lg md:text-xl text-ink/80 italic line-clamp-3 px-4 leading-tight">"{dueWords[reviewIndex].examples[0]}"</p>
-                     )}
+                   <div className="absolute inset-0 backface-hidden sketch-border bg-paper shadow-xl rotate-y-180 overflow-y-auto custom-scrollbar">
+                     <div className="min-h-full flex flex-col items-center justify-center p-6 md:p-8 text-center relative">
+                       <span className="text-[10px] uppercase text-ink/10 absolute top-2 font-bold tracking-widest">Answer</span>
+                       <h2 className="text-lg md:text-2xl font-bold text-crimson mb-3 break-words w-full">{dueWords[reviewIndex].definition}</h2>
+                       {dueWords[reviewIndex].examples[0] && (
+                         <p className="hand-text text-lg md:text-xl text-ink/80 italic leading-snug">
+                           "{dueWords[reviewIndex].examples[0]}"
+                         </p>
+                       )}
+                     </div>
                    </div>
                  </div>
                </div>

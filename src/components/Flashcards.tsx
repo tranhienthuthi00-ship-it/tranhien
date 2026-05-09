@@ -158,68 +158,74 @@ export default function Flashcards({
             transition={{ duration: 0.6, type: 'spring', stiffness: 260, damping: 20 }}
           >
             {/* Front */}
-            <div className="absolute inset-0 backface-hidden sketch-border bg-white flex flex-col items-center justify-center p-6 md:p-8 text-center shadow-xl overflow-y-auto">
-              <span className="text-[10px] uppercase text-ink/10 absolute top-2 font-bold tracking-widest">Question</span>
-              {reviewMode === 'flip' ? (
-                <>
-                  <h2 className="text-2xl md:text-4xl font-black tracking-tighter mb-4 break-words w-full px-4">{currentCard?.vocabulary}</h2>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-ink/40 font-bold uppercase tracking-widest break-all">{currentCard?.ipa}</span>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); speak(currentCard?.vocabulary || ''); }}
-                      className="p-1.5 hover:bg-ink/5 rounded-full"
-                    >
-                      <Volume2 size={16} className="text-ink/30" />
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="w-full space-y-4 px-4 py-4">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <h2 className="text-lg md:text-xl font-bold italic text-ink/60 leading-tight">
-                      {currentCard?.definition}
-                    </h2>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); speak(currentCard?.definition || '', 'vi-VN'); }}
-                      className="p-1.5 hover:bg-ink/5 rounded-full shrink-0"
-                      title="Nghe lại"
-                    >
-                      <Volume2 size={16} className="text-ink/30" />
-                    </button>
-                  </div>
-                  {!showResult ? (
-                    <form onSubmit={checkTyping} className="w-full max-w-sm mx-auto">
-                      <input 
-                        autoFocus
-                        value={userInput}
-                        onChange={e => setUserInput(e.target.value)}
-                        className="w-full sketch-input text-center text-xl font-bold bg-ink/5"
-                        placeholder="Type the word..."
-                        onClick={e => e.stopPropagation()}
-                      />
-                      <button className="hidden" type="submit">Submit</button>
-                    </form>
-                  ) : (
-                    <div className="animate-in fade-in zoom-in duration-300">
-                       <p className="text-[10px] font-bold uppercase text-ink/20">Your Answer</p>
-                       <p className={cn("text-2xl font-black break-words", userInput.toLowerCase().trim() === currentCard?.vocabulary.toLowerCase().trim() ? "text-green-600" : "text-crimson scale-110")}>
-                         {userInput || "(Empty)"}
-                       </p>
+            <div className="absolute inset-0 backface-hidden sketch-border bg-white shadow-xl overflow-y-auto custom-scrollbar">
+              <div className="min-h-full flex flex-col items-center justify-center p-6 md:p-8 text-center relative">
+                <span className="text-[10px] uppercase text-ink/10 absolute top-2 font-bold tracking-widest">Question</span>
+                {reviewMode === 'flip' ? (
+                  <>
+                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tighter mb-4 break-words w-full">{currentCard?.vocabulary}</h2>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-ink/40 font-bold uppercase tracking-widest break-all">{currentCard?.ipa}</span>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); speak(currentCard?.vocabulary || ''); }}
+                        className="p-1.5 hover:bg-ink/5 rounded-full"
+                      >
+                        <Volume2 size={16} className="text-ink/30" />
+                      </button>
                     </div>
-                  )}
-                </div>
-              )}
+                  </>
+                ) : (
+                  <div className="w-full space-y-4 py-4">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <h2 className="text-lg md:text-xl font-bold italic text-ink/60 leading-tight">
+                        {currentCard?.definition}
+                      </h2>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); speak(currentCard?.definition || '', 'vi-VN'); }}
+                        className="p-1.5 hover:bg-ink/5 rounded-full shrink-0"
+                        title="Nghe lại"
+                      >
+                        <Volume2 size={16} className="text-ink/30" />
+                      </button>
+                    </div>
+                    {!showResult ? (
+                      <form onSubmit={checkTyping} className="w-full max-w-sm mx-auto">
+                        <input 
+                          autoFocus
+                          value={userInput}
+                          onChange={e => setUserInput(e.target.value)}
+                          className="w-full sketch-input text-center text-xl font-bold bg-ink/5"
+                          placeholder="Type the word..."
+                          onClick={e => e.stopPropagation()}
+                        />
+                        <button className="hidden" type="submit">Submit</button>
+                      </form>
+                    ) : (
+                      <div className="animate-in fade-in zoom-in duration-300">
+                         <p className="text-[10px] font-bold uppercase text-ink/20">Your Answer</p>
+                         <p className={cn("text-2xl font-black break-words", userInput.toLowerCase().trim() === currentCard?.vocabulary.toLowerCase().trim() ? "text-green-600" : "text-crimson scale-110")}>
+                           {userInput || "(Empty)"}
+                         </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Back */}
-            <div className="absolute inset-0 backface-hidden sketch-border bg-paper flex flex-col items-center justify-center p-6 md:p-8 text-center shadow-xl [transform:rotateY(180deg)] overflow-y-auto">
-              <span className="text-[10px] uppercase text-ink/10 absolute top-2 font-bold tracking-widest">Answer</span>
-              <h2 className="text-xl md:text-3xl font-bold text-crimson mb-2 break-words w-full px-4">
-                {reviewMode === 'type' ? currentCard?.vocabulary : currentCard?.definition}
-              </h2>
-              {currentCard?.examples[0] && (
-                <p className="hand-text text-lg md:text-xl text-ink/80 italic px-4 leading-tight">"{currentCard.examples[0]}"</p>
-              )}
+            <div className="absolute inset-0 backface-hidden sketch-border bg-paper shadow-xl [transform:rotateY(180deg)] overflow-y-auto custom-scrollbar">
+              <div className="min-h-full flex flex-col items-center justify-center p-6 md:p-8 text-center relative">
+                <span className="text-[10px] uppercase text-ink/10 absolute top-2 font-bold tracking-widest">Answer</span>
+                <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-crimson mb-3 break-words w-full">
+                  {reviewMode === 'type' ? currentCard?.vocabulary : currentCard?.definition}
+                </h2>
+                {currentCard?.examples[0] && (
+                  <p className="hand-text text-lg md:text-xl text-ink/80 italic leading-snug max-w-prose">
+                    "{currentCard.examples[0]}"
+                  </p>
+                )}
+              </div>
             </div>
           </motion.div>
         </div>
