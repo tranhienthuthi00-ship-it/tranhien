@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
-import { Search, BookA, Tag as TagIcon, Plus, X, Check } from "lucide-react";
+import { Search, BookA, Tag as TagIcon, Plus, X, Check, Layers } from "lucide-react";
 import type { Word, WordTag } from "@/types";
 import { cn } from "@/lib/utils";
+import { CEFRVocabulary } from "./CEFRVocabulary";
 
 const WORD_TYPES = ['noun', 'verb', 'adj', 'adv', 'idiom', 'phrasal verb', 'phrase', 'sentence'];
 
@@ -16,7 +17,7 @@ export function Academy({
   tags: string[];
   setTags: (tags: string[]) => void;
 }) {
-  const [activeView, setActiveView] = useState<'log' | 'bank' | 'review'>('log');
+  const [activeView, setActiveView] = useState<'log' | 'bank' | 'review' | 'levels'>('log');
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<WordTag | null>(null);
   const [editingWordId, setEditingWordId] = useState<string | null>(null);
@@ -176,6 +177,12 @@ export function Academy({
            className={cn("text-lg md:text-xl font-sans font-bold transition-opacity pb-1", activeView === 'bank' ? "opacity-100 border-b-4 border-ink" : "opacity-40 hover:opacity-70")}
          >
            Bank
+         </button>
+         <button 
+           onClick={() => setActiveView('levels')}
+           className={cn("text-lg md:text-xl font-sans font-bold transition-opacity pb-1", activeView === 'levels' ? "opacity-100 border-b-4 border-ink" : "opacity-40 hover:opacity-70")}
+         >
+           Levels
          </button>
          <button 
            onClick={() => {
@@ -384,6 +391,10 @@ export function Academy({
              </div>
            )}
          </div>
+       )}
+
+       {activeView === 'levels' && (
+         <CEFRVocabulary words={words} setWords={setWords} />
        )}
 
        {activeView === 'bank' && (
