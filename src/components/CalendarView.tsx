@@ -45,6 +45,62 @@ export function HandDrawnIcon({ type, className }: { type: string, className?: s
           <path d="M 60 15 Q 70 25 60 30" />
         </svg>
       );
+    case 'moon':
+      return (
+        <svg {...baseProps}>
+          <path d="M 30 20 Q 75 25 70 85 Q 90 60 75 15 Z" fill="#FDFBF7" />
+        </svg>
+      );
+    case 'sun':
+      return (
+        <svg {...baseProps}>
+          <circle cx="50" cy="50" r="15" fill="#FDFBF7" />
+          <path d="M 50 10 L 50 25" />
+          <path d="M 50 75 L 50 90" />
+          <path d="M 10 50 L 25 50" />
+          <path d="M 75 50 L 90 50" />
+          <path d="M 22 22 L 32 32" />
+          <path d="M 68 68 L 78 78" />
+          <path d="M 22 78 L 32 68" />
+          <path d="M 68 22 L 78 32" />
+        </svg>
+      );
+    case 'cloud':
+      return (
+        <svg {...baseProps}>
+          <path d="M 20 60 Q 15 40 35 35 Q 50 20 65 35 Q 85 40 80 60 Q 90 75 70 85 L 30 85 Q 10 75 20 60 Z" fill="#FDFBF7" />
+        </svg>
+      );
+    case 'book':
+      return (
+        <svg {...baseProps}>
+          <path d="M 15 25 Q 50 20 50 85 Q 15 90 15 25" fill="#FDFBF7" />
+          <path d="M 85 25 Q 50 20 50 85 Q 85 90 85 25" fill="#FDFBF7" />
+          <path d="M 25 40 H 40" />
+          <path d="M 25 55 H 40" />
+          <path d="M 60 40 H 75" />
+          <path d="M 60 55 H 75" />
+        </svg>
+      );
+    case 'gift':
+      return (
+        <svg {...baseProps}>
+          <path d="M 20 40 H 80 V 85 H 20 Z" fill="#FDFBF7" />
+          <path d="M 15 30 H 85 V 45 H 15 Z" fill="#FDFBF7" />
+          <path d="M 50 30 V 85" />
+          <path d="M 50 30 Q 30 5 20 30" />
+          <path d="M 50 30 Q 70 5 80 30" />
+        </svg>
+      );
+    case 'smile':
+      return (
+        <svg {...baseProps}>
+          <circle cx="50" cy="50" r="40" fill="#FDFBF7" />
+          <circle cx="35" cy="40" r="3" fill="currentColor" />
+          <circle cx="65" cy="40" r="3" fill="currentColor" />
+          <path d="M 30 65 Q 50 80 70 65" />
+        </svg>
+      );
     case 'document':
     default:
       return (
@@ -77,7 +133,7 @@ export function CalendarView({
   const [eventTime, setEventTime] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const ICONS = ['document', 'star', 'heart', 'anchor', 'coffee'];
+  const ICONS = ['document', 'star', 'heart', 'anchor', 'coffee', 'moon', 'sun', 'cloud', 'book', 'gift', 'smile'];
 
   const onPrevMonth = () => setCurrentDate(subMonths(currentDate, 1));
   const onNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
@@ -137,7 +193,12 @@ export function CalendarView({
 
   const getLogsForDate = (date: Date) => {
     const dStr = format(date, 'yyyy-MM-dd');
-    return logs.filter(l => l.date === dStr);
+    return logs
+      .filter(l => l.date === dStr)
+      .sort((a, b) => {
+        if (a.type === b.type) return 0;
+        return a.type === 'Reflection' ? -1 : 1;
+      });
   };
 
   const getGroupedEvents = () => {
