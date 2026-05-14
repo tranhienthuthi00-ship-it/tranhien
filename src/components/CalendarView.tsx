@@ -92,6 +92,89 @@ export function HandDrawnIcon({ type, className }: { type: string, className?: s
           <path d="M 50 30 Q 70 5 80 30" />
         </svg>
       );
+    case 'travel':
+      return (
+        <svg {...baseProps}>
+          <path d="M 20 50 L 50 45 L 80 50 L 50 55 Z" fill="#FDFBF7" />
+          <path d="M 50 35 L 50 65" />
+          <path d="M 35 47 L 30 35" />
+          <path d="M 35 53 L 30 65" />
+        </svg>
+      );
+    case 'mountain':
+      return (
+        <svg {...baseProps}>
+          <path d="M 10 85 L 40 30 L 60 55 L 80 40 L 90 85 Z" fill="#FDFBF7" />
+          <path d="M 30 50 L 40 45 L 45 55" />
+        </svg>
+      );
+    case 'home':
+      return (
+        <svg {...baseProps}>
+          <path d="M 15 50 L 50 15 L 85 50 V 85 H 15 Z" fill="#FDFBF7" />
+          <path d="M 40 85 V 60 H 60 V 85" />
+        </svg>
+      );
+    case 'music':
+      return (
+        <svg {...baseProps}>
+          <circle cx="30" cy="75" r="10" fill="#FDFBF7" />
+          <circle cx="70" cy="65" r="10" fill="#FDFBF7" />
+          <path d="M 40 75 V 20 L 80 15 V 65" />
+          <path d="M 40 35 L 80 30" />
+        </svg>
+      );
+    case 'food':
+      return (
+        <svg {...baseProps}>
+          <path d="M 20 85 Q 20 40 50 40 Q 80 40 80 85 Z" fill="#FDFBF7" />
+          <path d="M 50 40 V 25 Q 60 15 70 25" />
+        </svg>
+      );
+    case 'pizza':
+      return (
+        <svg {...baseProps}>
+          <path d="M 50 15 L 85 80 Q 50 90 15 80 Z" fill="#FDFBF7" />
+          <circle cx="45" cy="50" r="3" fill="currentColor" opacity="0.4" />
+          <circle cx="60" cy="65" r="3" fill="currentColor" opacity="0.4" />
+          <circle cx="40" cy="70" r="3" fill="currentColor" opacity="0.4" />
+        </svg>
+      );
+    case 'camera':
+      return (
+        <svg {...baseProps}>
+          <path d="M 20 35 H 80 V 80 H 20 Z" fill="#FDFBF7" />
+          <path d="M 40 35 V 25 H 60 V 35" />
+          <circle cx="50" cy="57" r="15" fill="#FDFBF7" />
+          <circle cx="72" cy="45" r="3" fill="currentColor" />
+        </svg>
+      );
+    case 'bulb':
+      return (
+        <svg {...baseProps}>
+          <path d="M 50 80 Q 25 70 30 40 Q 30 15 50 15 Q 70 15 70 40 Q 75 70 50 80 Z" fill="#FDFBF7" />
+          <path d="M 40 80 H 60" />
+          <path d="M 42 87 H 58" />
+          <path d="M 50 40 V 55" />
+        </svg>
+      );
+    case 'briefcase':
+      return (
+        <svg {...baseProps}>
+          <path d="M 15 35 H 85 V 85 H 15 Z" fill="#FDFBF7" />
+          <path d="M 40 35 V 25 Q 50 15 60 25 V 35" />
+          <path d="M 15 55 H 85" />
+          <path d="M 48 55 V 65 H 52 V 55" />
+        </svg>
+      );
+    case 'gym':
+      return (
+        <svg {...baseProps}>
+          <path d="M 10 40 H 25 V 60 H 10 Z" fill="currentColor" />
+          <path d="M 75 40 H 90 V 60 H 75 Z" fill="currentColor" />
+          <path d="M 25 50 H 75" strokeWidth="6" />
+        </svg>
+      );
     case 'smile':
       return (
         <svg {...baseProps}>
@@ -99,6 +182,49 @@ export function HandDrawnIcon({ type, className }: { type: string, className?: s
           <circle cx="35" cy="40" r="3" fill="currentColor" />
           <circle cx="65" cy="40" r="3" fill="currentColor" />
           <path d="M 30 65 Q 50 80 70 65" />
+        </svg>
+      );
+    case 'tree':
+      return (
+        <svg {...baseProps}>
+          <path d="M 50 20 Q 30 20 30 40 Q 30 50 40 50 Q 25 60 40 75 Q 60 75 75 60 Q 70 50 70 40 Q 70 20 50 20" fill="#FDFBF7" />
+          <path d="M 45 75 V 90 H 55 V 75" fill="#FDFBF7" />
+        </svg>
+      );
+    case 'rain':
+      return (
+        <svg {...baseProps}>
+          <path d="M 20 40 Q 50 20 80 40 H 20" fill="#FDFBF7" />
+          <path d="M 30 55 L 25 70" />
+          <path d="M 50 55 L 45 70" />
+          <path d="M 70 55 L 65 70" />
+        </svg>
+      );
+    case 'car':
+      return (
+        <svg {...baseProps}>
+          <path d="M 20 60 H 80 V 75 H 20 Z" fill="#FDFBF7" />
+          <path d="M 30 60 L 40 40 H 60 L 70 60" fill="#FDFBF7" />
+          <circle cx="30" cy="75" r="7" fill="#FDFBF7" />
+          <circle cx="70" cy="75" r="7" fill="#FDFBF7" />
+        </svg>
+      );
+    case 'game':
+      return (
+        <svg {...baseProps}>
+          <path d="M 20 40 Q 50 30 80 40 Q 90 70 80 80 Q 50 70 20 80 Q 10 70 20 40" fill="#FDFBF7" />
+          <path d="M 30 55 H 45 M 37 47 V 63" />
+          <circle cx="65" cy="50" r="3" fill="currentColor" />
+          <circle cx="75" cy="60" r="3" fill="currentColor" />
+        </svg>
+      );
+    case 'cupcake':
+      return (
+        <svg {...baseProps}>
+          <path d="M 30 85 L 25 60 H 75 L 70 85 Z" fill="#FDFBF7" />
+          <path d="M 25 60 Q 20 40 50 40 Q 80 40 75 60 Z" fill="#FDFBF7" />
+          <circle cx="50" cy="35" r="5" fill="currentColor" />
+          <path d="M 35 60 V 85 M 50 60 V 85 M 65 60 V 85" opacity="0.3" />
         </svg>
       );
     case 'document':
@@ -133,7 +259,7 @@ export function CalendarView({
   const [eventTime, setEventTime] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const ICONS = ['document', 'star', 'heart', 'anchor', 'coffee', 'moon', 'sun', 'cloud', 'book', 'gift', 'smile'];
+  const ICONS = ['document', 'star', 'heart', 'anchor', 'coffee', 'moon', 'sun', 'cloud', 'book', 'gift', 'smile', 'travel', 'mountain', 'home', 'music', 'food', 'pizza', 'camera', 'bulb', 'briefcase', 'gym', 'tree', 'rain', 'car', 'game', 'cupcake'];
 
   const onPrevMonth = () => setCurrentDate(subMonths(currentDate, 1));
   const onNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
