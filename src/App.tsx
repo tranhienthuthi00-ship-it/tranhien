@@ -171,7 +171,7 @@ export default function App() {
           </div>
         )}
         {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
-        {activeTab === "Dashboard" && <Progress words={words} tasks={tasks} logs={logs} />}
+        {activeTab === "Dashboard" && <Progress words={words} tasks={tasks} logs={logs} wishlist={wishlist} />}
       </main>
     </div>
   );
