@@ -90,6 +90,7 @@ export interface Asset {
   notes?: string;
   acquiredAt?: number;
   isDebt?: boolean;
+  isLoan?: boolean;
 }
 
 export interface VideoDictation {
