@@ -115,6 +115,11 @@ export function MyList({
     setWishlist(wishlist.map(w => w.id === id ? { ...w, isWorthBuying: !w.isWorthBuying } : w));
   };
 
+  const togglePurchased = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setWishlist(wishlist.map(w => w.id === id ? { ...w, isPurchased: !w.isPurchased } : w));
+  };
+
   const sortedWishlist = [...wishlist].sort((a, b) => {
     if (sortBy === 'Date') {
       return new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime();
@@ -374,6 +379,13 @@ export function MyList({
                         <Star size={12} className={wish.isWorthBuying ? "fill-current" : ""} />
                       </button>
                       <button 
+                        onClick={(e) => togglePurchased(wish.id, e)}
+                        className={cn("hover:text-emerald-500", wish.isPurchased ? "text-emerald-500" : "text-ink/40")}
+                        title="Đã mua"
+                      >
+                        <Check size={14} className={wish.isPurchased ? "stroke-[4px]" : ""} />
+                      </button>
+                      <button 
                          onClick={() => removeWish(wish.id)}
                          className="text-ink/40 hover:text-crimson"
                          title="Xóa"
@@ -412,7 +424,7 @@ export function MyList({
                      wish.necessity === 'High' ? "border-crimson text-crimson bg-white" : 
                      wish.necessity === 'Medium' ? "border-orange-400 text-orange-600 bg-white" : "border-ink/20 text-ink/40 bg-white"
                    )}>
-                     {wish.necessity} Need
+                     {wish.necessity} Need {wish.isPurchased && "✅"}
                    </span>
                  </div>
                  <span className="text-[10px] opacity-40 uppercase font-sans font-bold">{new Date(wish.addedDate).toLocaleDateString()}</span>

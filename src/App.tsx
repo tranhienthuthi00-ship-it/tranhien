@@ -101,7 +101,7 @@ export default function App() {
       <main className="mt-4 relative z-10 animate-in fade-in duration-500">
         {activeTab === "English Hub" && (
           <div className="flex flex-col gap-4">
-            <div className="flex justify-center gap-2 md:gap-4 mb-2 px-2 flex-wrap">
+            <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center gap-2 md:gap-4 mb-2 px-2 flex-wrap">
               <button 
                 onClick={() => setActiveEnglishSubTab("Academy")}
                 className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "Academy" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
@@ -148,7 +148,7 @@ export default function App() {
         
         {activeTab === "Collections" && (
           <div className="flex flex-col gap-4">
-            <div className="flex justify-center flex-wrap gap-2 mb-2 px-4 text-ink/60">
+            <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center flex-wrap gap-2 mb-2 px-4 text-ink/60">
               {(["Lists", "Places", "Content", "Assets"] as const).map(tab => (
                 <button
                   key={tab}

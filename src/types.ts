@@ -62,6 +62,7 @@ export interface WishlistItem {
   necessity: 'Low' | 'Medium' | 'High';
   tags?: string[];
   isWorthBuying?: boolean;
+  isPurchased?: boolean;
   history?: WishlistHistoryEntry[];
 }
 
