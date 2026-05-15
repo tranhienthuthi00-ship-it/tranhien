@@ -598,17 +598,17 @@ export function Places({
                <div className="flex gap-1.5">
                  <button 
                    onClick={() => startEdit(place)}
-                   className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-ink hover:text-white rounded border border-ink/10 shadow-sm"
+                   className="p-1 px-2 text-[10px] font-bold uppercase tracking-widest hover:bg-ink hover:text-white rounded border border-ink/10 transition-all shadow-sm"
                    title="Sửa địa điểm"
                  >
-                   <Edit2 size={12} />
+                   <Edit2 size={12} /> <span className="ml-1">Sửa</span>
                  </button>
                  <button 
                    onClick={() => removePlace(place.id)}
-                   className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-crimson hover:text-white rounded border border-ink/10 shadow-sm"
+                   className="p-1 px-2 text-[10px] font-bold uppercase tracking-widest hover:bg-crimson hover:text-white rounded border border-ink/10 transition-all shadow-sm"
                    title="Xóa địa điểm"
                  >
-                   <Trash2 size={12} />
+                   <Trash2 size={12} /> <span className="ml-1">Xóa</span>
                  </button>
                </div>
              </div>
