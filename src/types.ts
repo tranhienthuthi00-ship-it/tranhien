@@ -92,6 +92,8 @@ export interface Asset {
   acquiredAt?: number;
   isDebt?: boolean;
   isLoan?: boolean;
+  isNewMoney?: boolean;
+  excludeFromNetWorth?: boolean;
 }
 
 export interface VideoDictation {

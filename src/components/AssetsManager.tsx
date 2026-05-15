@@ -34,6 +34,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const [newNotes, setNewNotes] = useState("");
   const [isDebt, setIsDebt] = useState(false);
   const [isLoan, setIsLoan] = useState(false);
+  const [isNewMoney, setIsNewMoney] = useState(false);
+  const [excludeFromNetWorth, setExcludeFromNetWorth] = useState(false);
 
   const [isManagingCats, setIsManagingCats] = useState(false);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
@@ -49,6 +51,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setNewNotes(asset.notes || "");
     setIsDebt(!!asset.isDebt);
     setIsLoan(!!asset.isLoan);
+    setIsNewMoney(!!asset.isNewMoney);
+    setExcludeFromNetWorth(!!asset.excludeFromNetWorth);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -61,6 +65,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setNewNotes("");
     setIsDebt(false);
     setIsLoan(false);
+    setIsNewMoney(false);
+    setExcludeFromNetWorth(false);
   };
 
   const formatCurrency = (val: number, cur: string) => {
@@ -85,7 +91,9 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         currency: newCurrency,
         notes: newNotes || undefined,
         isDebt: isDebt,
-        isLoan: isLoan
+        isLoan: isLoan,
+        isNewMoney: isNewMoney,
+        excludeFromNetWorth: excludeFromNetWorth
       } : a));
       setEditingId(null);
     } else {
@@ -98,7 +106,9 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         notes: newNotes || undefined,
         acquiredAt: Date.now(),
         isDebt: isDebt,
-        isLoan: isLoan
+        isLoan: isLoan,
+        isNewMoney: isNewMoney,
+        excludeFromNetWorth: excludeFromNetWorth
       }, ...assets]);
     }
 
@@ -107,6 +117,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setNewNotes("");
     setIsDebt(false);
     setIsLoan(false);
+    setIsNewMoney(false);
+    setExcludeFromNetWorth(false);
     setNewCategory(catToUse);
   };
 
@@ -162,17 +174,23 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
 
   const totalVND = useMemo(() => {
     return assets.reduce((acc, curr) => {
+      if (curr.excludeFromNetWorth) return acc;
       const val = getValueInVND(curr.value, curr.currency);
       return curr.isDebt ? acc - val : acc + val;
     }, 0);
   }, [assets]);
 
   const totalAssetsVND = useMemo(() => {
-    return assets.filter(a => !a.isDebt && !a.isLoan).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
+    // Assets that are not debt, not loan, and NOT new money (the user wants to separate new money)
+    return assets.filter(a => !a.isDebt && !a.isLoan && !a.isNewMoney).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
   }, [assets]);
 
   const totalLoansVND = useMemo(() => {
     return assets.filter(a => a.isLoan).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
+  }, [assets]);
+
+  const totalNewMoneyVND = useMemo(() => {
+    return assets.filter(a => a.isNewMoney).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
   }, [assets]);
 
   const totalDebtsVND = useMemo(() => {
@@ -241,24 +259,28 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     <div className="max-w-4xl mx-auto px-4 font-sans pb-10">
       <div className="mb-8 text-center flex flex-col items-center">
          <h1 className="text-4xl font-black font-logo tracking-wide mb-2 uppercase">My Assets</h1>
-         <div className="flex flex-wrap justify-center gap-4 md:gap-8 mb-4">
-           <div className="flex flex-col">
-             <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Tài sản hiện có</span>
-             <span className="text-lg font-bold text-emerald-600">{formatCurrency(totalAssetsVND, 'VND')}</span>
-           </div>
-           <div className="flex flex-col">
-             <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Khoản cho vay</span>
-             <span className="text-lg font-bold text-blue-600">{formatCurrency(totalLoansVND, 'VND')}</span>
-           </div>
-           <div className="flex flex-col">
-             <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Tổng Nợ</span>
-             <span className="text-lg font-bold text-crimson">{formatCurrency(totalDebtsVND, 'VND')}</span>
-           </div>
-           <div className="flex flex-col border-t md:border-t-0 md:border-l border-ink/10 pt-2 md:pt-0 md:pl-8">
-             <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Vốn chủ sở hữu</span>
-             <span className="text-lg font-bold text-ink">{formatCurrency(totalVND, 'VND')}</span>
-           </div>
-         </div>
+          <div className="flex flex-wrap justify-center gap-4 md:gap-8 mb-4">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Tài sản hiện có</span>
+              <span className="text-lg font-bold text-emerald-600">{formatCurrency(totalAssetsVND, 'VND')}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Tiền mới</span>
+              <span className="text-lg font-bold text-amber-500">{formatCurrency(totalNewMoneyVND, 'VND')}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Khoản cho vay</span>
+              <span className="text-lg font-bold text-blue-600">{formatCurrency(totalLoansVND, 'VND')}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Tổng Nợ</span>
+              <span className="text-lg font-bold text-crimson">{formatCurrency(totalDebtsVND, 'VND')}</span>
+            </div>
+            <div className="flex flex-col border-t md:border-t-0 md:border-l border-ink/10 pt-2 md:pt-0 md:pl-8">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Vốn chủ sở hữu</span>
+              <span className="text-lg font-bold text-ink">{formatCurrency(totalVND, 'VND')}</span>
+            </div>
+          </div>
          
          <div className="flex gap-2">
            <button onClick={() => setIsManagingCats(!isManagingCats)} className={`sketch-button flex items-center gap-2 px-4 text-xs ${isManagingCats ? 'bg-ink text-paper' : ''}`}>
@@ -438,7 +460,10 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                   checked={isDebt} 
                   onChange={e => {
                     setIsDebt(e.target.checked);
-                    if (e.target.checked) setIsLoan(false);
+                    if (e.target.checked) {
+                      setIsLoan(false);
+                      setIsNewMoney(false);
+                    }
                   }}
                   className="w-5 h-5 accent-crimson"
                 />
@@ -453,12 +478,46 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                   checked={isLoan} 
                   onChange={e => {
                     setIsLoan(e.target.checked);
-                    if (e.target.checked) setIsDebt(false);
+                    if (e.target.checked) {
+                      setIsDebt(false);
+                      setIsNewMoney(false);
+                    }
                   }}
                   className="w-5 h-5 accent-blue-600"
                 />
                 <label htmlFor="isLoan" className="text-xs font-bold uppercase tracking-widest text-blue-600 flex items-center gap-2 cursor-pointer">
-                  Đây là một khoản cho vay (Loan Given)
+                   Khoản cho vay (Loan Given)
+                </label>
+              </div>
+              <div className="flex items-center gap-3">
+                <input 
+                  type="checkbox" 
+                  id="isNewMoney" 
+                  checked={isNewMoney} 
+                  onChange={e => {
+                    setIsNewMoney(e.target.checked);
+                    if (e.target.checked) {
+                      setIsDebt(false);
+                      setIsLoan(false);
+                      setExcludeFromNetWorth(true); // Default to exclude
+                    }
+                  }}
+                  className="w-5 h-5 accent-amber-500"
+                />
+                <label htmlFor="isNewMoney" className="text-xs font-bold uppercase tracking-widest text-amber-500 flex items-center gap-2 cursor-pointer">
+                   Tiền mới (New Money - Không tính VCSH)
+                </label>
+              </div>
+              <div className="flex items-center gap-3 pt-2 border-t border-ink/5">
+                <input 
+                  type="checkbox" 
+                  id="exclude" 
+                  checked={excludeFromNetWorth} 
+                  onChange={e => setExcludeFromNetWorth(e.target.checked)}
+                  className="w-5 h-5 accent-ink"
+                />
+                <label htmlFor="exclude" className="text-xs font-bold uppercase tracking-widest text-ink flex items-center gap-2 cursor-pointer">
+                   Loại bỏ khỏi Vốn chủ sở hữu
                 </label>
               </div>
             </div>
@@ -533,11 +592,13 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                     </div>
                     
                     <div className="text-2xl font-mono font-bold tracking-tight mt-2 flex items-baseline gap-2">
-                      <span className={asset.isDebt ? "text-crimson" : asset.isLoan ? "text-blue-600" : "text-ink/90"}>
+                      <span className={asset.isDebt ? "text-crimson" : asset.isLoan ? "text-blue-600" : asset.isNewMoney ? "text-amber-500" : asset.excludeFromNetWorth ? "text-ink/60" : "text-ink/90"}>
                         {asset.isDebt ? "-" : ""}{formatCurrency(asset.value, asset.currency)}
                       </span>
                       {asset.isDebt && <span className="text-[10px] uppercase font-bold text-crimson bg-crimson/5 px-1 rounded">Nợ</span>}
                       {asset.isLoan && <span className="text-[10px] uppercase font-bold text-blue-600 bg-blue-600/5 px-1 rounded">Cho vay</span>}
+                      {asset.isNewMoney && <span className="text-[10px] uppercase font-bold text-amber-500 bg-amber-500/5 px-1 rounded font-sans">Tiền mới</span>}
+                      {asset.excludeFromNetWorth && !asset.isNewMoney && <span className="text-[10px] uppercase font-bold text-ink/40 bg-ink/5 px-1 rounded font-sans">Loại trừ</span>}
                     </div>
                     
                     {asset.notes && <div className="text-xs text-ink/60 mt-2 bg-ink/5 p-2 rounded italic font-hand">{asset.notes}</div>}
