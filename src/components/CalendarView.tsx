@@ -373,27 +373,24 @@ export function CalendarView({
   const groupedEvents = getGroupedEvents();
 
   return (
-    <div className="max-w-6xl mx-auto p-2 md:p-4 flex flex-col gap-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Calendar Grid */}
-        <div className="lg:col-span-2 space-y-3">
-        <div className="flex items-center justify-between pointer-events-auto">
-          <div className="flex items-center gap-2">
-            <button onClick={onPrevMonth} className="sketch-button px-2"><ChevronLeft /></button>
-            <h2 className="text-3xl font-bold font-sans tracking-tight text-center">{format(currentDate, "MMMM yyyy")}</h2>
-            <button onClick={onNextMonth} className="sketch-button px-2"><ChevronRight /></button>
-          </div>
+    <div className="w-full max-w-[1400px] mx-auto p-2 md:p-6 flex flex-col gap-10">
+      {/* Calendar Grid - Full Width */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-center gap-6">
+          <button onClick={onPrevMonth} className="sketch-button px-3 py-2"><ChevronLeft /></button>
+          <h2 className="text-4xl font-bold font-sans tracking-tight text-center min-w-[250px]">{format(currentDate, "MMMM yyyy")}</h2>
+          <button onClick={onNextMonth} className="sketch-button px-3 py-2"><ChevronRight /></button>
         </div>
 
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-2">
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
-            <div key={day} className="text-center font-sans font-bold uppercase text-xs opacity-50 py-1">
+            <div key={day} className="text-center font-sans font-bold uppercase text-sm tracking-widest opacity-60 py-2">
               {day}
             </div>
           ))}
           
           {Array.from({ length: startDay === 0 ? 6 : startDay - 1 }).map((_, i) => (
-            <div key={`empty-${i}`} className="min-h-[60px] calendar-day bg-white/20 opacity-30" />
+            <div key={`empty-${i}`} className="min-h-[120px] calendar-day bg-white/10 opacity-20" />
           ))}
 
           {daysInMonth.map((day) => {
@@ -404,34 +401,36 @@ export function CalendarView({
                 key={day.toISOString()}
                 onClick={() => setSelectedDate(day)}
                 className={cn(
-                  "min-h-[60px] p-1.5 transition-all cursor-pointer bg-white/40 hover:bg-white/80 flex flex-col calendar-day relative overflow-hidden group",
-                  isSelected ? "border-crimson bg-crimson/5 scale-105 shadow-xl z-10 border-2" : ""
+                  "min-h-[120px] p-2 transition-all cursor-pointer bg-white/40 hover:bg-white/80 flex flex-col calendar-day relative overflow-hidden group",
+                  isSelected ? "border-crimson bg-crimson/5 scale-[1.02] shadow-2xl z-20 border-2" : "border border-ink/5"
                 )}
               >
-                <div className="flex justify-between items-center relative z-10 h-5">
+                <div className="flex justify-between items-center relative z-10">
                   <span className={cn(
-                    "font-sans font-semibold text-sm",
-                    isSameDay(day, new Date()) ? "text-crimson" : "text-ink/60"
+                    "font-sans font-bold text-base",
+                    isSameDay(day, new Date()) ? "text-crimson bg-crimson/10 px-1.5 py-0.5 rounded" : "text-ink/60"
                   )}>
                     {format(day, "d")}
                   </span>
                 </div>
 
                 {dayLogs.some(l => l.type === 'Reflection') && (
-                  <div className="absolute top-1 left-1/2 -translate-x-1/2 z-0 opacity-70 text-crimson pointer-events-none group-hover:scale-110 transition-transform duration-300">
-                    <HandDrawnIcon type={dayLogs.find(l => l.type === 'Reflection')?.icon || 'document'} className="-rotate-3 w-8 h-8" />
+                  <div className="absolute top-2 right-2 z-0 opacity-60 text-crimson group-hover:opacity-100 transition-opacity">
+                    <HandDrawnIcon type={dayLogs.find(l => l.type === 'Reflection')?.icon || 'document'} className="w-10 h-10" />
                   </div>
                 )}
                 
-                <div className="flex-1 overflow-hidden mt-4 space-y-[2px] relative z-10">
+                <div className="flex-1 overflow-hidden mt-6 space-y-1 relative z-10">
                   {dayLogs.map(log => (
                     <div key={log.id} className={cn(
-                      "leading-tight truncate flex items-center gap-1 relative z-10",
-                      log.type === 'Event' ? "big-project w-full text-left" : "hand-text text-[10px] opacity-90"
+                      "leading-tight truncate flex items-center gap-1 relative z-10 px-1 rounded",
+                      log.type === 'Event' ? "big-project w-full text-left text-xs" : "hand-text text-[11px] opacity-80"
                     )}>
-                      {log.type === 'Reflection' && <span>-</span>}
-                      {log.type === 'Reflection' && <span className="truncate">{log.content}</span>}
-                      {log.type === 'Event' && <span>{log.time ? `${log.time} ` : ''}{log.content}</span>}
+                      {log.type === 'Reflection' && <span>•</span>}
+                      <span className="truncate">
+                        {log.type === 'Event' && log.time && <span className="font-bold mr-1">{log.time}</span>}
+                        {log.content}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -441,13 +440,21 @@ export function CalendarView({
         </div>
       </div>
 
-      {/* Daily Log Panel */}
-      <div className="space-y-3">
-        <h3 className="text-xl font-sans font-bold">
-          {selectedDate ? format(selectedDate, "MMMM do, yyyy") : "Select a day"}
-        </h3>
-        {selectedDate ? (
-          <div className="p-3 sketch-border bg-white/60 shadow-lg flex flex-col gap-2">
+      {/* Bottom Section: Inputs and Recap side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        {/* Daily Log Panel (Left) */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-2xl font-sans font-black uppercase tracking-tight">
+              {selectedDate ? format(selectedDate, "MMMM do, yyyy") : "Select a day"}
+            </h3>
+            {selectedDate && (
+               <span className="text-[10px] font-bold uppercase tracking-widest text-crimson animate-pulse">Recording...</span>
+            )}
+          </div>
+          
+          {selectedDate ? (
+            <div className="p-6 sketch-border bg-white/60 shadow-xl flex flex-col gap-4">
               <div className="flex gap-2">
                 <button 
                   onClick={() => setLogType('Reflection')}
@@ -561,50 +568,54 @@ export function CalendarView({
           </div>
         )}
       </div>
-    </div>
 
-    {/* Monthly Summary Section */}
-      <div className="sketch-border bg-white/40 p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-sans font-black tracking-tight uppercase">Monthly Recap: {format(currentDate, "MMMM yyyy")}</h3>
-          <div className="flex gap-4 text-xs font-sans font-bold text-ink/40">
-            <span>{groupedEvents.length} Events Grouped</span>
+      {/* Monthly Summary Section (Right) */}
+      <div className="sketch-border bg-white/40 p-6 space-y-6 h-full min-h-[500px]">
+          <div className="flex items-center justify-between border-b-2 border-ink pb-4">
+            <h3 className="text-2xl font-sans font-black tracking-tight uppercase">Monthly Recap</h3>
+            <div className="flex gap-4 text-xs font-sans font-bold text-ink/40">
+              <span className="bg-ink/5 px-2 py-1 rounded">
+                {groupedEvents.length} {groupedEvents.length === 1 ? 'Event' : 'Events'}
+              </span>
+            </div>
+          </div>
+          
+          <div className="max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+            {groupedEvents.length > 0 ? (
+              <div className="relative border-l-2 border-ink/10 ml-4 py-4 space-y-8">
+                {groupedEvents.map((event) => (
+                  <div key={event.id} className="relative pl-8">
+                    {/* Timeline Dot */}
+                    <div className="absolute left-[-9px] top-1.5 w-4 h-4 rounded-full bg-crimson sketch-border border-2 border-paper" />
+                    
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-sans font-black uppercase tracking-widest bg-ink text-paper px-2 py-0.5 rounded">
+                          {event.startDate === event.endDate 
+                            ? format(new Date(event.startDate), "do MMMM")
+                            : `${format(new Date(event.startDate), "do")} - ${format(new Date(event.endDate), "do MMMM")}`
+                          }
+                        </span>
+                        {event.time && (
+                          <span className="text-xs font-sans font-bold text-ink/50 italic">{event.time}</span>
+                        )}
+                      </div>
+                      <div className="p-4 bg-white/80 sketch-border border-dashed shadow-sm">
+                        <p className="font-sans text-lg font-bold text-ink leading-tight">
+                          {event.content}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 opacity-40">
+                <p className="hand-text text-2xl">No events recorded this month.</p>
+              </div>
+            )}
           </div>
         </div>
-        
-        {groupedEvents.length > 0 ? (
-          <div className="relative border-l-2 border-ink/10 ml-4 py-4 space-y-8">
-            {groupedEvents.map((event, idx) => (
-              <div key={event.id} className="relative pl-8">
-                {/* Timeline Dot */}
-                <div className="absolute left-[-9px] top-1.5 w-4 h-4 rounded-full bg-crimson sketch-border border-2 border-paper" />
-                
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-sans font-black uppercase tracking-widest bg-ink text-paper px-2 py-0.5 rounded">
-                      {event.startDate === event.endDate 
-                        ? format(new Date(event.startDate), "do MMMM")
-                        : `${format(new Date(event.startDate), "do")} - ${format(new Date(event.endDate), "do MMMM")}`
-                      }
-                    </span>
-                    {event.time && (
-                      <span className="text-xs font-sans font-bold text-ink/50 italic">{event.time}</span>
-                    )}
-                  </div>
-                  <div className="p-4 bg-white/80 sketch-border border-dashed shadow-sm">
-                    <p className="font-sans text-lg font-bold text-ink leading-tight">
-                      {event.content}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 opacity-40">
-            <p className="hand-text text-2xl">No events recorded this month.</p>
-          </div>
-        )}
       </div>
     </div>
   );
