@@ -252,6 +252,7 @@ export function CalendarView({
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [viewMode, setViewMode] = useState<'Month' | 'Year'>('Month');
   
   const [logText, setLogText] = useState("");
   const [logType, setLogType] = useState<'Reflection' | 'Event'>('Reflection');
@@ -372,13 +373,118 @@ export function CalendarView({
 
   const groupedEvents = getGroupedEvents();
 
+  const getYearlyEvents = () => {
+    const year = format(currentDate, 'yyyy');
+    return logs
+      .filter(l => l.type === 'Event' && l.date.startsWith(year))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  };
+
+  const getYearlyStats = () => {
+    const yearlyLogs = logs.filter(l => l.date.startsWith(format(currentDate, 'yyyy')));
+    const eventCount = yearlyLogs.filter(l => l.type === 'Event').length;
+    const reflectionCount = yearlyLogs.filter(l => l.type === 'Reflection').length;
+    
+    // Group events by month
+    const months: Record<string, number> = {};
+    yearlyLogs.filter(l => l.type === 'Event').forEach(l => {
+      const month = format(new Date(l.date), 'MMMM');
+      months[month] = (months[month] || 0) + 1;
+    });
+    
+    const mostActiveMonth = Object.entries(months).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+    
+    return { eventCount, reflectionCount, mostActiveMonth };
+  };
+
+  const yearlyStats = getYearlyStats();
+  const yearlyEvents = getYearlyEvents();
+
+  if (viewMode === 'Year') {
+    return (
+      <div className="w-full max-w-[1400px] mx-auto p-2 md:p-6 flex flex-col gap-10">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+           <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setViewMode('Month')}
+                className="sketch-button px-4 py-2 text-sm font-bold uppercase tracking-widest text-ink/60 hover:text-ink"
+              >
+                ← Back to Month
+              </button>
+              <h2 className="text-5xl font-black font-sans tracking-tighter uppercase">{format(currentDate, "yyyy")} Recap</h2>
+           </div>
+           <div className="flex gap-4">
+              <div className="p-4 sketch-border border-dashed bg-white/40 shadow-sm flex flex-col items-center min-w-[120px]">
+                <span className="text-[10px] font-bold uppercase text-ink/40 tracking-widest">Events</span>
+                <span className="text-3xl font-black text-crimson">{yearlyStats.eventCount}</span>
+              </div>
+              <div className="p-4 sketch-border border-dashed bg-white/40 shadow-sm flex flex-col items-center min-w-[120px]">
+                <span className="text-[10px] font-bold uppercase text-ink/40 tracking-widest">Reflections</span>
+                <span className="text-3xl font-black text-ink">{yearlyStats.reflectionCount}</span>
+              </div>
+              <div className="hidden sm:flex p-4 sketch-border border-dashed bg-white/40 shadow-sm flex flex-col items-center min-w-[150px]">
+                <span className="text-[10px] font-bold uppercase text-ink/40 tracking-widest">Peak Activity</span>
+                <span className="text-xl font-bold text-emerald-600">{yearlyStats.mostActiveMonth}</span>
+              </div>
+           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {Array.from({ length: 12 }).map((_, i) => {
+             const month = new Date(currentDate.getFullYear(), i, 1);
+             const monthEvents = yearlyEvents.filter(e => e.date.startsWith(format(month, 'yyyy-MM')));
+             
+             if (monthEvents.length === 0) return null;
+
+             return (
+               <div key={i} className="sketch-border bg-white/60 p-6 flex flex-col gap-4 hover:shadow-xl transition-shadow group">
+                  <div className="flex items-center justify-between border-b-2 border-ink pb-2">
+                    <h4 className="text-2xl font-black font-sans uppercase text-ink group-hover:text-crimson transition-colors">{format(month, "MMMM")}</h4>
+                    <span className="text-xs font-bold font-sans bg-ink/5 px-2 py-1 rounded">{monthEvents.length} items</span>
+                  </div>
+                  <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {monthEvents.map(event => (
+                      <div key={event.id} className="relative pl-6 py-1 border-l-2 border-ink/10 hover:border-crimson transition-colors">
+                        <div className="absolute left-[-5px] top-3 w-2 h-2 rounded-full bg-crimson" />
+                        <div className="flex flex-col gap-0.5">
+                           <span className="text-[9px] font-sans font-black uppercase text-ink/40 tracking-widest">
+                             {format(new Date(event.date), "do")} {event.time && `- ${event.time}`}
+                           </span>
+                           <p className="text-base font-bold text-ink/90 leading-tight">{event.content}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+               </div>
+             );
+          }).filter(Boolean)}
+
+          {yearlyEvents.length === 0 && (
+            <div className="col-span-full py-20 text-center opacity-40">
+               <p className="hand-text text-4xl">The year is still unfolding...</p>
+               <p className="text-sm font-sans mt-2">Start logging events to see your yearly recap here.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-[1400px] mx-auto p-2 md:p-6 flex flex-col gap-10">
       {/* Calendar Grid - Full Width */}
       <div className="space-y-6">
-        <div className="flex items-center justify-center gap-6">
+        <div className="flex items-center justify-center gap-6 relative">
           <button onClick={onPrevMonth} className="sketch-button px-3 py-2"><ChevronLeft /></button>
-          <h2 className="text-4xl font-bold font-sans tracking-tight text-center min-w-[250px]">{format(currentDate, "MMMM yyyy")}</h2>
+          <div className="flex flex-col items-center">
+            <h2 className="text-4xl font-bold font-sans tracking-tight text-center min-w-[250px]">{format(currentDate, "MMMM yyyy")}</h2>
+            <button 
+              onClick={() => setViewMode('Year')}
+              className="text-[10px] font-bold uppercase tracking-widest text-crimson hover:underline mt-1"
+            >
+              View Yearly Recap →
+            </button>
+          </div>
           <button onClick={onNextMonth} className="sketch-button px-3 py-2"><ChevronRight /></button>
         </div>
 

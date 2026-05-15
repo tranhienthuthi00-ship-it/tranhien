@@ -26,6 +26,7 @@ export function MyList({
   const [newWishNote, setNewWishNote] = useState("");
   const [editingWishId, setEditingWishId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'Date' | 'Necessity' | 'Price'>('Date');
+  const [wishlistFilter, setWishlistFilter] = useState<'Active' | 'Purchased' | 'All'>('Active');
   const [activeReviewId, setActiveReviewId] = useState<string | null>(null);
   const [reviewNote, setReviewNote] = useState("");
   const [reviewNecessity, setReviewNecessity] = useState<'Low' | 'Medium' | 'High'>('Medium');
@@ -79,7 +80,8 @@ export function MyList({
         tags: newTags ? newTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) : undefined,
         link: newWishLink || undefined,
         note: newWishNote || undefined,
-        isWorthBuying: false
+        isWorthBuying: false,
+        isPurchased: false
       }, ...wishlist]);
     }
     setNewWish("");
@@ -120,7 +122,13 @@ export function MyList({
     setWishlist(wishlist.map(w => w.id === id ? { ...w, isPurchased: !w.isPurchased } : w));
   };
 
-  const sortedWishlist = [...wishlist].sort((a, b) => {
+  const filteredWishlist = wishlist.filter(w => {
+    if (wishlistFilter === 'Active') return !w.isPurchased;
+    if (wishlistFilter === 'Purchased') return w.isPurchased;
+    return true;
+  });
+
+  const sortedWishlist = [...filteredWishlist].sort((a, b) => {
     if (sortBy === 'Date') {
       return new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime();
     } else if (sortBy === 'Price') {
@@ -340,12 +348,28 @@ export function MyList({
           </div>
         </form>
 
-        <div className="flex justify-between items-center mb-2 text-[10px] font-sans font-bold uppercase tracking-widest text-ink/50 border-b border-ink/10 pb-1.5">
-          <span>Sort By</span>
-          <div className="flex gap-3">
-            <button onClick={() => setSortBy('Date')} className={cn("transition-colors", sortBy === 'Date' ? 'text-crimson' : 'hover:text-ink')}>Date</button>
-            <button onClick={() => setSortBy('Necessity')} className={cn("transition-colors", sortBy === 'Necessity' ? 'text-crimson' : 'hover:text-ink')}>Necessity</button>
-            <button onClick={() => setSortBy('Price')} className={cn("transition-colors", sortBy === 'Price' ? 'text-crimson' : 'hover:text-ink')}>Price</button>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2 border-b border-ink/10 pb-1.5">
+          <div className="flex gap-3 text-[10px] font-sans font-bold uppercase tracking-widest text-ink/50">
+            <span>Filter</span>
+            <div className="flex gap-2">
+              {(['Active', 'Purchased', 'All'] as const).map(f => (
+                <button 
+                  key={f}
+                  onClick={() => setWishlistFilter(f)} 
+                  className={cn("transition-colors", wishlistFilter === f ? 'text-emerald-600' : 'hover:text-ink')}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-3 text-[10px] font-sans font-bold uppercase tracking-widest text-ink/50">
+            <span>Sort</span>
+            <div className="flex gap-3">
+              <button onClick={() => setSortBy('Date')} className={cn("transition-colors", sortBy === 'Date' ? 'text-crimson' : 'hover:text-ink')}>Date</button>
+              <button onClick={() => setSortBy('Necessity')} className={cn("transition-colors", sortBy === 'Necessity' ? 'text-crimson' : 'hover:text-ink')}>Necessity</button>
+              <button onClick={() => setSortBy('Price')} className={cn("transition-colors", sortBy === 'Price' ? 'text-crimson' : 'hover:text-ink')}>Price</button>
+            </div>
           </div>
         </div>
 
