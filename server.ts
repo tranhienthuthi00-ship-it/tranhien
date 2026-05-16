@@ -130,16 +130,17 @@ async function startServer() {
     const topic = req.query.topic as string || "daily life";
     console.log(`[Translation] Generating sentence for topic: ${topic}`);
     try {
-      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const prompt = `Generate one natural, medium-difficulty Vietnamese sentence for translation practice into English. Topic: ${topic}. Output ONLY the Vietnamese sentence text, no tags, no translation, no quotes.`;
+      const result = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: `Generate one natural, medium-difficulty Vietnamese sentence for translation practice into English. Topic: ${topic}. Output ONLY the Vietnamese sentence text, no tags, no translation, no quotes.`,
+      });
       
-      const result = await model.generateContent(prompt);
-      const sentence = result.response.text().trim().replace(/^["']|["']$/g, '');
+      const sentence = result.text.trim().replace(/^["']|["']$/g, '');
       
       console.log(`[Translation] Generated: ${sentence}`);
       
-      if (!sentence) {
-        throw new Error("Empty response from Gemini");
+      if (!sentence || sentence.length < 5) {
+        throw new Error("Invalid response from Gemini");
       }
 
       res.json({ sentence });
@@ -158,45 +159,25 @@ async function startServer() {
     console.log(`[Translation] Evaluating: "${original}" -> "${translation}"`);
 
     try {
-      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const prompt = `Evaluate this translation from Vietnamese to English.
+      const result = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: `Evaluate this translation from Vietnamese to English.
 Original (VN): ${original}
 Translation (EN): ${translation}
 
-Provide:
-1. A score from 0-100 based on accuracy, grammar, and naturalness.
-2. A corrected or more natural English version.
-3. Concise feedback in Vietnamese explaining any errors or suggesting better phrasing.
-4. 3-5 key vocabulary words/phrases from the sentence with their meanings in Vietnamese.`;
-
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              score: { type: Type.INTEGER },
-              corrected: { type: Type.STRING },
-              feedback: { type: Type.STRING },
-              vocabulary: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    word: { type: Type.STRING },
-                    meaning: { type: Type.STRING }
-                  }
-                }
-              }
-            },
-            required: ["score", "corrected", "feedback", "vocabulary"]
-          }
+Return ONLY a JSON object with this schema:
+{
+  "score": number (0-100),
+  "corrected": "improved English version",
+  "feedback": "feedback in Vietnamese",
+  "vocabulary": [{"word": "string", "meaning": "string"}]
+}`,
+        config: {
+          responseMimeType: "application/json"
         }
       });
 
-      const responseText = result.response.text().trim();
-      // Remove any markdown code block markers if present
+      const responseText = result.text.trim();
       const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
       const resultData = JSON.parse(cleanJson);
       console.log(`[Translation] Score: ${resultData.score}`);

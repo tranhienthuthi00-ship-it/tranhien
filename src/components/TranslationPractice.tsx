@@ -18,6 +18,7 @@ export function TranslationPractice() {
   const [loading, setLoading] = useState(false);
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [topic, setTopic] = useState("daily life");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
@@ -40,8 +41,10 @@ export function TranslationPractice() {
     setLoading(true);
     setEvaluation(null);
     setTranslation("");
+    setError(null);
     try {
       const response = await fetch(`/api/translation/sentence?topic=${selectedTopic || topic}`);
+      if (!response.ok) throw new Error("Failed to fetch sentence");
       const data = await response.json();
       if (data.sentence) {
         setOriginal(data.sentence);
@@ -53,6 +56,7 @@ export function TranslationPractice() {
       console.error("Error fetching sentence:", error);
       const pool = customSentences.length > 0 ? customSentences.map(s => s.vietnamese) : DEFAULT_SENTENCES;
       setOriginal(pool[Math.floor(Math.random() * pool.length)]);
+      setError("AI không thể tạo câu mới lúc này. Đang sử dụng câu mẫu.");
     } finally {
       setLoading(false);
     }
@@ -61,6 +65,7 @@ export function TranslationPractice() {
   const handleEvaluate = async () => {
     if (!translation.trim()) return;
     setEvaluating(true);
+    setError(null);
     try {
       const response = await fetch("/api/translation/evaluate", {
         method: "POST",
@@ -72,7 +77,7 @@ export function TranslationPractice() {
       setEvaluation(data);
     } catch (error) {
       console.error("Error evaluating translation:", error);
-      alert("AI không thể chấm điểm lúc này. Vui lòng thử lại sau.");
+      setError("AI không thể chấm điểm lúc này. Vui lòng thử lại sau.");
     } finally {
       setEvaluating(false);
     }
@@ -112,6 +117,16 @@ export function TranslationPractice() {
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 md:py-8 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-hidden">
       {/* Header Section */}
+      {error && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }} 
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 p-3 bg-crimson/10 border-2 border-crimson/20 text-crimson text-xs font-bold rounded-xl flex items-center justify-between"
+        >
+          <span>{error}</span>
+          <button onClick={() => setError(null)}><X className="w-4 h-4" /></button>
+        </motion.div>
+      )}
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8 border-b-4 border-ink pb-4 gap-6">
         <div className="shrink-0">
           <h2 className="text-2xl md:text-3xl font-sans font-black tracking-tighter uppercase text-ink flex items-center gap-3">
