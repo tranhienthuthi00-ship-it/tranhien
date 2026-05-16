@@ -44,47 +44,41 @@ export function SentenceBySentencePractice() {
     setEvaluation(null);
   };
 
-  const handleVerify = async () => {
+  const handleVerify = () => {
     if (!userInput.trim()) return;
     setIsVerifying(true);
     
     const currentSentence = sentences[currentIndex];
-    
-    try {
-      const response = await fetch("/api/translation/evaluate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          original: currentSentence.vi, 
-          translation: userInput 
-        }),
-      });
-      
-      if (!response.ok) throw new Error("Evaluation failed");
-      const data = await response.json();
-      
-      // We consider it "correct" if it's natural and accurate (AI handles the logic)
-      // For this mode, we'll follow the user's requirement: "nhập đúng mới chuyển sang"
-      // If AI provides a correction, and the user's version is deemed "sufficiently correct" or we just show feedback
-      // Actually, let's look for a validation score if possible, or just use the AI's "corrected" version as the goal
-      
-      // If we have a reference, append it to the AI result for comparison
-      const reference = sentences[currentIndex].en;
-      if (reference) {
-        data.reference = reference;
-      }
-      
-      setEvaluation(data);
+    const reference = currentSentence.en;
 
-      // Simple heuristic for "correct": If AI says it's natural or similar
-      // In this specific flow, I'll allow moving forward if the user wants, or if we deem it good.
-      // But user said: "nhập đúng câu nào mới chuyển sang"
-      // Let's add an explicit "Move to next" if AI approves.
-    } catch (error) {
-      console.error("Error verifying:", error);
-    } finally {
+    if (!reference) {
+      // If no reference was provided, we just show what they typed and allow moving forward
+      setEvaluation({
+        corrected: "No reference provided for this sentence.",
+        explanation: "Bạn chưa cung cấp bản dịch mẫu cho câu này."
+      });
       setIsVerifying(false);
+      return;
     }
+
+    // Local comparison: Normalize strings (lowercase, remove common punctuation, trim)
+    const normalize = (str: string) => str.toLowerCase().replace(/[.,!?;:()]/g, "").replace(/\s+/g, " ").trim();
+    
+    const isCorrect = normalize(userInput) === normalize(reference);
+
+    if (isCorrect) {
+      setEvaluation({
+        corrected: reference,
+        explanation: "Chúc mừng! Bản dịch của bạn hoàn toàn chính xác so với bản mẫu."
+      });
+    } else {
+      setEvaluation({
+        corrected: reference,
+        explanation: "Bản dịch chưa trùng khớp với bản mẫu. Hãy kiểm tra lại từng từ và cấu trúc!"
+      });
+    }
+    
+    setIsVerifying(false);
   };
 
   const nextSentence = () => {
@@ -120,27 +114,27 @@ export function SentenceBySentencePractice() {
           <div className="space-y-2">
             <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
               <ListChecks className="w-8 h-8 text-crimson" />
-              Paragraph Mode
+              Reference-Based Practice
             </h2>
-            <p className="text-xs font-bold text-ink/40 uppercase tracking-widest">Luyện dịch theo đoạn văn - Dịch đúng từng câu để tiếp tục</p>
+            <p className="text-xs font-bold text-ink/40 uppercase tracking-widest">Luyện dịch đối chiếu - Phải dịch đúng mẫu mới được qua câu tiếp theo</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest ml-1">Đoạn văn Tiếng Việt</label>
+              <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest ml-1">Đoạn văn Tiếng Việt (Gốc)</label>
               <textarea 
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Dán đoạn văn tiếng Việt bạn muốn luyện dịch tại đây..."
+                placeholder="Nhập đoạn văn tiếng Việt..."
                 className="w-full h-64 bg-paper/30 sketch-border p-4 font-sans text-lg focus:outline-none focus:ring-2 focus:ring-ink/10 resize-none transition-all"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest ml-1">Bản dịch tham khảo (Tùy chọn)</label>
+              <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest ml-1">Bản dịch Tiếng Anh (Mẫu - Bắt buộc)</label>
               <textarea 
                 value={referenceText}
                 onChange={(e) => setReferenceText(e.target.value)}
-                placeholder="Nếu có bản dịch tiếng Anh mẫu, hãy dán tại đây để đối chiếu chuẩn xác hơn..."
+                placeholder="Nhập bản dịch tiếng Anh tương ứng để đối chiếu..."
                 className="w-full h-64 bg-paper/10 sketch-border p-4 font-sans text-base italic focus:outline-none focus:ring-2 focus:ring-ink/10 resize-none transition-all placeholder:opacity-50"
               />
             </div>
@@ -148,7 +142,7 @@ export function SentenceBySentencePractice() {
 
           <button 
             onClick={handleStart}
-            disabled={!inputText.trim() || isProcessing}
+            disabled={!inputText.trim() || !referenceText.trim() || isProcessing}
             className="w-full sketch-button bg-ink text-white py-4 text-sm font-black uppercase tracking-widest hover:bg-ink/90 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {isProcessing ? <Loader2 className="animate-spin w-5 h-5" /> : <Play className="w-5 h-5" />}
@@ -263,35 +257,23 @@ export function SentenceBySentencePractice() {
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-6"
               >
-                <div className="bg-white/80 sketch-border p-6 shadow-xl space-y-4">
+                <div className={`sketch-border p-6 shadow-xl space-y-4 transition-colors ${evaluation.explanation.includes("Chúc mừng") ? "bg-emerald-50/80 border-emerald-500/30" : "bg-white/80"}`}>
                   <div className="flex items-center gap-2 text-ink/40">
-                    <Sparkles className="w-4 h-4 text-yellow-500" />
-                    <h4 className="text-[10px] font-black uppercase tracking-widest">Phân tích câu này</h4>
+                    <FileText className={`w-4 h-4 ${evaluation.explanation.includes("Chúc mừng") ? "text-emerald-500" : "text-ink/20"}`} />
+                    <h4 className="text-[10px] font-black uppercase tracking-widest">Trạng thái đối chiếu</h4>
                   </div>
-                  <p className="text-sm font-sans font-medium leading-relaxed">
+                  <p className={`text-sm font-sans font-medium leading-relaxed ${evaluation.explanation.includes("Chúc mừng") ? "text-emerald-900" : "text-ink"}`}>
                     {evaluation.explanation}
                   </p>
-                  
-                  {evaluation.grammar && evaluation.grammar.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-2">
-                       {evaluation.grammar.map((g, i) => (
-                         <span key={i} className="text-[10px] font-bold text-crimson bg-crimson/5 px-2 py-0.5 rounded-lg border border-crimson/10">
-                           {g}
-                         </span>
-                       ))}
-                    </div>
-                  )}
                 </div>
 
-                <div className="bg-emerald-50/80 sketch-border border-emerald-500/30 p-6 space-y-4">
-                  <div className="flex items-center gap-2 text-emerald-700">
+                <div className="bg-paper/30 sketch-border p-6 space-y-4">
+                  <div className="flex items-center gap-2 text-ink/40">
                     <CheckCircle2 className="w-5 h-5" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">
-                      {evaluation.reference === evaluation.corrected ? "Your Reference Translation" : "Bản dịch Gợi ý / Đối chiếu"}
-                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Bản dịch mẫu của bạn</span>
                   </div>
-                  <p className="text-lg font-sans font-bold leading-relaxed text-emerald-900 bg-white/50 p-4 rounded-xl">
-                    {evaluation.corrected || evaluation.reference}
+                  <p className="text-lg font-sans font-bold leading-relaxed text-ink bg-white/50 p-4 rounded-xl italic">
+                    {evaluation.corrected}
                   </p>
                 </div>
 
@@ -302,12 +284,14 @@ export function SentenceBySentencePractice() {
                   >
                     Dịch lại câu này
                   </button>
-                  <button 
-                    onClick={nextSentence}
-                    className="flex-3 sketch-button bg-ink text-white py-3 px-8 text-[10px] font-black uppercase tracking-widest hover:bg-ink/90 flex items-center justify-center gap-2"
-                  >
-                    Tiếp tục câu sau <ChevronRight className="w-4 h-4" />
-                  </button>
+                  {evaluation.explanation.includes("Chúc mừng") && (
+                    <button 
+                      onClick={nextSentence}
+                      className="flex-3 sketch-button bg-ink text-white py-3 px-8 text-[10px] font-black uppercase tracking-widest hover:bg-ink/90 flex items-center justify-center gap-2 animate-in zoom-in duration-300"
+                    >
+                      Tiếp tục câu sau <ChevronRight className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}
