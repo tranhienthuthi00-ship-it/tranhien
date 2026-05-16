@@ -132,7 +132,7 @@ async function startServer() {
     try {
       const result = await ai.models.generateContent({
         model: "gemini-1.5-flash",
-        contents: `Generate one natural, medium-difficulty Vietnamese sentence for translation practice into English. Topic: ${topic}. Output ONLY the Vietnamese sentence text, no tags, no translation, no quotes.`,
+        contents: `Generate one natural, medium-difficulty Vietnamese sentence for translation practice. Topic: ${topic}. Output ONLY the raw Vietnamese text. No quotes, no translation, no labels.`,
       });
       
       const sentence = result.text.trim().replace(/^["']|["']$/g, '');
@@ -161,15 +161,14 @@ async function startServer() {
     try {
       const result = await ai.models.generateContent({
         model: "gemini-1.5-flash",
-        contents: `Evaluate this translation from Vietnamese to English.
-Original (VN): ${original}
-Translation (EN): ${translation}
-
-Return ONLY a JSON object with this schema:
+        contents: `Evaluate this translation. Original (VN): "${original}", Translation (EN): "${translation}".
+        
+Return ONLY a valid JSON object. No markdown, no pre-amble, no code blocks.
+JSON Schema:
 {
-  "score": number (0-100),
-  "corrected": "improved English version",
-  "feedback": "feedback in Vietnamese",
+  "score": number,
+  "corrected": "string",
+  "feedback": "string",
   "vocabulary": [{"word": "string", "meaning": "string"}]
 }`,
         config: {

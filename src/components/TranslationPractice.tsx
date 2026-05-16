@@ -17,24 +17,27 @@ export function TranslationPractice() {
   const [translation, setTranslation] = useState("");
   const [loading, setLoading] = useState(false);
   const [evaluating, setEvaluating] = useState(false);
-  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
+  const [evaluation, setEvaluation] = useState<(Evaluation & { reference?: string }) | null>(null);
+  const [showReference, setShowReference] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [topic, setTopic] = useState("daily life");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [newSentenceText, setNewSentenceText] = useState("");
+  const [newSentenceTranslation, setNewSentenceTranslation] = useState("");
   const [newSentenceTopic, setNewSentenceTopic] = useState("personal");
+  const [currentSentenceId, setCurrentSentenceId] = useState<string | null>(null);
 
   const topics = [
     "daily life", "work & business", "technology", "travel", "food & dining", "feelings & emotions", "nature"
   ];
 
   const DEFAULT_SENTENCES = [
-    "Tôi thích học tiếng Anh mỗi ngày để cải thiện tương lai.",
-    "Hôm nay thời tiết thật đẹp, bạn có muốn đi dạo không?",
-    "Công việc của tôi khá bận rộn nhưng tôi luôn cố gắng sắp xếp thời gian.",
-    "Bạn đã bao giờ đến thăm thành phố Đà Lạt chưa?",
-    "Học một ngôn ngữ mới mở ra nhiều cơ hội nghề nghiệp."
+    { vi: "Tôi thích học tiếng Anh mỗi ngày để cải thiện tương lai.", en: "I like studying English every day to improve my future." },
+    { vi: "Hôm nay thời tiết thật đẹp, bạn có muốn đi dạo không?", en: "The weather is beautiful today, do you want to go for a walk?" },
+    { vi: "Công việc của tôi khá bận rộn nhưng tôi luôn cố gắng sắp xếp thời gian.", en: "My work is quite busy but I always try to manage my time." },
+    { vi: "Bạn đã bao giờ đến thăm thành phố Đà Lạt chưa?", en: "Have you ever visited Da Lat city?" },
+    { vi: "Học một ngôn ngữ mới mở ra nhiều cơ hội nghề nghiệp.", en: "Learning a new language opens up many career opportunities." }
   ];
 
   const fetchNewSentence = async (selectedTopic?: string) => {
@@ -42,6 +45,7 @@ export function TranslationPractice() {
     setEvaluation(null);
     setTranslation("");
     setError(null);
+    setCurrentSentenceId(null);
     try {
       const response = await fetch(`/api/translation/sentence?topic=${selectedTopic || topic}`);
       if (!response.ok) throw new Error("Failed to fetch sentence");
@@ -49,35 +53,75 @@ export function TranslationPractice() {
       if (data.sentence) {
         setOriginal(data.sentence);
       } else {
-        const pool = customSentences.length > 0 ? customSentences.map(s => s.vietnamese) : DEFAULT_SENTENCES;
-        setOriginal(pool[Math.floor(Math.random() * pool.length)]);
+        const item = DEFAULT_SENTENCES[Math.floor(Math.random() * DEFAULT_SENTENCES.length)];
+        setOriginal(item.vi);
       }
     } catch (error) {
       console.error("Error fetching sentence:", error);
-      const pool = customSentences.length > 0 ? customSentences.map(s => s.vietnamese) : DEFAULT_SENTENCES;
-      setOriginal(pool[Math.floor(Math.random() * pool.length)]);
+      const item = DEFAULT_SENTENCES[Math.floor(Math.random() * DEFAULT_SENTENCES.length)];
+      setOriginal(item.vi);
       setError("AI không thể tạo câu mới lúc này. Đang sử dụng câu mẫu.");
     } finally {
       setLoading(false);
     }
   };
 
+  const calculateLocalScore = (user: string, reference: string) => {
+    const userWords = user.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(Boolean);
+    const refWords = reference.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(Boolean);
+    
+    if (refWords.length === 0) return 0;
+    
+    const intersection = userWords.filter(word => refWords.includes(word));
+    const score = Math.round((intersection.length / refWords.length) * 100);
+    return Math.min(score, 100);
+  };
+
   const handleEvaluate = async () => {
     if (!translation.trim()) return;
     setEvaluating(true);
     setError(null);
+
+    // Find reference translation
+    let reference = customSentences.find(s => s.id === currentSentenceId)?.english;
+    if (!reference) {
+      // Check defaults
+      const defaultMatch = DEFAULT_SENTENCES.find(s => s.vi === original);
+      if (defaultMatch) reference = defaultMatch.en;
+    }
+
     try {
       const response = await fetch("/api/translation/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ original, translation }),
       });
+      
       if (!response.ok) throw new Error("AI Evaluation failed");
       const data = await response.json();
+      
+      // If we have a reference, append it to the AI result for comparison
+      if (reference) {
+        data.reference = reference;
+      }
+      
       setEvaluation(data);
     } catch (error) {
       console.error("Error evaluating translation:", error);
-      setError("AI không thể chấm điểm lúc này. Vui lòng thử lại sau.");
+      
+      if (reference) {
+        // Fallback to local scoring if AI fails but reference exists
+        const localScore = calculateLocalScore(translation, reference);
+        setEvaluation({
+          score: localScore,
+          corrected: reference,
+          feedback: "AI đang bận, đây là điểm số dựa trên mức độ trùng khớp từ vựng với bản dịch mẫu của bạn.",
+          vocabulary: []
+        });
+        setError("AI không phản hồi. Đang sử dụng chế độ so sánh bản dịch mẫu.");
+      } else {
+        setError("AI không thể chấm điểm lúc này. Vui lòng thử lại sau.");
+      }
     } finally {
       setEvaluating(false);
     }
@@ -88,11 +132,13 @@ export function TranslationPractice() {
     const newSentence: CustomSentence = {
       id: crypto.randomUUID(),
       vietnamese: newSentenceText.trim(),
+      english: newSentenceTranslation.trim() || undefined,
       topic: newSentenceTopic,
       createdAt: Date.now(),
     };
     setCustomSentences([newSentence, ...customSentences]);
     setNewSentenceText("");
+    setNewSentenceTranslation("");
     setShowAddModal(false);
   };
 
@@ -105,6 +151,9 @@ export function TranslationPractice() {
     setTopic(sentence.topic);
     setTranslation("");
     setEvaluation(null);
+    setError(null);
+    setShowReference(false);
+    setCurrentSentenceId(sentence.id);
     setShowLibrary(false);
   };
 
@@ -207,6 +256,33 @@ export function TranslationPractice() {
                 </p>
               )}
             </div>
+
+            {((currentSentenceId && customSentences.find(s => s.id === currentSentenceId)?.english) || (DEFAULT_SENTENCES.find(s => s.vi === original)?.en)) && (
+              <div className="flex justify-end">
+                <button 
+                  onClick={() => setShowReference(!showReference)}
+                  className="text-[10px] font-black uppercase tracking-widest text-ink/40 hover:text-crimson transition-colors flex items-center gap-2"
+                >
+                  <BookOpen className="w-3 h-3" />
+                  {showReference ? "Hide Answer" : "Show Answer"}
+                </button>
+              </div>
+            )}
+            
+            <AnimatePresence>
+              {showReference && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-4 bg-ink/5 sketch-border border-dashed border-ink/20 text-sm font-sans italic text-ink/60">
+                    Bản dịch mẫu: {customSentences.find(s => s.id === currentSentenceId)?.english || DEFAULT_SENTENCES.find(s => s.vi === original)?.en}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <div className="space-y-2">
@@ -284,7 +360,9 @@ export function TranslationPractice() {
                 <div className="bg-emerald-50/80 sketch-border border-emerald-500/30 p-6 space-y-4">
                   <div className="flex items-center gap-2 text-emerald-700">
                     <CheckCircle2 className="w-5 h-5" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Suggested Version</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                      {evaluation.reference === evaluation.corrected ? "Your Reference Translation" : "Suggested Version"}
+                    </span>
                   </div>
                   <p className="text-lg font-sans font-bold leading-relaxed text-emerald-900 bg-white/50 p-4 rounded-xl">
                     {evaluation.corrected}
@@ -355,6 +433,7 @@ export function TranslationPractice() {
                     <div key={s.id} className="group flex items-start gap-4 p-4 sketch-border bg-white hover:bg-paper transition-all">
                       <div className="flex-1 cursor-pointer" onClick={() => practiceSaved(s)}>
                         <p className="font-sans font-bold text-ink leading-snug">"{s.vietnamese}"</p>
+                        {s.english && <p className="text-[10px] text-ink/40 mt-1 italic">Ref: {s.english}</p>}
                         <div className="flex items-center gap-3 mt-2">
                            <span className="text-[10px] font-black uppercase text-ink/40 tracking-widest bg-ink/5 px-2 py-0.5 rounded">
                              {s.topic}
@@ -408,7 +487,17 @@ export function TranslationPractice() {
                     value={newSentenceText}
                     onChange={(e) => setNewSentenceText(e.target.value)}
                     placeholder="Nhập câu tiếng Việt bạn muốn luyện dịch..."
-                    className="w-full h-32 bg-white sketch-border p-4 font-sans text-lg focus:outline-none focus:ring-2 focus:ring-ink/10 resize-none"
+                    className="w-full h-24 bg-white sketch-border p-4 font-sans text-lg focus:outline-none focus:ring-2 focus:ring-ink/10 resize-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest ml-1">Bản dịch mẫu (English - Tùy chọn)</label>
+                  <textarea 
+                    value={newSentenceTranslation}
+                    onChange={(e) => setNewSentenceTranslation(e.target.value)}
+                    placeholder="Nhập bản dịch tiếng Anh đúng (nếu có) để tự kiểm tra..."
+                    className="w-full h-20 bg-white sketch-border p-4 font-sans text-sm italic focus:outline-none focus:ring-2 focus:ring-ink/10 resize-none"
                   />
                 </div>
                 
