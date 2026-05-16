@@ -32,6 +32,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const [newValue, setNewValue] = useState("");
   const [newCurrency, setNewCurrency] = useState("VND");
   const [newNotes, setNewNotes] = useState("");
+  const [newQuantity, setNewQuantity] = useState("");
+  const [newDenomination, setNewDenomination] = useState("");
   const [isDebt, setIsDebt] = useState(false);
   const [isLoan, setIsLoan] = useState(false);
   const [isNewMoney, setIsNewMoney] = useState(false);
@@ -49,6 +51,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setNewValue(asset.value.toString());
     setNewCurrency(asset.currency);
     setNewNotes(asset.notes || "");
+    setNewQuantity(asset.quantity?.toString() || "");
+    setNewDenomination(asset.denomination?.toString() || "");
     setIsDebt(!!asset.isDebt);
     setIsLoan(!!asset.isLoan);
     setIsNewMoney(!!asset.isNewMoney);
@@ -63,6 +67,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setNewValue("");
     setNewCurrency("VND");
     setNewNotes("");
+    setNewQuantity("");
+    setNewDenomination("");
     setIsDebt(false);
     setIsLoan(false);
     setIsNewMoney(false);
@@ -77,10 +83,18 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     e.preventDefault();
     // Use the explicitly selected category, or defaultCatID if none selected
     const catToUse = newCategory || defaultCatID;
-    if (!newName.trim() || !newValue || !catToUse) return;
+    if (!newName.trim() || !catToUse) return;
 
-    const val = parseFloat(newValue.replace(/,/g, ''));
-    if (isNaN(val)) return;
+    let val = parseFloat(newValue.replace(/,/g, ''));
+    const qty = parseFloat(newQuantity.replace(/,/g, ''));
+    const den = parseFloat(newDenomination.replace(/,/g, ''));
+
+    if (isNewMoney && !isNaN(qty) && !isNaN(den)) {
+      val = qty * den;
+    }
+
+    if (!isNewMoney && (isNaN(val) || !newName.trim())) return;
+    if (isNewMoney && (isNaN(qty) || isNaN(den) || !newName.trim())) return;
 
     if (editingId) {
       setAssets(assets.map(a => a.id === editingId ? {
@@ -93,7 +107,9 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         isDebt: isDebt,
         isLoan: isLoan,
         isNewMoney: isNewMoney,
-        excludeFromNetWorth: excludeFromNetWorth
+        excludeFromNetWorth: excludeFromNetWorth,
+        quantity: isNewMoney ? qty : undefined,
+        denomination: isNewMoney ? den : undefined
       } : a));
       setEditingId(null);
     } else {
@@ -108,13 +124,17 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         isDebt: isDebt,
         isLoan: isLoan,
         isNewMoney: isNewMoney,
-        excludeFromNetWorth: excludeFromNetWorth
+        excludeFromNetWorth: excludeFromNetWorth,
+        quantity: isNewMoney ? qty : undefined,
+        denomination: isNewMoney ? den : undefined
       }, ...assets]);
     }
 
     setNewName("");
     setNewValue("");
     setNewNotes("");
+    setNewQuantity("");
+    setNewDenomination("");
     setIsDebt(false);
     setIsLoan(false);
     setIsNewMoney(false);
@@ -221,7 +241,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
 
   const pieData = useMemo(() => {
     return assets
-      .filter(a => !a.isDebt)
+      .filter(a => !a.isDebt && !a.isNewMoney && !a.excludeFromNetWorth)
       .map(a => ({
         id: a.id,
         name: a.name,
@@ -246,14 +266,18 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     return result;
   }, [assets, sortBy, getValueInVND]);
 
-  const assetsByCategory = useMemo(() => {
+  const regularAssetsByCategory = useMemo(() => {
     const groups: Record<string, Asset[]> = {};
-    filteredAssets.forEach(a => {
+    filteredAssets.filter(a => !a.isNewMoney).forEach(a => {
       if (!groups[a.category]) groups[a.category] = [];
       groups[a.category].push(a);
     });
     return groups;
   }, [filteredAssets]);
+
+  const newMoneyAssets = useMemo(() => {
+    return assets.filter(a => a.isNewMoney).sort((a, b) => (b.acquiredAt || 0) - (a.acquiredAt || 0));
+  }, [assets]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 font-sans pb-10">
@@ -421,16 +445,39 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Giá Trị</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">
+                  {isNewMoney ? "Tên (Ví dụ: Tiền VNĐ)" : "Giá Trị"}
+                </label>
                 <div className="flex gap-2">
-                  <input
-                    value={newValue}
-                    onChange={(e) => setNewValue(e.target.value)}
-                    placeholder="0"
-                    type="number"
-                    className="sketch-input bg-white/50 py-2 min-w-0 flex-1 px-2"
-                    required
-                  />
+                  {!isNewMoney ? (
+                    <input
+                      value={newValue}
+                      onChange={(e) => setNewValue(e.target.value)}
+                      placeholder="0"
+                      type="number"
+                      className="sketch-input bg-white/50 py-2 min-w-0 flex-1 px-2"
+                      required
+                    />
+                  ) : (
+                    <div className="flex gap-2 flex-1">
+                       <input
+                        value={newDenomination}
+                        onChange={(e) => setNewDenomination(e.target.value)}
+                        placeholder="Mệnh giá"
+                        type="number"
+                        className="sketch-input bg-white/50 py-2 min-w-0 w-1/2 px-2"
+                        required
+                      />
+                      <input
+                        value={newQuantity}
+                        onChange={(e) => setNewQuantity(e.target.value)}
+                        placeholder="Số lượng"
+                        type="number"
+                        className="sketch-input bg-white/50 py-2 min-w-0 w-1/2 px-2"
+                        required
+                      />
+                    </div>
+                  )}
                   <select value={newCurrency} onChange={(e) => setNewCurrency(e.target.value)} className="sketch-input bg-white/50 py-2 w-[72px] shrink-0 px-1 text-center">
                     <option value="VND">VND</option>
                     <option value="USD">USD</option>
@@ -536,8 +583,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         </div>
       </form>
 
-      <div className="space-y-12">
-        {(Object.entries(assetsByCategory) as [string, Asset[]][]).map(([catId, items]) => {
+      <div className="space-y-12 mb-12">
+        {(Object.entries(regularAssetsByCategory) as [string, Asset[]][]).map(([catId, items]) => {
           const cat = getCategory(catId);
           const catTotal = items.reduce((acc, curr) => {
             const val = getValueInVND(curr.value, curr.currency);
@@ -609,6 +656,69 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
           );
         })}
       </div>
+
+      {newMoneyAssets.length > 0 && (
+        <div className="mt-16 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-6 border-b-4 border-amber-500 pb-2">
+             <div className="flex items-center gap-3">
+                <button className="p-2 bg-amber-500 text-white rounded-xl shadow-lg">
+                  <Coins size={24} />
+                </button>
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight text-amber-600">Bảng Kê Tiền Mới</h2>
+                  <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Chi tiết dòng tiền mặt / mới nhập</p>
+                </div>
+             </div>
+             <div className="text-right">
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Tổng cộng</p>
+                <p className="text-2xl font-black text-amber-600">{formatCurrency(totalNewMoneyVND, 'VND')}</p>
+             </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse bg-white/40 sketch-border">
+              <thead>
+                <tr className="bg-amber-500/10 text-[10px] font-black uppercase tracking-widest text-amber-600">
+                  <th className="px-4 py-3 border-b-2 border-amber-500">Tên / Loại</th>
+                  <th className="px-4 py-3 border-b-2 border-amber-500 text-right">Mệnh giá</th>
+                  <th className="px-4 py-3 border-b-2 border-amber-500 text-center">Số lượng</th>
+                  <th className="px-4 py-3 border-b-2 border-amber-500 text-right">Thành tiền</th>
+                  <th className="px-4 py-3 border-b-2 border-amber-500 text-center">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm font-sans">
+                {newMoneyAssets.map(asset => (
+                  <tr key={asset.id} className="border-b border-amber-500/10 hover:bg-white/60 transition-colors group">
+                    <td className="px-4 py-4 font-bold text-ink">{asset.name}</td>
+                    <td className="px-4 py-4 font-mono font-bold text-right">{asset.denomination ? formatCurrency(asset.denomination, asset.currency) : "-"}</td>
+                    <td className="px-4 py-4 text-center font-bold text-ink/60">{asset.quantity || 1}</td>
+                    <td className="px-4 py-4 font-mono font-black text-right text-amber-600">
+                      {formatCurrency(asset.value, asset.currency)}
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => startEdit(asset)} className="p-1.5 hover:bg-amber-500 hover:text-white rounded transition-colors text-amber-600">
+                          <Edit2 size={14} />
+                        </button>
+                        <button onClick={() => removeAsset(asset.id)} className="p-1.5 hover:bg-crimson hover:text-white rounded transition-colors text-crimson">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                <tr className="bg-amber-500/5">
+                   <td colSpan={3} className="px-4 py-4 text-right font-black uppercase tracking-widest text-amber-600 text-[10px]">Tổng cộng</td>
+                   <td className="px-4 py-4 font-mono font-black text-right text-amber-700 text-lg">
+                      {formatCurrency(totalNewMoneyVND, 'VND')}
+                   </td>
+                   <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       
       {filteredAssets.length === 0 && (
         <div className="text-center py-20 opacity-30">
