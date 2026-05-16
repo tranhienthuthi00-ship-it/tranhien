@@ -7,6 +7,7 @@ import type { CustomSentence } from "../types";
 interface Evaluation {
   explanation: string;
   corrected: string;
+  grammar: string[];
   usageNotes: string;
   vocabulary: { word: string; meaning: string }[];
   reference?: string;
@@ -20,7 +21,6 @@ export function TranslationPractice() {
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState<(Evaluation & { reference?: string }) | null>(null);
   const [showReference, setShowReference] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [topic, setTopic] = useState("daily life");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
@@ -45,7 +45,6 @@ export function TranslationPractice() {
     setLoading(true);
     setEvaluation(null);
     setTranslation("");
-    setError(null);
     setCurrentSentenceId(null);
     try {
       const response = await fetch(`/api/translation/sentence?topic=${selectedTopic || topic}`);
@@ -61,7 +60,6 @@ export function TranslationPractice() {
       console.error("Error fetching sentence:", error);
       const item = DEFAULT_SENTENCES[Math.floor(Math.random() * DEFAULT_SENTENCES.length)];
       setOriginal(item.vi);
-      setError("AI không thể tạo câu mới lúc này. Đang sử dụng câu mẫu.");
     } finally {
       setLoading(false);
     }
@@ -70,7 +68,6 @@ export function TranslationPractice() {
   const handleEvaluate = async () => {
     if (!translation.trim()) return;
     setEvaluating(true);
-    setError(null);
 
     // Find reference translation
     let reference = customSentences.find(s => s.id === currentSentenceId)?.english;
@@ -102,12 +99,10 @@ export function TranslationPractice() {
         setEvaluation({
           explanation: "AI không phản hồi lúc này để phân tích chuyên sâu. Tuy nhiên, bạn có thể đối chiếu bài làm của mình với bản dịch mẫu bên dưới.",
           usageNotes: "So sánh cấu trúc câu và từ vựng bạn đã dùng với bản mẫu để tự rút ra kinh nghiệm nhé!",
+          grammar: [],
           corrected: reference,
           vocabulary: []
         });
-        setError("AI đang bận. Đang sử dụng chế độ đối chiếu bản dịch mẫu.");
-      } else {
-        setError("AI không thể phân tích lúc này. Vui lòng thử lại sau.");
       }
     } finally {
       setEvaluating(false);
@@ -138,7 +133,6 @@ export function TranslationPractice() {
     setTopic(sentence.topic);
     setTranslation("");
     setEvaluation(null);
-    setError(null);
     setShowReference(false);
     setCurrentSentenceId(sentence.id);
     setShowLibrary(false);
@@ -153,16 +147,6 @@ export function TranslationPractice() {
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 md:py-8 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-hidden">
       {/* Header Section */}
-      {error && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }} 
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-4 p-3 bg-crimson/10 border-2 border-crimson/20 text-crimson text-xs font-bold rounded-xl flex items-center justify-between"
-        >
-          <span>{error}</span>
-          <button onClick={() => setError(null)}><X className="w-4 h-4" /></button>
-        </motion.div>
-      )}
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8 border-b-4 border-ink pb-4 gap-6">
         <div className="shrink-0">
           <h2 className="text-2xl md:text-3xl font-sans font-black tracking-tighter uppercase text-ink flex items-center gap-3">
@@ -326,6 +310,19 @@ export function TranslationPractice() {
                   <p className="text-sm font-sans font-medium leading-relaxed whitespace-pre-wrap">
                     {evaluation.explanation}
                   </p>
+
+                  {evaluation.grammar && evaluation.grammar.length > 0 && (
+                    <div className="pt-4 border-t border-ink/5">
+                      <h5 className="text-[9px] font-black uppercase text-ink/30 tracking-widest mb-2">Ngữ pháp đã dùng</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {evaluation.grammar.map((g, i) => (
+                          <span key={i} className="text-[11px] font-bold text-crimson bg-crimson/5 px-2 py-1 rounded-lg border border-crimson/10">
+                            {g}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   {evaluation.usageNotes && (
                     <div className="pt-4 border-t border-ink/5">

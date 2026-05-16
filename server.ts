@@ -169,6 +169,7 @@ Return ONLY a valid JSON object.
 {
   "explanation": "Giải thích chi tiết về cấu trúc ngữ pháp và cách dùng trong câu (tiếng Việt)",
   "corrected": "Bản dịch tiếng Anh tự nhiên nhất",
+  "grammar": ["Cấu trúc ngữ pháp 1", "Cấu trúc ngữ pháp 2"],
   "usageNotes": "Lưu ý về ngữ cảnh sử dụng câu này trong thực tế",
   "vocabulary": [{"word": "string", "meaning": "nghĩa tiếng Việt"}]
 }`,
