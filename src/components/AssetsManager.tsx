@@ -40,7 +40,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const [excludeFromNetWorth, setExcludeFromNetWorth] = useState(false);
 
   const [bulkCash, setBulkCash] = useState<Record<number, number>>({});
-  const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200];
+  const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000];
 
   const [isManagingCats, setIsManagingCats] = useState(false);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
