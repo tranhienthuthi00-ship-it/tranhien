@@ -5,10 +5,11 @@ import { useFirebaseSync } from "../lib/useFirebaseSync";
 import type { CustomSentence } from "../types";
 
 interface Evaluation {
-  score: number;
+  explanation: string;
   corrected: string;
-  feedback: string;
+  usageNotes: string;
   vocabulary: { word: string; meaning: string }[];
+  reference?: string;
 }
 
 export function TranslationPractice() {
@@ -66,17 +67,6 @@ export function TranslationPractice() {
     }
   };
 
-  const calculateLocalScore = (user: string, reference: string) => {
-    const userWords = user.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(Boolean);
-    const refWords = reference.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(Boolean);
-    
-    if (refWords.length === 0) return 0;
-    
-    const intersection = userWords.filter(word => refWords.includes(word));
-    const score = Math.round((intersection.length / refWords.length) * 100);
-    return Math.min(score, 100);
-  };
-
   const handleEvaluate = async () => {
     if (!translation.trim()) return;
     setEvaluating(true);
@@ -100,7 +90,6 @@ export function TranslationPractice() {
       if (!response.ok) throw new Error("AI Evaluation failed");
       const data = await response.json();
       
-      // If we have a reference, append it to the AI result for comparison
       if (reference) {
         data.reference = reference;
       }
@@ -110,17 +99,15 @@ export function TranslationPractice() {
       console.error("Error evaluating translation:", error);
       
       if (reference) {
-        // Fallback to local scoring if AI fails but reference exists
-        const localScore = calculateLocalScore(translation, reference);
         setEvaluation({
-          score: localScore,
+          explanation: "AI không phản hồi lúc này để phân tích chuyên sâu. Tuy nhiên, bạn có thể đối chiếu bài làm của mình với bản dịch mẫu bên dưới.",
+          usageNotes: "So sánh cấu trúc câu và từ vựng bạn đã dùng với bản mẫu để tự rút ra kinh nghiệm nhé!",
           corrected: reference,
-          feedback: "AI đang bận, đây là điểm số dựa trên mức độ trùng khớp từ vựng với bản dịch mẫu của bạn.",
           vocabulary: []
         });
-        setError("AI không phản hồi. Đang sử dụng chế độ so sánh bản dịch mẫu.");
+        setError("AI đang bận. Đang sử dụng chế độ đối chiếu bản dịch mẫu.");
       } else {
-        setError("AI không thể chấm điểm lúc này. Vui lòng thử lại sau.");
+        setError("AI không thể phân tích lúc này. Vui lòng thử lại sau.");
       }
     } finally {
       setEvaluating(false);
@@ -321,7 +308,7 @@ export function TranslationPractice() {
                   <Sparkles className="w-8 h-8 text-ink/20" />
                 </div>
                 <h3 className="text-lg font-sans font-bold text-ink/30 uppercase tracking-tighter">Submit your translation</h3>
-                <p className="text-sm text-ink/20 max-w-[200px]">AI sẽ phân tích ngữ pháp, từ vựng và chấm điểm cho bạn.</p>
+                <p className="text-sm text-ink/20 max-w-[200px]">AI sẽ phân tích ngữ pháp, từ vựng và giải thích cách dùng câu cho bạn.</p>
               </motion.div>
             ) : (
               <motion.div
@@ -330,30 +317,24 @@ export function TranslationPractice() {
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-6"
               >
-                {/* Score Circle */}
-                <div className="flex flex-col sm:flex-row items-center gap-6 bg-white/80 sketch-border p-6 shadow-xl relative overflow-hidden">
-                   <div className="absolute top-0 right-0 w-24 h-24 bg-ink/5 -translate-y-1/2 translate-x-1/2 rounded-full hidden sm:block" />
-                   
-                   <div className="relative w-24 h-24 flex-shrink-0 flex items-center justify-center">
-                     <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                       <circle cx="50" cy="50" r="45" className="fill-none stroke-ink/10" strokeWidth="6" />
-                       <circle 
-                         cx="50" cy="50" r="45" 
-                         className="fill-none stroke-crimson" 
-                         strokeWidth="6" 
-                         strokeDasharray={2 * Math.PI * 45}
-                         strokeDashoffset={2 * Math.PI * 45 * (1 - evaluation.score / 100)}
-                         strokeLinecap="round"
-                         style={{ transition: 'stroke-dashoffset 1s ease-out' }}
-                       />
-                     </svg>
-                     <span className="absolute text-2xl font-black">{evaluation.score}</span>
-                   </div>
-                   
-                   <div className="text-center sm:text-left">
-                     <h4 className="text-[10px] font-black uppercase text-ink/40 tracking-widest mb-1">Feedback</h4>
-                     <p className="text-sm font-sans font-medium leading-snug">{evaluation.feedback}</p>
-                   </div>
+                {/* Explanation */}
+                <div className="bg-white/80 sketch-border p-6 shadow-xl space-y-4">
+                  <div className="flex items-center gap-2 text-ink/40">
+                    <Sparkles className="w-4 h-4 text-yellow-500" />
+                    <h4 className="text-[10px] font-black uppercase tracking-widest">Phân tích & Giải thích</h4>
+                  </div>
+                  <p className="text-sm font-sans font-medium leading-relaxed whitespace-pre-wrap">
+                    {evaluation.explanation}
+                  </p>
+                  
+                  {evaluation.usageNotes && (
+                    <div className="pt-4 border-t border-ink/5">
+                      <h5 className="text-[9px] font-black uppercase text-ink/30 tracking-widest mb-2">Lưu ý sử dụng</h5>
+                      <p className="text-[13px] italic text-ink/70 leading-relaxed">
+                        {evaluation.usageNotes}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Correction */}

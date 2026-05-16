@@ -156,20 +156,21 @@ async function startServer() {
       return res.status(400).json({ error: "Missing original or translation" });
     }
 
-    console.log(`[Translation] Evaluating: "${original}" -> "${translation}"`);
+    console.log(`[Translation] Analyzing: "${original}" -> "${translation}"`);
 
     try {
       const result = await ai.models.generateContent({
         model: "gemini-1.5-flash",
-        contents: `Evaluate this translation. Original (VN): "${original}", Translation (EN): "${translation}".
-        
-Return ONLY a valid JSON object. No markdown, no pre-amble, no code blocks.
-JSON Schema:
+        contents: `Analyze this Vietnamese to English translation.
+Original (VN): "${original}"
+Translation (EN): "${translation}"
+
+Return ONLY a valid JSON object.
 {
-  "score": number,
-  "corrected": "string",
-  "feedback": "string",
-  "vocabulary": [{"word": "string", "meaning": "string"}]
+  "explanation": "Giải thích chi tiết về cấu trúc ngữ pháp và cách dùng trong câu (tiếng Việt)",
+  "corrected": "Bản dịch tiếng Anh tự nhiên nhất",
+  "usageNotes": "Lưu ý về ngữ cảnh sử dụng câu này trong thực tế",
+  "vocabulary": [{"word": "string", "meaning": "nghĩa tiếng Việt"}]
 }`,
         config: {
           responseMimeType: "application/json"
@@ -179,7 +180,6 @@ JSON Schema:
       const responseText = result.text.trim();
       const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
       const resultData = JSON.parse(cleanJson);
-      console.log(`[Translation] Score: ${resultData.score}`);
       res.json(resultData);
     } catch (error: any) {
       console.error("Gemini Error (Evaluate):", error);
