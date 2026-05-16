@@ -39,6 +39,9 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const [isNewMoney, setIsNewMoney] = useState(false);
   const [excludeFromNetWorth, setExcludeFromNetWorth] = useState(false);
 
+  const [bulkCash, setBulkCash] = useState<Record<number, number>>({});
+  const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200];
+
   const [isManagingCats, setIsManagingCats] = useState(false);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [newCatName, setNewCatName] = useState("");
@@ -57,6 +60,9 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setIsLoan(!!asset.isLoan);
     setIsNewMoney(!!asset.isNewMoney);
     setExcludeFromNetWorth(!!asset.excludeFromNetWorth);
+    
+    // If it's a new money entry, we might want to sync the bulk cash state if we're doing it that way
+    // For now we'll keep the bulk entry separate or as a generator
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -216,6 +222,40 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const totalDebtsVND = useMemo(() => {
     return assets.filter(a => a.isDebt).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
   }, [assets]);
+
+  const saveBulkCash = () => {
+    const newAssets = assets.filter(a => !a.isNewMoney);
+    const now = Date.now();
+    const bulkCategories = categories.find(c => c.name.toLowerCase().includes("tiền")) || categories[0];
+    
+    // We update denominations using values from bulkCash if they were changed
+    // Otherwise we keep existing denominations if they weren't in bulkCash yet
+    const entries = VND_DENOMINATIONS.map(den => {
+      const qty = bulkCash[den] !== undefined ? bulkCash[den] : (assets.find(a => a.isNewMoney && a.denomination === den)?.quantity || 0);
+      if (qty <= 0) return null;
+      
+      return {
+        id: `new-money-${den}-${now}`,
+        name: `Tiền mặt ${formatCurrency(den, "VND")}`,
+        category: bulkCategories.id,
+        value: den * qty,
+        currency: "VND",
+        quantity: qty,
+        denomination: den,
+        acquiredAt: now,
+        isNewMoney: true,
+        excludeFromNetWorth: true
+      } as Asset;
+    }).filter(Boolean) as Asset[];
+      
+    setAssets([...newAssets, ...entries]);
+    setBulkCash({});
+  };
+
+  const updateBulkQty = (den: number, qtyStr: string) => {
+    const qty = parseInt(qtyStr) || 0;
+    setBulkCash(prev => ({ ...prev, [den]: qty }));
+  };
 
   const COLORS = [
     '#2a2a2a', // ink
@@ -547,12 +587,13 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                       setIsDebt(false);
                       setIsLoan(false);
                       setExcludeFromNetWorth(true); // Default to exclude
+                      setNewName("Tiền mới");
                     }
                   }}
                   className="w-5 h-5 accent-amber-500"
                 />
                 <label htmlFor="isNewMoney" className="text-xs font-bold uppercase tracking-widest text-amber-500 flex items-center gap-2 cursor-pointer">
-                   Tiền mới (New Money - Không tính VCSH)
+                   Tiền mới (Sẽ hiện trong bảng kê riêng)
                 </label>
               </div>
               <div className="flex items-center gap-3 pt-2 border-t border-ink/5">
@@ -657,68 +698,102 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         })}
       </div>
 
-      {newMoneyAssets.length > 0 && (
-        <div className="mt-16 animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between mb-6 border-b-4 border-amber-500 pb-2">
-             <div className="flex items-center gap-3">
-                <button className="p-2 bg-amber-500 text-white rounded-xl shadow-lg">
-                  <Coins size={24} />
-                </button>
-                <div>
-                  <h2 className="text-2xl font-black uppercase tracking-tight text-amber-600">Bảng Kê Tiền Mới</h2>
-                  <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Chi tiết dòng tiền mặt / mới nhập</p>
-                </div>
-             </div>
-             <div className="text-right">
-                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Tổng cộng</p>
-                <p className="text-2xl font-black text-amber-600">{formatCurrency(totalNewMoneyVND, 'VND')}</p>
-             </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse bg-white/40 sketch-border">
-              <thead>
-                <tr className="bg-amber-500/10 text-[10px] font-black uppercase tracking-widest text-amber-600">
-                  <th className="px-4 py-3 border-b-2 border-amber-500">Tên / Loại</th>
-                  <th className="px-4 py-3 border-b-2 border-amber-500 text-right">Mệnh giá</th>
-                  <th className="px-4 py-3 border-b-2 border-amber-500 text-center">Số lượng</th>
-                  <th className="px-4 py-3 border-b-2 border-amber-500 text-right">Thành tiền</th>
-                  <th className="px-4 py-3 border-b-2 border-amber-500 text-center">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm font-sans">
-                {newMoneyAssets.map(asset => (
-                  <tr key={asset.id} className="border-b border-amber-500/10 hover:bg-white/60 transition-colors group">
-                    <td className="px-4 py-4 font-bold text-ink">{asset.name}</td>
-                    <td className="px-4 py-4 font-mono font-bold text-right">{asset.denomination ? formatCurrency(asset.denomination, asset.currency) : "-"}</td>
-                    <td className="px-4 py-4 text-center font-bold text-ink/60">{asset.quantity || 1}</td>
-                    <td className="px-4 py-4 font-mono font-black text-right text-amber-600">
-                      {formatCurrency(asset.value, asset.currency)}
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => startEdit(asset)} className="p-1.5 hover:bg-amber-500 hover:text-white rounded transition-colors text-amber-600">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => removeAsset(asset.id)} className="p-1.5 hover:bg-crimson hover:text-white rounded transition-colors text-crimson">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                <tr className="bg-amber-500/5">
-                   <td colSpan={3} className="px-4 py-4 text-right font-black uppercase tracking-widest text-amber-600 text-[10px]">Tổng cộng</td>
-                   <td className="px-4 py-4 font-mono font-black text-right text-amber-700 text-lg">
-                      {formatCurrency(totalNewMoneyVND, 'VND')}
-                   </td>
-                   <td></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+      {/* Bảng Kê Tiền Mới - Specialized Section */}
+      <div className="mt-16 animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b-4 border-amber-500 pb-2 gap-4">
+           <div className="flex items-center gap-3">
+              <button className="p-2 bg-amber-500 text-white rounded-xl shadow-lg">
+                <Coins size={24} />
+              </button>
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-amber-600">Bảng Kê Tiền Mới</h2>
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Cập nhật nhanh nhiều mệnh giá</p>
+              </div>
+           </div>
+           <div className="flex items-center gap-4 bg-amber-50 p-2 px-4 rounded-xl sketch-border border-amber-200">
+              <div className="text-right">
+                <p className="text-[8px] font-bold text-amber-600 uppercase tracking-widest">Tổng cộng</p>
+                <p className="text-xl font-black text-amber-600">{formatCurrency(totalNewMoneyVND, 'VND')}</p>
+              </div>
+           </div>
         </div>
-      )}
+
+        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 gap-2 mb-6">
+          {VND_DENOMINATIONS.map(den => {
+            const currentAsset = assets.find(a => a.isNewMoney && a.denomination === den);
+            const val = bulkCash[den] !== undefined ? bulkCash[den] : (currentAsset?.quantity || 0);
+            
+            return (
+              <div key={den} className="flex flex-col p-1.5 bg-white/60 sketch-border gap-1 hover:bg-amber-50 transition-colors shadow-sm">
+                <span className="text-[8px] font-black text-ink/40 uppercase tracking-widest">{formatCurrency(den, 'VND').replace('₫', '').trim()}</span>
+                <input 
+                  type="number"
+                  min="0"
+                  value={val || ""}
+                  onChange={(e) => updateBulkQty(den, e.target.value)}
+                  placeholder="0"
+                  className="bg-transparent border-b border-ink/10 text-center font-bold text-amber-600 focus:border-amber-500 outline-none p-0.5 text-xs"
+                />
+                <span className="text-[7px] text-right font-mono text-ink/30 italic">
+                  {formatCurrency(den * val, 'VND').split(',')[0]}...
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-center sm:justify-end mb-10 gap-3">
+           <button 
+             onClick={() => setBulkCash({})}
+             className="sketch-button py-1 px-4 text-[10px] font-bold uppercase tracking-widest text-ink/40 hover:text-ink"
+           >
+             Hủy thay đổi
+           </button>
+           <button 
+             onClick={saveBulkCash}
+             disabled={Object.keys(bulkCash).length === 0}
+             className={cn(
+               "sketch-button sketch-button-primary bg-amber-600 text-white py-1.5 px-6 flex items-center gap-2 text-xs transition-all",
+               Object.keys(bulkCash).length === 0 ? "opacity-50 grayscale cursor-not-allowed" : "hover:shadow-lg active:scale-95"
+             )}
+           >
+             <PiggyBank size={14} /> Lưu Bảng Kê
+           </button>
+        </div>
+
+        {newMoneyAssets.length > 0 && (
+          <div className="overflow-x-auto max-w-full">
+            <div className="inline-block min-w-full align-middle">
+              <table className="min-w-full text-left border-collapse bg-white/40 sketch-border text-xs">
+                <thead>
+                  <tr className="bg-amber-500/10 text-[9px] font-black uppercase tracking-widest text-amber-600">
+                    <th className="px-3 py-2 border-b-2 border-amber-500">Mệnh giá</th>
+                    <th className="px-3 py-2 border-b-2 border-amber-500 text-center">Số lượng</th>
+                    <th className="px-3 py-2 border-b-2 border-amber-500 text-right">Thành tiền</th>
+                    <th className="px-3 py-2 border-b-2 border-amber-500 text-center">Xóa</th>
+                  </tr>
+                </thead>
+                <tbody className="font-sans">
+                  {newMoneyAssets.map(asset => (
+                    <tr key={asset.id} className="border-b border-amber-500/10 hover:bg-white/60 transition-colors">
+                      <td className="px-3 py-2 font-bold text-ink">{asset.denomination ? formatCurrency(asset.denomination, asset.currency) : asset.name}</td>
+                      <td className="px-3 py-2 text-center font-bold text-ink/60">{asset.quantity || 1}</td>
+                      <td className="px-3 py-2 font-mono font-black text-right text-amber-600 whitespace-nowrap">
+                        {formatCurrency(asset.value, asset.currency)}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <button onClick={() => removeAsset(asset.id)} className="text-crimson hover:bg-crimson/10 p-1 rounded">
+                          <Trash2 size={12} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
       
       {filteredAssets.length === 0 && (
         <div className="text-center py-20 opacity-30">
