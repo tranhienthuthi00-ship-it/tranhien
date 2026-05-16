@@ -400,6 +400,16 @@ export function CalendarView({
   const yearlyStats = getYearlyStats();
   const yearlyEvents = getYearlyEvents();
 
+  const getMonthlyStats = () => {
+    const monthStr = format(currentDate, 'yyyy-MM');
+    const monthlyLogs = logs.filter(l => l.date.startsWith(monthStr));
+    const eventCount = monthlyLogs.filter(l => l.type === 'Event').length;
+    const reflectionCount = monthlyLogs.filter(l => l.type === 'Reflection').length;
+    return { eventCount, reflectionCount };
+  };
+
+  const { eventCount: monthlyEventCount, reflectionCount: monthlyReflectionCount } = getMonthlyStats();
+
   if (viewMode === 'Year') {
     return (
       <div className="w-full max-w-[1400px] mx-auto p-2 md:p-6 flex flex-col gap-10">
@@ -518,13 +528,20 @@ export function CalendarView({
                   )}>
                     {format(day, "d")}
                   </span>
+                  
+                  {/* Visual Markers Section */}
+                  <div className="flex gap-1 items-center">
+                    {dayLogs.filter(l => l.type === 'Event').map((_, idx) => (
+                      <div key={idx} className="w-1.5 h-1.5 rounded-full bg-crimson shadow-sm" />
+                    ))}
+                  </div>
                 </div>
 
-                {dayLogs.some(l => l.type === 'Reflection') && (
-                  <div className="absolute top-2 right-2 z-0 opacity-60 text-crimson group-hover:opacity-100 transition-opacity">
-                    <HandDrawnIcon type={dayLogs.find(l => l.type === 'Reflection')?.icon || 'document'} className="w-10 h-10" />
-                  </div>
-                )}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-10 flex flex-wrap gap-2 p-4 items-center justify-center">
+                  {dayLogs.filter(l => l.type === 'Reflection').map(log => (
+                    <HandDrawnIcon key={log.id} type={log.icon || 'document'} className="w-12 h-12" />
+                  ))}
+                </div>
                 
                 <div className="flex-1 overflow-hidden mt-6 space-y-1 relative z-10">
                   {dayLogs.map(log => (
@@ -677,12 +694,18 @@ export function CalendarView({
 
       {/* Monthly Summary Section (Right) */}
       <div className="sketch-border bg-white/40 p-6 space-y-6 h-full min-h-[500px]">
-          <div className="flex items-center justify-between border-b-2 border-ink pb-4">
+          <div className="flex flex-col gap-4 border-b-2 border-ink pb-4">
             <h3 className="text-2xl font-sans font-black tracking-tight uppercase">Monthly Recap</h3>
-            <div className="flex gap-4 text-xs font-sans font-bold text-ink/40">
-              <span className="bg-ink/5 px-2 py-1 rounded">
-                {groupedEvents.length} {groupedEvents.length === 1 ? 'Event' : 'Events'}
-              </span>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 sketch-border border-dashed bg-paper/50 flex flex-col items-center">
+                <span className="text-[9px] font-black uppercase text-ink/40 tracking-widest">Events</span>
+                <span className="text-xl font-black text-crimson">{monthlyEventCount}</span>
+              </div>
+              <div className="p-3 sketch-border border-dashed bg-paper/50 flex flex-col items-center">
+                <span className="text-[9px] font-black uppercase text-ink/40 tracking-widest">Reflections</span>
+                <span className="text-xl font-black text-ink">{monthlyReflectionCount}</span>
+              </div>
             </div>
           </div>
           
