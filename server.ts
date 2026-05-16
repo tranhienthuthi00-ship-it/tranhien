@@ -131,9 +131,10 @@ async function startServer() {
     console.log(`[Translation] Generating sentence for topic: ${topic}`);
     try {
       const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(`Generate one natural, medium-difficulty Vietnamese sentence for translation practice into English. Topic: ${topic}. Output ONLY the Vietnamese sentence text, no tags, no translation, no quotes.`);
-      const response = await result.response;
-      const sentence = response.text().trim().replace(/^["']|["']$/g, '');
+      const prompt = `Generate one natural, medium-difficulty Vietnamese sentence for translation practice into English. Topic: ${topic}. Output ONLY the Vietnamese sentence text, no tags, no translation, no quotes.`;
+      
+      const result = await model.generateContent(prompt);
+      const sentence = result.response.text().trim().replace(/^["']|["']$/g, '');
       
       console.log(`[Translation] Generated: ${sentence}`);
       
@@ -158,11 +159,7 @@ async function startServer() {
 
     try {
       const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent({
-        contents: [{
-          role: "user",
-          parts: [{
-            text: `Evaluate this translation from Vietnamese to English.
+      const prompt = `Evaluate this translation from Vietnamese to English.
 Original (VN): ${original}
 Translation (EN): ${translation}
 
@@ -170,9 +167,10 @@ Provide:
 1. A score from 0-100 based on accuracy, grammar, and naturalness.
 2. A corrected or more natural English version.
 3. Concise feedback in Vietnamese explaining any errors or suggesting better phrasing.
-4. 3-5 key vocabulary words/phrases from the sentence with their meanings in Vietnamese.`
-          }]
-        }],
+4. 3-5 key vocabulary words/phrases from the sentence with their meanings in Vietnamese.`;
+
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -197,9 +195,10 @@ Provide:
         }
       });
 
-      const response = await result.response;
-      const text = response.text();
-      const resultData = JSON.parse(text.trim());
+      const responseText = result.response.text().trim();
+      // Remove any markdown code block markers if present
+      const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
+      const resultData = JSON.parse(cleanJson);
       console.log(`[Translation] Score: ${resultData.score}`);
       res.json(resultData);
     } catch (error: any) {

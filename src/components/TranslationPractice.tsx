@@ -67,10 +67,12 @@ export function TranslationPractice() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ original, translation }),
       });
+      if (!response.ok) throw new Error("AI Evaluation failed");
       const data = await response.json();
       setEvaluation(data);
     } catch (error) {
       console.error("Error evaluating translation:", error);
+      alert("AI không thể chấm điểm lúc này. Vui lòng thử lại sau.");
     } finally {
       setEvaluating(false);
     }

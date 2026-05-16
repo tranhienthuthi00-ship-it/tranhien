@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { Search, X } from "lucide-react";
+import React from "react";
 
 interface Doodle {
   id: string;
@@ -127,18 +126,11 @@ const DOODLES: Doodle[] = [
 ];
 
 export function Doodles() {
-  const [search, setSearch] = useState("");
-
-  const filteredDoodles = DOODLES.filter(doodle => 
-    doodle.name.toLowerCase().includes(search.toLowerCase()) ||
-    doodle.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))
-  );
-
   return (
     <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden text-[#1A1A1A]">
       {/* Background Doodles Layer */}
       <div className="absolute inset-0 opacity-[0.08]">
-        {filteredDoodles.map(doodle => (
+        {DOODLES.map(doodle => (
           <svg 
             key={doodle.id}
             className={doodle.className} 
@@ -152,33 +144,6 @@ export function Doodles() {
             {doodle.elements}
           </svg>
         ))}
-      </div>
-
-      {/* Search Interface Layer */}
-      <div className="absolute top-4 right-4 pointer-events-auto z-[100]">
-        <div className="relative group">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search doodles..."
-            className="w-48 md:w-64 bg-paper/60 backdrop-blur-md border-2 border-ink/20 rounded-full py-1.5 pl-10 pr-4 text-xs font-sans font-medium focus:outline-none focus:border-ink/50 transition-all shadow-sm opacity-20 group-hover:opacity-100 focus:opacity-100"
-          />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink/40" />
-          {search && (
-            <button 
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 hover:text-crimson transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-        {search && (
-          <div className="mt-2 text-[10px] font-sans font-bold uppercase tracking-widest text-ink/40 text-right">
-            Found {filteredDoodles.length} {filteredDoodles.length === 1 ? 'doodle' : 'doodles'}
-          </div>
-        )}
       </div>
     </div>
   );
