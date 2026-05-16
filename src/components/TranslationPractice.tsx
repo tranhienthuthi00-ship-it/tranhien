@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Loader2, Send, Sparkles, RefreshCw, CheckCircle2, ChevronRight, BookOpen, Plus, Library, Trash2, X } from "lucide-react";
+import { Loader2, Send, Sparkles, RefreshCw, CheckCircle2, ChevronRight, BookOpen, Plus, Library, Trash2, X, ListChecks, Type } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useFirebaseSync } from "../lib/useFirebaseSync";
 import type { CustomSentence } from "../types";
+import { SentenceBySentencePractice } from "./SentenceBySentencePractice";
 
 interface Evaluation {
   explanation: string;
@@ -15,6 +16,7 @@ interface Evaluation {
 
 export function TranslationPractice() {
   const { customSentences, setCustomSentences } = useFirebaseSync();
+  const [mode, setMode] = useState<"single" | "paragraph">("single");
   const [original, setOriginal] = useState("");
   const [translation, setTranslation] = useState("");
   const [loading, setLoading] = useState(false);
@@ -146,8 +148,32 @@ export function TranslationPractice() {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 md:py-8 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-hidden">
-      {/* Header Section */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8 border-b-4 border-ink pb-4 gap-6">
+      {/* Mode Switcher */}
+      <div className="flex justify-center mb-8">
+        <div className="bg-paper/80 sketch-border p-1 flex gap-2">
+          <button 
+            onClick={() => setMode("single")}
+            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${mode === "single" ? "bg-ink text-white shadow-lg scale-105" : "text-ink/40 hover:text-ink/60"}`}
+          >
+            <Type className="w-4 h-4" />
+            Câu ngắn
+          </button>
+          <button 
+            onClick={() => setMode("paragraph")}
+            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${mode === "paragraph" ? "bg-ink text-white shadow-lg scale-105" : "text-ink/40 hover:text-ink/60"}`}
+          >
+            <ListChecks className="w-4 h-4" />
+            Dịch đoạn văn
+          </button>
+        </div>
+      </div>
+
+      {mode === "paragraph" ? (
+        <SentenceBySentencePractice />
+      ) : (
+        <>
+          {/* Header Section */}
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8 border-b-4 border-ink pb-4 gap-6">
         <div className="shrink-0">
           <h2 className="text-2xl md:text-3xl font-sans font-black tracking-tighter uppercase text-ink flex items-center gap-3">
             <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-crimson" />
@@ -514,6 +540,8 @@ export function TranslationPractice() {
           </motion.div>
         )}
       </AnimatePresence>
+        </>
+      )}
     </div>
   );
 }
