@@ -10,14 +10,8 @@ const require = createRequire(import.meta.url);
 const { getSubtitles } = require('youtube-captions-scraper');
 
 // Gemini Initialization
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    }
-  }
-});
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const ai: any = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 async function startServer() {
   const app = express();
@@ -136,12 +130,11 @@ async function startServer() {
     const topic = req.query.topic as string || "daily life";
     console.log(`[Translation] Generating sentence for topic: ${topic}`);
     try {
-      const result = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: `Generate one natural, medium-difficulty Vietnamese sentence for translation practice into English. Topic: ${topic}. Output ONLY the Vietnamese sentence text, no tags, no translation, no quotes.`,
-      });
+      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(`Generate one natural, medium-difficulty Vietnamese sentence for translation practice into English. Topic: ${topic}. Output ONLY the Vietnamese sentence text, no tags, no translation, no quotes.`);
+      const response = await result.response;
+      const sentence = response.text().trim().replace(/^["']|["']$/g, '');
       
-      const sentence = result.text.trim().replace(/^["']|["']$/g, '');
       console.log(`[Translation] Generated: ${sentence}`);
       
       if (!sentence) {
@@ -164,9 +157,12 @@ async function startServer() {
     console.log(`[Translation] Evaluating: "${original}" -> "${translation}"`);
 
     try {
-      const result = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: `Evaluate this translation from Vietnamese to English.
+      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent({
+        contents: [{
+          role: "user",
+          parts: [{
+            text: `Evaluate this translation from Vietnamese to English.
 Original (VN): ${original}
 Translation (EN): ${translation}
 
@@ -174,8 +170,10 @@ Provide:
 1. A score from 0-100 based on accuracy, grammar, and naturalness.
 2. A corrected or more natural English version.
 3. Concise feedback in Vietnamese explaining any errors or suggesting better phrasing.
-4. 3-5 key vocabulary words/phrases from the sentence with their meanings in Vietnamese.`,
-        config: {
+4. 3-5 key vocabulary words/phrases from the sentence with their meanings in Vietnamese.`
+          }]
+        }],
+        generationConfig: {
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -199,7 +197,9 @@ Provide:
         }
       });
 
-      const resultData = JSON.parse(result.text.trim());
+      const response = await result.response;
+      const text = response.text();
+      const resultData = JSON.parse(text.trim());
       console.log(`[Translation] Score: ${resultData.score}`);
       res.json(resultData);
     } catch (error: any) {

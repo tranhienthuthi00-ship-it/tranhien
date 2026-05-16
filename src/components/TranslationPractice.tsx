@@ -28,6 +28,14 @@ export function TranslationPractice() {
     "daily life", "work & business", "technology", "travel", "food & dining", "feelings & emotions", "nature"
   ];
 
+  const DEFAULT_SENTENCES = [
+    "Tôi thích học tiếng Anh mỗi ngày để cải thiện tương lai.",
+    "Hôm nay thời tiết thật đẹp, bạn có muốn đi dạo không?",
+    "Công việc của tôi khá bận rộn nhưng tôi luôn cố gắng sắp xếp thời gian.",
+    "Bạn đã bao giờ đến thăm thành phố Đà Lạt chưa?",
+    "Học một ngôn ngữ mới mở ra nhiều cơ hội nghề nghiệp."
+  ];
+
   const fetchNewSentence = async (selectedTopic?: string) => {
     setLoading(true);
     setEvaluation(null);
@@ -38,18 +46,13 @@ export function TranslationPractice() {
       if (data.sentence) {
         setOriginal(data.sentence);
       } else {
-        // Fallback to random library sentence if AI fails
-        if (customSentences.length > 0) {
-          const randomIdx = Math.floor(Math.random() * customSentences.length);
-          setOriginal(customSentences[randomIdx].vietnamese);
-        }
+        const pool = customSentences.length > 0 ? customSentences.map(s => s.vietnamese) : DEFAULT_SENTENCES;
+        setOriginal(pool[Math.floor(Math.random() * pool.length)]);
       }
     } catch (error) {
       console.error("Error fetching sentence:", error);
-      if (customSentences.length > 0) {
-        const randomIdx = Math.floor(Math.random() * customSentences.length);
-        setOriginal(customSentences[randomIdx].vietnamese);
-      }
+      const pool = customSentences.length > 0 ? customSentences.map(s => s.vietnamese) : DEFAULT_SENTENCES;
+      setOriginal(pool[Math.floor(Math.random() * pool.length)]);
     } finally {
       setLoading(false);
     }
@@ -105,9 +108,9 @@ export function TranslationPractice() {
   }, []);
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-2 md:px-4 py-4 md:py-8 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-hidden">
+    <div className="w-full max-w-4xl mx-auto px-4 py-4 md:py-8 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-hidden">
       {/* Header Section */}
-      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between mb-8 border-b-4 border-ink pb-4 gap-6">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8 border-b-4 border-ink pb-4 gap-6">
         <div className="shrink-0">
           <h2 className="text-2xl md:text-3xl font-sans font-black tracking-tighter uppercase text-ink flex items-center gap-3">
             <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-crimson" />
@@ -116,8 +119,8 @@ export function TranslationPractice() {
           <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest mt-1">Luyện dịch Anh - Việt cùng AI</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-          <div className="flex-1 xl:flex-none overflow-x-auto pb-2 scrollbar-none">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+          <div className="flex-1 overflow-x-auto pb-2 sm:pb-0 scrollbar-none">
             <div className="flex bg-paper/50 rounded-xl p-1 sketch-border gap-1 min-w-max">
               {topics.map(t => (
                 <button
@@ -131,25 +134,27 @@ export function TranslationPractice() {
             </div>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 justify-end">
             <button 
               onClick={() => setShowLibrary(true)}
-              className="p-2 sketch-border bg-white hover:bg-paper transition-all relative group"
+              className="px-3 py-2 sketch-border bg-white hover:bg-paper transition-all relative group flex items-center gap-2"
               title="Thư viện câu của tôi"
             >
               <Library className="w-4 h-4" />
+              <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">Library</span>
               {customSentences.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-crimson text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-paper">
+                <span className="bg-crimson text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center">
                   {customSentences.length}
                 </span>
               )}
             </button>
             <button 
               onClick={() => setShowAddModal(true)}
-              className="p-2 sketch-border bg-ink text-white hover:bg-ink/90 transition-all"
+              className="px-3 py-2 sketch-border bg-ink text-white hover:bg-ink/90 transition-all flex items-center gap-2"
               title="Thêm câu mới"
             >
               <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">Add</span>
             </button>
           </div>
         </div>
