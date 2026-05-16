@@ -61,30 +61,32 @@ export function TranslationPractice() {
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 border-b-4 border-ink pb-4 gap-4">
-        <div>
-          <h2 className="text-3xl font-sans font-black tracking-tighter uppercase text-ink flex items-center gap-3">
-            <BookOpen className="w-8 h-8 text-crimson" />
-            Translation Practice
+    <div className="w-full max-w-4xl mx-auto px-2 md:px-4 py-4 md:py-8 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-hidden">
+      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between mb-8 border-b-4 border-ink pb-4 gap-6">
+        <div className="shrink-0">
+          <h2 className="text-2xl md:text-3xl font-sans font-black tracking-tighter uppercase text-ink flex items-center gap-3">
+            <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-crimson" />
+            Translation
           </h2>
-          <p className="text-xs font-bold text-ink/40 uppercase tracking-widest mt-1">Luyện dịch Anh - Việt cùng AI</p>
+          <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest mt-1">Luyện dịch Anh - Việt cùng AI</p>
         </div>
         
-        <div className="flex bg-paper/50 rounded-xl p-1 sketch-border gap-1 overflow-x-auto max-w-full">
-          {topics.map(t => (
-            <button
-              key={t}
-              onClick={() => { setTopic(t); fetchNewSentence(t); }}
-              className={`text-[10px] whitespace-nowrap font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all ${topic === t ? "bg-ink text-white shadow-sm" : "text-ink/40 hover:text-ink hover:bg-white/50"}`}
-            >
-              {t}
-            </button>
-          ))}
+        <div className="w-full xl:w-auto overflow-x-auto pb-2 scrollbar-none">
+          <div className="flex bg-paper/50 rounded-xl p-1 sketch-border gap-1 min-w-max">
+            {topics.map(t => (
+              <button
+                key={t}
+                onClick={() => { setTopic(t); fetchNewSentence(t); }}
+                className={`text-[9px] md:text-[10px] whitespace-nowrap font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all ${topic === t ? "bg-ink text-white shadow-sm" : "text-ink/40 hover:text-ink hover:bg-white/50"}`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
         {/* Input Side */}
         <div className="space-y-6">
           <div className="sketch-border bg-white/60 p-6 space-y-4 relative overflow-hidden group">
@@ -108,7 +110,7 @@ export function TranslationPractice() {
                   <div className="h-4 w-48 bg-ink/10 rounded" />
                 </div>
               ) : (
-                <p className="text-xl md:text-2xl font-sans font-bold leading-relaxed text-ink italic">
+                <p className="text-xl md:text-2xl font-sans font-bold leading-relaxed text-ink italic break-words w-full">
                   "{original}"
                 </p>
               )}
@@ -161,27 +163,28 @@ export function TranslationPractice() {
                 className="space-y-6"
               >
                 {/* Score Circle */}
-                <div className="flex items-center gap-6 bg-white/80 sketch-border p-6 shadow-xl relative overflow-hidden">
-                   <div className="absolute top-0 right-0 w-24 h-24 bg-ink/5 -translate-y-1/2 translate-x-1/2 rounded-full" />
+                <div className="flex flex-col sm:flex-row items-center gap-6 bg-white/80 sketch-border p-6 shadow-xl relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-24 h-24 bg-ink/5 -translate-y-1/2 translate-x-1/2 rounded-full hidden sm:block" />
                    
-                   <div className="relative w-20 h-20 flex-shrink-0 flex items-center justify-center">
-                     <svg className="w-full h-full -rotate-90">
-                       <circle cx="40" cy="40" r="36" className="fill-none stroke-ink/10" strokeWidth="8" />
+                   <div className="relative w-24 h-24 flex-shrink-0 flex items-center justify-center">
+                     <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                       <circle cx="50" cy="50" r="45" className="fill-none stroke-ink/10" strokeWidth="6" />
                        <circle 
-                         cx="40" cy="40" r="36" 
+                         cx="50" cy="50" r="45" 
                          className="fill-none stroke-crimson" 
-                         strokeWidth="8" 
-                         strokeDasharray={2 * Math.PI * 36}
-                         strokeDashoffset={2 * Math.PI * 36 * (1 - evaluation.score / 100)}
+                         strokeWidth="6" 
+                         strokeDasharray={2 * Math.PI * 45}
+                         strokeDashoffset={2 * Math.PI * 45 * (1 - evaluation.score / 100)}
                          strokeLinecap="round"
+                         style={{ transition: 'stroke-dashoffset 1s ease-out' }}
                        />
                      </svg>
-                     <span className="absolute text-xl font-black">{evaluation.score}</span>
+                     <span className="absolute text-2xl font-black">{evaluation.score}</span>
                    </div>
                    
-                   <div>
-                     <h4 className="text-sm font-black uppercase text-ink/40 tracking-widest mb-1">Feedback</h4>
-                     <p className="text-sm font-sans leading-snug">{evaluation.feedback}</p>
+                   <div className="text-center sm:text-left">
+                     <h4 className="text-[10px] font-black uppercase text-ink/40 tracking-widest mb-1">Feedback</h4>
+                     <p className="text-sm font-sans font-medium leading-snug">{evaluation.feedback}</p>
                    </div>
                 </div>
 

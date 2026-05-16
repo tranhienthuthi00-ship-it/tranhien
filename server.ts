@@ -135,11 +135,11 @@ async function startServer() {
   app.get("/api/translation/sentence", async (req, res) => {
     const topic = req.query.topic as string || "daily life";
     try {
-      const response = await ai.models.generateContent({
+      const result = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Generate a natural Vietnamese sentence for translation practice into English. Topic: ${topic}. Return only the Vietnamese sentence.`,
       });
-      res.json({ sentence: response.text.trim() });
+      res.json({ sentence: result.text.trim() });
     } catch (error: any) {
       console.error("Gemini Error:", error);
       res.status(500).json({ error: "Failed to generate sentence" });
@@ -153,17 +153,17 @@ async function startServer() {
     }
 
     try {
-      const response = await ai.models.generateContent({
+      const result = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Evaluate this translation from Vietnamese to English.
-        Original (VN): ${original}
-        Translation (EN): ${translation}
-        
-        Provide:
-        1. A score from 0-100.
-        2. A corrected/improved version.
-        3. Simple explanations for any errors or improvements.
-        4. Key vocabulary used in the sentence.`,
+Original (VN): ${original}
+Translation (EN): ${translation}
+
+Provide:
+1. A score from 0-100.
+2. A corrected/improved version.
+3. Simple explanations for any errors or improvements.
+4. Key vocabulary used in the sentence.`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -188,8 +188,8 @@ async function startServer() {
         }
       });
 
-      const result = JSON.parse(response.text.trim());
-      res.json(result);
+      const resultData = JSON.parse(result.text.trim());
+      res.json(resultData);
     } catch (error: any) {
       console.error("Gemini Error:", error);
       res.status(500).json({ error: "Failed to evaluate translation" });
