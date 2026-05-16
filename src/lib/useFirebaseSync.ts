@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory, VideoDictation } from '../types';
+import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory, VideoDictation, CustomSentence } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -65,6 +65,7 @@ export function useFirebaseSync() {
   const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [dictations, setDictations] = useState<VideoDictation[]>([]);
+  const [customSentences, setCustomSentences] = useState<CustomSentence[]>([]);
   const [assetCategories, setAssetCategories] = useState<AssetCategory[]>([
     { id: 'cat-money', name: 'Tiền mặt & NH', icon: 'Wallet' },
     { id: 'cat-realestate', name: 'Bất động sản', icon: 'Home' },
@@ -185,6 +186,9 @@ export function useFirebaseSync() {
     const unsubDictations = onSnapshot(collection(db, `users/${user.uid}/dictations`), (snap) => {
       setDictations(snap.docs.map(d => d.data() as VideoDictation).sort((a,b) => b.lastModified - a.lastModified));
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/dictations`));
+    const unsubCustomSentences = onSnapshot(collection(db, `users/${user.uid}/customSentences`), (snap) => {
+      setCustomSentences(snap.docs.map(d => d.data() as CustomSentence).sort((a,b) => b.createdAt - a.createdAt));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/customSentences`));
     const unsubTags = onSnapshot(doc(db, `users/${user.uid}/data/tags`), (docSnap) => {
       if (docSnap.exists() && docSnap.data().tags) {
         setTags(docSnap.data().tags);
@@ -196,7 +200,7 @@ export function useFirebaseSync() {
     return () => {
       clearTimeout(timer);
       unsubWords(); unsubTasks(); unsubWishlist(); unsubLogs(); unsubFood();
-      unsubIdeas(); unsubAssets(); unsubCats(); unsubDictations(); unsubTags();
+      unsubIdeas(); unsubAssets(); unsubCats(); unsubDictations(); unsubCustomSentences(); unsubTags();
     };
   }, [user]);
 
@@ -254,6 +258,7 @@ export function useFirebaseSync() {
     assets, setAssets: createSyncSetter<Asset>('assets', assets, setAssets),
     assetCategories, setAssetCategories: createSyncSetter<AssetCategory>('assetCategories', assetCategories, setAssetCategories),
     dictations, setDictations: createSyncSetter<VideoDictation>('dictations', dictations, setDictations as any),
+    customSentences, setCustomSentences: createSyncSetter<CustomSentence>('customSentences', customSentences, setCustomSentences),
     tags, setTags: createSyncSetter<any>('tags', tags as any, setTags as any, true),
   };
 }

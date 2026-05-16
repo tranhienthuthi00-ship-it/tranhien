@@ -152,6 +152,19 @@
         "lastModified": { "type": "number" }
       },
       "required": ["id", "youtubeId", "title", "content", "lastModified"]
+    },
+    "CustomSentence": {
+      "title": "CustomSentence",
+      "description": "User's own Vietnamese sentences for translation practice.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "vietnamese": { "type": "string" },
+        "english": { "type": "string" },
+        "topic": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "vietnamese", "createdAt"]
     }
   },
   "firestore": {
@@ -190,6 +203,10 @@
     "users/{userId}/dictations/{dictationId}": {
       "schema": { "$ref": "#/entities/VideoDictation" },
       "description": "Video dictations."
+    },
+    "users/{userId}/customSentences/{sentenceId}": {
+      "schema": { "$ref": "#/entities/CustomSentence" },
+      "description": "User custom sentences for translation."
     },
     "users/{userId}/data/tags": {
       "schema": { "$ref": "#/entities/UserTags" },

@@ -107,3 +107,11 @@ export interface VideoDictation {
   lastModified: number;
   progress?: number;
 }
+
+export interface CustomSentence {
+  id: string;
+  vietnamese: string;
+  english?: string;
+  topic: string;
+  createdAt: number;
+}

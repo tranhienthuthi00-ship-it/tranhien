@@ -134,14 +134,23 @@ async function startServer() {
   // NEW: Translation Practice Endpoints
   app.get("/api/translation/sentence", async (req, res) => {
     const topic = req.query.topic as string || "daily life";
+    console.log(`[Translation] Generating sentence for topic: ${topic}`);
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Generate a natural Vietnamese sentence for translation practice into English. Topic: ${topic}. Return only the Vietnamese sentence.`,
+        model: "gemini-1.5-flash",
+        contents: `Generate one natural, medium-difficulty Vietnamese sentence for translation practice into English. Topic: ${topic}. Output ONLY the Vietnamese sentence text, no tags, no translation, no quotes.`,
       });
-      res.json({ sentence: result.text.trim() });
+      
+      const sentence = result.text.trim().replace(/^["']|["']$/g, '');
+      console.log(`[Translation] Generated: ${sentence}`);
+      
+      if (!sentence) {
+        throw new Error("Empty response from Gemini");
+      }
+
+      res.json({ sentence });
     } catch (error: any) {
-      console.error("Gemini Error:", error);
+      console.error("Gemini Error (Sentence):", error);
       res.status(500).json({ error: "Failed to generate sentence" });
     }
   });
@@ -152,18 +161,20 @@ async function startServer() {
       return res.status(400).json({ error: "Missing original or translation" });
     }
 
+    console.log(`[Translation] Evaluating: "${original}" -> "${translation}"`);
+
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-1.5-flash",
         contents: `Evaluate this translation from Vietnamese to English.
 Original (VN): ${original}
 Translation (EN): ${translation}
 
 Provide:
-1. A score from 0-100.
-2. A corrected/improved version.
-3. Simple explanations for any errors or improvements.
-4. Key vocabulary used in the sentence.`,
+1. A score from 0-100 based on accuracy, grammar, and naturalness.
+2. A corrected or more natural English version.
+3. Concise feedback in Vietnamese explaining any errors or suggesting better phrasing.
+4. 3-5 key vocabulary words/phrases from the sentence with their meanings in Vietnamese.`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -189,9 +200,10 @@ Provide:
       });
 
       const resultData = JSON.parse(result.text.trim());
+      console.log(`[Translation] Score: ${resultData.score}`);
       res.json(resultData);
     } catch (error: any) {
-      console.error("Gemini Error:", error);
+      console.error("Gemini Error (Evaluate):", error);
       res.status(500).json({ error: "Failed to evaluate translation" });
     }
   });

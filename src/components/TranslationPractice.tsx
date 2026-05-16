@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Loader2, Send, Sparkles, RefreshCw, CheckCircle2, ChevronRight, BookOpen } from "lucide-react";
+import { Loader2, Send, Sparkles, RefreshCw, CheckCircle2, ChevronRight, BookOpen, Plus, Library, Trash2, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useFirebaseSync } from "../lib/useFirebaseSync";
+import type { CustomSentence } from "../types";
 
 interface Evaluation {
   score: number;
@@ -10,12 +12,17 @@ interface Evaluation {
 }
 
 export function TranslationPractice() {
+  const { customSentences, setCustomSentences } = useFirebaseSync();
   const [original, setOriginal] = useState("");
   const [translation, setTranslation] = useState("");
   const [loading, setLoading] = useState(false);
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [topic, setTopic] = useState("daily life");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [newSentenceText, setNewSentenceText] = useState("");
+  const [newSentenceTopic, setNewSentenceTopic] = useState("personal");
 
   const topics = [
     "daily life", "work & business", "technology", "travel", "food & dining", "feelings & emotions", "nature"
@@ -30,9 +37,19 @@ export function TranslationPractice() {
       const data = await response.json();
       if (data.sentence) {
         setOriginal(data.sentence);
+      } else {
+        // Fallback to random library sentence if AI fails
+        if (customSentences.length > 0) {
+          const randomIdx = Math.floor(Math.random() * customSentences.length);
+          setOriginal(customSentences[randomIdx].vietnamese);
+        }
       }
     } catch (error) {
       console.error("Error fetching sentence:", error);
+      if (customSentences.length > 0) {
+        const randomIdx = Math.floor(Math.random() * customSentences.length);
+        setOriginal(customSentences[randomIdx].vietnamese);
+      }
     } finally {
       setLoading(false);
     }
@@ -56,12 +73,40 @@ export function TranslationPractice() {
     }
   };
 
+  const handleAddSentence = () => {
+    if (!newSentenceText.trim()) return;
+    const newSentence: CustomSentence = {
+      id: crypto.randomUUID(),
+      vietnamese: newSentenceText.trim(),
+      topic: newSentenceTopic,
+      createdAt: Date.now(),
+    };
+    setCustomSentences([newSentence, ...customSentences]);
+    setNewSentenceText("");
+    setShowAddModal(false);
+  };
+
+  const deleteSentence = (id: string) => {
+    setCustomSentences(customSentences.filter(s => s.id !== id));
+  };
+
+  const practiceSaved = (sentence: CustomSentence) => {
+    setOriginal(sentence.vietnamese);
+    setTopic(sentence.topic);
+    setTranslation("");
+    setEvaluation(null);
+    setShowLibrary(false);
+  };
+
   useEffect(() => {
-    fetchNewSentence();
+    if (original === "") {
+       fetchNewSentence();
+    }
   }, []);
 
   return (
     <div className="w-full max-w-4xl mx-auto px-2 md:px-4 py-4 md:py-8 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-hidden">
+      {/* Header Section */}
       <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between mb-8 border-b-4 border-ink pb-4 gap-6">
         <div className="shrink-0">
           <h2 className="text-2xl md:text-3xl font-sans font-black tracking-tighter uppercase text-ink flex items-center gap-3">
@@ -71,17 +116,41 @@ export function TranslationPractice() {
           <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest mt-1">Luyện dịch Anh - Việt cùng AI</p>
         </div>
         
-        <div className="w-full xl:w-auto overflow-x-auto pb-2 scrollbar-none">
-          <div className="flex bg-paper/50 rounded-xl p-1 sketch-border gap-1 min-w-max">
-            {topics.map(t => (
-              <button
-                key={t}
-                onClick={() => { setTopic(t); fetchNewSentence(t); }}
-                className={`text-[9px] md:text-[10px] whitespace-nowrap font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all ${topic === t ? "bg-ink text-white shadow-sm" : "text-ink/40 hover:text-ink hover:bg-white/50"}`}
-              >
-                {t}
-              </button>
-            ))}
+        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+          <div className="flex-1 xl:flex-none overflow-x-auto pb-2 scrollbar-none">
+            <div className="flex bg-paper/50 rounded-xl p-1 sketch-border gap-1 min-w-max">
+              {topics.map(t => (
+                <button
+                  key={t}
+                  onClick={() => { setTopic(t); fetchNewSentence(t); }}
+                  className={`text-[9px] md:text-[10px] whitespace-nowrap font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all ${topic === t ? "bg-ink text-white shadow-sm" : "text-ink/40 hover:text-ink hover:bg-white/50"}`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setShowLibrary(true)}
+              className="p-2 sketch-border bg-white hover:bg-paper transition-all relative group"
+              title="Thư viện câu của tôi"
+            >
+              <Library className="w-4 h-4" />
+              {customSentences.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-crimson text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-paper">
+                  {customSentences.length}
+                </span>
+              )}
+            </button>
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="p-2 sketch-border bg-ink text-white hover:bg-ink/90 transition-all"
+              title="Thêm câu mới"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -89,7 +158,7 @@ export function TranslationPractice() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
         {/* Input Side */}
         <div className="space-y-6">
-          <div className="sketch-border bg-white/60 p-6 space-y-4 relative overflow-hidden group">
+          <div className="sketch-border bg-white/60 p-6 space-y-4 relative overflow-hidden group min-h-[160px]">
             <div className="flex justify-between items-center">
               <span className="text-[10px] font-black uppercase text-ink/40 tracking-widest flex items-center gap-2">
                 <Sparkles className="w-3 h-3 text-yellow-500" />
@@ -104,21 +173,22 @@ export function TranslationPractice() {
               </button>
             </div>
             
-            <div className="min-h-[80px] flex items-center">
+            <div className="min-h-[80px] flex items-center justify-center text-center">
               {loading ? (
-                <div className="flex items-center gap-3 text-ink/30 animate-pulse">
+                <div className="flex flex-col items-center gap-3 text-ink/30 animate-pulse">
                   <div className="h-4 w-48 bg-ink/10 rounded" />
+                  <div className="h-4 w-32 bg-ink/10 rounded" />
                 </div>
               ) : (
                 <p className="text-xl md:text-2xl font-sans font-bold leading-relaxed text-ink italic break-words w-full">
-                  "{original}"
+                  {original ? `"${original}"` : "Đang tải câu mới..."}
                 </p>
               )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest ml-1">Bản dịch của bạn</label>
+            <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest ml-1">Bản dịch của bạn (English)</label>
             <div className="relative">
               <textarea
                 value={translation}
@@ -129,7 +199,7 @@ export function TranslationPractice() {
               />
               <button
                 onClick={handleEvaluate}
-                disabled={evaluating || !translation.trim() || loading}
+                disabled={evaluating || !translation.trim() || loading || !original}
                 className="absolute bottom-4 right-4 bg-ink text-white p-3 rounded-full shadow-lg hover:scale-110 active:scale-95 disabled:scale-100 disabled:opacity-20 transition-all z-10"
               >
                 {evaluating ? <Loader2 className="animate-spin w-5 h-5" /> : <Send className="w-5 h-5" />}
@@ -147,13 +217,13 @@ export function TranslationPractice() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex flex-col items-center justify-center p-12 text-center h-[400px] sketch-border border-dashed border-ink/10 bg-white/10"
+                className="flex flex-col items-center justify-center p-12 text-center h-full sketch-border border-dashed border-ink/10 bg-white/10"
               >
                 <div className="w-16 h-16 rounded-full bg-paper flex items-center justify-center mb-4 opacity-50">
                   <Sparkles className="w-8 h-8 text-ink/20" />
                 </div>
                 <h3 className="text-lg font-sans font-bold text-ink/30 uppercase tracking-tighter">Submit your translation</h3>
-                <p className="text-sm text-ink/20 max-w-[200px]">AI will analyze your grammar and suggest improvements.</p>
+                <p className="text-sm text-ink/20 max-w-[200px]">AI sẽ phân tích ngữ pháp, từ vựng và chấm điểm cho bạn.</p>
               </motion.div>
             ) : (
               <motion.div
@@ -230,6 +300,131 @@ export function TranslationPractice() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Library Drawer/Overlay */}
+      <AnimatePresence>
+        {showLibrary && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-ink/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-paper sketch-border w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden"
+            >
+              <div className="p-6 border-b-2 border-ink flex justify-between items-center">
+                <h3 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
+                  <Library className="w-6 h-6" /> Thư viện của tôi
+                </h3>
+                <button onClick={() => setShowLibrary(false)} className="p-2 hover:bg-ink/5 rounded-full">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 space-y-3">
+                {customSentences.length === 0 ? (
+                  <div className="text-center py-12 text-ink/30 italic">Chưa có câu nào được lưu.</div>
+                ) : (
+                  customSentences.map(s => (
+                    <div key={s.id} className="group flex items-start gap-4 p-4 sketch-border bg-white hover:bg-paper transition-all">
+                      <div className="flex-1 cursor-pointer" onClick={() => practiceSaved(s)}>
+                        <p className="font-sans font-bold text-ink leading-snug">"{s.vietnamese}"</p>
+                        <div className="flex items-center gap-3 mt-2">
+                           <span className="text-[10px] font-black uppercase text-ink/40 tracking-widest bg-ink/5 px-2 py-0.5 rounded">
+                             {s.topic}
+                           </span>
+                           <span className="text-[10px] font-medium text-ink/30">
+                             {new Date(s.createdAt).toLocaleDateString()}
+                           </span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => deleteSentence(s.id)}
+                        className="p-2 text-ink/20 hover:text-crimson transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Add Sentence Modal */}
+      <AnimatePresence>
+        {showAddModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-ink/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              className="bg-paper sketch-border w-full max-w-lg p-8 space-y-6"
+            >
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black uppercase tracking-tighter">Thêm câu luyện dịch</h3>
+                <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-ink/5 rounded-full">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest ml-1">Nội dung (Tiếng Việt)</label>
+                  <textarea 
+                    value={newSentenceText}
+                    onChange={(e) => setNewSentenceText(e.target.value)}
+                    placeholder="Nhập câu tiếng Việt bạn muốn luyện dịch..."
+                    className="w-full h-32 bg-white sketch-border p-4 font-sans text-lg focus:outline-none focus:ring-2 focus:ring-ink/10 resize-none"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest ml-1">Chủ đề</label>
+                  <select 
+                    value={newSentenceTopic}
+                    onChange={(e) => setNewSentenceTopic(e.target.value)}
+                    className="w-full bg-white sketch-border p-3 font-sans focus:outline-none"
+                  >
+                    <option value="personal">Cá nhân</option>
+                    <option value="work">Công việc</option>
+                    <option value="daily">Hàng ngày</option>
+                    <option value="academic">Học thuật</option>
+                    <option value="other">Khác</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-3 text-xs font-black uppercase tracking-widest border-2 border-ink/10 hover:bg-ink/5 transition-all"
+                >
+                  Hủy
+                </button>
+                <button 
+                  onClick={handleAddSentence}
+                  disabled={!newSentenceText.trim()}
+                  className="flex-1 py-3 text-xs font-black uppercase tracking-widest bg-ink text-white hover:bg-ink/90 transition-all disabled:opacity-30"
+                >
+                  Lưu
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
