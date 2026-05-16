@@ -4,12 +4,26 @@ import path from "path";
 import { YoutubeTranscript } from 'youtube-transcript';
 import { Innertube } from 'youtubei.js';
 import { createRequire } from 'module';
+import { GoogleGenAI, Type } from "@google/genai";
+
 const require = createRequire(import.meta.url);
 const { getSubtitles } = require('youtube-captions-scraper');
+
+// Gemini Initialization
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+  httpOptions: {
+    headers: {
+      'User-Agent': 'aistudio-build',
+    }
+  }
+});
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  
+  app.use(express.json());
   
   let yt: any = null;
   
@@ -115,6 +129,71 @@ async function startServer() {
     return res.status(404).json({ 
       error: `Không thể lấy được phụ đề cho video này. ${lastError ? `(${lastError})` : ""} Vui lòng kiểm tra xem video có phụ đề (CC) hay không, hoặc thử dán phụ đề thủ công.` 
     });
+  });
+
+  // NEW: Translation Practice Endpoints
+  app.get("/api/translation/sentence", async (req, res) => {
+    const topic = req.query.topic as string || "daily life";
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Generate a natural Vietnamese sentence for translation practice into English. Topic: ${topic}. Return only the Vietnamese sentence.`,
+      });
+      res.json({ sentence: response.text.trim() });
+    } catch (error: any) {
+      console.error("Gemini Error:", error);
+      res.status(500).json({ error: "Failed to generate sentence" });
+    }
+  });
+
+  app.post("/api/translation/evaluate", async (req, res) => {
+    const { original, translation } = req.body;
+    if (!original || !translation) {
+      return res.status(400).json({ error: "Missing original or translation" });
+    }
+
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Evaluate this translation from Vietnamese to English.
+        Original (VN): ${original}
+        Translation (EN): ${translation}
+        
+        Provide:
+        1. A score from 0-100.
+        2. A corrected/improved version.
+        3. Simple explanations for any errors or improvements.
+        4. Key vocabulary used in the sentence.`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              score: { type: Type.INTEGER },
+              corrected: { type: Type.STRING },
+              feedback: { type: Type.STRING },
+              vocabulary: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    word: { type: Type.STRING },
+                    meaning: { type: Type.STRING }
+                  }
+                }
+              }
+            },
+            required: ["score", "corrected", "feedback", "vocabulary"]
+          }
+        }
+      });
+
+      const result = JSON.parse(response.text.trim());
+      res.json(result);
+    } catch (error: any) {
+      console.error("Gemini Error:", error);
+      res.status(500).json({ error: "Failed to evaluate translation" });
+    }
   });
 
   // Vite middleware for development

@@ -6,7 +6,7 @@ interface Doodle {
   name: string;
   tags: string[];
   viewBox: string;
-  elements: JSX.Element;
+  elements: React.ReactNode;
   className: string;
 }
 

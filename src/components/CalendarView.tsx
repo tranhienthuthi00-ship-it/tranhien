@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LogEntry } from "@/types";
 
-export function HandDrawnIcon({ type, className }: { type: string, className?: string }) {
+export function HandDrawnIcon({ type, className, key }: { type: string, className?: string, key?: string | number }) {
   const baseProps = {
     width: "24", height: "24", viewBox: "0 0 100 100", fill: "none", 
     stroke: "currentColor", strokeWidth: "6", strokeLinecap: "round" as const, 

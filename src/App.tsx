@@ -12,9 +12,10 @@ import { ContentManager } from "./components/ContentManager";
 import { AssetsManager } from "./components/AssetsManager";
 import { YouTubeDictation } from "./components/YouTubeDictation";
 import { SpeechGame } from "./components/SpeechGame";
+import { TranslationPractice } from "./components/TranslationPractice";
 import Flashcards from "./components/Flashcards";
 import { useFirebaseSync } from "./lib/useFirebaseSync";
-import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain } from "lucide-react";
+import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages } from "lucide-react";
 
 export default function App() {
   const {
@@ -32,7 +33,7 @@ export default function App() {
   } = useFirebaseSync();
 
   const [activeTab, setActiveTab] = useState<Tab>("English Hub");
-  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation" | "Speech" | "SRS">("Academy");
+  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation" | "Speech" | "SRS" | "Translation">("Academy");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Places" | "Content" | "Assets">("Lists");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
@@ -131,6 +132,13 @@ export default function App() {
                 Speech
               </button>
               <button 
+                onClick={() => setActiveEnglishSubTab("Translation")}
+                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "Translation" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+              >
+                <Languages className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />
+                Translation
+              </button>
+              <button 
                 onClick={() => setActiveEnglishSubTab("SRS")}
                 className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "SRS" ? "bg-crimson text-white border-crimson scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
               >
@@ -142,6 +150,7 @@ export default function App() {
             {activeEnglishSubTab === "Learning Games" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={setActiveEnglishSubTab} />}
             {activeEnglishSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} />}
             {activeEnglishSubTab === "Speech" && <SpeechGame words={words} updateWordDifficulty={updateWordDifficulty} />}
+            {activeEnglishSubTab === "Translation" && <TranslationPractice />}
             {activeEnglishSubTab === "SRS" && <Flashcards words={words} setWords={setWords} />}
           </div>
         )}
