@@ -115,3 +115,11 @@ export interface CustomSentence {
   topic: string;
   createdAt: number;
 }
+
+export interface PracticeParagraph {
+  id: string;
+  title: string;
+  vietnamese: string;
+  english: string;
+  createdAt: number;
+}
