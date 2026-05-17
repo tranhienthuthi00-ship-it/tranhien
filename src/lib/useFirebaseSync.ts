@@ -217,15 +217,40 @@ export function useFirebaseSync() {
     };
   }, [user]);
 
+  // Refs for sync closures
+  const wordsRef = React.useRef(words);
+  const tasksRef = React.useRef(tasks);
+  const wishlistRef = React.useRef(wishlist);
+  const logsRef = React.useRef(logs);
+  const foodRef = React.useRef(foodPlaces);
+  const ideasRef = React.useRef(contentIdeas);
+  const assetsRef = React.useRef(assets);
+  const dictationsRef = React.useRef(dictations);
+  const goalsRef = React.useRef(studyGoals);
+  const achRef = React.useRef(achievements);
+
+  useEffect(() => { wordsRef.current = words; }, [words]);
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
+  useEffect(() => { wishlistRef.current = wishlist; }, [wishlist]);
+  useEffect(() => { logsRef.current = logs; }, [logs]);
+  useEffect(() => { foodRef.current = foodPlaces; }, [foodPlaces]);
+  useEffect(() => { ideasRef.current = contentIdeas; }, [contentIdeas]);
+  useEffect(() => { assetsRef.current = assets; }, [assets]);
+  useEffect(() => { dictationsRef.current = dictations; }, [dictations]);
+  useEffect(() => { goalsRef.current = studyGoals; }, [studyGoals]);
+  useEffect(() => { achRef.current = achievements; }, [achievements]);
+
   // Diff sync wrapper
   const createSyncSetter = <T extends { id: string }>(
     collectionName: string, 
-    currentItems: T[], 
+    itemsRef: React.MutableRefObject<T[]>,
     setLocalState: React.Dispatch<React.SetStateAction<T[]>>,
     isSingleDoc: boolean = false
   ) => {
     return async (newItems: T[] | string[]) => {
       if (!user) return;
+
+      const currentItems = itemsRef.current;
 
       // Optimistic update
       if (!isSingleDoc) {
@@ -242,11 +267,24 @@ export function useFirebaseSync() {
         const oldIds = new Set(currentItems.map(i => i.id));
         const newIds = new Set(newItemsArr.map(i => i.id));
 
-        const toAddOrUpdate = newItemsArr.filter(i => !oldIds.has(i.id) || JSON.stringify(i) !== JSON.stringify(currentItems.find(c => c.id === i.id)));
+        const toAddOrUpdate = newItemsArr.filter(i => {
+          const existing = currentItems.find(c => c.id === i.id);
+          if (!existing) return true;
+          // Cleaner comparison
+          const cleanNew = JSON.stringify(Object.keys(i).sort().reduce((obj: any, key) => {
+            if (i[key as keyof T] !== undefined) obj[key] = i[key as keyof T];
+            return obj;
+          }, {}));
+          const cleanOld = JSON.stringify(Object.keys(existing).sort().reduce((obj: any, key) => {
+            if (existing[key as keyof T] !== undefined) obj[key] = existing[key as keyof T];
+            return obj;
+          }, {}));
+          return cleanNew !== cleanOld;
+        });
+        
         const toDelete = currentItems.filter(i => !newIds.has(i.id));
 
         for (const item of toAddOrUpdate) {
-          // Remove undefined values to prevent Firestore errors
           const cleanItem = Object.fromEntries(Object.entries(item).filter(([_, v]) => v !== undefined));
           await setDoc(doc(db, `users/${user.uid}/${collectionName}/${item.id}`), cleanItem);
         }
@@ -255,26 +293,26 @@ export function useFirebaseSync() {
         }
       } catch (err: any) {
         console.error("Sync error:", err);
-        alert("Đã xảy ra lỗi đồng bộ! " + err.message);
+        // Don't alert for every small error if it's transient
       }
     };
   };
 
   return {
     user, loading,
-    words, setWords: createSyncSetter<Word>('words', words, setWords),
-    tasks, setTasks: createSyncSetter<Task>('tasks', tasks, setTasks),
-    wishlist, setWishlist: createSyncSetter<WishlistItem>('wishlistItems', wishlist, setWishlist),
-    logs, setLogs: createSyncSetter<LogEntry>('logEntries', logs, setLogs),
-    foodPlaces, setFoodPlaces: createSyncSetter<FoodPlace>('foodPlaces', foodPlaces, setFoodPlaces),
-    contentIdeas, setContentIdeas: createSyncSetter<ContentIdea>('contentIdeas', contentIdeas, setContentIdeas),
-    assets, setAssets: createSyncSetter<Asset>('assets', assets, setAssets),
-    assetCategories, setAssetCategories: createSyncSetter<AssetCategory>('assetCategories', assetCategories, setAssetCategories),
-    dictations, setDictations: createSyncSetter<VideoDictation>('dictations', dictations, setDictations as any),
-    customSentences, setCustomSentences: createSyncSetter<CustomSentence>('customSentences', customSentences, setCustomSentences),
-    practiceParagraphs, setPracticeParagraphs: createSyncSetter<PracticeParagraph>('practiceParagraphs', practiceParagraphs, setPracticeParagraphs),
-    studyGoals, setStudyGoals: createSyncSetter<StudyGoal>('studyGoals', studyGoals, setStudyGoals),
-    achievements, setAchievements: createSyncSetter<Achievement>('achievements', achievements, setAchievements),
-    tags, setTags: createSyncSetter<any>('tags', tags as any, setTags as any, true),
+    words, setWords: createSyncSetter<Word>('words', wordsRef, setWords),
+    tasks, setTasks: createSyncSetter<Task>('tasks', tasksRef, setTasks),
+    wishlist, setWishlist: createSyncSetter<WishlistItem>('wishlistItems', wishlistRef, setWishlist),
+    logs, setLogs: createSyncSetter<LogEntry>('logEntries', logsRef, setLogs),
+    foodPlaces, setFoodPlaces: createSyncSetter<FoodPlace>('foodPlaces', foodRef, setFoodPlaces),
+    contentIdeas, setContentIdeas: createSyncSetter<ContentIdea>('contentIdeas', ideasRef, setContentIdeas),
+    assets, setAssets: createSyncSetter<Asset>('assets', assetsRef, setAssets),
+    assetCategories, setAssetCategories: createSyncSetter<AssetCategory>('assetCategories', React.createRef(), setAssetCategories), // Categories rarely change so fast
+    dictations, setDictations: createSyncSetter<VideoDictation>('dictations', dictationsRef, setDictations as any),
+    customSentences, setCustomSentences: createSyncSetter<CustomSentence>('customSentences', React.createRef(), setCustomSentences),
+    practiceParagraphs, setPracticeParagraphs: createSyncSetter<PracticeParagraph>('practiceParagraphs', React.createRef(), setPracticeParagraphs),
+    studyGoals, setStudyGoals: createSyncSetter<StudyGoal>('studyGoals', goalsRef, setStudyGoals),
+    achievements, setAchievements: createSyncSetter<Achievement>('achievements', achRef, setAchievements),
+    tags, setTags: createSyncSetter<any>('tags', React.createRef(), setTags as any, true),
   };
 }

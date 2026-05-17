@@ -137,7 +137,7 @@ export interface StudyGoal {
   type: 'daily_sentences' | 'paragraph_completion' | 'custom' | 'habit';
   targetValue: number;
   currentValue: number;
-  unit?: string;
+  notes?: string;
   deadline?: number; // timestamp
   createdAt: number;
   isCompleted: boolean;
