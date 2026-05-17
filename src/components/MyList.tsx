@@ -168,7 +168,7 @@ export function MyList({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4 md:p-6 max-w-5xl mx-auto">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* CHECKLIST */}
       <section className="space-y-4">
         <div className="flex items-center gap-3 mb-4">

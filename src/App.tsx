@@ -37,7 +37,7 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<Tab>("English Hub");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation" | "Speech" | "SRS" | "Translation">("Academy");
-  const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Places" | "Content" | "Assets" | "Goals">("Lists");
+  const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Places" | "Content" | "Assets">("Lists");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
 
@@ -161,7 +161,7 @@ export default function App() {
         {activeTab === "Collections" && (
           <div className="flex flex-col gap-4">
             <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center flex-wrap gap-2 mb-2 px-4 text-ink/60">
-              {(["Lists", "Places", "Content", "Assets", "Goals"] as const).map(tab => (
+              {(["Lists", "Places", "Content", "Assets"] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveCollectionSubTab(tab)}
@@ -171,17 +171,22 @@ export default function App() {
                   {tab === "Places" && <MapPin className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Content" && <Lightbulb className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Assets" && <Wallet className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
-                  {tab === "Goals" && <Target className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
-                  {tab === "Content" ? "TREND / CONTENT" : tab === "Assets" ? "TÀI SẢN" : tab === "Goals" ? "MỤC TIÊU" : tab}
+                  {tab === "Content" ? "TREND / CONTENT" : tab === "Assets" ? "TÀI SẢN" : tab}
                 </button>
               ))}
             </div>
             
-            {activeCollectionSubTab === "Lists" && <MyList tasks={tasks} setTasks={setTasks} wishlist={wishlist} setWishlist={setWishlist} />}
+            {activeCollectionSubTab === "Lists" && (
+              <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-12">
+                <PersonalGoals goals={studyGoals} setGoals={setStudyGoals} achievements={achievements} setAchievements={setAchievements} />
+                <div className="sketch-border-sm border-t-8 border-ink/5 pt-12">
+                  <MyList tasks={tasks} setTasks={setTasks} wishlist={wishlist} setWishlist={setWishlist} />
+                </div>
+              </div>
+            )}
             {activeCollectionSubTab === "Places" && <Places places={foodPlaces} setPlaces={setFoodPlaces} />}
             {activeCollectionSubTab === "Content" && <ContentManager ideas={contentIdeas} setIdeas={setContentIdeas} />}
             {activeCollectionSubTab === "Assets" && <AssetsManager assets={assets} setAssets={setAssets} categories={assetCategories} setCategories={setAssetCategories} />}
-            {activeCollectionSubTab === "Goals" && <PersonalGoals goals={studyGoals} setGoals={setStudyGoals} achievements={achievements} setAchievements={setAchievements} />}
           </div>
         )}
         {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}

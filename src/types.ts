@@ -150,4 +150,5 @@ export interface Achievement {
   description: string;
   unlockedAt: number;
   icon?: string;
+  goalId?: string;
 }

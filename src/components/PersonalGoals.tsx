@@ -51,7 +51,8 @@ export function PersonalGoals({
     const updated = goals.map(g => {
       if (g.id === id) {
         const isCompleted = !g.isCompleted;
-        const completedAt = isCompleted ? Date.now() : undefined;
+        const now = Date.now();
+        const completedAt = isCompleted ? now : undefined;
         const updatedGoal = { ...g, isCompleted, completedAt, currentValue: isCompleted ? g.targetValue : 0 };
         if (isCompleted) completedGoal = updatedGoal;
         return updatedGoal;
@@ -59,12 +60,13 @@ export function PersonalGoals({
       return g;
     });
 
-    if (completedGoal) {
+    if (completedGoal && completedGoal.completedAt) {
       const ach: Achievement = {
         id: `ach-${Date.now()}`,
+        goalId: completedGoal.id,
         title: `Hoàn thành: ${completedGoal.title}`,
-        description: `Bạn đã thực hiện xong "${completedGoal.title}" vào ngày ${new Date().toLocaleDateString('vi-VN')}`,
-        unlockedAt: Date.now(),
+        description: `Bạn đã thực hiện xong "${completedGoal.title}" vào ngày ${new Date(completedGoal.completedAt).toLocaleDateString('vi-VN')}`,
+        unlockedAt: completedGoal.completedAt,
         icon: 'Award'
       };
       await setAchievements([ach, ...achievements]);
@@ -76,10 +78,25 @@ export function PersonalGoals({
     const timestamp = new Date(newDate).getTime();
     if (isNaN(timestamp)) return;
     
-    const updated = goals.map(g => 
+    // Update goal
+    const updatedGoals = goals.map(g => 
       g.id === id ? { ...g, completedAt: timestamp } : g
     );
-    await setGoals(updated);
+    await setGoals(updatedGoals);
+
+    // Sync Achievement
+    const updatedAchs = achievements.map(ach => {
+      if (ach.goalId === id) {
+        const goal = goals.find(g => g.id === id);
+        return {
+          ...ach,
+          unlockedAt: timestamp,
+          description: `Bạn đã thực hiện xong "${goal?.title}" vào ngày ${new Date(timestamp).toLocaleDateString('vi-VN')}`
+        };
+      }
+      return ach;
+    });
+    await setAchievements(updatedAchs);
   };
 
   const removeGoal = async (id: string) => {
@@ -89,22 +106,22 @@ export function PersonalGoals({
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 border-b-2 border-ink/10 pb-4">
         <div>
-          <h2 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-3">
-            <Target className="w-8 h-8 text-crimson" />
-            Mục tiêu cá nhân
+          <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2">
+            <Target className="w-6 h-6 text-crimson" />
+            Mục tiêu
           </h2>
-          <p className="hand-text text-xl">Đừng chỉ ước, hãy đặt mục tiêu & thực hiện</p>
+          <p className="hand-text text-lg opacity-60">Đặt mục tiêu & thực hiện</p>
         </div>
         <button 
           onClick={() => setShowAdd(!showAdd)}
-          className="sketch-button bg-ink text-white py-3 px-6 text-sm font-black uppercase tracking-widest flex items-center gap-2 hover:bg-crimson transition-colors"
+          className="sketch-button bg-ink text-white py-2 px-4 text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-crimson transition-colors"
         >
-          {showAdd ? <X size={20} /> : <Plus size={20} />}
-          {showAdd ? "Hủy bỏ" : "Tạo mục tiêu"}
+          {showAdd ? <X size={16} /> : <Plus size={16} />}
+          {showAdd ? "Hủy" : "Thêm mục tiêu"}
         </button>
       </div>
 
