@@ -14,7 +14,7 @@ interface Sentence {
 }
 
 export function SentenceBySentencePractice() {
-  const { practiceParagraphs, setPracticeParagraphs, studyGoals, setStudyGoals, achievements, setAchievements } = useFirebaseSync();
+  const { practiceParagraphs, setPracticeParagraphs } = useFirebaseSync();
   const [inputText, setInputText] = useState("");
   const [referenceText, setReferenceText] = useState("");
   const [title, setTitle] = useState("");
@@ -27,67 +27,9 @@ export function SentenceBySentencePractice() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [evaluation, setEvaluation] = useState<{ explanation?: string; isCorrect?: boolean; accuracy?: number } | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
-  const [showGoals, setShowGoals] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
-
-  // New goal form states
-  const [goalTitle, setGoalTitle] = useState("");
-  const [goalType, setGoalType] = useState<'daily_sentences' | 'paragraph_completion'>('daily_sentences');
-  const [goalTarget, setGoalTarget] = useState(10);
-  const [goalDeadline, setGoalDeadline] = useState("");
-
-  const handleAddGoal = async () => {
-    if (!goalTitle.trim()) {
-      alert("Vui lòng nhập tên mục tiêu!");
-      return;
-    }
-    const newGoal: StudyGoal = {
-      id: `goal-${Date.now()}`,
-      title: goalTitle,
-      type: goalType,
-      targetValue: goalTarget,
-      currentValue: 0,
-      deadline: goalDeadline ? new Date(goalDeadline).getTime() : undefined,
-      createdAt: Date.now(),
-      isCompleted: false
-    };
-    await setStudyGoals([newGoal, ...studyGoals]);
-    setGoalTitle("");
-    setGoalDeadline("");
-  };
-
-  const handleRemoveGoal = async (id: string) => {
-    if (confirm("Bạn có muốn xóa mục tiêu này?")) {
-      await setStudyGoals(studyGoals.filter(g => g.id !== id));
-    }
-  };
-
-  const updateGoalProgress = async (type: 'daily_sentences' | 'paragraph_completion') => {
-    const updatedGoals = studyGoals.map(goal => {
-      if (!goal.isCompleted && goal.type === type) {
-        const newValue = goal.currentValue + 1;
-        const isCompleted = newValue >= goal.targetValue;
-        
-        if (isCompleted && !goal.isCompleted) {
-          // Unlock achievement
-          const newAchievement: Achievement = {
-            id: `ach-${Date.now()}`,
-            title: `Hoàn thành mục tiêu: ${goal.title}`,
-            description: `Bạn đã đạt được mục tiêu ${goal.targetValue} ${type === 'daily_sentences' ? 'câu' : 'đoạn văn'}.`,
-            unlockedAt: Date.now(),
-            icon: 'Award'
-          };
-          setAchievements([newAchievement, ...achievements]);
-        }
-
-        return { ...goal, currentValue: newValue, isCompleted };
-      }
-      return goal;
-    });
-    await setStudyGoals(updatedGoals);
-  };
 
   const isPunctuation = (char: string) => /[.,!?;:()"]/.test(char);
 
@@ -295,11 +237,8 @@ export function SentenceBySentencePractice() {
       setSessionMistakes(0);
       setEvaluation(null);
       setShowHint(false);
-      updateGoalProgress('daily_sentences');
     } else {
       // Last sentence completed
-      updateGoalProgress('daily_sentences');
-      updateGoalProgress('paragraph_completion');
       const totalEnLength = sentences.reduce((acc, s) => acc + (s.en?.length || 0), 0);
       const totalCombinedMistakes = totalMistakes + sessionMistakes;
       const finalAccuracy = Math.max(0, Math.round((totalEnLength / (totalEnLength + totalCombinedMistakes)) * 100));
@@ -353,17 +292,7 @@ export function SentenceBySentencePractice() {
             
             <div className="flex items-center gap-2">
               <button 
-                onClick={() => { setShowGoals(!showGoals); setShowLibrary(false); setIsReviewing(false); }}
-                className={`sketch-button p-3 transition-colors flex items-center gap-2 ${showGoals ? 'bg-ink text-white' : 'bg-paper text-ink/60 hover:text-ink'}`}
-                title="Mục tiêu"
-              >
-                <Target className="w-5 h-5" />
-                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">
-                  {showGoals ? "Đóng mục tiêu" : "Mục tiêu & Thành tựu"}
-                </span>
-              </button>
-              <button 
-                onClick={() => { setShowLibrary(!showLibrary); setShowGoals(false); setIsReviewing(false); }}
+                onClick={() => { setShowLibrary(!showLibrary); setIsReviewing(false); }}
                 className={`sketch-button p-3 transition-colors flex items-center gap-2 ${showLibrary ? 'bg-ink text-white' : 'bg-paper text-ink/60 hover:text-ink'}`}
                 title="Library"
               >
@@ -376,149 +305,7 @@ export function SentenceBySentencePractice() {
           </div>
 
           <AnimatePresence mode="wait">
-            {showGoals ? (
-              <motion.div 
-                key="goals"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-6"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Goal Setting */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 border-b-2 border-ink/5 pb-2">
-                       <Target className="w-4 h-4 text-crimson" />
-                       <h3 className="text-xs font-black uppercase text-ink/80 tracking-widest">Thiết lập mục tiêu</h3>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-ink/30 tracking-widest">Tên mục tiêu</label>
-                        <input 
-                          type="text" 
-                          value={goalTitle}
-                          onChange={(e) => setGoalTitle(e.target.value)}
-                          placeholder="Hoàn thành 50 câu dịch..."
-                          className="w-full bg-paper/20 sketch-border-sm p-3 text-sm font-sans focus:outline-none"
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase text-ink/30 tracking-widest">Loại</label>
-                          <select 
-                            value={goalType}
-                            onChange={(e) => setGoalType(e.target.value as any)}
-                            className="w-full bg-paper/20 sketch-border-sm p-3 text-xs font-sans focus:outline-none h-11"
-                          >
-                            <option value="daily_sentences">Số câu dịch</option>
-                            <option value="paragraph_completion">Số đoạn văn</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase text-ink/30 tracking-widest">Số lượng</label>
-                          <input 
-                            type="number"
-                            value={goalTarget}
-                            onChange={(e) => setGoalTarget(Number(e.target.value))}
-                            className="w-full bg-paper/20 sketch-border-sm p-3 text-sm font-sans focus:outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-ink/30 tracking-widest">Deadline (Ghi lại thành tựu)</label>
-                        <div className="relative">
-                          <input 
-                            type="date"
-                            value={goalDeadline}
-                            onChange={(e) => setGoalDeadline(e.target.value)}
-                            className="w-full bg-paper/20 sketch-border-sm p-3 text-sm font-sans focus:outline-none pl-10"
-                          />
-                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink/30" />
-                        </div>
-                      </div>
-
-                      <button 
-                        onClick={handleAddGoal}
-                        className="w-full sketch-button bg-ink text-white py-3 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
-                      >
-                        <Plus className="w-4 h-4" /> Thêm mục tiêu
-                      </button>
-                    </div>
-
-                    <div className="space-y-3 pt-4">
-                      <h4 className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Mục tiêu hiện tại</h4>
-                      <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 scrollbar-none">
-                        {studyGoals.length === 0 ? (
-                          <div className="text-[10px] text-ink/20 italic">Chưa có mục tiêu nào được thiết lập.</div>
-                        ) : (
-                          studyGoals.map(goal => (
-                            <div key={goal.id} className="sketch-border-sm bg-white p-3 space-y-2">
-                              <div className="flex items-start justify-between gap-2">
-                                <div>
-                                  <h5 className="text-[11px] font-bold text-ink">{goal.title}</h5>
-                                  {goal.deadline && (
-                                    <p className="text-[9px] text-crimson font-bold flex items-center gap-1">
-                                      <Calendar className="w-3 h-3" />
-                                      Hạn: {new Date(goal.deadline).toLocaleDateString('vi-VN')}
-                                    </p>
-                                  )}
-                                </div>
-                                <button onClick={() => handleRemoveGoal(goal.id)} className="text-ink/20 hover:text-crimson"><X size={12} /></button>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-[9px] font-black uppercase text-ink/40">
-                                  <span>{Math.round((goal.currentValue / goal.targetValue) * 100)}%</span>
-                                  <span>{goal.currentValue}/{goal.targetValue}</span>
-                                </div>
-                                <div className="h-1 bg-ink/5 rounded-full overflow-hidden">
-                                  <motion.div 
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${(goal.currentValue / goal.targetValue) * 100}%` }}
-                                    className={`h-full ${goal.isCompleted ? 'bg-emerald-500' : 'bg-crimson'}`}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Achievements */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 border-b-2 border-ink/5 pb-2">
-                       <Trophy className="w-4 h-4 text-yellow-500" />
-                       <h3 className="text-xs font-black uppercase text-ink/80 tracking-widest">Thành tựu đạt được</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 max-h-[450px] overflow-y-auto pr-2 scrollbar-none">
-                      {achievements.length === 0 ? (
-                        <div className="text-center py-12 text-ink/20 italic text-sm">Chưa có thành tựu nào. Cố gắng lên!</div>
-                      ) : (
-                        achievements.map(ach => (
-                          <div key={ach.id} className="sketch-border bg-yellow-50/30 p-4 flex items-start gap-4">
-                            <div className="p-3 bg-yellow-400 rounded-xl text-white">
-                              <Award size={20} />
-                            </div>
-                            <div className="space-y-1">
-                              <h4 className="text-[11px] font-black uppercase text-ink leading-tight">{ach.title}</h4>
-                              <p className="text-[10px] text-ink/60 line-clamp-2">{ach.description}</p>
-                              <p className="text-[8px] font-black text-ink/30 uppercase tracking-widest">
-                                {new Date(ach.unlockedAt).toLocaleString('vi-VN')}
-                              </p>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ) : showLibrary ? (
+            {showLibrary ? (
               <motion.div 
                 key="library"
                 initial={{ opacity: 0, height: 0 }}

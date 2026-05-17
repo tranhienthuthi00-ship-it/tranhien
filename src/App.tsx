@@ -11,11 +11,12 @@ import { Login } from "./components/Login";
 import { ContentManager } from "./components/ContentManager";
 import { AssetsManager } from "./components/AssetsManager";
 import { YouTubeDictation } from "./components/YouTubeDictation";
+import { PersonalGoals } from "./components/PersonalGoals";
 import { SpeechGame } from "./components/SpeechGame";
 import { TranslationPractice } from "./components/TranslationPractice";
 import Flashcards from "./components/Flashcards";
 import { useFirebaseSync } from "./lib/useFirebaseSync";
-import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages } from "lucide-react";
+import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target } from "lucide-react";
 
 export default function App() {
   const {
@@ -29,12 +30,14 @@ export default function App() {
     contentIdeas, setContentIdeas,
     assets, setAssets,
     assetCategories, setAssetCategories,
-    dictations, setDictations
+    dictations, setDictations,
+    studyGoals, setStudyGoals,
+    achievements, setAchievements
   } = useFirebaseSync();
 
   const [activeTab, setActiveTab] = useState<Tab>("English Hub");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation" | "Speech" | "SRS" | "Translation">("Academy");
-  const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Places" | "Content" | "Assets">("Lists");
+  const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Places" | "Content" | "Assets" | "Goals">("Lists");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
 
@@ -158,7 +161,7 @@ export default function App() {
         {activeTab === "Collections" && (
           <div className="flex flex-col gap-4">
             <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center flex-wrap gap-2 mb-2 px-4 text-ink/60">
-              {(["Lists", "Places", "Content", "Assets"] as const).map(tab => (
+              {(["Lists", "Places", "Content", "Assets", "Goals"] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveCollectionSubTab(tab)}
@@ -168,7 +171,8 @@ export default function App() {
                   {tab === "Places" && <MapPin className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Content" && <Lightbulb className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Assets" && <Wallet className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
-                  {tab === "Content" ? "TREND / CONTENT" : tab === "Assets" ? "TÀI SẢN" : tab}
+                  {tab === "Goals" && <Target className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
+                  {tab === "Content" ? "TREND / CONTENT" : tab === "Assets" ? "TÀI SẢN" : tab === "Goals" ? "MỤC TIÊU" : tab}
                 </button>
               ))}
             </div>
@@ -177,10 +181,11 @@ export default function App() {
             {activeCollectionSubTab === "Places" && <Places places={foodPlaces} setPlaces={setFoodPlaces} />}
             {activeCollectionSubTab === "Content" && <ContentManager ideas={contentIdeas} setIdeas={setContentIdeas} />}
             {activeCollectionSubTab === "Assets" && <AssetsManager assets={assets} setAssets={setAssets} categories={assetCategories} setCategories={setAssetCategories} />}
+            {activeCollectionSubTab === "Goals" && <PersonalGoals goals={studyGoals} setGoals={setStudyGoals} achievements={achievements} setAchievements={setAchievements} />}
           </div>
         )}
         {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
-        {activeTab === "Dashboard" && <Progress words={words} tasks={tasks} logs={logs} wishlist={wishlist} />}
+        {activeTab === "Dashboard" && <Progress words={words} tasks={tasks} logs={logs} wishlist={wishlist} goals={studyGoals} />}
       </main>
     </div>
   );

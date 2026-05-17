@@ -134,9 +134,10 @@ export interface PracticeParagraph {
 export interface StudyGoal {
   id: string;
   title: string;
-  type: 'daily_sentences' | 'paragraph_completion';
+  type: 'daily_sentences' | 'paragraph_completion' | 'custom' | 'habit';
   targetValue: number;
   currentValue: number;
+  unit?: string;
   deadline?: number; // timestamp
   createdAt: number;
   isCompleted: boolean;

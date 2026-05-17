@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { VideoDictation } from '../types';
 import { cn } from '../lib/utils';
-import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2, Mic, Library, PlayCircle, Star, MicOff } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2, Mic, Library, PlayCircle, Star, MicOff, RotateCcw } from 'lucide-react';
 import { YoutubeTranscript } from 'youtube-transcript';
 import YouTube from 'react-youtube';
 import { RECOMMENDED_VIDEOS } from '../constants/recommendedVideos';
