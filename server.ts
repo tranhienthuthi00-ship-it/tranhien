@@ -188,6 +188,37 @@ Return ONLY a valid JSON object.
     }
   });
 
+  app.post("/api/translation/hints", async (req, res) => {
+    const { original, reference } = req.body;
+    if (!original || !reference) {
+      return res.status(400).json({ error: "Missing original or reference" });
+    }
+
+    try {
+      const result = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: `Analyze this translation pair:
+Vietnamese: "${original}"
+English: "${reference}"
+
+Extract 2-3 key grammar points, phrases, or phrasal verbs from the English version that a learner should know. 
+Return ONLY a valid JSON array of strings in Vietnamese explaining these points.
+Example: ["Sử dụng 'Look forward to' khi...", "Cấu trúc 'It takes someone time to do'..." ]`,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+      
+      const responseText = result.text.trim();
+      const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
+      const hints = JSON.parse(cleanJson);
+      res.json({ hints });
+    } catch (error: any) {
+      console.error("Gemini Error (Hints):", error);
+      res.status(500).json({ error: "Failed to generate hints" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

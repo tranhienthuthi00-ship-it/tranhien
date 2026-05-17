@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Loader2, Send, Sparkles, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useFirebaseSync } from "../lib/useFirebaseSync";
@@ -28,6 +28,8 @@ export function SentenceBySentencePractice() {
   const [showLibrary, setShowLibrary] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
+  const [hints, setHints] = useState<string[]>([]);
+  const [isLoadingHint, setIsLoadingHint] = useState(false);
 
   // Character masking logic
   const maskedInput = useMemo(() => {
@@ -42,6 +44,48 @@ export function SentenceBySentencePractice() {
       return "*";
     }).join('');
   }, [userInput, sentences, currentIndex]);
+
+  const normalize = (str: string) => str.toLowerCase().replace(/[.,!?;:()]/g, "").replace(/\s+/g, " ").trim();
+
+  // Auto-advance logic
+  const isCorrect = useMemo(() => {
+    const reference = sentences[currentIndex]?.en;
+    if (!reference || !userInput) return false;
+    return normalize(userInput) === normalize(reference);
+  }, [userInput, sentences, currentIndex]);
+
+  const handleFetchHints = async () => {
+    if (hints.length > 0 || isLoadingHint) return;
+    const current = sentences[currentIndex];
+    if (!current?.en) return;
+
+    setIsLoadingHint(true);
+    try {
+      const response = await fetch("/api/translation/hints", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ original: current.vi, reference: current.en }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setHints(data.hints || []);
+      }
+    } catch (error) {
+      console.error("Error fetching hints:", error);
+    } finally {
+      setIsLoadingHint(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isCorrect && !evaluation?.isCorrect) {
+      // Automatic next sentence after a small delay
+      const timer = setTimeout(() => {
+        nextSentence();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isCorrect, evaluation]);
 
   const handleStart = async (p?: PracticeParagraph) => {
     const vi = p ? p.vietnamese : inputText;
@@ -151,6 +195,13 @@ export function SentenceBySentencePractice() {
       setUserInput("");
       setEvaluation(null);
       setShowHint(false);
+      setHints([]);
+    } else {
+      // Last sentence completed
+      setEvaluation({
+        isCorrect: true,
+        explanation: "Chúc mừng! Bạn đã hoàn thành toàn bộ đoạn văn."
+      });
     }
   };
 
@@ -366,11 +417,14 @@ export function SentenceBySentencePractice() {
                  <span className="text-[9px] font-black uppercase text-crimson tracking-widest">Đang dịch câu:</span>
                  {sentences[currentIndex]?.en && (
                    <button 
-                    onClick={() => setShowHint(!showHint)}
+                    onClick={() => {
+                      if (!showHint) handleFetchHints();
+                      setShowHint(!showHint);
+                    }}
                     className="text-[9px] font-black uppercase text-ink/40 hover:text-ink tracking-widest flex items-center gap-1.5 transition-colors"
                    >
                      <Sparkles className="w-3 h-3" />
-                     {showHint ? "Ẩn gợi ý" : "Xem gợi ý"}
+                     {showHint ? "Ẩn gợi ý" : "Xem gợi ý (AI)"}
                    </button>
                  )}
                </div>
@@ -378,20 +432,34 @@ export function SentenceBySentencePractice() {
                <p className="text-lg md:text-xl font-sans font-bold leading-relaxed text-ink">
                  "{currentSentence.vi}"
                </p>
-
-               {showHint && sentences[currentIndex]?.en && (
+ 
+               {showHint && (
                  <motion.div 
                   initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-                  className="bg-paper/50 p-3 rounded-lg border border-dashed border-ink/10"
+                  className="bg-paper/50 p-4 rounded-lg border border-dashed border-ink/10"
                  >
-                   <p className="text-[11px] font-mono text-ink/60 leading-relaxed italic">
-                     Gợi ý: {sentences[currentIndex].en.split(' ').map(word => {
-                       if (word.length <= 1) return word;
-                       const clean = word.replace(/[.,!?;:()]/g, "");
-                       const punc = word.slice(clean.length);
-                       return clean[0] + '*'.repeat(clean.length - 1) + punc;
-                     }).join(' ')}
-                   </p>
+                   <div className="flex items-start gap-2 mb-2">
+                     <Sparkles className="w-3 h-3 text-yellow-500 mt-0.5 shrink-0" />
+                     <h5 className="text-[10px] font-black uppercase tracking-widest text-ink/60">Gợi ý cấu trúc & từ vựng</h5>
+                   </div>
+                   
+                   {isLoadingHint ? (
+                     <div className="flex items-center gap-2 text-[10px] text-ink/40 italic">
+                       <Loader2 className="w-3 h-3 animate-spin" />
+                       Đang suy nghĩ...
+                     </div>
+                   ) : (
+                     <ul className="space-y-1.5">
+                       {hints.length > 0 ? hints.map((hint, i) => (
+                         <li key={i} className="text-[11px] font-sans text-ink/70 leading-relaxed flex items-start gap-2">
+                           <span className="w-1 h-1 rounded-full bg-ink/20 mt-1.5 shrink-0" />
+                           {hint}
+                         </li>
+                       )) : (
+                         <li className="text-[11px] font-sans text-ink/40 italic">Không tìm thấy gợi ý cụ thể.</li>
+                       )}
+                     </ul>
+                   )}
                  </motion.div>
                )}
              </div>
