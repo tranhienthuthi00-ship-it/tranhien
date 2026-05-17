@@ -151,27 +151,22 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
   const extractYoutubeId = (url: string) => {
     if (!url) return null;
     try {
-      // Clean url first
       const trimmed = url.trim();
-      if (trimmed.length === 11 && !trimmed.includes('/') && !trimmed.includes('?')) return trimmed;
+      // Regex for all common YouTube URL formats
+      const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/;
+      const match = trimmed.match(regExp);
+      if (match && match[1]) return match[1];
 
-      const parsedUrl = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
-      if (parsedUrl.hostname === 'youtu.be') {
-        return parsedUrl.pathname.slice(1);
-      }
-      if (parsedUrl.hostname.includes('youtube.com')) {
-        if (parsedUrl.pathname.includes('/v/') || parsedUrl.pathname.includes('/embed/') || parsedUrl.pathname.includes('/shorts/') || parsedUrl.pathname.includes('/live/')) {
-          const parts = parsedUrl.pathname.split('/');
-          return parts[parts.length - 1].split('?')[0];
-        }
-        return parsedUrl.searchParams.get('v');
-      }
+      // Handle raw 11-char ID
+      if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+
+      // Fallback
+      const urlObj = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
+      return urlObj.searchParams.get('v') || urlObj.pathname.split('/').pop()?.split('?')[0] || null;
     } catch (e) {
-      const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-      const match = url.match(regExp);
-      return (match && match[7].length === 11) ? match[7] : null;
+      const match = url.match(/[a-zA-Z0-9_-]{11}/);
+      return match ? match[0] : null;
     }
-    return null;
   };
 
   const loadTranscript = async (videoId: string, sessionId: string) => {
@@ -363,16 +358,25 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
     const isCompleted = sentences.length > 0 && progressIndex >= sentences.length;
 
     return (
-      <div className="max-w-7xl mx-auto p-1.5 md:p-3 font-sans h-[calc(100dvh-200px)] md:h-[calc(100vh-160px)] flex flex-col overflow-hidden">
-        <div className="flex justify-between items-center mb-2 shrink-0 px-2 lg:px-0">
-          <button 
-            onClick={() => setActiveSessionId(null)}
-            className="flex items-center gap-0.5 text-ink/60 hover:text-ink transition-colors font-bold text-[9px] uppercase tracking-widest shrink-0"
-          >
-            <ChevronLeft size={14} /> Quay lại
-          </button>
+      <div className="max-w-7xl mx-auto p-1.5 md:p-3 font-sans h-[calc(100dvh-220px)] md:h-[calc(100vh-180px)] flex flex-col overflow-hidden bg-white/50 sketch-border-sm mt-2 mb-2">
+        <div className="flex justify-between items-center mb-2 shrink-0 px-2 lg:px-0 gap-2">
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => setActiveSessionId(null)}
+              className="flex items-center gap-0.5 text-ink/60 hover:text-ink transition-colors font-bold text-[9px] uppercase tracking-widest shrink-0"
+            >
+              <ChevronLeft size={14} /> Quay lại
+            </button>
+            <div className="w-[1px] h-3 bg-ink/10 mx-1 hidden xs:block" />
+            <button 
+              onClick={() => { if (confirm("Bạn có muốn làm lại từ đầu?")) { updateSession(activeSession.id, 'progress', 0); setUserInput(''); } }}
+              className="flex items-center gap-1 text-ink/60 hover:text-crimson transition-colors font-bold text-[9px] uppercase tracking-widest shrink-0"
+            >
+              <RotateCcw size={12} /> <span className="hidden sm:inline">Làm lại</span>
+            </button>
+          </div>
           
-          <div className="flex-1 max-w-sm mx-2">
+          <div className="flex-1 max-w-sm mx-1">
              <input 
                type="text" 
                value={activeSession.title}
@@ -419,7 +423,7 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
         
         <div className="flex flex-col md:flex-row gap-2 flex-1 min-h-0 overflow-hidden mb-1">
           <div className="w-full md:w-5/12 flex flex-col gap-2 shrink-0 h-auto md:h-full min-h-0 overflow-y-auto custom-scrollbar md:pr-1">
-            <div className="w-full aspect-video sketch-border p-0.5 bg-white relative shadow-sm shrink-0">
+            <div className="w-full aspect-video sketch-border p-1 bg-black relative shadow-lg shrink-0 overflow-hidden rounded-lg">
               <YouTube 
                 videoId={activeSession.youtubeId} 
                 onReady={(e) => {
@@ -427,15 +431,31 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                   setIsPlayerReady(true);
                   setVideoError('');
                 }}
+                onPlay={() => {
+                   if (mode === 'practice' && isPlayerReady) {
+                      // Optionally seek if user is lost
+                   }
+                }}
                 onError={(e) => {
                   const errorData = e.data;
                   let msg = "Lỗi video.";
-                  if (errorData === 101 || errorData === 150) msg = "Video bị chặn nhúng.";
-                  else if (errorData === 100) msg = "Video đã bị xóa.";
+                  if (errorData === 101 || errorData === 150) msg = "Video này không cho phép nhúng trên trang web khác.";
+                  else if (errorData === 100) msg = "Video đã bị xóa hoặc đặt chế độ riêng tư.";
+                  else if (errorData === 2) msg = "Tham số video không hợp lệ.";
                   setVideoError(msg);
                 }}
-                opts={{ width: '100%', height: '100%', playerVars: { autoplay: 0, rel: 0, modestbranding: 1, playsinline: 1 } }}
-                className="w-full h-full rounded-sm overflow-hidden" 
+                opts={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  playerVars: { 
+                    autoplay: 1, 
+                    rel: 0, 
+                    modestbranding: 1, 
+                    playsinline: 1,
+                    origin: window.location.origin
+                  } 
+                }}
+                className="w-full h-full" 
               />
               {videoError && (
                  <div className="absolute inset-0 bg-ink/90 flex flex-col items-center justify-center p-3 text-center z-20">
@@ -501,7 +521,17 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
                   {sentences.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-ink/60"><Type size={22} className="mb-2 opacity-50" /><p className="mb-2 text-[10px]">Chưa có Transcript.</p><button onClick={() => setMode('transcript')} className="sketch-button py-1 px-3 text-[9px]">Thêm</button></div>
                   ) : isCompleted ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6"><div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-2 sketch-border border-green-200"><Check size={20} /></div><h3 className="text-base font-bold mb-0.5">Xong!</h3><button onClick={() => updateSession(activeSession.id, 'progress', 0)} className="sketch-button py-1 px-3 text-[9px]">Luyện lại</button></div>
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6 animate-in zoom-in">
+                      <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 sketch-border border-emerald-200">
+                        <Check size={32} />
+                      </div>
+                      <h3 className="text-xl font-black mb-2 uppercase">Hoàn thành bài tập!</h3>
+                      <p className="text-sm text-ink/60 mb-6 font-medium">Tuyệt vời! Bạn đã hoàn thành toàn bộ đoạn hội thoại.</p>
+                      <div className="flex gap-3">
+                        <button onClick={() => updateSession(activeSession.id, 'progress', 0)} className="sketch-button py-2 px-6 text-xs font-black uppercase tracking-widest bg-ink text-paper">Luyện lại</button>
+                        <button onClick={() => setActiveSessionId(null)} className="sketch-button py-2 px-6 text-xs font-black uppercase tracking-widest bg-paper text-ink">Bài khác</button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex flex-col h-full">
                       <div className="mb-2 shrink-0">
@@ -667,7 +697,7 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-10">
         {dictations.map(doc => (
           <div 
             key={doc.id} 

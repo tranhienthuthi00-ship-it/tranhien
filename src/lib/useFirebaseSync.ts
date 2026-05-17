@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory, VideoDictation, CustomSentence, PracticeParagraph } from '../types';
+import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory, VideoDictation, CustomSentence, PracticeParagraph, StudyGoal, Achievement } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -67,6 +67,8 @@ export function useFirebaseSync() {
   const [dictations, setDictations] = useState<VideoDictation[]>([]);
   const [customSentences, setCustomSentences] = useState<CustomSentence[]>([]);
   const [practiceParagraphs, setPracticeParagraphs] = useState<PracticeParagraph[]>([]);
+  const [studyGoals, setStudyGoals] = useState<StudyGoal[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [assetCategories, setAssetCategories] = useState<AssetCategory[]>([
     { id: 'cat-money', name: 'Tiền mặt & NH', icon: 'Wallet' },
     { id: 'cat-realestate', name: 'Bất động sản', icon: 'Home' },
@@ -193,6 +195,12 @@ export function useFirebaseSync() {
     const unsubPracticeParagraphs = onSnapshot(collection(db, `users/${user.uid}/practiceParagraphs`), (snap) => {
       setPracticeParagraphs(snap.docs.map(d => d.data() as PracticeParagraph).sort((a,b) => b.createdAt - a.createdAt));
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/practiceParagraphs`));
+    const unsubStudyGoals = onSnapshot(collection(db, `users/${user.uid}/studyGoals`), (snap) => {
+      setStudyGoals(snap.docs.map(d => d.data() as StudyGoal).sort((a,b) => b.createdAt - a.createdAt));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/studyGoals`));
+    const unsubAchievements = onSnapshot(collection(db, `users/${user.uid}/achievements`), (snap) => {
+      setAchievements(snap.docs.map(d => d.data() as Achievement).sort((a,b) => b.unlockedAt - a.unlockedAt));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/achievements`));
     const unsubTags = onSnapshot(doc(db, `users/${user.uid}/data/tags`), (docSnap) => {
       if (docSnap.exists() && docSnap.data().tags) {
         setTags(docSnap.data().tags);
@@ -204,7 +212,8 @@ export function useFirebaseSync() {
     return () => {
       clearTimeout(timer);
       unsubWords(); unsubTasks(); unsubWishlist(); unsubLogs(); unsubFood();
-      unsubIdeas(); unsubAssets(); unsubCats(); unsubDictations(); unsubCustomSentences(); unsubPracticeParagraphs(); unsubTags();
+      unsubIdeas(); unsubAssets(); unsubCats(); unsubDictations(); unsubCustomSentences(); 
+      unsubPracticeParagraphs(); unsubStudyGoals(); unsubAchievements(); unsubTags();
     };
   }, [user]);
 
@@ -264,6 +273,8 @@ export function useFirebaseSync() {
     dictations, setDictations: createSyncSetter<VideoDictation>('dictations', dictations, setDictations as any),
     customSentences, setCustomSentences: createSyncSetter<CustomSentence>('customSentences', customSentences, setCustomSentences),
     practiceParagraphs, setPracticeParagraphs: createSyncSetter<PracticeParagraph>('practiceParagraphs', practiceParagraphs, setPracticeParagraphs),
+    studyGoals, setStudyGoals: createSyncSetter<StudyGoal>('studyGoals', studyGoals, setStudyGoals),
+    achievements, setAchievements: createSyncSetter<Achievement>('achievements', achievements, setAchievements),
     tags, setTags: createSyncSetter<any>('tags', tags as any, setTags as any, true),
   };
 }

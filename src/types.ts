@@ -130,3 +130,22 @@ export interface PracticeParagraph {
   sentences?: PracticeSentence[];
   createdAt: number;
 }
+
+export interface StudyGoal {
+  id: string;
+  title: string;
+  type: 'daily_sentences' | 'paragraph_completion';
+  targetValue: number;
+  currentValue: number;
+  deadline?: number; // timestamp
+  createdAt: number;
+  isCompleted: boolean;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  unlockedAt: number;
+  icon?: string;
+}
