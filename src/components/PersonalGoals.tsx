@@ -189,7 +189,7 @@ export function PersonalGoals({
               onClick={handleAddGoal}
               className="w-full sketch-button bg-ink text-white py-4 font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-crimson transition-colors"
             >
-              <Target size={20} /> Xác nhận mục tiêu
+              <Target size={20} style={{ filter: 'url(#hand-drawn-filter)' }} /> Xác nhận mục tiêu
             </button>
           </motion.div>
         )}
@@ -207,7 +207,7 @@ export function PersonalGoals({
           <div className="grid grid-cols-1 gap-4">
             {goals.filter(g => !g.isCompleted).length === 0 ? (
               <div className="text-center py-16 bg-white/40 sketch-border border-ink/5 flex flex-col items-center gap-4 group">
-                <Target className="w-12 h-12 text-ink/10 group-hover:scale-110 transition-transform" />
+                <Target className="w-12 h-12 text-ink/10 group-hover:scale-110 transition-transform" style={{ filter: 'url(#hand-drawn-filter)' }} />
                 <p className="text-ink/30 italic text-sm">Mọi thứ đã xong, hãy đặt thêm mục tiêu mới!</p>
               </div>
             ) : (
@@ -218,7 +218,7 @@ export function PersonalGoals({
                       onClick={() => toggleGoalCompletion(goal.id)}
                       className="mt-1 w-8 h-8 sketch-border-sm rounded-lg flex items-center justify-center text-transparent hover:text-emerald-500 hover:border-emerald-500 transition-all shrink-0 bg-white"
                     >
-                      <CheckCircle2 size={20} />
+                      <CheckCircle2 size={20} style={{ filter: 'url(#hand-drawn-filter)' }} />
                     </button>
                     <div className="flex-1 space-y-2">
                       <div className="flex justify-between items-start gap-4">
@@ -227,17 +227,17 @@ export function PersonalGoals({
                           <div className="flex flex-wrap gap-3">
                             {goal.deadline && (
                               <div className="flex items-center gap-1 text-[10px] font-bold text-crimson uppercase tracking-widest">
-                                <Calendar size={12} />
+                                <Calendar size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />
                                 Deadline: {new Date(goal.deadline).toLocaleDateString('vi-VN')}
                               </div>
                             )}
                             <div className="text-[10px] font-bold text-ink/20 uppercase tracking-widest flex items-center gap-1">
-                              <FileText size={12} />
+                              <FileText size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />
                               Ngày tạo: {new Date(goal.createdAt).toLocaleDateString('vi-VN')}
                             </div>
                           </div>
                         </div>
-                        <button onClick={() => removeGoal(goal.id)} className="text-ink/10 hover:text-crimson transition-colors p-1"><Trash2 size={18} /></button>
+                        <button onClick={() => removeGoal(goal.id)} className="text-ink/10 hover:text-crimson transition-colors p-1"><Trash2 size={18} style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
                       </div>
 
                       {goal.notes && (
@@ -246,7 +246,7 @@ export function PersonalGoals({
                             onClick={() => toggleNotes(goal.id)}
                             className="flex items-center gap-1 text-[9px] font-black uppercase text-ink/30 hover:text-ink transition-colors"
                           >
-                            {expandedNotes.includes(goal.id) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            {expandedNotes.includes(goal.id) ? <ChevronUp size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> : <ChevronDown size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />}
                             {expandedNotes.includes(goal.id) ? "Thu gọn ghi chú" : "Xem ghi chú"}
                           </button>
                           <AnimatePresence>
@@ -285,7 +285,7 @@ export function PersonalGoals({
                       onClick={() => toggleGoalCompletion(goal.id)}
                       className="mt-1 w-6 h-6 sketch-border-sm rounded-md flex items-center justify-center bg-emerald-500 text-white shrink-0 shadow-sm"
                     >
-                      <CheckCircle2 size={16} />
+                      <CheckCircle2 size={16} style={{ filter: 'url(#hand-drawn-filter)' }} />
                     </button>
                     <div className="flex-1 space-y-3">
                       <div className="flex justify-between items-start">
@@ -303,18 +303,18 @@ export function PersonalGoals({
                             </div>
                             {goal.notes && (
                               <div className="text-[8px] font-bold text-emerald-600/40 uppercase tracking-widest flex items-center gap-1">
-                                <FileText size={10} /> Có ghi chú
+                                <FileText size={10} style={{ filter: 'url(#hand-drawn-filter)' }} /> Có ghi chú
                               </div>
                             )}
                           </div>
                         </div>
-                        <button onClick={() => removeGoal(goal.id)} className="text-emerald-900/10 hover:text-crimson transition-colors p-1"><Trash2 size={16} /></button>
+                        <button onClick={() => removeGoal(goal.id)} className="text-emerald-900/10 hover:text-crimson transition-colors p-1"><Trash2 size={16} style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
                       </div>
 
                       {/* Review Section */}
                       <div className="pt-3 border-t border-emerald-900/5 space-y-2">
                         <label className="flex items-center gap-1.5 text-[9px] font-black uppercase text-emerald-800/40 tracking-widest">
-                          <FileText size={12} /> Bài học / Review sau khi hoàn thành
+                          <FileText size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> Bài học / Review sau khi hoàn thành
                         </label>
                         <textarea 
                           value={goal.review || ""}
@@ -358,7 +358,7 @@ export function PersonalGoals({
                       <h5 className="text-[12px] font-black uppercase tracking-tight leading-tight text-ink">{ach.title}</h5>
                       <p className="text-[10px] text-ink/70 leading-relaxed">{ach.description}</p>
                       <div className="pt-1 flex items-center gap-1.5 text-[8px] font-black text-ink/30 uppercase tracking-widest">
-                        <Calendar size={10} />
+                        <Calendar size={10} style={{ filter: 'url(#hand-drawn-filter)' }} />
                         {new Date(ach.unlockedAt).toLocaleDateString('vi-VN')}
                       </div>
                     </div>
