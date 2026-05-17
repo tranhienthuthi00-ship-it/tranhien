@@ -17,6 +17,7 @@ export function PersonalGoals({
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [createdAt, setCreatedAt] = useState(new Date().toISOString().split('T')[0]);
   const [showAdd, setShowAdd] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<string[]>([]);
 
@@ -36,13 +37,14 @@ export function PersonalGoals({
       currentValue: 0,
       notes: notes.trim() || undefined,
       deadline: deadline ? new Date(deadline).getTime() : undefined,
-      createdAt: Date.now(),
+      createdAt: new Date(createdAt).getTime() || Date.now(),
       isCompleted: false
     };
     await setGoals([newGoal, ...goals]);
     setTitle("");
     setNotes("");
     setDeadline("");
+    setCreatedAt(new Date().toISOString().split('T')[0]);
     setShowAdd(false);
   };
 
@@ -105,6 +107,13 @@ export function PersonalGoals({
     }
   };
 
+  const updateReview = async (id: string, review: string) => {
+    const updated = goals.map(g => 
+      g.id === id ? { ...g, review } : g
+    );
+    await setGoals(updated);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
@@ -154,15 +163,26 @@ export function PersonalGoals({
                   />
                 </div>
               </div>
-              
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Ghi chú / Chi tiết</label>
-                <textarea 
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  placeholder="Thêm mô tả hoặc các bước nhỏ cần thực hiện..."
-                  className="w-full bg-paper/20 sketch-border-sm p-4 text-sm font-sans focus:outline-none focus:bg-white transition-all h-24"
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Ngày tạo (Tùy chọn)</label>
+                  <input 
+                    type="date" 
+                    value={createdAt}
+                    onChange={e => setCreatedAt(e.target.value)}
+                    className="w-full bg-paper/20 sketch-border-sm p-4 text-xs font-sans focus:outline-none h-[54px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Ghi chú / Chi tiết</label>
+                  <textarea 
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    placeholder="Thêm mô tả..."
+                    className="w-full bg-paper/20 sketch-border-sm p-4 text-sm font-sans focus:outline-none focus:bg-white transition-all h-[54px] min-h-[54px]"
+                  />
+                </div>
               </div>
 
             <button 
@@ -289,6 +309,19 @@ export function PersonalGoals({
                           </div>
                         </div>
                         <button onClick={() => removeGoal(goal.id)} className="text-emerald-900/10 hover:text-crimson transition-colors p-1"><Trash2 size={16} /></button>
+                      </div>
+
+                      {/* Review Section */}
+                      <div className="pt-3 border-t border-emerald-900/5 space-y-2">
+                        <label className="flex items-center gap-1.5 text-[9px] font-black uppercase text-emerald-800/40 tracking-widest">
+                          <FileText size={12} /> Bài học / Review sau khi hoàn thành
+                        </label>
+                        <textarea 
+                          value={goal.review || ""}
+                          onChange={(e) => updateReview(goal.id, e.target.value)}
+                          placeholder="Bạn đã học được gì? Cảm tưởng sau khi xong việc..."
+                          className="w-full bg-paper/10 sketch-border-sm p-3 text-sm font-sans focus:outline-none focus:bg-emerald-500/5 transition-all h-20 resize-none italic text-emerald-900/80"
+                        />
                       </div>
                     </div>
                   </div>

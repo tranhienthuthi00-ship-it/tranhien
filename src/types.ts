@@ -142,6 +142,7 @@ export interface StudyGoal {
   createdAt: number;
   isCompleted: boolean;
   completedAt?: number;
+  review?: string;
 }
 
 export interface Achievement {

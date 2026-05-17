@@ -165,9 +165,50 @@
         "createdAt": { "type": "number" }
       },
       "required": ["id", "vietnamese", "createdAt"]
+    },
+    "StudyGoal": {
+      "title": "StudyGoal",
+      "description": "A personal goal with a deadline and notes.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string" },
+        "targetValue": { "type": "number" },
+        "currentValue": { "type": "number" },
+        "notes": { "type": "string" },
+        "deadline": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "isCompleted": { "type": "boolean" },
+        "completedAt": { "type": "number" },
+        "review": { "type": "string" }
+      },
+      "required": ["id", "title", "type", "targetValue", "currentValue", "createdAt", "isCompleted"]
+    },
+    "Achievement": {
+      "title": "Achievement",
+      "description": "An award unlocked for a goal.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "unlockedAt": { "type": "number" },
+        "icon": { "type": "string" },
+        "goalId": { "type": "string" }
+      },
+      "required": ["id", "title", "description", "unlockedAt"]
     }
   },
   "firestore": {
+    "users/{userId}/studyGoals/{goalId}": {
+      "schema": { "$ref": "#/entities/StudyGoal" },
+      "description": "Study goals."
+    },
+    "users/{userId}/achievements/{achId}": {
+      "schema": { "$ref": "#/entities/Achievement" },
+      "description": "Unlocked achievements."
+    },
     "users/{userId}/words/{wordId}": {
       "schema": { "$ref": "#/entities/Word" },
       "description": "Words user adds."
