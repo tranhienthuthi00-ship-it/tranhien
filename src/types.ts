@@ -116,10 +116,17 @@ export interface CustomSentence {
   createdAt: number;
 }
 
+export interface PracticeSentence {
+  vi: string;
+  en: string;
+  hint?: string;
+}
+
 export interface PracticeParagraph {
   id: string;
   title: string;
   vietnamese: string;
   english: string;
+  sentences?: PracticeSentence[];
   createdAt: number;
 }

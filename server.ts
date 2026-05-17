@@ -130,12 +130,10 @@ async function startServer() {
     const topic = req.query.topic as string || "daily life";
     console.log(`[Translation] Generating sentence for topic: ${topic}`);
     try {
-      const result = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: `Generate one natural, medium-difficulty Vietnamese sentence for translation practice. Topic: ${topic}. Output ONLY the raw Vietnamese text. No quotes, no translation, no labels.`,
-      });
+      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(`Generate one natural, medium-difficulty Vietnamese sentence for translation practice. Topic: ${topic}. Output ONLY the raw Vietnamese text. No quotes, no translation, no labels.`);
       
-      const sentence = result.text.trim().replace(/^["']|["']$/g, '');
+      const sentence = result.response.text().trim().replace(/^["']|["']$/g, '');
       
       console.log(`[Translation] Generated: ${sentence}`);
       
@@ -195,21 +193,19 @@ Return ONLY a valid JSON object.
     }
 
     try {
-      const result = await ai.models.generateContent({
+      const model = ai.getGenerativeModel({ 
         model: "gemini-1.5-flash",
-        contents: `Analyze this translation pair:
+        generationConfig: { responseMimeType: "application/json" }
+      });
+      const result = await model.generateContent(`Analyze this translation pair:
 Vietnamese: "${original}"
 English: "${reference}"
 
 Extract 2-3 key grammar points, phrases, or phrasal verbs from the English version that a learner should know. 
 Return ONLY a valid JSON array of strings in Vietnamese explaining these points.
-Example: ["Sử dụng 'Look forward to' khi...", "Cấu trúc 'It takes someone time to do'..." ]`,
-        config: {
-          responseMimeType: "application/json"
-        }
-      });
+Example: ["Sử dụng 'Look forward to' khi...", "Cấu trúc 'It takes someone time to do'..." ]`);
       
-      const responseText = result.text.trim();
+      const responseText = result.response.text().trim();
       const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
       const hints = JSON.parse(cleanJson);
       res.json({ hints });
