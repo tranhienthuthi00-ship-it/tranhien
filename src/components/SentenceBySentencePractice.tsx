@@ -21,26 +21,38 @@ export function SentenceBySentencePractice() {
   const [sentences, setSentences] = useState<Sentence[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userInput, setUserInput] = useState("");
+  const [totalMistakes, setTotalMistakes] = useState(0);
+  const [sessionMistakes, setSessionMistakes] = useState(0);
   const [isPracticing, setIsPracticing] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [evaluation, setEvaluation] = useState<{ explanation?: string; isCorrect?: boolean } | null>(null);
+  const [evaluation, setEvaluation] = useState<{ explanation?: string; isCorrect?: boolean; accuracy?: number } | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
 
-  // Character masking logic
-  const maskedInput = useMemo(() => {
+  // Track mistakes in real-time
+  useEffect(() => {
     const reference = sentences[currentIndex]?.en || "";
-    if (!userInput) return "";
-    
+    if (userInput.length > 0) {
+      const lastIndex = userInput.length - 1;
+      const char = userInput[lastIndex];
+      const targetChar = reference[lastIndex];
+      
+      if (targetChar && char.toLowerCase() !== targetChar.toLowerCase()) {
+        setSessionMistakes(prev => prev + 1);
+      }
+    }
+  }, [userInput, currentIndex, sentences]);
+
+  // Character display logic (Shadow Typing)
+  const typingStatus = useMemo(() => {
+    const reference = sentences[currentIndex]?.en || "";
     return userInput.split('').map((char, i) => {
-      if (i >= reference.length) return "*";
-      // Case insensitive match but preserve reference case
-      const targetChar = reference[i];
-      if (char.toLowerCase() === targetChar.toLowerCase()) return targetChar;
-      return "*";
-    }).join('');
+      const target = reference[i];
+      const isMatch = target && char.toLowerCase() === target.toLowerCase();
+      return { char, isMatch, target };
+    });
   }, [userInput, sentences, currentIndex]);
 
   const normalize = (str: string) => str.toLowerCase().replace(/[.,!?;:()]/g, "").replace(/\s+/g, " ").trim();
@@ -135,19 +147,21 @@ export function SentenceBySentencePractice() {
     };
 
     try {
+      let updated;
       if (editingId) {
-        const updated = practiceParagraphs.map(p => p.id === editingId ? newParagraph : p);
-        await setPracticeParagraphs(updated);
-        setEditingId(null);
+        updated = practiceParagraphs.map(p => p.id === editingId ? newParagraph : p);
       } else {
-        await setPracticeParagraphs([newParagraph, ...practiceParagraphs]);
+        updated = [newParagraph, ...practiceParagraphs];
       }
       
+      await setPracticeParagraphs(updated);
+      setEditingId(null);
       alert("Đã lưu thành công!");
       setShowLibrary(true);
       setIsReviewing(false);
     } catch (error) {
       console.error("Save error:", error);
+      alert("Có lỗi khi lưu bài tập!");
     }
   };
 
@@ -174,32 +188,30 @@ export function SentenceBySentencePractice() {
     setIsVerifying(true);
     
     const currentSentence = sentences[currentIndex];
-    const reference = currentSentence.en;
-
-    if (!reference) {
-      setEvaluation({
-        isCorrect: true,
-        explanation: "No reference provided. Moving on."
-      });
-      setIsVerifying(false);
-      return;
-    }
+    const reference = currentSentence.en || "";
 
     const normalize = (str: string) => str.toLowerCase().replace(/[.,!?;:()]/g, "").replace(/\s+/g, " ").trim();
     const isCorrect = normalize(userInput) === normalize(reference);
+    
+    // Accuracy calculation: 100 - (mistakes / max(ref_len, user_len) * 100)
+    // We want to penalize every wrong keystroke
+    const accuracy = Math.max(0, Math.round(((Math.max(userInput.length, reference.length) - sessionMistakes) / Math.max(1, userInput.length, reference.length)) * 100));
 
     if (isCorrect) {
       setEvaluation({
         isCorrect: true,
-        explanation: "Chúc mừng! Bạn đã dịch chính xác."
+        accuracy,
+        explanation: accuracy >= 95 ? "Tuyệt vời! Bạn đã dịch hoàn hảo." : "Rất tốt! Bạn đã dịch chính xác."
       });
     } else {
       setEvaluation({
         isCorrect: false,
-        explanation: "Bản dịch chưa trùng khớp với mẫu. Kiểm tra lại các từ bị đánh dấu *!"
+        accuracy,
+        explanation: accuracy >= 70 ? "Khá ổn! Nhưng vẫn còn một số lỗi nhỏ." : "Bản dịch có khá nhiều lỗi. Bạn nên thử lại!"
       });
     }
     
+    setTotalMistakes(prev => prev + sessionMistakes);
     setIsVerifying(false);
   };
 
@@ -211,13 +223,16 @@ export function SentenceBySentencePractice() {
     if (currentIndex < sentences.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setUserInput("");
+      setSessionMistakes(0);
       setEvaluation(null);
       setShowHint(false);
     } else {
       // Last sentence completed
+      const finalAccuracy = Math.round((sentences.reduce((acc, s) => acc + (s.en?.length || 0), 0) / (sentences.reduce((acc, s) => acc + (s.en?.length || 0), 0) + totalMistakes + sessionMistakes)) * 100);
       setEvaluation({
         isCorrect: true,
-        explanation: "Chúc mừng! Bạn đã hoàn thành toàn bộ đoạn văn."
+        accuracy: finalAccuracy,
+        explanation: `Chúc mừng! Bạn đã hoàn thành bài tập với độ chính xác tổng thể ${finalAccuracy}%.`
       });
     }
   };
@@ -225,11 +240,11 @@ export function SentenceBySentencePractice() {
   const reset = () => {
     setIsPracticing(false);
     setIsReviewing(false);
-    setInputText("");
-    setReferenceText("");
     setSentences([]);
     setCurrentIndex(0);
     setUserInput("");
+    setSessionMistakes(0);
+    setTotalMistakes(0);
     setEvaluation(null);
   };
 
@@ -245,21 +260,25 @@ export function SentenceBySentencePractice() {
             <div className="space-y-2">
               <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
                 <ListChecks className="w-8 h-8 text-crimson" />
-                {editingId ? "Edit Paragraph" : "Reference-Based Practice"}
+                {editingId ? "Hiệu chỉnh bài tập" : "Luyện dịch đối chiếu"}
               </h2>
               <p className="text-xs font-bold text-ink/40 uppercase tracking-widest">
-                {editingId ? "Cập nhật nội dung của bạn" : "Luyện dịch đối chiếu - Phải dịch đúng mẫu mới được qua câu tiếp theo"}
+                {editingId ? "Cập nhật nội dung bài tập hiện tại" : "Dịch sát theo mẫu - Tính điểm dựa trên lỗi gõ"}
               </p>
             </div>
             
-            <button 
-              onClick={() => { setShowLibrary(!showLibrary); setIsReviewing(false); }}
-              className="sketch-button bg-paper p-3 text-ink/60 hover:text-ink transition-colors flex items-center gap-2"
-              title="Library"
-            >
-              <Library className="w-5 h-5" />
-              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Thư viện</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => { setShowLibrary(!showLibrary); setIsReviewing(false); }}
+                className={`sketch-button p-3 transition-colors flex items-center gap-2 ${showLibrary ? 'bg-ink text-white' : 'bg-paper text-ink/60 hover:text-ink'}`}
+                title="Library"
+              >
+                <Library className="w-5 h-5" />
+                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">
+                  {showLibrary ? "Đóng thư viện" : "Thư viện"}
+                </span>
+              </button>
+            </div>
           </div>
 
           <AnimatePresence mode="wait">
@@ -435,18 +454,19 @@ export function SentenceBySentencePractice() {
                     <ChevronRight className="w-5 h-5" />
                     Tiếp tục
                   </button>
-                  {editingId && (
-                    <button 
-                      onClick={() => { setEditingId(null); setTitle(""); setInputText(""); setReferenceText(""); }}
-                      className="sketch-button bg-crimson/10 text-crimson p-4"
-                    >
-                      <X size={20} />
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    {editingId && (
+                      <button 
+                        onClick={() => { setEditingId(null); setTitle(""); setInputText(""); setReferenceText(""); }}
+                        className="sketch-button bg-paper text-ink/60 py-4 text-sm font-black uppercase tracking-widest hover:text-ink"
+                        title="Hủy hiệu chỉnh"
+                      >
+                        Huỷ bỏ
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
         </div>
       </div>
     );
@@ -543,17 +563,26 @@ export function SentenceBySentencePractice() {
                )}
              </div>
 
-             <div className="space-y-2 pt-4 border-t border-ink/5">
-                <label className="text-[9px] font-black uppercase text-ink/40 tracking-widest block">Bản dịch (nhập đúng hiện chữ):</label>
+              <div className="space-y-4 pt-4 border-t border-ink/5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] font-black uppercase text-ink/40 tracking-widest block">Gõ lại bản dịch (Sai sẽ hiện màu đỏ):</label>
+                  <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-ink/30">
+                    <span className="text-crimson">Lỗi: {sessionMistakes}</span>
+                  </div>
+                </div>
                 
-                <div className="relative group min-h-[100px] flex items-center bg-paper/20 rounded-xl overflow-hidden">
+                <div className="relative group min-h-[100px] flex items-center bg-paper/20 rounded-xl overflow-hidden border-2 border-transparent focus-within:border-ink/5 transition-all">
                   <div className="w-full min-h-[100px] p-4 font-sans text-xl md:text-2xl font-bold leading-relaxed whitespace-pre-wrap pointer-events-none break-words">
-                    {maskedInput}
+                    {typingStatus.map((item, idx) => (
+                      <span key={idx} className={item.isMatch ? "text-ink" : "text-crimson bg-crimson/10"}>
+                        {item.char}
+                      </span>
+                    ))}
                     {!userInput && <span className="text-ink/10 italic text-sm font-medium">Bắt đầu nhập tại đây...</span>}
                     <motion.span 
                       animate={{ opacity: [1, 0] }}
                       transition={{ duration: 0.8, repeat: Infinity }}
-                      className="inline-block w-0.5 h-6 bg-crimson ml-1 align-middle" 
+                      className="inline-block w-0.5 h-6 bg-crimson ml-0.5 align-middle" 
                     />
                   </div>
 
@@ -591,29 +620,37 @@ export function SentenceBySentencePractice() {
                    exit={{ opacity: 0, height: 0 }}
                    className="pt-2"
                  >
-                   <div className={`p-4 rounded-xl flex items-center justify-between gap-4 ${evaluation.isCorrect ? "bg-emerald-50 border border-emerald-500/20" : "bg-crimson/5 border border-crimson/20"}`}>
-                      <div className="flex items-center gap-3">
-                        {evaluation.isCorrect ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <X className="w-5 h-5 text-crimson" />}
-                        <p className={`text-[11px] font-bold ${evaluation.isCorrect ? "text-emerald-900" : "text-crimson"}`}>
-                           {evaluation.explanation}
-                        </p>
+                   <div className={`p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 ${evaluation.isCorrect ? "bg-emerald-50 border border-emerald-500/20" : "bg-crimson/5 border border-crimson/20"}`}>
+                      <div className="flex items-center gap-3 w-full">
+                        {evaluation.isCorrect ? <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> : <X className="w-5 h-5 text-crimson shrink-0" />}
+                        <div className="space-y-0.5">
+                          <p className={`text-[11px] font-bold ${evaluation.isCorrect ? "text-emerald-900" : "text-crimson"}`}>
+                             {evaluation.explanation}
+                          </p>
+                          {evaluation.accuracy !== undefined && (
+                            <p className="text-[9px] font-black uppercase text-ink/30 tracking-tight">
+                              Độ chính xác: {evaluation.accuracy}% | Lỗi: {sessionMistakes}
+                            </p>
+                          )}
+                        </div>
                       </div>
 
-                      {evaluation.isCorrect ? (
+                      <div className="flex items-center gap-3 w-full md:w-auto">
+                        {!evaluation.isCorrect && (
+                          <button 
+                            onClick={() => { setUserInput(""); setSessionMistakes(0); setEvaluation(null); }}
+                            className="flex-1 md:flex-none text-[9px] font-black uppercase text-crimson underline tracking-widest px-4 py-2"
+                          >
+                            Thử lại
+                          </button>
+                        )}
                         <button 
-                          onClick={nextSentence}
-                          className="sketch-button bg-ink text-white py-2 px-6 text-[10px] font-black uppercase tracking-widest hover:bg-ink/90 flex items-center gap-2"
+                          onClick={currentIndex < sentences.length - 1 || !evaluation.isCorrect ? nextSentence : reset}
+                          className={`flex-2 md:flex-none sketch-button py-2 px-6 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 whitespace-nowrap transition-all ${evaluation.isCorrect ? "bg-ink text-white" : "bg-paper text-ink"}`}
                         >
-                          Kế tiếp <ChevronRight className="w-4 h-4" />
+                          {currentIndex < sentences.length - 1 ? (evaluation.isCorrect ? "Kế tiếp" : "Bỏ qua & Tiếp") : "Hoàn tất & Thoát"} <ChevronRight className="w-4 h-4" />
                         </button>
-                      ) : (
-                        <button 
-                          onClick={() => setEvaluation(null)}
-                          className="text-[9px] font-black uppercase text-crimson underline tracking-widest"
-                        >
-                          Thử lại
-                        </button>
-                      )}
+                      </div>
                    </div>
                  </motion.div>
                )}
