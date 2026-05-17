@@ -141,6 +141,7 @@ export interface StudyGoal {
   deadline?: number; // timestamp
   createdAt: number;
   isCompleted: boolean;
+  completedAt?: number;
 }
 
 export interface Achievement {

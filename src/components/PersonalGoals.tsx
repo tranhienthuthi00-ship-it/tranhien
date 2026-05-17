@@ -17,7 +17,6 @@ export function PersonalGoals({
   const [title, setTitle] = useState("");
   const [target, setTarget] = useState(1);
   const [unit, setUnit] = useState("");
-  const [type, setType] = useState<StudyGoal['type']>('custom');
   const [deadline, setDeadline] = useState("");
   const [showAdd, setShowAdd] = useState(false);
 
@@ -26,8 +25,8 @@ export function PersonalGoals({
     const newGoal: StudyGoal = {
       id: `goal-${Date.now()}`,
       title: title.trim(),
-      type,
-      targetValue: target,
+      type: 'custom',
+      targetValue: 1,
       currentValue: 0,
       unit: unit.trim() || undefined,
       deadline: deadline ? new Date(deadline).getTime() : undefined,
@@ -36,33 +35,41 @@ export function PersonalGoals({
     };
     await setGoals([newGoal, ...goals]);
     setTitle("");
-    setTarget(1);
     setUnit("");
     setDeadline("");
     setShowAdd(false);
   };
 
-  const incrementProgress = async (id: string, amount: number = 1) => {
+  const toggleGoalCompletion = async (id: string) => {
     const updated = goals.map(g => {
-      if (g.id === id && !g.isCompleted) {
-        const newValue = g.currentValue + amount;
-        const isCompleted = newValue >= g.targetValue;
+      if (g.id === id) {
+        const isCompleted = !g.isCompleted;
+        const completedAt = isCompleted ? Date.now() : undefined;
         
-        if (isCompleted && !g.isCompleted) {
+        if (isCompleted) {
           const ach: Achievement = {
             id: `ach-${Date.now()}`,
-            title: `Đạt mục tiêu: ${g.title}`,
-            description: `Bạn đã hoàn thành "${g.title}" (${g.targetValue} ${g.unit || ''}) vào lúc ${new Date().toLocaleDateString('vi-VN')}`,
+            title: `Hoàn thành: ${g.title}`,
+            description: `Bạn đã thực hiện xong "${g.title}" vào ngày ${new Date().toLocaleDateString('vi-VN')}`,
             unlockedAt: Date.now(),
             icon: 'Award'
           };
           setAchievements([ach, ...achievements]);
         }
-        return { ...g, currentValue: newValue, isCompleted };
+        return { ...g, isCompleted, completedAt, currentValue: isCompleted ? g.targetValue : 0 };
       }
       return g;
     });
     setGoals(updated);
+  };
+
+  const updateCompletionDate = (id: string, newDate: string) => {
+    const timestamp = new Date(newDate).getTime();
+    if (isNaN(timestamp)) return;
+    
+    setGoals(goals.map(g => 
+      g.id === id ? { ...g, completedAt: timestamp } : g
+    ));
   };
 
   const removeGoal = async (id: string) => {
@@ -99,48 +106,39 @@ export function PersonalGoals({
             exit={{ opacity: 0, y: -20 }}
             className="sketch-border bg-white p-6 space-y-4"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Tên mục tiêu</label>
-                <input 
-                  type="text" 
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  placeholder="Ví dụ: Đọc sách, Tập gym, Code app..."
-                  className="w-full bg-paper/20 sketch-border-sm p-4 text-sm font-sans focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Số lượng</label>
-                  <input 
-                    type="number" 
-                    value={target}
-                    onChange={e => setTarget(Number(e.target.value))}
-                    className="w-full bg-paper/20 sketch-border-sm p-4 text-sm font-sans focus:outline-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Đơn vị</label>
+                  <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Tên mục tiêu</label>
                   <input 
                     type="text" 
-                    value={unit}
-                    onChange={e => setUnit(e.target.value)}
-                    placeholder="trang, giờ..."
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="Ví dụ: Đọc sách, Tập gym, Code app..."
                     className="w-full bg-paper/20 sketch-border-sm p-4 text-sm font-sans focus:outline-none"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Deadline</label>
-                  <input 
-                    type="date" 
-                    value={deadline}
-                    onChange={e => setDeadline(e.target.value)}
-                    className="w-full bg-paper/20 sketch-border-sm p-4 text-xs font-sans focus:outline-none h-[54px]"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Đơn vị (Không bắt buộc)</label>
+                    <input 
+                      type="text" 
+                      value={unit}
+                      onChange={e => setUnit(e.target.value)}
+                      placeholder="trang, giờ..."
+                      className="w-full bg-paper/20 sketch-border-sm p-4 text-sm font-sans focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Deadline</label>
+                    <input 
+                      type="date" 
+                      value={deadline}
+                      onChange={e => setDeadline(e.target.value)}
+                      className="w-full bg-paper/20 sketch-border-sm p-4 text-xs font-sans focus:outline-none h-[54px]"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
             <button 
               onClick={handleAddGoal}
               className="w-full sketch-button bg-crimson text-white py-4 font-black uppercase tracking-widest"
@@ -162,53 +160,33 @@ export function PersonalGoals({
               <div className="text-center py-12 text-ink/20 italic">Chưa có mục tiêu nào đang chạy...</div>
             ) : (
               goals.filter(g => !g.isCompleted).map(goal => (
-                <div key={goal.id} className="sketch-border bg-white p-6 space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <h4 className="text-xl font-bold text-ink">{goal.title}</h4>
-                      {goal.deadline && (
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-crimson">
-                          <Calendar size={14} />
-                          Hạn: {new Date(goal.deadline).toLocaleDateString('vi-VN')}
+                <div key={goal.id} className="sketch-border bg-white p-6 flex items-start gap-4 transition-all hover:bg-paper/10">
+                  <button 
+                    onClick={() => toggleGoalCompletion(goal.id)}
+                    className="mt-1 w-6 h-6 sketch-border-sm rounded-md flex items-center justify-center text-transparent hover:text-ink/10 transition-colors shrink-0"
+                  >
+                    <CheckCircle2 size={16} />
+                  </button>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="space-y-1">
+                        <h4 className="text-xl font-bold text-ink leading-tight">{goal.title}</h4>
+                        <div className="flex flex-wrap gap-3">
+                          {goal.deadline && (
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-crimson uppercase tracking-widest">
+                              <Calendar size={12} />
+                              Hạn: {new Date(goal.deadline).toLocaleDateString('vi-VN')}
+                            </div>
+                          )}
+                          {goal.unit && (
+                            <div className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">
+                              Mục tiêu: {goal.targetValue} {goal.unit}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+                      <button onClick={() => removeGoal(goal.id)} className="text-ink/20 hover:text-crimson"><Trash2 size={18} /></button>
                     </div>
-                    <button onClick={() => removeGoal(goal.id)} className="text-ink/20 hover:text-crimson"><Trash2 size={18} /></button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-[11px] font-black uppercase text-ink/40">
-                      <span>Tiến độ: {Math.round((goal.currentValue / goal.targetValue) * 100)}%</span>
-                      <span>{goal.currentValue}/{goal.targetValue} {goal.unit}</span>
-                    </div>
-                    <div className="h-2 bg-ink/5 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(goal.currentValue / goal.targetValue) * 100}%` }}
-                        className="h-full bg-ink"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2">
-                    <button 
-                      onClick={() => incrementProgress(goal.id)}
-                      className="sketch-button bg-paper py-2 px-4 text-[10px] font-black uppercase tracking-widest hover:bg-ink hover:text-white transition-all flex items-center gap-2"
-                    >
-                      <Plus size={14} /> Cập nhật +1
-                    </button>
-                    <button 
-                       onClick={() => {
-                         const val = prompt(`Nhập số lượng mới (hiện tại: ${goal.currentValue}):`, goal.currentValue.toString());
-                         if (val !== null) {
-                           const amount = Number(val) - goal.currentValue;
-                           incrementProgress(goal.id, amount);
-                         }
-                       }}
-                       className="sketch-button bg-paper py-2 px-4 text-[10px] font-black uppercase tracking-widest hover:bg-ink hover:text-white transition-all"
-                    >
-                       Tùy chỉnh
-                    </button>
                   </div>
                 </div>
               ))
@@ -221,15 +199,32 @@ export function PersonalGoals({
               <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Đã hoàn thành
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {goals.filter(g => g.isCompleted).map(goal => (
-                  <div key={goal.id} className="sketch-border-sm bg-emerald-50/30 p-4 border-emerald-500/20">
-                    <div className="flex justify-between">
-                      <h4 className="text-sm font-bold text-emerald-900">{goal.title}</h4>
-                      <CheckCircle2 className="text-emerald-500" size={16} />
+                  <div key={goal.id} className="sketch-border-sm bg-emerald-50/20 p-5 flex items-start gap-4 group">
+                    <button 
+                      onClick={() => toggleGoalCompletion(goal.id)}
+                      className="mt-1 w-6 h-6 sketch-border-sm rounded-md flex items-center justify-center bg-emerald-500 text-white shrink-0"
+                    >
+                      <CheckCircle2 size={16} />
+                    </button>
+                    <div className="flex-1 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="text-lg font-bold text-emerald-900 line-through opacity-50">{goal.title}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <label className="text-[9px] font-black uppercase text-emerald-700/40 tracking-widest">Hoàn thành vào:</label>
+                            <input 
+                              type="date"
+                              value={goal.completedAt ? new Date(goal.completedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
+                              onChange={(e) => updateCompletionDate(goal.id, e.target.value)}
+                              className="bg-transparent border-none p-0 text-[10px] font-bold text-emerald-700 focus:outline-none h-auto w-32 cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                        <button onClick={() => removeGoal(goal.id)} className="text-emerald-900/20 hover:text-crimson transition-colors"><Trash2 size={16} /></button>
+                      </div>
                     </div>
-                    <p className="text-[10px] text-emerald-700/60 mt-1">Hoàn thành: {goal.targetValue} {goal.unit}</p>
-                    <button onClick={() => removeGoal(goal.id)} className="mt-2 text-[8px] font-black uppercase text-emerald-900/40 hover:text-crimson">Xóa</button>
                   </div>
                 ))}
               </div>
