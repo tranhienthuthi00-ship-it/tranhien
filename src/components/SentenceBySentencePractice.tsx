@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, Send, Sparkles, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus } from "lucide-react";
+import { Loader2, Send, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useFirebaseSync } from "../lib/useFirebaseSync";
 import type { PracticeParagraph } from "../types";
@@ -22,7 +22,6 @@ export function SentenceBySentencePractice() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userInput, setUserInput] = useState("");
   const [isPracticing, setIsPracticing] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [evaluation, setEvaluation] = useState<{ explanation?: string; isCorrect?: boolean } | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
@@ -53,39 +52,22 @@ export function SentenceBySentencePractice() {
     return normalize(userInput) === normalize(reference);
   }, [userInput, sentences, currentIndex]);
 
-  const handleFetchHints = async (index: number) => {
-    const current = sentences[index];
-    if (!current?.en) return;
+  const handlePrepare = () => {
+    if (!inputText.trim() || !referenceText.trim()) return;
+    
+    // Simple split by punctuation
+    const rawSentences = inputText.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+    const rawRefs = referenceText.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
 
-    const updated = [...sentences];
-    updated[index] = { ...updated[index], status: 'thinking' };
-    setSentences(updated);
+    const newSentences: Sentence[] = rawSentences.map((s, i) => ({
+      vi: s.trim(),
+      en: rawRefs[i]?.trim() || "",
+      status: 'pending',
+      hint: sentences[i]?.hint // Keep existing hints if re-preparing
+    }));
 
-    try {
-      const response = await fetch("/api/translation/hints", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ original: current.vi, reference: current.en }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const hintString = (data.hints || []).join("\n");
-        const fresh = [...sentences];
-        fresh[index] = { ...fresh[index], hint: hintString, status: 'pending' };
-        setSentences(fresh);
-      }
-    } catch (error) {
-      console.error("Error fetching hints:", error);
-      const fresh = [...sentences];
-      fresh[index] = { ...fresh[index], status: 'pending' };
-      setSentences(fresh);
-    }
-  };
-
-  const handleFetchAllHints = async () => {
-    for (let i = 0; i < sentences.length; i++) {
-      await handleFetchHints(i);
-    }
+    setSentences(newSentences);
+    setIsReviewing(true);
   };
 
   useEffect(() => {
@@ -98,27 +80,13 @@ export function SentenceBySentencePractice() {
     }
   }, [isCorrect, evaluation]);
 
-  const handlePrepare = () => {
-    if (!inputText.trim()) return;
-    
-    // Simple split by punctuation
-    const rawSentences = inputText.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
-    const rawRefs = referenceText ? referenceText.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0) : [];
-
-    const newSentences: Sentence[] = rawSentences.map((s, i) => ({
-      vi: s.trim(),
-      en: rawRefs[i]?.trim() || "",
-      status: 'pending'
-    }));
-
-    setSentences(newSentences);
-    setIsReviewing(true);
-  };
-
   const handleStart = async (p?: PracticeParagraph) => {
     if (p) {
+      setTitle(p.title);
+      setInputText(p.vietnamese);
+      setReferenceText(p.english);
       if (p.sentences) {
-        setSentences(p.sentences.map(s => ({ ...s, status: 'pending' })));
+        setSentences(p.sentences.map(s => ({ ...s, status: 'pending' as const })));
       } else {
         const vi = p.vietnamese;
         const en = p.english;
@@ -126,13 +94,14 @@ export function SentenceBySentencePractice() {
         const rawRefs = en ? en.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0) : [];
         const newSentences: Sentence[] = rawSentences.map((s, i) => ({
           vi: s.trim(),
-          en: rawRefs[i]?.trim(),
-          status: 'pending'
+          en: rawRefs[i]?.trim() || "",
+          status: 'pending' as const
         }));
         setSentences(newSentences);
       }
       setIsPracticing(true);
       setShowLibrary(false);
+      setIsReviewing(false);
     } else {
       setIsPracticing(true);
       setIsReviewing(false);
@@ -144,28 +113,42 @@ export function SentenceBySentencePractice() {
   };
 
   const handleSave = async () => {
-    if (!inputText.trim() || !referenceText.trim() || !title.trim()) return;
+    if (!inputText.trim() || !referenceText.trim() || !title.trim()) {
+      alert("Vui lòng nhập đầy đủ Tiêu đề, văn bản Gốc và bản dịch Mẫu!");
+      return;
+    }
     
+    const id = editingId || `p-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newParagraph: PracticeParagraph = {
-      id: editingId || crypto.randomUUID(),
+      id,
       title: title.trim(),
       vietnamese: inputText.trim(),
       english: referenceText.trim(),
-      sentences: sentences.map(({ vi, en, hint }) => ({ vi, en: en || "", hint })),
+      sentences: sentences.length > 0 
+        ? sentences.map(({ vi, en, hint }) => ({ vi, en: en || "", hint }))
+        : inputText.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0).map((s, i) => ({
+            vi: s.trim(),
+            en: referenceText.split(/(?<=[.!?])\s+/).filter(r => r.trim().length > 0)[i]?.trim() || "",
+            hint: ""
+          })),
       createdAt: Date.now(),
     };
 
-    if (editingId) {
-      await setPracticeParagraphs(practiceParagraphs.map(p => p.id === editingId ? newParagraph : p));
-      setEditingId(null);
-    } else {
-      await setPracticeParagraphs([newParagraph, ...practiceParagraphs]);
+    try {
+      if (editingId) {
+        const updated = practiceParagraphs.map(p => p.id === editingId ? newParagraph : p);
+        await setPracticeParagraphs(updated);
+        setEditingId(null);
+      } else {
+        await setPracticeParagraphs([newParagraph, ...practiceParagraphs]);
+      }
+      
+      alert("Đã lưu thành công!");
+      setShowLibrary(true);
+      setIsReviewing(false);
+    } catch (error) {
+      console.error("Save error:", error);
     }
-    
-    setTitle("");
-    setInputText("");
-    setReferenceText("");
-    setShowLibrary(true);
   };
 
   const handleEdit = (p: PracticeParagraph) => {
@@ -333,14 +316,7 @@ export function SentenceBySentencePractice() {
                 className="space-y-6"
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest">Bước 2: Chỉnh sửa & Thêm gợi ý</h3>
-                  <button 
-                    onClick={handleFetchAllHints}
-                    className="text-[10px] font-black uppercase text-crimson hover:underline flex items-center gap-1.5"
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    AI Tự động tạo gợi ý
-                  </button>
+                  <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest">Bước 2: Hiệu chỉnh câu & Gợi ý</h3>
                 </div>
 
                 <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 scrollbar-none">
@@ -349,19 +325,23 @@ export function SentenceBySentencePractice() {
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-black text-ink/40">Câu {i + 1}</span>
                       </div>
-                      <p className="text-sm font-bold text-ink leading-relaxed italic">"{s.vi}"</p>
-                      <input 
-                        type="text"
-                        value={s.en}
-                        onChange={(e) => {
-                          const updated = [...sentences];
-                          updated[i].en = e.target.value;
-                          setSentences(updated);
-                        }}
-                        placeholder="Bản dịch mẫu..."
-                        className="w-full bg-paper/20 sketch-border-sm p-3 text-sm font-sans focus:outline-none"
-                      />
-                      <div className="relative">
+                      <p className="text-sm font-bold text-ink leading-relaxed">"{s.vi}"</p>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-ink/30 tracking-widest block">Bản dịch mẫu</label>
+                        <input 
+                          type="text"
+                          value={s.en}
+                          onChange={(e) => {
+                            const updated = [...sentences];
+                            updated[i].en = e.target.value;
+                            setSentences(updated);
+                          }}
+                          placeholder="Bản dịch mẫu..."
+                          className="w-full bg-paper/20 sketch-border-sm p-3 text-sm font-sans focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-ink/30 tracking-widest block">Gợi ý (Mỗi dòng một ý)</label>
                         <textarea 
                           value={s.hint || ""}
                           onChange={(e) => {
@@ -369,14 +349,9 @@ export function SentenceBySentencePractice() {
                             updated[i].hint = e.target.value;
                             setSentences(updated);
                           }}
-                          placeholder="Gợi ý cấu trúc, cụm từ, phrasal verb... (Mỗi cái một dòng)"
+                          placeholder="Gợi ý cấu trúc, cụm từ..."
                           className="w-full h-20 bg-paper/10 sketch-border-sm p-3 text-xs font-sans focus:outline-none resize-none"
                         />
-                        {s.status === 'thinking' && (
-                           <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                             <Loader2 className="w-4 h-4 animate-spin text-ink/40" />
-                           </div>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -454,10 +429,10 @@ export function SentenceBySentencePractice() {
                   </button>
                   <button 
                     onClick={handlePrepare}
-                    disabled={!inputText.trim() || !referenceText.trim() || isProcessing}
+                    disabled={!inputText.trim() || !referenceText.trim()}
                     className="flex-2 sketch-button bg-ink text-white py-4 text-sm font-black uppercase tracking-widest hover:bg-ink/90 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                   >
-                    {isProcessing ? <Loader2 className="animate-spin w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                    <ChevronRight className="w-5 h-5" />
                     Tiếp tục
                   </button>
                   {editingId && (
@@ -531,13 +506,10 @@ export function SentenceBySentencePractice() {
                  <span className="text-[9px] font-black uppercase text-crimson tracking-widest">Đang dịch câu:</span>
                  {sentences[currentIndex]?.en && (
                    <button 
-                    onClick={() => {
-                      if (!showHint && !currentSentence.hint) handleFetchHints(currentIndex);
-                      setShowHint(!showHint);
-                    }}
+                    onClick={() => setShowHint(!showHint)}
                     className="text-[9px] font-black uppercase text-ink/40 hover:text-ink tracking-widest flex items-center gap-1.5 transition-colors"
                    >
-                     <Sparkles className="w-3 h-3" />
+                     <ListChecks className="w-3 h-3" />
                      {showHint ? "Ẩn gợi ý" : "Xem gợi ý"}
                    </button>
                  )}
@@ -553,27 +525,20 @@ export function SentenceBySentencePractice() {
                   className="bg-paper/50 p-4 rounded-lg border border-dashed border-ink/10"
                  >
                    <div className="flex items-start gap-2 mb-2">
-                     <Sparkles className="w-3 h-3 text-yellow-500 mt-0.5 shrink-0" />
+                     <ListChecks className="w-3 h-3 text-crimson mt-0.5 shrink-0" />
                      <h5 className="text-[10px] font-black uppercase tracking-widest text-ink/60">Gợi ý cấu trúc & từ vựng</h5>
                    </div>
                    
-                   {currentSentence.status === 'thinking' ? (
-                     <div className="flex items-center gap-2 text-[10px] text-ink/40 italic">
-                       <Loader2 className="w-3 h-3 animate-spin" />
-                       Đang suy nghĩ...
-                     </div>
-                   ) : (
-                     <ul className="space-y-1.5">
-                       {currentSentence.hint ? currentSentence.hint.split('\n').filter(h => h.trim()).map((hint, i) => (
-                         <li key={i} className="text-[11px] font-sans text-ink/70 leading-relaxed flex items-start gap-2">
-                           <span className="w-1 h-1 rounded-full bg-ink/20 mt-1.5 shrink-0" />
-                           {hint}
-                         </li>
-                       )) : (
-                         <li className="text-[11px] font-sans text-ink/40 italic">Không tìm thấy gợi ý cụ thể.</li>
-                       )}
-                     </ul>
-                   )}
+                   <ul className="space-y-1.5">
+                     {currentSentence.hint ? currentSentence.hint.split('\n').filter(h => h.trim()).map((hint, i) => (
+                       <li key={i} className="text-[11px] font-sans text-ink/70 leading-relaxed flex items-start gap-2">
+                         <span className="w-1 h-1 rounded-full bg-ink/20 mt-1.5 shrink-0" />
+                         {hint}
+                       </li>
+                     )) : (
+                       <li className="text-[11px] font-sans text-ink/40 italic">Không có gợi ý cho câu này.</li>
+                     )}
+                   </ul>
                  </motion.div>
                )}
              </div>
