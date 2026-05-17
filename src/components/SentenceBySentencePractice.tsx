@@ -31,6 +31,8 @@ export function SentenceBySentencePractice() {
   const [showHint, setShowHint] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
 
+  const isPunctuation = (char: string) => /[.,!?;:()"]/.test(char);
+
   // Track mistakes in real-time
   useEffect(() => {
     const reference = sentences[currentIndex]?.en || "";
@@ -39,8 +41,10 @@ export function SentenceBySentencePractice() {
       const char = userInput[lastIndex];
       const targetChar = reference[lastIndex];
       
-      if (targetChar && char.toLowerCase() !== targetChar.toLowerCase()) {
-        setSessionMistakes(prev => prev + 1);
+      if (targetChar && !isPunctuation(targetChar)) {
+        if (char.toLowerCase() !== targetChar.toLowerCase()) {
+          setSessionMistakes(prev => prev + 1);
+        }
       }
     }
   }, [userInput, currentIndex, sentences]);
@@ -50,7 +54,14 @@ export function SentenceBySentencePractice() {
     const reference = sentences[currentIndex]?.en || "";
     return userInput.split('').map((char, i) => {
       const target = reference[i];
-      const isMatch = target && char.toLowerCase() === target.toLowerCase();
+      let isMatch = false;
+      if (target) {
+        if (isPunctuation(target)) {
+          isMatch = true; // Automatically match punctuation
+        } else {
+          isMatch = char.toLowerCase() === target.toLowerCase();
+        }
+      }
       return { char, isMatch, target };
     });
   }, [userInput, sentences, currentIndex]);
@@ -228,13 +239,25 @@ export function SentenceBySentencePractice() {
       setShowHint(false);
     } else {
       // Last sentence completed
-      const finalAccuracy = Math.round((sentences.reduce((acc, s) => acc + (s.en?.length || 0), 0) / (sentences.reduce((acc, s) => acc + (s.en?.length || 0), 0) + totalMistakes + sessionMistakes)) * 100);
+      const totalEnLength = sentences.reduce((acc, s) => acc + (s.en?.length || 0), 0);
+      const totalCombinedMistakes = totalMistakes + sessionMistakes;
+      const finalAccuracy = Math.max(0, Math.round((totalEnLength / (totalEnLength + totalCombinedMistakes)) * 100));
       setEvaluation({
         isCorrect: true,
         accuracy: finalAccuracy,
-        explanation: `Chúc mừng! Bạn đã hoàn thành bài tập với độ chính xác tổng thể ${finalAccuracy}%.`
+        explanation: `Chúc mừng! Bạn đã hoàn thành toàn bài với độ chính xác ${finalAccuracy}%.`
       });
     }
+  };
+
+  const restartCurrent = () => {
+    setCurrentIndex(0);
+    setUserInput("");
+    setSessionMistakes(0);
+    setTotalMistakes(0);
+    setEvaluation(null);
+    setShowHint(false);
+    setSentences(sentences.map(s => ({ ...s, status: 'pending' as const })));
   };
 
   const reset = () => {
@@ -478,13 +501,22 @@ export function SentenceBySentencePractice() {
   return (
     <div className="w-full max-w-4xl mx-auto p-2 md:p-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
-        <button 
-          onClick={reset}
-          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-ink/40 hover:text-crimson transition-colors"
-        >
-          <RotateCcw className="w-4 h-4" />
-          Thoát
-        </button>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={reset}
+            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-ink/40 hover:text-crimson transition-colors"
+          >
+            <RotateCcw className="w-3 h-3" />
+            Thoát
+          </button>
+          <button 
+            onClick={restartCurrent}
+            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-ink/40 hover:text-ink transition-colors"
+          >
+            <RotateCcw className="w-3 h-3" />
+            Làm lại bài này
+          </button>
+        </div>
 
         <div className="flex items-center gap-4 w-full md:w-auto">
           <div className="flex-1 md:w-48 bg-ink/5 h-1.5 rounded-full overflow-hidden">
@@ -636,6 +668,14 @@ export function SentenceBySentencePractice() {
                       </div>
 
                       <div className="flex items-center gap-3 w-full md:w-auto">
+                        {currentIndex === sentences.length - 1 && evaluation.isCorrect && (
+                          <button 
+                            onClick={restartCurrent}
+                            className="flex-1 md:flex-none text-[9px] font-black uppercase text-ink/60 hover:text-ink underline tracking-widest px-4 py-2"
+                          >
+                            Làm lại
+                          </button>
+                        )}
                         {!evaluation.isCorrect && (
                           <button 
                             onClick={() => { setUserInput(""); setSessionMistakes(0); setEvaluation(null); }}
