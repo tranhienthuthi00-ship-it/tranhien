@@ -111,7 +111,7 @@ export function PersonalGoals({
       <div className="flex items-center justify-between gap-4 border-b-2 border-ink/10 pb-4">
         <div>
           <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2">
-            <Target className="w-6 h-6 text-crimson" />
+            <Target className="w-6 h-6 text-crimson" style={{ filter: 'url(#hand-drawn-filter)' }} />
             Mục tiêu
           </h2>
           <p className="hand-text text-lg opacity-60">Đặt mục tiêu & thực hiện</p>
@@ -180,7 +180,7 @@ export function PersonalGoals({
         <div className="md:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" /> Đang thực hiện ({goals.filter(g => !g.isCompleted).length})
+              <TrendingUp className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} /> Đang thực hiện ({goals.filter(g => !g.isCompleted).length})
             </h3>
           </div>
           
@@ -256,7 +256,7 @@ export function PersonalGoals({
           {goals.some(g => g.isCompleted) && (
             <div className="space-y-4 pt-8">
               <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Đã hoàn thành ({goals.filter(g => g.isCompleted).length})
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" style={{ filter: 'url(#hand-drawn-filter)' }} /> Đã hoàn thành ({goals.filter(g => g.isCompleted).length})
               </h3>
               <div className="grid grid-cols-1 gap-4">
                 {goals.filter(g => g.isCompleted).map(goal => (
@@ -301,12 +301,12 @@ export function PersonalGoals({
         {/* Achievements Column */}
         <div className="space-y-6">
           <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest flex items-center gap-2">
-            <Award className="w-4 h-4 text-yellow-500" /> Vinh danh ({achievements.length})
+            <Award className="w-4 h-4 text-yellow-500" style={{ filter: 'url(#hand-drawn-filter)' }} /> Vinh danh ({achievements.length})
           </h3>
           <div className="space-y-4 max-h-[800px] overflow-y-auto pr-2 scrollbar-none">
             {achievements.length === 0 ? (
               <div className="text-center py-16 bg-white/20 sketch-border border-ink/5 flex flex-col items-center gap-4">
-                 <Award className="w-12 h-12 text-ink/5" />
+                 <Award className="w-12 h-12 text-ink/5" style={{ filter: 'url(#hand-drawn-filter)' }} />
                  <p className="text-ink/20 italic text-xs">Hãy bắt đầu để nhận huân chương!</p>
               </div>
             ) : (
@@ -319,7 +319,7 @@ export function PersonalGoals({
                 >
                   <div className="flex gap-4">
                     <div className="p-3 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl text-white shrink-0 shadow-lg">
-                      <Award size={20} />
+                      <Award size={20} style={{ filter: 'url(#hand-drawn-filter)' }} />
                     </div>
                     <div className="space-y-1">
                       <h5 className="text-[12px] font-black uppercase tracking-tight leading-tight text-ink">{ach.title}</h5>
