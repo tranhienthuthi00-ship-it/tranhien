@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { Plus, Target, Calendar, Award, Trash2, CheckCircle2, TrendingUp, X, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { 
+  Plus, Target, Calendar, Trash2, CheckCircle2, 
+  TrendingUp, X, FileText, ChevronDown, ChevronUp,
+  Medal, Square
+} from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { StudyGoal, Achievement } from "../types";
 
@@ -69,7 +73,7 @@ export function PersonalGoals({
         title: `Hoàn thành: ${completedGoal.title}`,
         description: `Bạn đã thực hiện xong "${completedGoal.title}" vào ngày ${new Date(completedGoal.completedAt).toLocaleDateString('vi-VN')}`,
         unlockedAt: completedGoal.completedAt,
-        icon: 'Award'
+        icon: 'Medal'
       };
       await setAchievements([ach, ...achievements]);
     }
@@ -216,9 +220,9 @@ export function PersonalGoals({
                   <div className="flex items-start gap-4">
                     <button 
                       onClick={() => toggleGoalCompletion(goal.id)}
-                      className="mt-1 w-8 h-8 sketch-border-sm rounded-lg flex items-center justify-center text-transparent hover:text-emerald-500 hover:border-emerald-500 transition-all shrink-0 bg-white"
+                      className="mt-1 w-8 h-8 sketch-border-sm rounded-lg flex items-center justify-center text-ink/20 hover:text-emerald-600 hover:border-emerald-500 transition-all shrink-0 bg-white group-hover:border-ink/20 shadow-sm"
                     >
-                      <CheckCircle2 size={20} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                      <Square size={20} style={{ filter: 'url(#hand-drawn-filter)' }} />
                     </button>
                     <div className="flex-1 space-y-2">
                       <div className="flex justify-between items-start gap-4">
@@ -334,12 +338,12 @@ export function PersonalGoals({
         {/* Achievements Column */}
         <div className="space-y-6">
           <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest flex items-center gap-2">
-            <Award className="w-4 h-4 text-yellow-500" style={{ filter: 'url(#hand-drawn-filter)' }} /> Vinh danh ({achievements.length})
+            <Medal className="w-4 h-4 text-orange-500" style={{ filter: 'url(#hand-drawn-filter)' }} /> Vinh danh ({achievements.length})
           </h3>
           <div className="space-y-4 max-h-[800px] overflow-y-auto pr-2 scrollbar-none">
             {achievements.length === 0 ? (
               <div className="text-center py-16 bg-white/20 sketch-border border-ink/5 flex flex-col items-center gap-4">
-                 <Award className="w-12 h-12 text-ink/5" style={{ filter: 'url(#hand-drawn-filter)' }} />
+                 <Medal className="w-12 h-12 text-ink/5" style={{ filter: 'url(#hand-drawn-filter)' }} />
                  <p className="text-ink/20 italic text-xs">Hãy bắt đầu để nhận huân chương!</p>
               </div>
             ) : (
@@ -351,8 +355,8 @@ export function PersonalGoals({
                   className="sketch-border bg-yellow-50/50 p-4 space-y-2 border-yellow-200 shadow-sm hover:shadow-md transition-all"
                 >
                   <div className="flex gap-4">
-                    <div className="p-3 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl text-white shrink-0 shadow-lg">
-                      <Award size={20} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                    <div className="p-3 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl text-white shrink-0 shadow-lg border-2 border-white/20" style={{ filter: 'url(#hand-drawn-filter)' }}>
+                      <Medal size={20} style={{ filter: 'url(#hand-drawn-filter)' }} />
                     </div>
                     <div className="space-y-1">
                       <h5 className="text-[12px] font-black uppercase tracking-tight leading-tight text-ink">{ach.title}</h5>
