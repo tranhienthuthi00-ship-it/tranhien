@@ -71,7 +71,7 @@ export function PersonalGoals({
         id: `ach-${Date.now()}`,
         goalId: completedGoal.id,
         title: `Hoàn thành: ${completedGoal.title}`,
-        description: `Bạn đã thực hiện xong "${completedGoal.title}" vào ngày ${new Date(completedGoal.completedAt).toLocaleDateString('vi-VN')}`,
+        description: "Mục tiêu đã hoàn tất!",
         unlockedAt: completedGoal.completedAt,
         icon: 'Medal'
       };
@@ -93,11 +93,9 @@ export function PersonalGoals({
     // Sync Achievement
     const updatedAchs = achievements.map(ach => {
       if (ach.goalId === id) {
-        const goal = goals.find(g => g.id === id);
         return {
           ...ach,
-          unlockedAt: timestamp,
-          description: `Bạn đã thực hiện xong "${goal?.title}" vào ngày ${new Date(timestamp).toLocaleDateString('vi-VN')}`
+          unlockedAt: timestamp
         };
       }
       return ach;
@@ -325,12 +323,13 @@ export function PersonalGoals({
                             )}
                           </div>
                         </div>
-                        <p className="text-[11px] text-ink/60 italic leading-relaxed">{ach.description}</p>
+                        <p className="text-[11px] text-ink/60 italic leading-relaxed">
+                          Bạn đã thực hiện xong {linkedGoal?.title ? `"${linkedGoal.title}"` : ""} vào ngày {new Date(linkedGoal?.completedAt || ach.unlockedAt).toLocaleDateString('vi-VN')}
+                        </p>
                         
                         {linkedGoal && (
                           <div className="mt-2 pt-2 border-t border-ink/5 flex items-center gap-2">
                             <Calendar size={10} className="text-ink/30" />
-                            <label className="text-[8px] font-black uppercase text-ink/30 tracking-widest">Hoàn thành:</label>
                             <input 
                               type="date"
                               value={linkedGoal.completedAt ? new Date(linkedGoal.completedAt).toISOString().split('T')[0] : ""}
@@ -350,7 +349,7 @@ export function PersonalGoals({
                         <textarea 
                           value={linkedGoal.review || ""}
                           onChange={(e) => updateReview(linkedGoal.id, e.target.value)}
-                          placeholder="Cảm tưởng của bạn sau khi hoàn thành..."
+                          placeholder="Thêm review"
                           className="w-full bg-paper/5 p-3 text-sm font-sans focus:outline-none focus:bg-white transition-all h-20 resize-none italic text-ink/80 sketch-border-sm"
                         />
                       </div>
