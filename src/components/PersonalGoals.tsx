@@ -275,100 +275,84 @@ export function PersonalGoals({
               ))
             )}
           </div>
-
-          {/* Completed Goals */}
-          {goals.some(g => g.isCompleted) && (
-            <div className="space-y-4 pt-8">
-              <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" style={{ filter: 'url(#hand-drawn-filter)' }} /> Đã hoàn thành ({goals.filter(g => g.isCompleted).length})
-              </h3>
-              <div className="grid grid-cols-1 gap-4">
-                {goals.filter(g => g.isCompleted).map(goal => (
-                  <div key={goal.id} className="sketch-border-sm bg-emerald-50/20 p-5 flex items-start gap-4 group hover:bg-emerald-50/40 transition-colors">
-                    <button 
-                      onClick={() => toggleGoalCompletion(goal.id)}
-                      className="mt-1 w-6 h-6 sketch-border-sm rounded-md flex items-center justify-center bg-emerald-500 text-white shrink-0 shadow-sm"
-                    >
-                      <CheckCircle2 size={16} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                    </button>
-                    <div className="flex-1 space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="text-lg font-bold text-emerald-900 line-through opacity-40">{goal.title}</h4>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
-                            <div className="flex items-center gap-2">
-                              <label className="text-[9px] font-black uppercase text-emerald-700/40 tracking-widest whitespace-nowrap">Xong ngày:</label>
-                              <input 
-                                type="date"
-                                value={goal.completedAt ? new Date(goal.completedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
-                                onChange={(e) => updateCompletionDate(goal.id, e.target.value)}
-                                className="bg-transparent border-none p-0 text-[10px] font-bold text-emerald-700 focus:outline-none h-auto w-32 cursor-pointer hover:bg-emerald-100/50 rounded px-1 transition-colors"
-                              />
-                            </div>
-                            {goal.notes && (
-                              <div className="text-[8px] font-bold text-emerald-600/40 uppercase tracking-widest flex items-center gap-1">
-                                <FileText size={10} style={{ filter: 'url(#hand-drawn-filter)' }} /> Có ghi chú
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <button onClick={() => removeGoal(goal.id)} className="text-emerald-900/10 hover:text-crimson transition-colors p-1"><Trash2 size={16} style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
-                      </div>
-
-                      {/* Review Section */}
-                      <div className="pt-3 border-t border-emerald-900/5 space-y-2">
-                        <label className="flex items-center gap-1.5 text-[9px] font-black uppercase text-emerald-800/40 tracking-widest">
-                          <FileText size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> Bài học / Review sau khi hoàn thành
-                        </label>
-                        <textarea 
-                          value={goal.review || ""}
-                          onChange={(e) => updateReview(goal.id, e.target.value)}
-                          placeholder="Bạn đã học được gì? Cảm tưởng sau khi xong việc..."
-                          className="w-full bg-paper/10 sketch-border-sm p-3 text-sm font-sans focus:outline-none focus:bg-emerald-500/5 transition-all h-20 resize-none italic text-emerald-900/80"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Achievements Column */}
         <div className="space-y-6">
           <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest flex items-center gap-2">
-            <Medal className="w-4 h-4 text-orange-500" style={{ filter: 'url(#hand-drawn-filter)' }} /> Vinh danh ({achievements.length})
+            <Medal className="w-4 h-4 text-ink" style={{ filter: 'url(#hand-drawn-filter)' }} /> Vinh danh ({achievements.length})
           </h3>
-          <div className="space-y-4 max-h-[800px] overflow-y-auto pr-2 scrollbar-none">
+          <div className="space-y-6 max-h-[1000px] overflow-y-auto pr-2 scrollbar-none">
             {achievements.length === 0 ? (
               <div className="text-center py-16 bg-white/20 sketch-border border-ink/5 flex flex-col items-center gap-4">
                  <Medal className="w-12 h-12 text-ink/5" style={{ filter: 'url(#hand-drawn-filter)' }} />
                  <p className="text-ink/20 italic text-xs">Hãy bắt đầu để nhận huân chương!</p>
               </div>
             ) : (
-              achievements.map(ach => (
-                <motion.div 
-                  key={ach.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="sketch-border bg-yellow-50/50 p-4 space-y-2 border-yellow-200 shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex gap-4">
-                    <div className="p-3 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl text-white shrink-0 shadow-lg border-2 border-white/20" style={{ filter: 'url(#hand-drawn-filter)' }}>
-                      <Medal size={20} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                    </div>
-                    <div className="space-y-1">
-                      <h5 className="text-[12px] font-black uppercase tracking-tight leading-tight text-ink">{ach.title}</h5>
-                      <p className="text-[10px] text-ink/70 leading-relaxed">{ach.description}</p>
-                      <div className="pt-1 flex items-center gap-1.5 text-[8px] font-black text-ink/30 uppercase tracking-widest">
-                        <Calendar size={10} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                        {new Date(ach.unlockedAt).toLocaleDateString('vi-VN')}
+              achievements.map(ach => {
+                const linkedGoal = goals.find(g => g.id === ach.goalId);
+                return (
+                  <motion.div 
+                    key={ach.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="sketch-border bg-white/40 p-4 space-y-4 border-ink/10 relative group"
+                  >
+                    <div className="flex gap-4">
+                      <div className="p-2 text-ink shrink-0" style={{ filter: 'url(#hand-drawn-filter)' }}>
+                        <Medal size={28} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                      </div>
+                      <div className="space-y-1 flex-1">
+                        <div className="flex justify-between items-start">
+                          <h5 className="text-[14px] font-black uppercase tracking-tight leading-tight text-ink">{ach.title}</h5>
+                          <div className="flex items-center gap-2">
+                            {linkedGoal && (
+                              <button 
+                                onClick={() => toggleGoalCompletion(linkedGoal.id)}
+                                className="text-ink/20 hover:text-crimson transition-colors"
+                                title="Hủy hoàn thành"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-ink/60 italic leading-relaxed">{ach.description}</p>
+                        
+                        <div className="pt-2 flex flex-wrap items-center gap-4 border-t border-ink/5 mt-2">
+                          <div className="flex items-center gap-2">
+                            <label className="text-[8px] font-black uppercase text-ink/30 tracking-widest">Xong ngày:</label>
+                            {linkedGoal ? (
+                              <input 
+                                type="date"
+                                value={linkedGoal.completedAt ? new Date(linkedGoal.completedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
+                                onChange={(e) => updateCompletionDate(linkedGoal.id, e.target.value)}
+                                className="bg-transparent border-none p-0 text-[10px] font-bold text-ink/60 focus:outline-none h-auto w-24 cursor-pointer hover:bg-paper/10 rounded px-1 transition-colors"
+                              />
+                            ) : (
+                               <span className="text-[10px] font-bold text-ink/40">{new Date(ach.unlockedAt).toLocaleDateString('vi-VN')}</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))
+
+                    {linkedGoal && (
+                      <div className="pt-3 border-t-2 border-dashed border-ink/5 space-y-2">
+                        <label className="flex items-center gap-1.5 text-[9px] font-black uppercase text-ink/40 tracking-widest">
+                          <FileText size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> Bài học / Review
+                        </label>
+                        <textarea 
+                          value={linkedGoal.review || ""}
+                          onChange={(e) => updateReview(linkedGoal.id, e.target.value)}
+                          placeholder="Bạn đã học được gì? Cảm tưởng sau khi xong việc..."
+                          className="w-full bg-paper/10 p-3 text-sm font-sans focus:outline-none focus:bg-white transition-all h-20 resize-none italic text-ink/80 sketch-border-sm"
+                        />
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })
             )}
           </div>
         </div>
