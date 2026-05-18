@@ -318,34 +318,18 @@ export function PersonalGoals({
                           </div>
                         </div>
                         <p className="text-[11px] text-ink/60 italic leading-relaxed">{ach.description}</p>
-                        
-                        <div className="pt-2 flex flex-wrap items-center gap-4 border-t border-ink/5 mt-2">
-                          <div className="flex items-center gap-2">
-                            <label className="text-[8px] font-black uppercase text-ink/30 tracking-widest">Xong ngày:</label>
-                            {linkedGoal ? (
-                              <input 
-                                type="date"
-                                value={linkedGoal.completedAt ? new Date(linkedGoal.completedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
-                                onChange={(e) => updateCompletionDate(linkedGoal.id, e.target.value)}
-                                className="bg-transparent border-none p-0 text-[10px] font-bold text-ink/60 focus:outline-none h-auto w-24 cursor-pointer hover:bg-paper/10 rounded px-1 transition-colors"
-                              />
-                            ) : (
-                               <span className="text-[10px] font-bold text-ink/40">{new Date(ach.unlockedAt).toLocaleDateString('vi-VN')}</span>
-                            )}
-                          </div>
-                        </div>
                       </div>
                     </div>
 
                     {linkedGoal && (
                       <div className="pt-3 border-t-2 border-dashed border-ink/5 space-y-2">
                         <label className="flex items-center gap-1.5 text-[9px] font-black uppercase text-ink/40 tracking-widest">
-                          <FileText size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> Bài học / Review
+                          <FileText size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> Review
                         </label>
                         <textarea 
                           value={linkedGoal.review || ""}
                           onChange={(e) => updateReview(linkedGoal.id, e.target.value)}
-                          placeholder="Bạn đã học được gì? Cảm tưởng sau khi xong việc..."
+                          placeholder=""
                           className="w-full bg-paper/10 p-3 text-sm font-sans focus:outline-none focus:bg-white transition-all h-20 resize-none italic text-ink/80 sketch-border-sm"
                         />
                       </div>
