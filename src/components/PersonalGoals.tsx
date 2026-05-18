@@ -296,11 +296,19 @@ export function PersonalGoals({
                     key={ach.id}
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="sketch-border bg-white/40 p-4 space-y-4 border-ink/10 relative group"
+                    whileHover={{ scale: 1.02 }}
+                    className="sketch-border bg-white p-5 space-y-4 border-ink/20 relative group shadow-sm hover:shadow-md transition-all"
                   >
-                    <div className="flex gap-4">
-                      <div className="p-2 text-ink shrink-0" style={{ filter: 'url(#hand-drawn-filter)' }}>
-                        <Medal size={28} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                    {/* Decorative Hand-drawn corner */}
+                    <div className="absolute top-0 right-0 w-8 h-8 pointer-events-none opacity-10">
+                       <svg viewBox="0 0 100 100" className="w-full h-full text-ink">
+                         <path d="M 10,90 Q 50,50 90,10 M 40,10 L 90,10 L 90,60" fill="none" stroke="currentColor" strokeWidth="4" />
+                       </svg>
+                    </div>
+
+                    <div className="flex gap-5">
+                      <div className="p-3 text-ink shrink-0 bg-paper/20 rounded-full h-fit flex items-center justify-center" style={{ filter: 'url(#hand-drawn-filter)' }}>
+                        <Medal size={32} style={{ filter: 'url(#hand-drawn-filter)' }} />
                       </div>
                       <div className="space-y-1 flex-1">
                         <div className="flex justify-between items-start">
@@ -309,7 +317,7 @@ export function PersonalGoals({
                             {linkedGoal && (
                               <button 
                                 onClick={() => toggleGoalCompletion(linkedGoal.id)}
-                                className="text-ink/20 hover:text-crimson transition-colors"
+                                className="text-ink/10 hover:text-crimson transition-colors p-1"
                                 title="Hủy hoàn thành"
                               >
                                 <X size={14} />
@@ -318,6 +326,19 @@ export function PersonalGoals({
                           </div>
                         </div>
                         <p className="text-[11px] text-ink/60 italic leading-relaxed">{ach.description}</p>
+                        
+                        {linkedGoal && (
+                          <div className="mt-2 pt-2 border-t border-ink/5 flex items-center gap-2">
+                            <Calendar size={10} className="text-ink/30" />
+                            <label className="text-[8px] font-black uppercase text-ink/30 tracking-widest">Hoàn thành:</label>
+                            <input 
+                              type="date"
+                              value={linkedGoal.completedAt ? new Date(linkedGoal.completedAt).toISOString().split('T')[0] : ""}
+                              onChange={(e) => updateCompletionDate(linkedGoal.id, e.target.value)}
+                              className="bg-paper/20 sketch-border-sm border-none p-1.5 text-[10px] font-bold text-ink/60 focus:outline-none h-auto w-auto min-w-[120px] cursor-pointer hover:bg-paper/40 rounded transition-all"
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -329,8 +350,8 @@ export function PersonalGoals({
                         <textarea 
                           value={linkedGoal.review || ""}
                           onChange={(e) => updateReview(linkedGoal.id, e.target.value)}
-                          placeholder=""
-                          className="w-full bg-paper/10 p-3 text-sm font-sans focus:outline-none focus:bg-white transition-all h-20 resize-none italic text-ink/80 sketch-border-sm"
+                          placeholder="Cảm tưởng của bạn sau khi hoàn thành..."
+                          className="w-full bg-paper/5 p-3 text-sm font-sans focus:outline-none focus:bg-white transition-all h-20 resize-none italic text-ink/80 sketch-border-sm"
                         />
                       </div>
                     )}
