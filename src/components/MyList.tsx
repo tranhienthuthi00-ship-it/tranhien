@@ -197,7 +197,14 @@ export function MyList({
                   key={level}
                   type="button"
                   onClick={() => setNewTaskPriority(level)}
-                  className={cn("px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border transition-colors", newTaskPriority === level ? "bg-ink text-paper border-ink" : "border-ink/20 text-ink/60 hover:bg-ink/5")}
+                  className={cn(
+                    "px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border transition-colors", 
+                    newTaskPriority === level 
+                      ? level === 'High' ? "bg-crimson text-white border-crimson" 
+                        : level === 'Medium' ? "bg-yellow-500 text-white border-yellow-500" 
+                        : "bg-gray-500 text-white border-gray-500"
+                      : "border-ink/20 text-ink/60 hover:bg-ink/5"
+                  )}
                 >
                   {level}
                 </button>
@@ -221,7 +228,10 @@ export function MyList({
           {sortedTasks.map(task => (
             <li key={task.id} className={cn(
               "flex items-center group relative py-3 px-4 sketch-border transition-all",
-              task.completed ? "opacity-50 border-ink/10" : task.priority === 'High' ? "bg-crimson/5 border-crimson" : "bg-white/50 border-ink/10 hover:border-ink/30"
+              task.completed ? "opacity-50 border-ink/10" : 
+              task.priority === 'High' ? "bg-crimson/5 border-crimson" : 
+              task.priority === 'Medium' ? "bg-yellow-400/5 border-yellow-500" :
+              "bg-gray-400/5 border-gray-400 hover:border-ink/30"
             )}>
               <button
                 onClick={() => toggleTask(task.id)}
@@ -231,7 +241,12 @@ export function MyList({
                 )}
               />
               <div className="flex-1 flex flex-col justify-center">
-                <span className={cn("font-medium text-base transition-all", task.completed ? "text-ink/40" : "", task.priority === 'High' && !task.completed ? "text-crimson" : "")}>
+                <span className={cn(
+                  "font-medium text-base transition-all", 
+                  task.completed ? "text-ink/40" : 
+                  task.priority === 'High' ? "text-crimson" : 
+                  task.priority === 'Medium' ? "text-yellow-600" : "text-gray-500"
+                )}>
                   {task.content}
                   {task.completed && (
                     <svg className="absolute left-10 right-0 w-[calc(100%-2.5rem)] h-[12px] top-1/2 -translate-y-1/2 pointer-events-none" preserveAspectRatio="none">
@@ -253,7 +268,7 @@ export function MyList({
                     "text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full border",
                     task.completed ? "border-ink/10 text-ink/40 bg-transparent" :
                     task.priority === 'High' ? "border-crimson text-crimson bg-white" : 
-                    task.priority === 'Medium' ? "border-orange-400 text-orange-600 bg-white" : "border-ink/20 text-ink/40 bg-white"
+                    task.priority === 'Medium' ? "border-yellow-500 text-yellow-600 bg-white" : "border-gray-400 text-gray-500 bg-white"
                   )}>
                     {task.priority} Priority
                   </span>
@@ -332,7 +347,14 @@ export function MyList({
                   key={level}
                   type="button"
                   onClick={() => setNewNecessity(level)}
-                  className={cn("px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border transition-colors", newNecessity === level ? "bg-ink text-paper border-ink" : "border-ink/20 text-ink/60 hover:bg-ink/5")}
+                  className={cn(
+                    "px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border transition-colors", 
+                    newNecessity === level 
+                      ? level === 'High' ? "bg-crimson text-white border-crimson" 
+                        : level === 'Medium' ? "bg-yellow-500 text-white border-yellow-500" 
+                        : "bg-gray-500 text-white border-gray-500"
+                      : "border-ink/20 text-ink/60 hover:bg-ink/5"
+                  )}
                 >
                   {level}
                 </button>
@@ -380,7 +402,9 @@ export function MyList({
           {sortedWishlist.map(wish => (
             <div key={wish.id} className={cn(
               "flex flex-col py-2 px-3 sketch-border transition-all relative group w-full overflow-hidden",
-              wish.necessity === 'High' ? "bg-crimson/5 border-crimson" : "bg-white/50 border-ink/10 hover:border-ink/30"
+              wish.necessity === 'High' ? "bg-crimson/5 border-crimson" : 
+              wish.necessity === 'Medium' ? "bg-yellow-400/5 border-yellow-500" :
+              "bg-gray-400/5 border-gray-400 hover:border-ink/30"
             )}>
                 <div className="flex justify-between items-start gap-4">
                   <span className={cn("font-bold text-base flex-1 min-w-0 break-words", wish.necessity === 'High' && "text-crimson")}>{wish.content}</span>
@@ -449,7 +473,7 @@ export function MyList({
                    <span className={cn(
                      "text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full border",
                      wish.necessity === 'High' ? "border-crimson text-crimson bg-white" : 
-                     wish.necessity === 'Medium' ? "border-orange-400 text-orange-600 bg-white" : "border-ink/20 text-ink/40 bg-white"
+                     wish.necessity === 'Medium' ? "border-yellow-500 text-yellow-600 bg-white" : "border-gray-400 text-gray-500 bg-white"
                    )}>
                      {wish.necessity} Need {wish.isPurchased && "✅"}
                    </span>
@@ -463,8 +487,8 @@ export function MyList({
                      <div key={idx} className="flex gap-2 items-start text-[11px]">
                        <span className={cn("px-1 py-0.5 rounded border text-[8px] font-bold uppercase", 
                           entry.necessity === 'High' ? "border-crimson text-crimson bg-crimson/5" :
-                          entry.necessity === 'Medium' ? "border-orange-400 text-orange-600 bg-orange-400/5" :
-                          "border-ink/20 text-ink/50 bg-ink/5"
+                          entry.necessity === 'Medium' ? "border-yellow-500 text-yellow-600 bg-yellow-400/5" :
+                          "border-gray-400 text-gray-500 bg-gray-400/5"
                        )}>{entry.necessity}</span>
                        <span className="opacity-50 min-w-[60px]">{new Date(entry.date).toLocaleDateString()}</span>
                        <span className="font-hand italic text-ink/80 flex-1">{entry.note}</span>
