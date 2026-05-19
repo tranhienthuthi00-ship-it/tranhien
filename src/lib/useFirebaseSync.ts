@@ -89,8 +89,9 @@ export function useFirebaseSync() {
   }, []);
 
   const migrateLocalStorage = async (uid: string) => {
-    const migrated = localStorage.getItem(`migrated_${uid}_v4`);
-    if (migrated) return;
+    const migratedV4 = localStorage.getItem(`migrated_${uid}_v4`);
+    const migratedV5 = localStorage.getItem(`migrated_${uid}_v5`);
+    if (migratedV5) return;
 
     const safeSetDoc = async (path: string, item: any) => {
       try {
@@ -119,6 +120,8 @@ export function useFirebaseSync() {
       };
 
       for (const [lsKey, firestorePath] of Object.entries(storageMap)) {
+        // v5 migration specifically targets those that might have failed rule checks earlier
+        // but we can re-migrate everything safely as setDoc is idempotent
         const data = localStorage.getItem(lsKey);
         if (data) {
           try {
@@ -145,6 +148,7 @@ export function useFirebaseSync() {
       }
 
       localStorage.setItem(`migrated_${uid}_v4`, 'true');
+      localStorage.setItem(`migrated_${uid}_v5`, 'true');
     } catch (e) {
       console.error("Migration error", e);
     }

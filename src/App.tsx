@@ -15,10 +15,10 @@ import { PersonalGoals } from "./components/PersonalGoals";
 import { SpeechGame } from "./components/SpeechGame";
 import { TranslationPractice } from "./components/TranslationPractice";
 import Flashcards from "./components/Flashcards";
-import { useFirebaseSync } from "./lib/useFirebaseSync";
+import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
 import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target } from "lucide-react";
 
-export default function App() {
+function AppContent() {
   const {
     user, loading,
     words, setWords,
@@ -31,9 +31,10 @@ export default function App() {
     assets, setAssets,
     assetCategories, setAssetCategories,
     dictations, setDictations,
+    practiceParagraphs, setPracticeParagraphs,
     studyGoals, setStudyGoals,
     achievements, setAchievements
-  } = useFirebaseSync();
+  } = useFirebase();
 
   const [activeTab, setActiveTab] = useState<Tab>("English Hub");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation" | "Speech" | "SRS" | "Translation">("Academy");
@@ -90,7 +91,7 @@ export default function App() {
   const dueCount = words.filter(w => new Date(w.nextReview) <= new Date()).length;
 
   return (
-    <div className="min-h-screen pb-20 relative">
+    <div className="min-h-screen pb-20 relative overflow-x-hidden w-full">
       <Doodles />
       <svg width="0" height="0" className="absolute pointer-events-none" style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
@@ -102,11 +103,11 @@ export default function App() {
       </svg>
       <NavBar activeTab={activeTab} setActiveTab={setActiveTab} lastSaved={lastSaved} onLogout={handleLogout} dueCount={dueCount} />
       
-      <main className="mt-4 relative z-10 animate-in fade-in duration-500 overflow-x-hidden">
-        <div className="max-w-[100vw] overflow-hidden">
+      <main className="mt-4 relative z-10 animate-in fade-in duration-500 overflow-x-hidden w-full">
+        <div className="max-w-[100vw] overflow-hidden px-1 sm:px-2">
           {activeTab === "English Hub" && (
-            <div className="flex flex-col gap-4">
-              <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center gap-1.5 md:gap-4 mb-2 px-1 md:px-4 flex-wrap max-w-full">
+            <div className="flex flex-col gap-4 overflow-hidden">
+              <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center gap-1.5 md:gap-4 mb-2 px-1 md:px-4 flex-wrap max-w-full overflow-hidden">
                 <button 
                   onClick={() => setActiveEnglishSubTab("Academy")}
                   className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-2.5 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeEnglishSubTab === "Academy" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
@@ -116,41 +117,41 @@ export default function App() {
               </button>
               <button 
                 onClick={() => setActiveEnglishSubTab("Learning Games")}
-                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "Learning Games" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-2.5 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeEnglishSubTab === "Learning Games" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
               >
                 <Gamepad2 className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />
                 Practice
               </button>
               <button 
                 onClick={() => setActiveEnglishSubTab("Dictation")}
-                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "Dictation" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
-              >
+                className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-2.5 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeEnglishSubTab === "Dictation" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                >
                 <Headphones className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />
                 Dictation
               </button>
               <button 
                 onClick={() => setActiveEnglishSubTab("Speech")}
-                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "Speech" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-2.5 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeEnglishSubTab === "Speech" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
               >
                 <Mic className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />
                 Speech
               </button>
               <button 
                 onClick={() => setActiveEnglishSubTab("Translation")}
-                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "Translation" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-2.5 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeEnglishSubTab === "Translation" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
               >
                 <Languages className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />
                 Translation
               </button>
               <button 
                 onClick={() => setActiveEnglishSubTab("SRS")}
-                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "SRS" ? "bg-crimson text-white border-crimson scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-2.5 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeEnglishSubTab === "SRS" ? "bg-crimson text-white border-crimson scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
               >
                 <Brain className="w-4 h-4" />
                 SRS
               </button>
             </div>
-            <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
+            <div className="max-w-7xl mx-auto w-full px-2 md:px-6 overflow-hidden">
               {activeEnglishSubTab === "Academy" && <Academy words={words} setWords={setWords} tags={tags} setTags={setTags} />}
               {activeEnglishSubTab === "Learning Games" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={setActiveEnglishSubTab} />}
               {activeEnglishSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} />}
@@ -162,8 +163,8 @@ export default function App() {
         )}
         
         {activeTab === "Collections" && (
-          <div className="flex flex-col gap-4">
-            <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center flex-wrap gap-1.5 md:gap-4 mb-2 px-1 md:px-4 text-ink/60 max-w-full">
+          <div className="flex flex-col gap-4 overflow-hidden">
+            <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center flex-wrap gap-1.5 md:gap-4 mb-2 px-1 md:px-4 text-ink/60 max-w-full overflow-hidden">
               {(["Lists", "Places", "Content", "Assets"] as const).map(tab => (
                 <button
                   key={tab}
@@ -179,9 +180,9 @@ export default function App() {
               ))}
             </div>
             
-            <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
+            <div className="max-w-7xl mx-auto w-full px-2 md:px-6 overflow-hidden">
               {activeCollectionSubTab === "Lists" && (
-                <div className="max-w-5xl mx-auto space-y-12">
+                <div className="max-w-5xl mx-auto space-y-12 overflow-hidden">
                   <PersonalGoals 
                     goals={studyGoals} 
                     setGoals={setStudyGoals} 
@@ -190,7 +191,7 @@ export default function App() {
                     tasks={tasks}
                     setTasks={setTasks}
                   />
-                  <div className="sketch-border-sm border-t-8 border-ink/5 pt-12">
+                  <div className="sketch-border-sm border-t-8 border-ink/5 pt-12 overflow-hidden">
                     <MyList wishlist={wishlist} setWishlist={setWishlist} />
                   </div>
                 </div>
@@ -201,12 +202,20 @@ export default function App() {
             </div>
           </div>
         )}
-        <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
+        <div className="max-w-7xl mx-auto w-full px-2 md:px-6 overflow-hidden">
           {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
           {activeTab === "Dashboard" && <Progress words={words} tasks={tasks} logs={logs} wishlist={wishlist} goals={studyGoals} />}
         </div>
       </div>
     </main>
   </div>
+  );
+}
+
+export default function App() {
+  return (
+    <FirebaseProvider>
+      <AppContent />
+    </FirebaseProvider>
   );
 }

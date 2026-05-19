@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Loader2, Send, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus, Trophy, Target, Calendar, Award, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { useFirebaseSync } from "../lib/useFirebaseSync";
+import { useFirebase } from "../context/FirebaseContext";
 import type { PracticeParagraph, StudyGoal, Achievement } from "../types";
 
 interface Sentence {
@@ -14,7 +14,7 @@ interface Sentence {
 }
 
 export function SentenceBySentencePractice() {
-  const { practiceParagraphs, setPracticeParagraphs } = useFirebaseSync();
+  const { practiceParagraphs, setPracticeParagraphs } = useFirebase();
   const [inputText, setInputText] = useState("");
   const [referenceText, setReferenceText] = useState("");
   const [title, setTitle] = useState("");
@@ -29,6 +29,8 @@ export function SentenceBySentencePractice() {
   const [showLibrary, setShowLibrary] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
+  const [isEditingHint, setIsEditingHint] = useState(false);
+  const [tempHint, setTempHint] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
 
   const isPunctuation = (char: string) => /[.,!?;:()"]/.test(char);
@@ -244,6 +246,7 @@ export function SentenceBySentencePractice() {
     updated[currentIndex].userTranslation = userInput;
     updated[currentIndex].status = 'correct';
     setSentences(updated);
+    setIsEditingHint(false);
     
     if (currentIndex < sentences.length - 1) {
       setCurrentIndex(currentIndex + 1);
@@ -511,6 +514,26 @@ export function SentenceBySentencePractice() {
     );
   }
 
+  const handleSaveHint = async () => {
+    const updatedSentences = [...sentences];
+    updatedSentences[currentIndex].hint = tempHint;
+    setSentences(updatedSentences);
+    setIsEditingHint(false);
+
+    // If it's a saved exercise, update the library automatically
+    if (editingId) {
+      const p = practiceParagraphs.find(item => item.id === editingId);
+      if (p) {
+        const newParagraph: PracticeParagraph = {
+          ...p,
+          sentences: updatedSentences.map(({ vi, en, hint }) => ({ vi, en: en || "", hint: hint || "" }))
+        };
+        const updatedLibrary = practiceParagraphs.map(item => item.id === editingId ? newParagraph : item);
+        await setPracticeParagraphs(updatedLibrary);
+      }
+    }
+  };
+
   const currentSentence = sentences[currentIndex];
   const progress = ((currentIndex) / sentences.length) * 100;
 
@@ -573,13 +596,32 @@ export function SentenceBySentencePractice() {
                <div className="flex items-center justify-between">
                  <span className="text-[9px] font-black uppercase text-crimson tracking-widest">Đang dịch câu:</span>
                  {sentences[currentIndex]?.en && (
-                   <button 
-                    onClick={() => setShowHint(!showHint)}
-                    className="text-[9px] font-black uppercase text-ink/40 hover:text-ink tracking-widest flex items-center gap-1.5 transition-colors"
-                   >
-                     <ListChecks className="w-3 h-3" />
-                     {showHint ? "Ẩn gợi ý" : "Xem gợi ý"}
-                   </button>
+                   <div className="flex items-center gap-3">
+                     {showHint && (
+                       <button 
+                         onClick={() => {
+                           if (!isEditingHint) {
+                             setTempHint(currentSentence.hint || "");
+                           }
+                           setIsEditingHint(!isEditingHint);
+                         }}
+                         className="text-[9px] font-black uppercase text-ink/40 hover:text-ink tracking-widest flex items-center gap-1 transition-colors"
+                       >
+                         <Edit2 size={12} />
+                         {isEditingHint ? "Hủy sửa" : "Sửa gợi ý"}
+                       </button>
+                     )}
+                     <button 
+                       onClick={() => {
+                         setShowHint(!showHint);
+                         if (showHint) setIsEditingHint(false);
+                       }}
+                       className="text-[9px] font-black uppercase text-ink/40 hover:text-ink tracking-widest flex items-center gap-1.5 transition-colors"
+                     >
+                       <ListChecks className="w-3 h-3" />
+                       {showHint ? "Ẩn gợi ý" : "Xem gợi ý"}
+                     </button>
+                   </div>
                  )}
                </div>
                
@@ -592,21 +634,41 @@ export function SentenceBySentencePractice() {
                   initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
                   className="bg-paper/50 p-4 rounded-lg border border-dashed border-ink/10"
                  >
-                   <div className="flex items-start gap-2 mb-2">
-                     <ListChecks className="w-3 h-3 text-crimson mt-0.5 shrink-0" />
-                     <h5 className="text-[10px] font-black uppercase tracking-widest text-ink/60">Gợi ý cấu trúc & từ vựng</h5>
+                   <div className="flex items-start justify-between mb-2">
+                     <div className="flex items-start gap-2">
+                       <ListChecks className="w-3 h-3 text-crimson mt-0.5 shrink-0" />
+                       <h5 className="text-[10px] font-black uppercase tracking-widest text-ink/60">Gợi ý cấu trúc & từ vựng</h5>
+                     </div>
+                     {isEditingHint && (
+                       <button 
+                         onClick={handleSaveHint}
+                         className="text-[9px] font-black uppercase text-emerald-600 hover:text-emerald-700 tracking-widest flex items-center gap-1"
+                       >
+                         Lưu lại
+                       </button>
+                     )}
                    </div>
                    
-                   <ul className="space-y-1.5">
-                     {currentSentence.hint ? currentSentence.hint.split('\n').filter(h => h.trim()).map((hint, i) => (
-                       <li key={i} className="text-[11px] font-sans text-ink/70 leading-relaxed flex items-start gap-2">
-                         <span className="w-1 h-1 rounded-full bg-ink/20 mt-1.5 shrink-0" />
-                         {hint}
-                       </li>
-                     )) : (
-                       <li className="text-[11px] font-sans text-ink/40 italic">Không có gợi ý cho câu này.</li>
-                     )}
-                   </ul>
+                   {isEditingHint ? (
+                     <textarea
+                       value={tempHint}
+                       onChange={(e) => setTempHint(e.target.value)}
+                       className="w-full h-24 bg-white/50 sketch-border-sm p-3 text-[11px] font-sans focus:outline-none resize-none"
+                       placeholder="Nhập gợi ý mới (Mỗi dòng một ý)..."
+                       autoFocus
+                     />
+                   ) : (
+                     <ul className="space-y-1.5">
+                       {currentSentence.hint ? currentSentence.hint.split('\n').filter(h => h.trim()).map((hint, i) => (
+                         <li key={i} className="text-[11px] font-sans text-ink/70 leading-relaxed flex items-start gap-2">
+                           <span className="w-1 h-1 rounded-full bg-ink/20 mt-1.5 shrink-0" />
+                           {hint}
+                         </li>
+                       )) : (
+                         <li className="text-[11px] font-sans text-ink/40 italic">Không có gợi ý cho câu này.</li>
+                       )}
+                     </ul>
+                   )}
                  </motion.div>
                )}
              </div>
