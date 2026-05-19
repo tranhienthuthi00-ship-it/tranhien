@@ -90,7 +90,7 @@ export default function App() {
   const dueCount = words.filter(w => new Date(w.nextReview) <= new Date()).length;
 
   return (
-    <div className="min-h-screen pb-20 relative overflow-x-hidden">
+    <div className="min-h-screen pb-20 relative">
       <Doodles />
       <svg width="0" height="0" className="absolute pointer-events-none" style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
@@ -102,14 +102,15 @@ export default function App() {
       </svg>
       <NavBar activeTab={activeTab} setActiveTab={setActiveTab} lastSaved={lastSaved} onLogout={handleLogout} dueCount={dueCount} />
       
-      <main className="mt-4 relative z-10 animate-in fade-in duration-500">
-        {activeTab === "English Hub" && (
-          <div className="flex flex-col gap-4">
-            <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center gap-2 md:gap-4 mb-2 px-2 flex-wrap">
-              <button 
-                onClick={() => setActiveEnglishSubTab("Academy")}
-                className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeEnglishSubTab === "Academy" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
-              >
+      <main className="mt-4 relative z-10 animate-in fade-in duration-500 overflow-x-hidden">
+        <div className="max-w-[100vw] overflow-hidden">
+          {activeTab === "English Hub" && (
+            <div className="flex flex-col gap-4">
+              <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center gap-1.5 md:gap-4 mb-2 px-1 md:px-4 flex-wrap max-w-full">
+                <button 
+                  onClick={() => setActiveEnglishSubTab("Academy")}
+                  className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-2.5 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeEnglishSubTab === "Academy" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+                >
                 <BookText className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />
                 Vocab
               </button>
@@ -149,23 +150,25 @@ export default function App() {
                 SRS
               </button>
             </div>
-            {activeEnglishSubTab === "Academy" && <Academy words={words} setWords={setWords} tags={tags} setTags={setTags} />}
-            {activeEnglishSubTab === "Learning Games" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={setActiveEnglishSubTab} />}
-            {activeEnglishSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} />}
-            {activeEnglishSubTab === "Speech" && <SpeechGame words={words} updateWordDifficulty={updateWordDifficulty} />}
-            {activeEnglishSubTab === "Translation" && <TranslationPractice />}
-            {activeEnglishSubTab === "SRS" && <Flashcards words={words} setWords={setWords} />}
+            <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
+              {activeEnglishSubTab === "Academy" && <Academy words={words} setWords={setWords} tags={tags} setTags={setTags} />}
+              {activeEnglishSubTab === "Learning Games" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={setActiveEnglishSubTab} />}
+              {activeEnglishSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} />}
+              {activeEnglishSubTab === "Speech" && <SpeechGame words={words} updateWordDifficulty={updateWordDifficulty} />}
+              {activeEnglishSubTab === "Translation" && <TranslationPractice />}
+              {activeEnglishSubTab === "SRS" && <Flashcards words={words} setWords={setWords} />}
+            </div>
           </div>
         )}
         
         {activeTab === "Collections" && (
           <div className="flex flex-col gap-4">
-            <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center flex-wrap gap-2 mb-2 px-4 text-ink/60">
+            <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center flex-wrap gap-1.5 md:gap-4 mb-2 px-1 md:px-4 text-ink/60 max-w-full">
               {(["Lists", "Places", "Content", "Assets"] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveCollectionSubTab(tab)}
-                  className={`text-xs md:text-sm font-sans font-bold uppercase tracking-widest px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-2 ${activeCollectionSubTab === tab ? "bg-ink text-paper border-ink scale-105 shadow-md" : "border-ink/20 hover:border-ink/50"}`}
+                  className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeCollectionSubTab === tab ? "bg-ink text-paper border-ink scale-105 shadow-md" : "border-ink/20 hover:border-ink/50"}`}
                 >
                   {tab === "Lists" && <ClipboardList className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Places" && <MapPin className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
@@ -176,29 +179,34 @@ export default function App() {
               ))}
             </div>
             
-            {activeCollectionSubTab === "Lists" && (
-              <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-12">
-                <PersonalGoals 
-                  goals={studyGoals} 
-                  setGoals={setStudyGoals} 
-                  achievements={achievements} 
-                  setAchievements={setAchievements}
-                  tasks={tasks}
-                  setTasks={setTasks}
-                />
-                <div className="sketch-border-sm border-t-8 border-ink/5 pt-12">
-                  <MyList wishlist={wishlist} setWishlist={setWishlist} />
+            <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
+              {activeCollectionSubTab === "Lists" && (
+                <div className="max-w-5xl mx-auto space-y-12">
+                  <PersonalGoals 
+                    goals={studyGoals} 
+                    setGoals={setStudyGoals} 
+                    achievements={achievements} 
+                    setAchievements={setAchievements}
+                    tasks={tasks}
+                    setTasks={setTasks}
+                  />
+                  <div className="sketch-border-sm border-t-8 border-ink/5 pt-12">
+                    <MyList wishlist={wishlist} setWishlist={setWishlist} />
+                  </div>
                 </div>
-              </div>
-            )}
-            {activeCollectionSubTab === "Places" && <Places places={foodPlaces} setPlaces={setFoodPlaces} />}
-            {activeCollectionSubTab === "Content" && <ContentManager ideas={contentIdeas} setIdeas={setContentIdeas} />}
-            {activeCollectionSubTab === "Assets" && <AssetsManager assets={assets} setAssets={setAssets} categories={assetCategories} setCategories={setAssetCategories} />}
+              )}
+              {activeCollectionSubTab === "Places" && <Places places={foodPlaces} setPlaces={setFoodPlaces} />}
+              {activeCollectionSubTab === "Content" && <ContentManager ideas={contentIdeas} setIdeas={setContentIdeas} />}
+              {activeCollectionSubTab === "Assets" && <AssetsManager assets={assets} setAssets={setAssets} categories={assetCategories} setCategories={setAssetCategories} />}
+            </div>
           </div>
         )}
-        {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
-        {activeTab === "Dashboard" && <Progress words={words} tasks={tasks} logs={logs} wishlist={wishlist} goals={studyGoals} />}
-      </main>
-    </div>
+        <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
+          {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
+          {activeTab === "Dashboard" && <Progress words={words} tasks={tasks} logs={logs} wishlist={wishlist} goals={studyGoals} />}
+        </div>
+      </div>
+    </main>
+  </div>
   );
 }
