@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, Send, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus, Trophy, Target, Calendar, Award, History, Volume2 } from "lucide-react";
+import { Loader2, Send, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus, Trophy, Target, Calendar, Award, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useFirebaseSync } from "../lib/useFirebaseSync";
-import type { PracticeParagraph, StudyGoal, Achievement, TranslatedWork } from "../types";
+import type { PracticeParagraph, StudyGoal, Achievement } from "../types";
 
 interface Sentence {
   vi: string;
@@ -14,7 +14,7 @@ interface Sentence {
 }
 
 export function SentenceBySentencePractice() {
-  const { practiceParagraphs, setPracticeParagraphs, translatedWorks, setTranslatedWorks } = useFirebaseSync();
+  const { practiceParagraphs, setPracticeParagraphs } = useFirebaseSync();
   const [inputText, setInputText] = useState("");
   const [referenceText, setReferenceText] = useState("");
   const [title, setTitle] = useState("");
@@ -27,7 +27,6 @@ export function SentenceBySentencePractice() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [evaluation, setEvaluation] = useState<{ explanation?: string; isCorrect?: boolean; accuracy?: number } | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
-  const [libraryMode, setLibraryMode] = useState<"template" | "history">("template");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
@@ -284,38 +283,6 @@ export function SentenceBySentencePractice() {
     setEvaluation(null);
   };
 
-  const saveHistory = async () => {
-    if (!sentences.length) return;
-    
-    const finalAccuracy = evaluation?.accuracy || 0;
-    const finalUserTranslation = sentences.map(s => s.userTranslation || "").join(" ");
-    
-    const work: TranslatedWork = {
-      id: `w-${Date.now()}`,
-      title: title || "Không có tiêu đề",
-      sourceText: inputText,
-      referenceText: referenceText,
-      userTranslation: finalUserTranslation,
-      accuracy: finalAccuracy,
-      mistakes: totalMistakes + sessionMistakes,
-      createdAt: Date.now()
-    };
-
-    try {
-      await setTranslatedWorks([work, ...translatedWorks]);
-      alert("Đã lưu kết quả vào lịch sử!");
-    } catch (e) {
-      console.error(e);
-      alert("Lỗi khi lưu lịch sử!");
-    }
-  };
-
-  const deleteHistory = async (id: string) => {
-    if (confirm("Xoá bản dịch này khỏi lịch sử?")) {
-      await setTranslatedWorks(translatedWorks.filter(w => w.id !== id));
-    }
-  };
-
   if (!isPracticing) {
     return (
       <div className="w-full max-w-4xl mx-auto p-4 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -336,20 +303,16 @@ export function SentenceBySentencePractice() {
             </div>
             
             <div className="flex items-center gap-2">
-              <div className="bg-paper sketch-border-sm p-1 flex gap-1">
-                <button 
-                  onClick={() => { setShowLibrary(true); setLibraryMode("template"); setIsReviewing(false); }}
-                  className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${showLibrary && libraryMode === "template" ? "bg-ink text-white" : "text-ink/40 hover:text-ink"}`}
-                >
-                  <Library className="inline w-3 h-3 mr-1" /> Thư viện
-                </button>
-                <button 
-                  onClick={() => { setShowLibrary(true); setLibraryMode("history"); setIsReviewing(false); }}
-                  className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${showLibrary && libraryMode === "history" ? "bg-ink text-white" : "text-ink/40 hover:text-ink"}`}
-                >
-                  <History className="inline w-3 h-3 mr-1" /> Lịch sử
-                </button>
-              </div>
+              <button 
+                onClick={() => { setShowLibrary(!showLibrary); setIsReviewing(false); }}
+                className={`sketch-button p-3 transition-colors flex items-center gap-2 ${showLibrary ? 'bg-ink text-white' : 'bg-paper text-ink/60 hover:text-ink'}`}
+                title="Library"
+              >
+                <Library className="w-5 h-5" />
+                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">
+                  {showLibrary ? "Đóng thư viện" : "Thư viện"}
+                </span>
+              </button>
             </div>
           </div>
 
@@ -364,73 +327,39 @@ export function SentenceBySentencePractice() {
               >
                 <div className="flex items-center justify-between border-b-2 border-ink/5 pb-2">
                   <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest">
-                    {libraryMode === "template" ? `Danh sách đã lưu (${practiceParagraphs.length})` : `Lịch sử dịch (${translatedWorks.length})`}
+                    Danh sách đã lưu ({practiceParagraphs.length})
                   </h3>
                   <button onClick={() => setShowLibrary(false)} className="text-ink/40 hover:text-crimson"><X size={16} /></button>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-none">
-                  {libraryMode === "template" ? (
-                    practiceParagraphs.length === 0 ? (
-                      <div className="text-center py-12 text-ink/20 italic text-sm">Chưa có đoạn văn nào được lưu.</div>
-                    ) : (
-                      practiceParagraphs.map(p => (
-                        <div key={p.id} className="group relative sketch-border bg-white p-4 hover:bg-paper transition-all">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 cursor-pointer" onClick={() => handleStart(p)}>
-                              <h4 className="font-bold text-ink leading-tight mb-1">{p.title}</h4>
-                              <p className="text-[10px] text-ink/40 line-clamp-2 italic">{p.vietnamese}</p>
-                            </div>
-                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); handleEdit(p); }}
-                                className="p-2 text-ink/40 hover:text-ink hover:bg-ink/5 rounded-lg"
-                              >
-                                <Edit2 size={14} />
-                              </button>
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
-                                className="p-2 text-ink/40 hover:text-crimson hover:bg-crimson/5 rounded-lg"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )
+                  {practiceParagraphs.length === 0 ? (
+                    <div className="text-center py-12 text-ink/20 italic text-sm">Chưa có đoạn văn nào được lưu.</div>
                   ) : (
-                    translatedWorks.length === 0 ? (
-                      <div className="text-center py-12 text-ink/20 italic text-sm">Chưa có lịch sử dịch nào.</div>
-                    ) : (
-                      translatedWorks.map(w => (
-                        <div key={w.id} className="group relative sketch-border bg-emerald-50/10 p-4 hover:bg-paper transition-all">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-bold text-ink leading-tight">{w.title}</h4>
-                                <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tight ${w.accuracy >= 90 ? 'bg-emerald-500 text-white' : 'bg-ink text-white'}`}>
-                                  {w.accuracy}% Acc
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-ink/60 line-clamp-1 mb-1">Source: {w.sourceText}</p>
-                              <p className="text-[10px] text-emerald-700/60 line-clamp-2 italic">You: {w.userTranslation}</p>
-                              <div className="mt-2 text-[8px] font-black uppercase text-ink/20">
-                                {new Date(w.createdAt).toLocaleString('vi-VN')}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button 
-                                onClick={() => deleteHistory(w.id)}
-                                className="p-2 text-ink/40 hover:text-crimson hover:bg-crimson/5 rounded-lg"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
+                    practiceParagraphs.map(p => (
+                      <div key={p.id} className="group relative sketch-border bg-white p-4 hover:bg-paper transition-all">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 cursor-pointer" onClick={() => handleStart(p)}>
+                            <h4 className="font-bold text-ink leading-tight mb-1">{p.title}</h4>
+                            <p className="text-[10px] text-ink/40 line-clamp-2 italic">{p.vietnamese}</p>
+                          </div>
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleEdit(p); }}
+                              className="p-2 text-ink/40 hover:text-ink hover:bg-ink/5 rounded-lg"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
+                              className="p-2 text-ink/40 hover:text-crimson hover:bg-crimson/5 rounded-lg"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         </div>
-                      ))
-                    )
+                      </div>
+                    ))
                   )}
                 </div>
               </motion.div>
@@ -760,14 +689,6 @@ export function SentenceBySentencePractice() {
                         >
                           <Volume2 size={16} />
                         </button>
-                        {currentIndex === sentences.length - 1 && evaluation.isCorrect && (
-                           <button 
-                            onClick={saveHistory}
-                            className="flex-1 md:flex-none text-[9px] font-black uppercase text-crimson hover:text-crimson/80 underline tracking-widest px-4 py-2 flex items-center gap-2"
-                          >
-                            <Save size={12} /> Lưu kết quả
-                          </button>
-                        )}
                         {currentIndex === sentences.length - 1 && evaluation.isCorrect && (
                           <button 
                             onClick={restartCurrent}

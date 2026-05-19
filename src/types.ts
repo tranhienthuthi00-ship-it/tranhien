@@ -131,18 +131,6 @@ export interface PracticeParagraph {
   createdAt: number;
 }
 
-export interface TranslatedWork {
-  id: string;
-  paragraphId?: string;
-  title: string;
-  sourceText: string;
-  referenceText: string;
-  userTranslation: string;
-  accuracy: number;
-  mistakes: number;
-  createdAt: number;
-}
-
 export interface StudyGoal {
   id: string;
   title: string;
