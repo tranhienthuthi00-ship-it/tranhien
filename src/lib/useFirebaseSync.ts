@@ -226,6 +226,8 @@ export function useFirebaseSync() {
   const ideasRef = React.useRef(contentIdeas);
   const assetsRef = React.useRef(assets);
   const dictationsRef = React.useRef(dictations);
+  const sentencesRef = React.useRef(customSentences);
+  const paragraphsRef = React.useRef(practiceParagraphs);
   const goalsRef = React.useRef(studyGoals);
   const achRef = React.useRef(achievements);
 
@@ -237,6 +239,8 @@ export function useFirebaseSync() {
   useEffect(() => { ideasRef.current = contentIdeas; }, [contentIdeas]);
   useEffect(() => { assetsRef.current = assets; }, [assets]);
   useEffect(() => { dictationsRef.current = dictations; }, [dictations]);
+  useEffect(() => { sentencesRef.current = customSentences; }, [customSentences]);
+  useEffect(() => { paragraphsRef.current = practiceParagraphs; }, [practiceParagraphs]);
   useEffect(() => { goalsRef.current = studyGoals; }, [studyGoals]);
   useEffect(() => { achRef.current = achievements; }, [achievements]);
 
@@ -309,8 +313,8 @@ export function useFirebaseSync() {
     assets, setAssets: createSyncSetter<Asset>('assets', assetsRef, setAssets),
     assetCategories, setAssetCategories: createSyncSetter<AssetCategory>('assetCategories', React.createRef(), setAssetCategories), // Categories rarely change so fast
     dictations, setDictations: createSyncSetter<VideoDictation>('dictations', dictationsRef, setDictations as any),
-    customSentences, setCustomSentences: createSyncSetter<CustomSentence>('customSentences', React.createRef(), setCustomSentences),
-    practiceParagraphs, setPracticeParagraphs: createSyncSetter<PracticeParagraph>('practiceParagraphs', React.createRef(), setPracticeParagraphs),
+    customSentences, setCustomSentences: createSyncSetter<CustomSentence>('customSentences', sentencesRef, setCustomSentences),
+    practiceParagraphs, setPracticeParagraphs: createSyncSetter<PracticeParagraph>('practiceParagraphs', paragraphsRef, setPracticeParagraphs),
     studyGoals, setStudyGoals: createSyncSetter<StudyGoal>('studyGoals', goalsRef, setStudyGoals),
     achievements, setAchievements: createSyncSetter<Achievement>('achievements', achRef, setAchievements),
     tags, setTags: createSyncSetter<any>('tags', React.createRef(), setTags as any, true),

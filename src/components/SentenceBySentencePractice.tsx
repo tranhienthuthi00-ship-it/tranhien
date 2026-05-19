@@ -692,12 +692,22 @@ export function SentenceBySentencePractice() {
                           <Volume2 size={16} />
                         </button>
                         {currentIndex === sentences.length - 1 && evaluation.isCorrect && (
-                          <button 
-                            onClick={restartCurrent}
-                            className="flex-1 md:flex-none text-[9px] font-black uppercase text-ink/60 hover:text-ink underline tracking-widest px-4 py-2"
-                          >
-                            Làm lại
-                          </button>
+                          <div className="flex items-center gap-2">
+                            {!editingId && (
+                              <button 
+                                onClick={handleSave}
+                                className="text-[9px] font-black uppercase text-emerald-600 hover:text-emerald-800 flex items-center gap-1 px-3 py-2 bg-emerald-50 rounded-lg transition-colors"
+                              >
+                                <Save size={12} /> Lưu vào thư viện
+                              </button>
+                            )}
+                            <button 
+                              onClick={restartCurrent}
+                              className="text-[9px] font-black uppercase text-ink/60 hover:text-ink underline tracking-widest px-4 py-2"
+                            >
+                              Làm lại
+                            </button>
+                          </div>
                         )}
                         {!evaluation.isCorrect && (
                           <button 
