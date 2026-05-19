@@ -312,7 +312,7 @@ export function PersonalGoals({
                               <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-1 text-[10px] font-bold text-crimson uppercase tracking-widest">
                                   <Calendar size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                                  Sửa Deadline:
+                                  Deadline:
                                 </div>
                                 <input 
                                   type="date"
