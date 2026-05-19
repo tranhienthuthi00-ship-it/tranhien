@@ -485,9 +485,12 @@ export function CalendarView({
       {/* Calendar Grid - Full Width */}
       <div className="space-y-6">
         <div className="flex items-center justify-center gap-6 relative">
-          <button onClick={onPrevMonth} className="sketch-button px-3 py-2"><ChevronLeft /></button>
+          <button onClick={onPrevMonth} className="sketch-button px-3 py-2"><ChevronLeft style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
           <div className="flex flex-col items-center">
-            <h2 className="text-4xl font-bold font-sans tracking-tight text-center min-w-[250px]">{format(currentDate, "MMMM yyyy")}</h2>
+            <h2 className="text-4xl font-bold font-sans tracking-tight text-center min-w-[250px] flex items-center justify-center gap-3">
+              <HandDrawnIcon type="document" className="w-8 h-8 text-crimson" />
+              {format(currentDate, "MMMM yyyy")}
+            </h2>
             <button 
               onClick={() => setViewMode('Year')}
               className="text-[10px] font-bold uppercase tracking-widest text-crimson hover:underline mt-1"
@@ -495,7 +498,7 @@ export function CalendarView({
               View Yearly Recap →
             </button>
           </div>
-          <button onClick={onNextMonth} className="sketch-button px-3 py-2"><ChevronRight /></button>
+          <button onClick={onNextMonth} className="sketch-button px-3 py-2"><ChevronRight style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
         </div>
 
         <div className="grid grid-cols-7 gap-2">

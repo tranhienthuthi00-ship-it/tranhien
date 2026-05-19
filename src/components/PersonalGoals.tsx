@@ -219,26 +219,36 @@ export function PersonalGoals({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Thời hạn (Deadline)</label>
-                  <input 
-                    type="date" 
-                    value={deadline}
-                    onChange={e => setDeadline(e.target.value)}
-                    className="w-full bg-paper/20 sketch-border-sm p-4 text-xs font-sans focus:outline-none h-[54px]"
-                  />
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest flex items-center gap-1">
+                      <Calendar size={10} style={{ filter: 'url(#hand-drawn-filter)' }} /> Thời hạn (Deadline)
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="date" 
+                        value={deadline}
+                        onChange={e => setDeadline(e.target.value)}
+                        className="w-full bg-paper/20 sketch-border-sm p-4 text-xs font-sans focus:outline-none h-[54px]"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Ngày tạo (Tùy chọn)</label>
-                  <input 
-                    type="date" 
-                    value={createdAt}
-                    onChange={e => setCreatedAt(e.target.value)}
-                    className="w-full bg-paper/20 sketch-border-sm p-4 text-xs font-sans focus:outline-none h-[54px]"
-                  />
-                </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest flex items-center gap-1">
+                      <Calendar size={10} style={{ filter: 'url(#hand-drawn-filter)' }} /> Ngày tạo (Tùy chọn)
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="date" 
+                        value={createdAt}
+                        onChange={e => setCreatedAt(e.target.value)}
+                        className="w-full bg-paper/20 sketch-border-sm p-4 text-xs font-sans focus:outline-none h-[54px]"
+                      />
+                    </div>
+                  </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Ghi chú / Chi tiết</label>
                   <textarea 
@@ -467,7 +477,7 @@ export function PersonalGoals({
                         
                         {linkedGoal && (
                           <div className="mt-2 pt-2 border-t border-ink/5 flex items-center gap-2">
-                            <Calendar size={10} className="text-ink/30" />
+                            <Calendar size={10} className="text-ink/30" style={{ filter: 'url(#hand-drawn-filter)' }} />
                             <input 
                               type="date"
                               value={linkedGoal.completedAt ? new Date(linkedGoal.completedAt).toISOString().split('T')[0] : ""}
