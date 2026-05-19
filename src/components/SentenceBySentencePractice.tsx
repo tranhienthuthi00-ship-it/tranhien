@@ -95,13 +95,15 @@ export function SentenceBySentencePractice() {
 
   useEffect(() => {
     if (isCorrect && !evaluation?.isCorrect) {
+      const reference = sentences[currentIndex]?.en || "";
+      speak(reference);
       // Automatic next sentence after a small delay
       const timer = setTimeout(() => {
         nextSentence();
-      }, 500);
+      }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isCorrect, evaluation]);
+  }, [isCorrect, evaluation, currentIndex, sentences]);
 
   const handleStart = async (p?: PracticeParagraph) => {
     if (p) {
