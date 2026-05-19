@@ -132,10 +132,13 @@ export function MyList({
     if (sortBy === 'Date') {
       return new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime();
     } else if (sortBy === 'Price') {
-      return (b.price || 0) - (a.price || 0);
+      return (a.price || 0) - (b.price || 0);
     } else if (sortBy === 'Necessity') {
       const weight = { 'High': 3, 'Medium': 2, 'Low': 1 };
-      return weight[b.necessity] - weight[a.necessity];
+      if (weight[b.necessity] !== weight[a.necessity]) {
+        return weight[b.necessity] - weight[a.necessity];
+      }
+      return (a.price || 0) - (b.price || 0); // Tie-break with price low-to-high
     }
     return 0;
   });

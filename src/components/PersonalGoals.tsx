@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { 
-  Plus, Target, Calendar, Trash2, CheckCircle2, 
+  Plus, Target, Calendar, Trash2, CheckCircle2, Edit2,
   TrendingUp, X, FileText, ChevronDown, ChevronUp,
   Medal, Square, History, Send, Clock
 } from "lucide-react";
@@ -26,6 +26,8 @@ export function PersonalGoals({
   const [expandedNotes, setExpandedNotes] = useState<string[]>([]);
   const [expandedJourney, setExpandedJourney] = useState<string[]>([]);
   const [journeyInput, setJourneyInput] = useState<{ [key: string]: string }>({});
+  const [editingJourneyId, setEditingJourneyId] = useState<string | null>(null);
+  const [editJourneyContent, setEditJourneyContent] = useState("");
 
   const toggleNotes = (id: string) => {
     setExpandedNotes(prev => 
@@ -40,11 +42,17 @@ export function PersonalGoals({
   };
 
   const addJourneyEntry = async (goalId: string) => {
-    const text = journeyInput[goalId];
+    const text = (editingJourneyId ? editJourneyContent : journeyInput[goalId]);
     if (!text?.trim()) return;
 
     const updatedGoals = goals.map(g => {
       if (g.id === goalId) {
+        if (editingJourneyId) {
+          return {
+            ...g,
+            journey: g.journey?.map(e => e.id === editingJourneyId ? { ...e, content: text.trim() } : e)
+          };
+        }
         const newEntry = {
           id: `entry-${Date.now()}`,
           timestamp: Date.now(),
@@ -59,7 +67,17 @@ export function PersonalGoals({
     });
 
     await setGoals(updatedGoals);
-    setJourneyInput(prev => ({ ...prev, [goalId]: "" }));
+    if (editingJourneyId) {
+      setEditingJourneyId(null);
+      setEditJourneyContent("");
+    } else {
+      setJourneyInput(prev => ({ ...prev, [goalId]: "" }));
+    }
+  };
+
+  const startEditJourney = (entry: { id: string, content: string }) => {
+    setEditingJourneyId(entry.id);
+    setEditJourneyContent(entry.content);
   };
 
   const removeJourneyEntry = async (goalId: string, entryId: string) => {
@@ -424,14 +442,44 @@ export function PersonalGoals({
                                               <div className="text-[8px] font-bold text-ink/20 uppercase tracking-widest mb-0.5">
                                                 {new Date(entry.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                               </div>
-                                              <button 
-                                                onClick={() => removeJourneyEntry(goal.id, entry.id)}
-                                                className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-crimson transition-all p-0.5"
-                                              >
-                                                <X size={10} />
-                                              </button>
+                                              <div className="flex items-center gap-1">
+                                                <button 
+                                                  onClick={() => startEditJourney(entry)}
+                                                  className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-ink transition-all p-0.5"
+                                                >
+                                                  <Edit2 size={10} />
+                                                </button>
+                                                <button 
+                                                  onClick={() => removeJourneyEntry(goal.id, entry.id)}
+                                                  className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-crimson transition-all p-0.5"
+                                                >
+                                                  <X size={10} />
+                                                </button>
+                                              </div>
                                             </div>
-                                            <p className="text-sm text-ink/80 leading-relaxed font-sans">{entry.content}</p>
+                                            {editingJourneyId === entry.id ? (
+                                              <div className="flex gap-2 mt-1">
+                                                <input 
+                                                  type="text" 
+                                                  value={editJourneyContent}
+                                                  onChange={e => setEditJourneyContent(e.target.value)}
+                                                  onKeyDown={e => {
+                                                    if (e.key === 'Enter') addJourneyEntry(goal.id);
+                                                    if (e.key === 'Escape') setEditingJourneyId(null);
+                                                  }}
+                                                  autoFocus
+                                                  className="flex-1 bg-white sketch-border-sm p-1 text-xs font-sans focus:outline-none"
+                                                />
+                                                <button 
+                                                  onClick={() => addJourneyEntry(goal.id)}
+                                                  className="text-emerald-600 hover:text-emerald-700"
+                                                >
+                                                  <CheckCircle2 size={14} />
+                                                </button>
+                                              </div>
+                                            ) : (
+                                              <p className="text-sm text-ink/80 leading-relaxed font-sans">{entry.content}</p>
+                                            )}
                                           </div>
                                         </motion.div>
                                       ))}
