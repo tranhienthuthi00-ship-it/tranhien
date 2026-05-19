@@ -1,22 +1,28 @@
-import { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { 
   Plus, Target, Calendar, Trash2, CheckCircle2, Edit2,
   TrendingUp, X, FileText, ChevronDown, ChevronUp,
-  Medal, Square, History, Send, Clock
+  Medal, Square, History, Send, Clock, ClipboardList,
+  Check
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import type { StudyGoal, Achievement } from "../types";
+import type { StudyGoal, Achievement, Task } from "../types";
+import { cn } from "../lib/utils";
 
 export function PersonalGoals({ 
   goals, 
   setGoals, 
   achievements, 
-  setAchievements 
+  setAchievements,
+  tasks,
+  setTasks
 }: { 
   goals: StudyGoal[], 
   setGoals: (goals: StudyGoal[]) => void,
   achievements: Achievement[],
-  setAchievements: (achs: Achievement[]) => void
+  setAchievements: (achs: Achievement[]) => void,
+  tasks: Task[],
+  setTasks: (tasks: Task[]) => void
 }) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -28,6 +34,13 @@ export function PersonalGoals({
   const [journeyInput, setJourneyInput] = useState<{ [key: string]: string }>({});
   const [editingJourneyId, setEditingJourneyId] = useState<string | null>(null);
   const [editJourneyContent, setEditJourneyContent] = useState("");
+
+  // Task related states
+  const [newTask, setNewTask] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
+  const [taskSortBy, setTaskSortBy] = useState<'Default' | 'Priority'>('Default');
+  const [showAddGoal, setShowAddGoal] = useState(false);
+  const [showAddTodo, setShowAddTodo] = useState(false);
 
   const toggleNotes = (id: string) => {
     setExpandedNotes(prev => 
@@ -92,6 +105,32 @@ export function PersonalGoals({
       return g;
     });
     await setGoals(updatedGoals);
+  };
+
+  const addTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTask.trim()) return;
+    setTasks([{ id: Date.now().toString(), content: newTask, completed: false, priority: newTaskPriority }, ...tasks]);
+    setNewTask("");
+    setNewTaskPriority("Medium");
+    setShowAddTodo(false);
+  };
+
+  const sortedTasks = useMemo(() => {
+    const list = [...tasks];
+    if (taskSortBy === 'Priority') {
+      const weight = { 'High': 3, 'Medium': 2, 'Low': 1 };
+      return list.sort((a, b) => weight[b.priority] - weight[a.priority]);
+    }
+    return list; // Default order (last added first)
+  }, [tasks, taskSortBy]);
+
+  const toggleTask = (id: string) => {
+    setTasks(tasks.map(t => (t.id === id ? { ...t, completed: !t.completed } : t)));
+  };
+
+  const removeTask = (id: string) => {
+    setTasks(tasks.filter(t => t.id !== id));
   };
 
   const handleAddGoal = async () => {
@@ -205,34 +244,54 @@ export function PersonalGoals({
     return `Còn ${parts.join(" ")}`;
   };
 
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 border-b-2 border-ink/10 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-ink/10 pb-4">
         <div>
           <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2">
             <Target className="w-6 h-6 text-crimson" style={{ filter: 'url(#hand-drawn-filter)' }} />
-            Mục tiêu
+            Goal Hub
           </h2>
-          <p className="hand-text text-lg opacity-60">Đặt mục tiêu & thực hiện</p>
+          <p className="hand-text text-lg opacity-60">Mục tiêu & Công việc cần làm</p>
         </div>
-        <button 
-          onClick={() => setShowAdd(!showAdd)}
-          className="sketch-button bg-ink text-white py-2 px-4 text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-crimson transition-colors"
-        >
-          {showAdd ? <X size={16} /> : <Plus size={16} />}
-          {showAdd ? "Hủy" : "Thêm mục tiêu"}
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => { setShowAddGoal(!showAddGoal); setShowAddTodo(false); }}
+            className={cn(
+              "sketch-button py-2 px-3 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all shadow-sm",
+              showAddGoal ? "bg-crimson text-white border-crimson" : "bg-white text-ink hover:bg-paper"
+            )}
+          >
+            {showAddGoal ? <X size={14} /> : <Target size={14} />}
+            Mục tiêu
+          </button>
+          <button 
+            onClick={() => { setShowAddTodo(!showAddTodo); setShowAddGoal(false); }}
+            className={cn(
+              "sketch-button py-2 px-3 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all shadow-sm",
+              showAddTodo ? "bg-crimson text-white border-crimson" : "bg-white text-ink hover:bg-paper"
+            )}
+          >
+            {showAddTodo ? <X size={14} /> : <ClipboardList size={14} />}
+            Việc cần làm
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>
-        {showAdd && (
+        {showAddGoal && (
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="sketch-border bg-white p-6 space-y-6 shadow-xl"
+            className="sketch-border bg-white p-6 space-y-6 shadow-xl relative z-20"
           >
+              <div className="flex items-center gap-2 mb-2">
+                <Target size={18} className="text-crimson" />
+                <h3 className="text-sm font-black uppercase tracking-widest">Thêm mục tiêu mới</h3>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2 space-y-1">
                   <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Bạn muốn đạt được điều gì?</label>
@@ -294,212 +353,336 @@ export function PersonalGoals({
             </button>
           </motion.div>
         )}
+
+        {showAddTodo && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="sketch-border bg-amber-50/50 p-6 space-y-6 shadow-xl relative z-20"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <ClipboardList size={18} className="text-ink" />
+              <h3 className="text-sm font-black uppercase tracking-widest">Thêm việc cần làm</h3>
+            </div>
+            <form onSubmit={addTask} className="space-y-6">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Nội dung công việc</label>
+                <input
+                  value={newTask}
+                  onChange={(e) => setNewTask(e.target.value)}
+                  placeholder="Ví dụ: Mua sữa, Soạn mail, Gọi điện cho mẹ..."
+                  className="w-full bg-white sketch-border-sm p-4 text-sm font-sans focus:outline-none focus:border-ink transition-all"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex gap-2 items-center">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-ink/40">Ưu tiên:</span>
+                  {(['Low', 'Medium', 'High'] as const).map(level => (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => setNewTaskPriority(level)}
+                      className={cn(
+                        "px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full border-2 transition-all", 
+                        newTaskPriority === level 
+                          ? level === 'High' ? "bg-crimson text-white border-crimson shadow-md" 
+                            : level === 'Medium' ? "bg-yellow-500 text-white border-yellow-500 shadow-md" 
+                            : "bg-gray-500 text-white border-gray-500 shadow-md"
+                          : "bg-white text-ink/40 border-ink/10 hover:border-ink/30"
+                      )}
+                    >
+                      {level}
+                    </button>
+                  ))}
+                </div>
+                <button type="submit" className="w-full sm:w-auto sketch-button bg-ink text-white py-3 px-8 font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-600 transition-colors">
+                  <Plus size={16} /> Thêm vào danh sách
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Active Goals */}
-        <div className="md:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} /> Đang thực hiện ({goals.filter(g => !g.isCompleted).length})
-            </h3>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-4">
-            {goals.filter(g => !g.isCompleted).length === 0 ? (
-              <div className="text-center py-16 bg-white/40 sketch-border border-ink/5 flex flex-col items-center gap-4 group">
-                <Target className="w-12 h-12 text-ink/10 group-hover:scale-110 transition-transform" style={{ filter: 'url(#hand-drawn-filter)' }} />
-                <p className="text-ink/30 italic text-sm">Mọi thứ đã xong, hãy đặt thêm mục tiêu mới!</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-12">
+          {/* TO-DO Section inside Goals */}
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest flex items-center gap-2">
+                <ClipboardList className="w-4 h-4" /> Việc cần làm ({tasks.filter(t => !t.completed).length})
+              </h3>
+              <div className="flex gap-3 text-[9px] font-black uppercase tracking-widest text-ink/30">
+                <button onClick={() => setTaskSortBy('Default')} className={cn("transition-colors", taskSortBy === 'Default' ? 'text-crimson' : 'hover:text-ink')}>Ngày</button>
+                <button onClick={() => setTaskSortBy('Priority')} className={cn("transition-colors", taskSortBy === 'Priority' ? 'text-crimson' : 'hover:text-ink')}>Ưu tiên</button>
               </div>
-            ) : (
-              goals.filter(g => !g.isCompleted).map(goal => (
-                <div key={goal.id} className="sketch-border bg-white p-6 flex flex-col gap-4 transition-all hover:bg-paper/10 relative group">
-                  <div className="flex items-start gap-4">
-                    <button 
-                      onClick={() => toggleGoalCompletion(goal.id)}
-                      className="mt-1 w-8 h-8 sketch-border-sm rounded-lg flex items-center justify-center text-ink/20 hover:text-emerald-600 hover:border-emerald-500 transition-all shrink-0 bg-white group-hover:border-ink/20 shadow-sm"
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              {sortedTasks.length === 0 ? (
+                <div className="text-center py-10 bg-white/40 sketch-border border-ink/5 border-dashed flex flex-col items-center gap-2">
+                  <p className="text-ink/20 italic text-sm">Chưa có việc nào cần làm. Hãy thêm việc mới!</p>
+                </div>
+              ) : (
+                sortedTasks.map(task => (
+                  <motion.div 
+                    layout
+                    key={task.id} 
+                    className={cn(
+                      "flex items-center group relative py-3 px-4 sketch-border transition-all",
+                      task.completed ? "opacity-50 grayscale bg-paper/20" : 
+                      task.priority === 'High' ? "bg-crimson/5 border-crimson" : 
+                      task.priority === 'Medium' ? "bg-yellow-400/5 border-yellow-500" :
+                      "bg-white border-ink/10 hover:border-ink/20"
+                    )}
+                  >
+                    <button
+                      onClick={() => toggleTask(task.id)}
+                      className={cn(
+                        "w-5 h-5 sketch-border-sm mr-4 flex-shrink-0 transition-all flex items-center justify-center",
+                        task.completed ? "bg-crimson border-crimson text-white" : "bg-white border-ink/20"
+                      )}
                     >
-                      <Square size={20} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                      {task.completed && <Check size={14} strokeWidth={4} />}
                     </button>
-                    <div className="flex-1 space-y-2">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="space-y-1">
-                          <h4 className="text-xl font-bold text-ink leading-tight group-hover:text-crimson transition-colors">{goal.title}</h4>
-                          <div className="flex flex-wrap gap-3">
-                            {goal.deadline && (
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1 text-[10px] font-bold text-crimson uppercase tracking-widest">
-                                  <Calendar size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                                  Deadline:
+                    <div className="flex-1">
+                      <p className={cn(
+                        "font-bold text-sm transition-all font-sans", 
+                        task.completed ? "line-through text-ink/40" : 
+                        task.priority === 'High' ? "text-crimson" : 
+                        task.priority === 'Medium' ? "text-yellow-700" : "text-ink/70"
+                      )}>
+                        {task.content}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={cn(
+                          "text-[7px] uppercase font-black tracking-widest px-1.5 py-0.5 rounded shadow-sm border",
+                          task.completed ? "bg-ink/5 text-ink/20 border-transparent" :
+                          task.priority === 'High' ? "bg-white text-crimson border-crimson" : 
+                          task.priority === 'Medium' ? "bg-white text-yellow-600 border-yellow-500" : "bg-white text-ink/40 border-ink/20"
+                        )}>
+                          {task.priority}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => removeTask(task.id)}
+                      className="opacity-0 group-hover:opacity-100 text-ink/20 hover:text-crimson ml-4 transition-all"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase text-ink/40 tracking-widest flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} /> Mục tiêu ({goals.filter(g => !g.isCompleted).length})
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4">
+              {goals.filter(g => !g.isCompleted).length === 0 ? (
+                <div className="text-center py-16 bg-white/40 sketch-border border-ink/5 flex flex-col items-center gap-4 group">
+                  <Target className="w-12 h-12 text-ink/10 group-hover:scale-110 transition-transform" style={{ filter: 'url(#hand-drawn-filter)' }} />
+                  <p className="text-ink/30 italic text-sm">Mọi thứ đã xong, hãy đặt thêm mục tiêu mới!</p>
+                </div>
+              ) : (
+                goals.filter(g => !g.isCompleted).map(goal => (
+                  <div key={goal.id} className="sketch-border bg-white p-6 flex flex-col gap-4 transition-all hover:bg-paper/10 relative group shadow-sm hover:shadow-md">
+                    <div className="flex items-start gap-4">
+                      <button 
+                        onClick={() => toggleGoalCompletion(goal.id)}
+                        className="mt-1 w-8 h-8 sketch-border-sm rounded-lg flex items-center justify-center text-ink/20 hover:text-emerald-600 hover:border-emerald-500 transition-all shrink-0 bg-white group-hover:border-ink/20 shadow-sm"
+                      >
+                        <Square size={20} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                      </button>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="space-y-1">
+                            <h4 className="text-xl font-bold text-ink leading-tight group-hover:text-crimson transition-colors">{goal.title}</h4>
+                            <div className="flex flex-wrap gap-3">
+                              {goal.deadline && (
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center gap-1 text-[10px] font-bold text-crimson uppercase tracking-widest">
+                                    <Calendar size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                                    Deadline:
+                                  </div>
+                                  <input 
+                                    type="date"
+                                    value={new Date(goal.deadline).toISOString().split('T')[0]}
+                                    onChange={(e) => updateDeadline(goal.id, e.target.value)}
+                                    className="bg-crimson/5 border-none p-1 text-[10px] font-bold text-crimson focus:outline-none w-fit cursor-pointer hover:bg-crimson/10 rounded transition-colors"
+                                  />
+                                  <div className="text-[10px] font-black text-crimson bg-crimson/5 px-2 py-0.5 rounded-full w-fit animate-pulse mt-1">
+                                    {getTimeRemaining(goal.deadline)}
+                                  </div>
                                 </div>
-                                <input 
-                                  type="date"
-                                  value={new Date(goal.deadline).toISOString().split('T')[0]}
-                                  onChange={(e) => updateDeadline(goal.id, e.target.value)}
-                                  className="bg-crimson/5 border-none p-1 text-[10px] font-bold text-crimson focus:outline-none w-fit cursor-pointer hover:bg-crimson/10 rounded transition-colors"
-                                />
-                                <div className="text-[10px] font-black text-crimson bg-crimson/5 px-2 py-0.5 rounded-full w-fit animate-pulse mt-1">
-                                  {getTimeRemaining(goal.deadline)}
-                                </div>
+                              )}
+                              <div className="text-[10px] font-bold text-ink/20 uppercase tracking-widest flex items-center gap-1">
+                                <FileText size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                                Ngày tạo: {new Date(goal.createdAt).toLocaleDateString('vi-VN')}
                               </div>
-                            )}
-                            <div className="text-[10px] font-bold text-ink/20 uppercase tracking-widest flex items-center gap-1">
-                              <FileText size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                              Ngày tạo: {new Date(goal.createdAt).toLocaleDateString('vi-VN')}
                             </div>
                           </div>
+                          <button onClick={() => removeGoal(goal.id)} className="text-ink/10 hover:text-crimson transition-colors p-1"><Trash2 size={18} style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
                         </div>
-                        <button onClick={() => removeGoal(goal.id)} className="text-ink/10 hover:text-crimson transition-colors p-1"><Trash2 size={18} style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
-                      </div>
 
-                      {goal.notes && (
-                        <div className="pt-2 border-t border-ink/5">
+                        {goal.notes && (
+                          <div className="pt-2 border-t border-ink/5">
+                            <button 
+                              onClick={() => toggleNotes(goal.id)}
+                              className="flex items-center gap-1 text-[9px] font-black uppercase text-ink/30 hover:text-ink transition-colors"
+                            >
+                              {expandedNotes.includes(goal.id) ? <ChevronUp size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> : <ChevronDown size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />}
+                              {expandedNotes.includes(goal.id) ? "Thu gọn ghi chú" : "Xem ghi chú"}
+                            </button>
+                            <AnimatePresence>
+                              {expandedNotes.includes(goal.id) && (
+                                <motion.div 
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  <p className="text-sm text-ink/70 bg-paper/10 p-3 rounded mt-2 border-l-2 border-ink/20 italic whitespace-pre-wrap">
+                                    {goal.notes}
+                                  </p>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        )}
+
+                        {/* Journey Section */}
+                        <div className="pt-2">
                           <button 
-                            onClick={() => toggleNotes(goal.id)}
-                            className="flex items-center gap-1 text-[9px] font-black uppercase text-ink/30 hover:text-ink transition-colors"
+                            onClick={() => toggleJourney(goal.id)}
+                            className="flex items-center gap-1.5 text-[9px] font-black uppercase text-crimson animate-pulse hover:animate-none transition-all"
                           >
-                            {expandedNotes.includes(goal.id) ? <ChevronUp size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> : <ChevronDown size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />}
-                            {expandedNotes.includes(goal.id) ? "Thu gọn ghi chú" : "Xem ghi chú"}
+                            <History size={14} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                            Ghi lại hành trình ({goal.journey?.length || 0})
                           </button>
+
                           <AnimatePresence>
-                            {expandedNotes.includes(goal.id) && (
+                            {expandedJourney.includes(goal.id) && (
                               <motion.div 
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: "auto", opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
-                                className="overflow-hidden"
+                                className="overflow-hidden space-y-4 mt-3"
                               >
-                                <p className="text-sm text-ink/70 bg-paper/10 p-3 rounded mt-2 border-l-2 border-ink/20 italic whitespace-pre-wrap">
-                                  {goal.notes}
-                                </p>
+                                <div className="flex gap-2">
+                                  <input 
+                                    type="text" 
+                                    value={journeyInput[goal.id] || ""}
+                                    onChange={e => setJourneyInput(prev => ({ ...prev, [goal.id]: e.target.value }))}
+                                    placeholder="Hôm nay bạn làm gì? (Ví dụ: Hôm nay tôi niềng răng...)"
+                                    onKeyDown={e => e.key === 'Enter' && addJourneyEntry(goal.id)}
+                                    className="flex-1 bg-paper/10 sketch-border-sm p-3 text-sm font-sans focus:outline-none focus:bg-white transition-all h-10 italic"
+                                  />
+                                  <button 
+                                    onClick={() => addJourneyEntry(goal.id)}
+                                    className="w-10 h-10 sketch-border-sm bg-ink text-white flex items-center justify-center hover:bg-crimson transition-colors"
+                                  >
+                                    <Send size={16} />
+                                  </button>
+                                </div>
+
+                                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-none">
+                                  {Object.entries(
+                                    (goal.journey || []).reduce((acc, entry) => {
+                                      const date = new Date(entry.timestamp).toLocaleDateString('vi-VN');
+                                      if (!acc[date]) acc[date] = [];
+                                      acc[date].push(entry);
+                                      return acc;
+                                    }, {} as { [key: string]: any[] })
+                                  ).sort((a,b) => new Date(b[0].split('/').reverse().join('-')).getTime() - new Date(a[0].split('/').reverse().join('-')).getTime()).map(([date, entries]) => (
+                                    <div key={date} className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <div className="h-px bg-crimson/10 flex-1" />
+                                        <span className="text-[8px] font-black text-crimson uppercase tracking-widest bg-white px-2 border border-crimson/10 rounded-full">{date}</span>
+                                        <div className="h-px bg-crimson/10 flex-1" />
+                                      </div>
+                                      <div className="space-y-3">
+                                        {entries.map((entry) => (
+                                          <motion.div 
+                                            key={entry.id}
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            className="flex gap-3 items-start group/entry"
+                                          >
+                                            <div className="w-1.5 h-1.5 rounded-full bg-crimson/30 mt-2 shrink-0 group-hover/entry:scale-150 transition-transform" />
+                                            <div className="flex-1">
+                                              <div className="flex items-center justify-between gap-2">
+                                                <div className="text-[8px] font-bold text-ink/20 uppercase tracking-widest mb-0.5">
+                                                  {new Date(entry.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                  <button 
+                                                    onClick={() => startEditJourney(entry)}
+                                                    className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-ink transition-all p-0.5"
+                                                  >
+                                                    <Edit2 size={10} />
+                                                  </button>
+                                                  <button 
+                                                    onClick={() => removeJourneyEntry(goal.id, entry.id)}
+                                                    className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-crimson transition-all p-0.5"
+                                                  >
+                                                    <X size={10} />
+                                                  </button>
+                                                </div>
+                                              </div>
+                                              {editingJourneyId === entry.id ? (
+                                                <div className="flex gap-2 mt-1">
+                                                  <input 
+                                                    type="text" 
+                                                    value={editJourneyContent}
+                                                    onChange={e => setEditJourneyContent(e.target.value)}
+                                                    onKeyDown={e => {
+                                                      if (e.key === 'Enter') addJourneyEntry(goal.id);
+                                                      if (e.key === 'Escape') setEditingJourneyId(null);
+                                                    }}
+                                                    autoFocus
+                                                    className="flex-1 bg-white sketch-border-sm p-1 text-xs font-sans focus:outline-none"
+                                                  />
+                                                  <button 
+                                                    onClick={() => addJourneyEntry(goal.id)}
+                                                    className="text-emerald-600 hover:text-emerald-700"
+                                                  >
+                                                    <CheckCircle2 size={14} />
+                                                  </button>
+                                                </div>
+                                              ) : (
+                                                <p className="text-sm text-ink/80 leading-relaxed font-sans">{entry.content}</p>
+                                              )}
+                                            </div>
+                                          </motion.div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {(!goal.journey || goal.journey.length === 0) && (
+                                    <p className="text-[10px] text-ink/30 text-center py-4 italic">Chưa có hành trình nào được ghi lại.</p>
+                                  )}
+                                </div>
                               </motion.div>
                             )}
                           </AnimatePresence>
                         </div>
-                      )}
-
-                      {/* Journey Section */}
-                      <div className="pt-2">
-                        <button 
-                          onClick={() => toggleJourney(goal.id)}
-                          className="flex items-center gap-1.5 text-[9px] font-black uppercase text-crimson animate-pulse hover:animate-none transition-all"
-                        >
-                          <History size={14} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                          Ghi lại hành trình ({goal.journey?.length || 0})
-                        </button>
-
-                        <AnimatePresence>
-                          {expandedJourney.includes(goal.id) && (
-                            <motion.div 
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden space-y-4 mt-3"
-                            >
-                              <div className="flex gap-2">
-                                <input 
-                                  type="text" 
-                                  value={journeyInput[goal.id] || ""}
-                                  onChange={e => setJourneyInput(prev => ({ ...prev, [goal.id]: e.target.value }))}
-                                  placeholder="Hôm nay bạn làm gì? (Ví dụ: Hôm nay tôi niềng răng...)"
-                                  onKeyDown={e => e.key === 'Enter' && addJourneyEntry(goal.id)}
-                                  className="flex-1 bg-paper/10 sketch-border-sm p-3 text-sm font-sans focus:outline-none focus:bg-white transition-all h-10 italic"
-                                />
-                                <button 
-                                  onClick={() => addJourneyEntry(goal.id)}
-                                  className="w-10 h-10 sketch-border-sm bg-ink text-white flex items-center justify-center hover:bg-crimson transition-colors"
-                                >
-                                  <Send size={16} />
-                                </button>
-                              </div>
-
-                              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-none">
-                                {Object.entries(
-                                  (goal.journey || []).reduce((acc, entry) => {
-                                    const date = new Date(entry.timestamp).toLocaleDateString('vi-VN');
-                                    if (!acc[date]) acc[date] = [];
-                                    acc[date].push(entry);
-                                    return acc;
-                                  }, {} as { [key: string]: any[] })
-                                ).sort((a,b) => new Date(b[0].split('/').reverse().join('-')).getTime() - new Date(a[0].split('/').reverse().join('-')).getTime()).map(([date, entries]) => (
-                                  <div key={date} className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-px bg-crimson/10 flex-1" />
-                                      <span className="text-[8px] font-black text-crimson uppercase tracking-widest bg-white px-2 border border-crimson/10 rounded-full">{date}</span>
-                                      <div className="h-px bg-crimson/10 flex-1" />
-                                    </div>
-                                    <div className="space-y-3">
-                                      {entries.map((entry) => (
-                                        <motion.div 
-                                          key={entry.id}
-                                          initial={{ opacity: 0, x: -10 }}
-                                          animate={{ opacity: 1, x: 0 }}
-                                          className="flex gap-3 items-start group/entry"
-                                        >
-                                          <div className="w-1.5 h-1.5 rounded-full bg-crimson/30 mt-2 shrink-0 group-hover/entry:scale-150 transition-transform" />
-                                          <div className="flex-1">
-                                            <div className="flex items-center justify-between gap-2">
-                                              <div className="text-[8px] font-bold text-ink/20 uppercase tracking-widest mb-0.5">
-                                                {new Date(entry.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                                              </div>
-                                              <div className="flex items-center gap-1">
-                                                <button 
-                                                  onClick={() => startEditJourney(entry)}
-                                                  className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-ink transition-all p-0.5"
-                                                >
-                                                  <Edit2 size={10} />
-                                                </button>
-                                                <button 
-                                                  onClick={() => removeJourneyEntry(goal.id, entry.id)}
-                                                  className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-crimson transition-all p-0.5"
-                                                >
-                                                  <X size={10} />
-                                                </button>
-                                              </div>
-                                            </div>
-                                            {editingJourneyId === entry.id ? (
-                                              <div className="flex gap-2 mt-1">
-                                                <input 
-                                                  type="text" 
-                                                  value={editJourneyContent}
-                                                  onChange={e => setEditJourneyContent(e.target.value)}
-                                                  onKeyDown={e => {
-                                                    if (e.key === 'Enter') addJourneyEntry(goal.id);
-                                                    if (e.key === 'Escape') setEditingJourneyId(null);
-                                                  }}
-                                                  autoFocus
-                                                  className="flex-1 bg-white sketch-border-sm p-1 text-xs font-sans focus:outline-none"
-                                                />
-                                                <button 
-                                                  onClick={() => addJourneyEntry(goal.id)}
-                                                  className="text-emerald-600 hover:text-emerald-700"
-                                                >
-                                                  <CheckCircle2 size={14} />
-                                                </button>
-                                              </div>
-                                            ) : (
-                                              <p className="text-sm text-ink/80 leading-relaxed font-sans">{entry.content}</p>
-                                            )}
-                                          </div>
-                                        </motion.div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ))}
-                                {(!goal.journey || goal.journey.length === 0) && (
-                                  <p className="text-[10px] text-ink/30 text-center py-4 italic">Chưa có hành trình nào được ghi lại.</p>
-                                )}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
+                ))
+              )}
+            </div>
+          </section>
         </div>
 
         {/* Achievements Column */}
@@ -539,7 +722,6 @@ export function PersonalGoals({
                           whileHover={{ scale: 1.02 }}
                           className="sketch-border bg-white p-5 space-y-4 border-ink/20 relative group shadow-sm hover:shadow-md transition-all"
                         >
-                          {/* Decorative Hand-drawn corner */}
                           <div className="absolute top-0 right-0 w-8 h-8 pointer-events-none opacity-10">
                              <svg viewBox="0 0 100 100" className="w-full h-full text-ink">
                                <path d="M 10,90 Q 50,50 90,10 M 40,10 L 90,10 L 90,60" fill="none" stroke="currentColor" strokeWidth="4" />

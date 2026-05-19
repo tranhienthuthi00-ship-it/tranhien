@@ -178,9 +178,16 @@ export default function App() {
             
             {activeCollectionSubTab === "Lists" && (
               <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-12">
-                <PersonalGoals goals={studyGoals} setGoals={setStudyGoals} achievements={achievements} setAchievements={setAchievements} />
+                <PersonalGoals 
+                  goals={studyGoals} 
+                  setGoals={setStudyGoals} 
+                  achievements={achievements} 
+                  setAchievements={setAchievements}
+                  tasks={tasks}
+                  setTasks={setTasks}
+                />
                 <div className="sketch-border-sm border-t-8 border-ink/5 pt-12">
-                  <MyList tasks={tasks} setTasks={setTasks} wishlist={wishlist} setWishlist={setWishlist} />
+                  <MyList wishlist={wishlist} setWishlist={setWishlist} />
                 </div>
               </div>
             )}
