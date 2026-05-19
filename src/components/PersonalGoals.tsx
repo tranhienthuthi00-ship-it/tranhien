@@ -2,7 +2,7 @@ import { useState } from "react";
 import { 
   Plus, Target, Calendar, Trash2, CheckCircle2, 
   TrendingUp, X, FileText, ChevronDown, ChevronUp,
-  Medal, Square
+  Medal, Square, History, Send, Clock
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { StudyGoal, Achievement } from "../types";
@@ -24,11 +24,56 @@ export function PersonalGoals({
   const [createdAt, setCreatedAt] = useState(new Date().toISOString().split('T')[0]);
   const [showAdd, setShowAdd] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<string[]>([]);
+  const [expandedJourney, setExpandedJourney] = useState<string[]>([]);
+  const [journeyInput, setJourneyInput] = useState<{ [key: string]: string }>({});
 
   const toggleNotes = (id: string) => {
     setExpandedNotes(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const toggleJourney = (id: string) => {
+    setExpandedJourney(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const addJourneyEntry = async (goalId: string) => {
+    const text = journeyInput[goalId];
+    if (!text?.trim()) return;
+
+    const updatedGoals = goals.map(g => {
+      if (g.id === goalId) {
+        const newEntry = {
+          id: `entry-${Date.now()}`,
+          timestamp: Date.now(),
+          content: text.trim()
+        };
+        return {
+          ...g,
+          journey: [newEntry, ...(g.journey || [])]
+        };
+      }
+      return g;
+    });
+
+    await setGoals(updatedGoals);
+    setJourneyInput(prev => ({ ...prev, [goalId]: "" }));
+  };
+
+  const removeJourneyEntry = async (goalId: string, entryId: string) => {
+    if (!confirm("Xóa dòng hành trình này?")) return;
+    const updatedGoals = goals.map(g => {
+      if (g.id === goalId) {
+        return {
+          ...g,
+          journey: g.journey?.filter(e => e.id !== entryId)
+        };
+      }
+      return g;
+    });
+    await setGoals(updatedGoals);
   };
 
   const handleAddGoal = async () => {
@@ -114,6 +159,24 @@ export function PersonalGoals({
       g.id === id ? { ...g, review } : g
     );
     await setGoals(updated);
+  };
+
+  const getTimeRemaining = (deadline: number) => {
+    const now = Date.now();
+    const diff = deadline - now;
+    if (diff <= 0) return "Quá hạn";
+
+    const totalDays = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const years = Math.floor(totalDays / 365);
+    const months = Math.floor((totalDays % 365) / 30);
+    const days = (totalDays % 365) % 30;
+
+    const parts = [];
+    if (years > 0) parts.push(`${years} năm`);
+    if (months > 0) parts.push(`${months} tháng`);
+    if (days > 0 || (parts.length === 0)) parts.push(`${days} ngày`);
+
+    return `Còn ${parts.join(" ")}`;
   };
 
   return (
@@ -228,9 +291,14 @@ export function PersonalGoals({
                           <h4 className="text-xl font-bold text-ink leading-tight group-hover:text-crimson transition-colors">{goal.title}</h4>
                           <div className="flex flex-wrap gap-3">
                             {goal.deadline && (
-                              <div className="flex items-center gap-1 text-[10px] font-bold text-crimson uppercase tracking-widest">
-                                <Calendar size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                                Deadline: {new Date(goal.deadline).toLocaleDateString('vi-VN')}
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1 text-[10px] font-bold text-crimson uppercase tracking-widest">
+                                  <Calendar size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                                  Deadline: {new Date(goal.deadline).toLocaleDateString('vi-VN')}
+                                </div>
+                                <div className="text-[10px] font-black text-crimson bg-crimson/5 px-2 py-0.5 rounded-full w-fit animate-pulse">
+                                  {getTimeRemaining(goal.deadline)}
+                                </div>
                               </div>
                             )}
                             <div className="text-[10px] font-bold text-ink/20 uppercase tracking-widest flex items-center gap-1">
@@ -267,6 +335,76 @@ export function PersonalGoals({
                           </AnimatePresence>
                         </div>
                       )}
+
+                      {/* Journey Section */}
+                      <div className="pt-2">
+                        <button 
+                          onClick={() => toggleJourney(goal.id)}
+                          className="flex items-center gap-1.5 text-[9px] font-black uppercase text-crimson animate-pulse hover:animate-none transition-all"
+                        >
+                          <History size={14} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                          Ghi lại hành trình ({goal.journey?.length || 0})
+                        </button>
+
+                        <AnimatePresence>
+                          {expandedJourney.includes(goal.id) && (
+                            <motion.div 
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden space-y-4 mt-3"
+                            >
+                              <div className="flex gap-2">
+                                <input 
+                                  type="text" 
+                                  value={journeyInput[goal.id] || ""}
+                                  onChange={e => setJourneyInput(prev => ({ ...prev, [goal.id]: e.target.value }))}
+                                  placeholder="Hôm nay bạn làm gì? (Ví dụ: Hôm nay tôi niềng răng...)"
+                                  onKeyDown={e => e.key === 'Enter' && addJourneyEntry(goal.id)}
+                                  className="flex-1 bg-paper/10 sketch-border-sm p-3 text-sm font-sans focus:outline-none focus:bg-white transition-all h-10 italic"
+                                />
+                                <button 
+                                  onClick={() => addJourneyEntry(goal.id)}
+                                  className="w-10 h-10 sketch-border-sm bg-ink text-white flex items-center justify-center hover:bg-crimson transition-colors"
+                                >
+                                  <Send size={16} />
+                                </button>
+                              </div>
+
+                              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-none">
+                                {goal.journey?.map((entry, idx) => (
+                                  <motion.div 
+                                    key={entry.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className="flex gap-3 items-start group/entry"
+                                  >
+                                    <div className="w-1.5 h-1.5 rounded-full bg-crimson/30 mt-2 shrink-0 group-hover/entry:scale-150 transition-transform" />
+                                    <div className="flex-1">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-1.5 text-[8px] font-bold text-ink/30 uppercase tracking-widest">
+                                          <Clock size={10} />
+                                          {new Date(entry.timestamp).toLocaleDateString('vi-VN')} {new Date(entry.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                        <button 
+                                          onClick={() => removeJourneyEntry(goal.id, entry.id)}
+                                          className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-crimson transition-all p-0.5"
+                                        >
+                                          <X size={10} />
+                                        </button>
+                                      </div>
+                                      <p className="text-sm text-ink/80 leading-relaxed font-sans">{entry.content}</p>
+                                    </div>
+                                  </motion.div>
+                                ))}
+                                {(!goal.journey || goal.journey.length === 0) && (
+                                  <p className="text-[10px] text-ink/30 text-center py-4 italic">Chưa có hành trình nào được ghi lại.</p>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -342,16 +480,38 @@ export function PersonalGoals({
                     </div>
 
                     {linkedGoal && (
-                      <div className="pt-3 border-t-2 border-dashed border-ink/5 space-y-2">
-                        <label className="flex items-center gap-1.5 text-[9px] font-black uppercase text-ink/40 tracking-widest">
-                          <FileText size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> Review
-                        </label>
-                        <textarea 
-                          value={linkedGoal.review || ""}
-                          onChange={(e) => updateReview(linkedGoal.id, e.target.value)}
-                          placeholder="Thêm review"
-                          className="w-full bg-paper/5 p-3 text-sm font-sans focus:outline-none focus:bg-white transition-all h-20 resize-none italic text-ink/80 sketch-border-sm"
-                        />
+                      <div className="pt-3 border-t-2 border-dashed border-ink/5 space-y-4">
+                        {/* Review */}
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-1.5 text-[9px] font-black uppercase text-ink/40 tracking-widest">
+                            <FileText size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> Review
+                          </label>
+                          <textarea 
+                            value={linkedGoal.review || ""}
+                            onChange={(e) => updateReview(linkedGoal.id, e.target.value)}
+                            placeholder="Thêm review"
+                            className="w-full bg-paper/5 p-3 text-sm font-sans focus:outline-none focus:bg-white transition-all h-20 resize-none italic text-ink/80 sketch-border-sm"
+                          />
+                        </div>
+
+                        {/* Journey History */}
+                        {linkedGoal.journey && linkedGoal.journey.length > 0 && (
+                          <div className="space-y-2">
+                            <label className="flex items-center gap-1.5 text-[9px] font-black uppercase text-ink/40 tracking-widest">
+                              <History size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> Hành trình đã ghi lại
+                            </label>
+                            <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 scrollbar-none border-l-2 border-ink/5 pl-3">
+                              {linkedGoal.journey.map(entry => (
+                                <div key={entry.id} className="space-y-0.5">
+                                  <div className="text-[7px] font-bold text-ink/20 uppercase">
+                                    {new Date(entry.timestamp).toLocaleDateString('vi-VN')}
+                                  </div>
+                                  <p className="text-[11px] text-ink/70 leading-snug">{entry.content}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </motion.div>

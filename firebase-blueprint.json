@@ -181,7 +181,19 @@
         "createdAt": { "type": "number" },
         "isCompleted": { "type": "boolean" },
         "completedAt": { "type": "number" },
-        "review": { "type": "string" }
+        "review": { "type": "string" },
+        "journey": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "timestamp": { "type": "number" },
+              "content": { "type": "string" }
+            },
+            "required": ["id", "timestamp", "content"]
+          }
+        }
       },
       "required": ["id", "title", "type", "targetValue", "currentValue", "createdAt", "isCompleted"]
     },

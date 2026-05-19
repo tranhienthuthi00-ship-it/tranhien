@@ -143,6 +143,11 @@ export interface StudyGoal {
   isCompleted: boolean;
   completedAt?: number;
   review?: string;
+  journey?: {
+    id: string;
+    timestamp: number;
+    content: string;
+  }[];
 }
 
 export interface Achievement {
