@@ -89,7 +89,7 @@ export function useFirebaseSync() {
   }, []);
 
   const migrateLocalStorage = async (uid: string) => {
-    const migrated = localStorage.getItem(`migrated_${uid}_v3`);
+    const migrated = localStorage.getItem(`migrated_${uid}_v4`);
     if (migrated) return;
 
     const safeSetDoc = async (path: string, item: any) => {
@@ -102,44 +102,38 @@ export function useFirebaseSync() {
     };
 
     try {
-      const savedAssets = localStorage.getItem('spatial_hub_assets');
-      if (savedAssets) {
-        for (const item of JSON.parse(savedAssets)) await safeSetDoc(`users/${uid}/assets/${item.id}`, item);
-      }
+      const storageMap: Record<string, string> = {
+        'spatial_hub_assets': `users/${uid}/assets`,
+        'spatial_hub_asset_cats': `users/${uid}/assetCategories`,
+        'spatial_hub_words': `users/${uid}/words`,
+        'spatial_hub_tasks': `users/${uid}/tasks`,
+        'spatial_hub_wishlist': `users/${uid}/wishlistItems`,
+        'spatial_hub_logs': `users/${uid}/logEntries`,
+        'spatial_hub_places': `users/${uid}/foodPlaces`,
+        'spatial_hub_content_ideas': `users/${uid}/contentIdeas`,
+        'spatial_hub_dictations': `users/${uid}/dictations`,
+        'spatial_hub_practice_paragraphs': `users/${uid}/practiceParagraphs`,
+        'spatial_hub_custom_sentences': `users/${uid}/customSentences`,
+        'spatial_hub_study_goals': `users/${uid}/studyGoals`,
+        'spatial_hub_achievements': `users/${uid}/achievements`,
+      };
 
-      const savedCats = localStorage.getItem('spatial_hub_asset_cats');
-      if (savedCats) {
-        for (const item of JSON.parse(savedCats)) await safeSetDoc(`users/${uid}/assetCategories/${item.id}`, item);
-      }
-
-      const savedWords = localStorage.getItem('spatial_hub_words');
-      if (savedWords) {
-        for (const item of JSON.parse(savedWords)) await safeSetDoc(`users/${uid}/words/${item.id}`, item);
-      }
-
-      const savedTasks = localStorage.getItem('spatial_hub_tasks');
-      if (savedTasks) {
-        for (const item of JSON.parse(savedTasks)) await safeSetDoc(`users/${uid}/tasks/${item.id}`, item);
-      }
-
-      const savedWishlist = localStorage.getItem('spatial_hub_wishlist');
-      if (savedWishlist) {
-        for (const item of JSON.parse(savedWishlist)) await safeSetDoc(`users/${uid}/wishlistItems/${item.id}`, item);
-      }
-
-      const savedLogs = localStorage.getItem('spatial_hub_logs');
-      if (savedLogs) {
-        for (const item of JSON.parse(savedLogs)) await safeSetDoc(`users/${uid}/logEntries/${item.id}`, item);
-      }
-
-      const savedPlaces = localStorage.getItem('spatial_hub_places');
-      if (savedPlaces) {
-        for (const item of JSON.parse(savedPlaces)) await safeSetDoc(`users/${uid}/foodPlaces/${item.id}`, item);
-      }
-
-      const savedIdeas = localStorage.getItem('spatial_hub_content_ideas');
-      if (savedIdeas) {
-        for (const item of JSON.parse(savedIdeas)) await safeSetDoc(`users/${uid}/contentIdeas/${item.id}`, item);
+      for (const [lsKey, firestorePath] of Object.entries(storageMap)) {
+        const data = localStorage.getItem(lsKey);
+        if (data) {
+          try {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed)) {
+              for (const item of parsed) {
+                if (item.id) {
+                  await safeSetDoc(`${firestorePath}/${item.id}`, item);
+                }
+              }
+            }
+          } catch (e) {
+            console.error(`Migration error for ${lsKey}`, e);
+          }
+        }
       }
 
       const savedTags = localStorage.getItem('spatial_hub_tags');
@@ -150,7 +144,7 @@ export function useFirebaseSync() {
         } catch(e) {}
       }
 
-      localStorage.setItem(`migrated_${uid}_v3`, 'true');
+      localStorage.setItem(`migrated_${uid}_v4`, 'true');
     } catch (e) {
       console.error("Migration error", e);
     }
@@ -225,11 +219,12 @@ export function useFirebaseSync() {
   const foodRef = React.useRef(foodPlaces);
   const ideasRef = React.useRef(contentIdeas);
   const assetsRef = React.useRef(assets);
+  const assetCategoriesRef = React.useRef(assetCategories);
   const dictationsRef = React.useRef(dictations);
   const sentencesRef = React.useRef(customSentences);
   const paragraphsRef = React.useRef(practiceParagraphs);
   const goalsRef = React.useRef(studyGoals);
-  const achRef = React.useRef(achievements);
+  const achievementsRef = React.useRef(achievements);
 
   useEffect(() => { wordsRef.current = words; }, [words]);
   useEffect(() => { tasksRef.current = tasks; }, [tasks]);
@@ -238,11 +233,12 @@ export function useFirebaseSync() {
   useEffect(() => { foodRef.current = foodPlaces; }, [foodPlaces]);
   useEffect(() => { ideasRef.current = contentIdeas; }, [contentIdeas]);
   useEffect(() => { assetsRef.current = assets; }, [assets]);
+  useEffect(() => { assetCategoriesRef.current = assetCategories; }, [assetCategories]);
   useEffect(() => { dictationsRef.current = dictations; }, [dictations]);
   useEffect(() => { sentencesRef.current = customSentences; }, [customSentences]);
   useEffect(() => { paragraphsRef.current = practiceParagraphs; }, [practiceParagraphs]);
   useEffect(() => { goalsRef.current = studyGoals; }, [studyGoals]);
-  useEffect(() => { achRef.current = achievements; }, [achievements]);
+  useEffect(() => { achievementsRef.current = achievements; }, [achievements]);
 
   // Diff sync wrapper
   const createSyncSetter = <T extends { id: string }>(
@@ -268,7 +264,6 @@ export function useFirebaseSync() {
         }
         
         const newItemsArr = newItems as T[];
-        const oldIds = new Set(currentItems.map(i => i.id));
         const newIds = new Set(newItemsArr.map(i => i.id));
 
         const toAddOrUpdate = newItemsArr.filter(i => {
@@ -297,7 +292,6 @@ export function useFirebaseSync() {
         }
       } catch (err: any) {
         console.error("Sync error:", err);
-        // Don't alert for every small error if it's transient
       }
     };
   };
@@ -311,12 +305,12 @@ export function useFirebaseSync() {
     foodPlaces, setFoodPlaces: createSyncSetter<FoodPlace>('foodPlaces', foodRef, setFoodPlaces),
     contentIdeas, setContentIdeas: createSyncSetter<ContentIdea>('contentIdeas', ideasRef, setContentIdeas),
     assets, setAssets: createSyncSetter<Asset>('assets', assetsRef, setAssets),
-    assetCategories, setAssetCategories: createSyncSetter<AssetCategory>('assetCategories', React.createRef(), setAssetCategories), // Categories rarely change so fast
+    assetCategories, setAssetCategories: createSyncSetter<AssetCategory>('assetCategories', assetCategoriesRef, setAssetCategories),
     dictations, setDictations: createSyncSetter<VideoDictation>('dictations', dictationsRef, setDictations as any),
     customSentences, setCustomSentences: createSyncSetter<CustomSentence>('customSentences', sentencesRef, setCustomSentences),
     practiceParagraphs, setPracticeParagraphs: createSyncSetter<PracticeParagraph>('practiceParagraphs', paragraphsRef, setPracticeParagraphs),
     studyGoals, setStudyGoals: createSyncSetter<StudyGoal>('studyGoals', goalsRef, setStudyGoals),
-    achievements, setAchievements: createSyncSetter<Achievement>('achievements', achRef, setAchievements),
+    achievements, setAchievements: createSyncSetter<Achievement>('achievements', achievementsRef, setAchievements),
     tags, setTags: createSyncSetter<any>('tags', React.createRef(), setTags as any, true),
   };
 }
