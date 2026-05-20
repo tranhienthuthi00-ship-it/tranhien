@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Loader2, Send, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus, Trophy, Target, Calendar, Award, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useFirebase } from "../context/FirebaseContext";
@@ -262,10 +262,23 @@ export function SentenceBySentencePractice() {
     setIsVerifying(false);
   };
 
-  const nextSentence = () => {
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (isPracticing && !isReviewing && !evaluation) {
+      // Small timeout to allow React to render the enabled textarea
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [currentIndex, isPracticing, isReviewing, evaluation]);
+
+  const nextSentence = (wasCorrectOrEvent?: boolean | React.MouseEvent) => {
+    const isCompleted = typeof wasCorrectOrEvent === 'boolean' ? wasCorrectOrEvent : !!evaluation?.isCorrect;
     const updated = [...sentences];
     updated[currentIndex].userTranslation = userInput;
-    updated[currentIndex].status = 'correct';
+    updated[currentIndex].status = isCompleted ? 'correct' : 'failed';
     setSentences(updated);
     setIsEditingHint(false);
     
@@ -280,10 +293,16 @@ export function SentenceBySentencePractice() {
       const totalEnLength = sentences.reduce((acc, s) => acc + (s.en?.length || 0), 0);
       const totalCombinedMistakes = totalMistakes + sessionMistakes;
       const finalAccuracy = Math.max(0, Math.round((totalEnLength / (totalEnLength + totalCombinedMistakes)) * 100));
+      
+      const failedCount = updated.filter(s => s.status === 'failed').length;
+      const msg = failedCount > 0 
+        ? `Bạn đã hoàn thành bài dịch, nhưng còn ${failedCount} câu chưa chính xác. Cố gắng ghi nhớ nhé!`
+        : `Tuyệt vời! Bạn đã hoàn thành xuất sắc bài dịch với độ chính xác ${finalAccuracy}%.`;
+
       setEvaluation({
         isCorrect: true,
         accuracy: finalAccuracy,
-        explanation: `Chúc mừng! Bạn đã hoàn thành toàn bài với độ chính xác ${finalAccuracy}%.`
+        explanation: msg
       });
     }
   };
@@ -615,13 +634,14 @@ export function SentenceBySentencePractice() {
             {sentences.map((s, i) => (
               <div 
                 key={i} 
-                className={`p-2 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${i === currentIndex ? "bg-white sketch-border-sm ring-1 ring-ink/10" : i < currentIndex ? "text-emerald-500/60 bg-emerald-50/20" : "text-ink/10"}`}
+                className={`p-2 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${i === currentIndex ? "bg-white sketch-border-sm ring-1 ring-ink/10" : s.status === 'correct' ? "text-emerald-500/60 bg-emerald-50/20" : s.status === 'failed' ? "text-crimson/60 bg-crimson/10" : "text-ink/10"}`}
               >
-                <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[8px] ${i === currentIndex ? "bg-ink text-white" : i < currentIndex ? "bg-emerald-500 text-white" : "bg-ink/5"}`}>
+                <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[8px] ${i === currentIndex ? "bg-ink text-white" : s.status === 'correct' ? "bg-emerald-500 text-white" : s.status === 'failed' ? "bg-crimson text-white" : "bg-ink/5"}`}>
                   {i + 1}
                 </div>
                 <p className="truncate">{s.vi}</p>
-                {i < currentIndex && <CheckCircle2 className="w-3 h-3 ml-auto text-emerald-500" />}
+                {s.status === 'correct' && <CheckCircle2 className="w-3 h-3 ml-auto text-emerald-500" />}
+                {s.status === 'failed' && <X className="w-3 h-3 ml-auto text-crimson" />}
               </div>
             ))}
           </div>
@@ -734,12 +754,20 @@ export function SentenceBySentencePractice() {
                   </div>
 
                   <textarea
+                    ref={inputRef}
                     autoFocus
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-text resize-none"
                     disabled={isVerifying || evaluation?.isCorrect}
                     onKeyDown={(e) => {
+                      if (e.key === 'Shift') {
+                        e.preventDefault();
+                        setShowHint(prev => {
+                          if (prev) setIsEditingHint(false);
+                          return !prev;
+                        });
+                      }
                       if (e.key === 'Enter' && !e.shiftKey && !evaluation?.isCorrect) {
                         e.preventDefault();
                         handleVerify();

@@ -227,6 +227,30 @@ export function HandDrawnIcon({ type, className, key }: { type: string, classNam
           <path d="M 35 60 V 85 M 50 60 V 85 M 65 60 V 85" opacity="0.3" />
         </svg>
       );
+    case 'tooth':
+      return (
+        <svg {...baseProps}>
+          <path d="M 25 30 Q 25 15 50 15 Q 75 15 75 30 V 50 Q 75 85 60 85 Q 50 85 50 65 Q 50 85 40 85 Q 25 85 25 50 Z" fill="#FDFBF7" />
+          <path d="M 35 30 Q 50 25 65 30" />
+        </svg>
+      );
+    case 'nail':
+      return (
+        <svg {...baseProps}>
+          <path d="M 40 40 V 85 Q 40 95 50 95 Q 60 95 60 85 V 40 Z" fill="#FDFBF7" />
+          <path d="M 40 40 Q 50 10 60 40 Z" fill="#FDFBF7" />
+          <path d="M 35 45 H 65" />
+        </svg>
+      );
+    case 'shopping':
+      return (
+        <svg {...baseProps}>
+          <path d="M 20 40 H 80 L 75 90 H 25 Z" fill="#FDFBF7" />
+          <path d="M 35 40 V 25 Q 50 5 65 25 V 40" />
+          <circle cx="35" cy="50" r="3" fill="currentColor" />
+          <circle cx="65" cy="50" r="3" fill="currentColor" />
+        </svg>
+      );
     case 'document':
     default:
       return (
@@ -260,7 +284,7 @@ export function CalendarView({
   const [eventTime, setEventTime] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const ICONS = ['document', 'star', 'heart', 'anchor', 'coffee', 'moon', 'sun', 'cloud', 'book', 'gift', 'smile', 'travel', 'mountain', 'home', 'music', 'food', 'pizza', 'camera', 'bulb', 'briefcase', 'gym', 'tree', 'rain', 'car', 'game', 'cupcake'];
+  const ICONS = ['document', 'star', 'heart', 'anchor', 'coffee', 'moon', 'sun', 'cloud', 'book', 'gift', 'smile', 'travel', 'mountain', 'home', 'music', 'food', 'pizza', 'camera', 'bulb', 'briefcase', 'gym', 'tree', 'rain', 'car', 'game', 'cupcake', 'tooth', 'nail', 'shopping'];
 
   const onPrevMonth = () => setCurrentDate(subMonths(currentDate, 1));
   const onNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
@@ -279,9 +303,9 @@ export function CalendarView({
       setLogs(logs.map(log => log.id === editingId ? {
         ...log,
         content: logText,
-        type: logType,
-        icon: logType === 'Reflection' ? selectedIcon : undefined,
-        time: logType === 'Event' ? eventTime : undefined
+        type: 'Reflection',
+        icon: selectedIcon,
+        time: eventTime || undefined
       } : log));
       setEditingId(null);
     } else {
@@ -289,9 +313,9 @@ export function CalendarView({
         id: Date.now().toString(),
         date: dateStr,
         content: logText,
-        type: logType,
-        icon: logType === 'Reflection' ? selectedIcon : undefined,
-        time: logType === 'Event' ? eventTime : undefined
+        type: 'Reflection',
+        icon: selectedIcon,
+        time: eventTime || undefined
       };
       setLogs([...logs, newLog]);
     }
@@ -314,8 +338,8 @@ export function CalendarView({
     setEditingId(log.id);
     setLogText(log.content);
     setLogType(log.type);
-    if (log.icon) setSelectedIcon(log.icon);
-    if (log.time) setEventTime(log.time);
+    setSelectedIcon(log.icon || 'document');
+    setEventTime(log.time || "");
   };
 
   const getLogsForDate = (date: Date) => {
@@ -330,7 +354,7 @@ export function CalendarView({
 
   const getGroupedEvents = () => {
     const events = logs
-      .filter(l => l.type === 'Event' && l.date.startsWith(format(currentDate, 'yyyy-MM')))
+      .filter(l => l.date.startsWith(format(currentDate, 'yyyy-MM')))
       .sort((a, b) => a.date.localeCompare(b.date));
 
     if (events.length === 0) return [];
@@ -376,25 +400,24 @@ export function CalendarView({
   const getYearlyEvents = () => {
     const year = format(currentDate, 'yyyy');
     return logs
-      .filter(l => l.type === 'Event' && l.date.startsWith(year))
+      .filter(l => l.date.startsWith(year))
       .sort((a, b) => a.date.localeCompare(b.date));
   };
 
   const getYearlyStats = () => {
     const yearlyLogs = logs.filter(l => l.date.startsWith(format(currentDate, 'yyyy')));
-    const eventCount = yearlyLogs.filter(l => l.type === 'Event').length;
-    const reflectionCount = yearlyLogs.filter(l => l.type === 'Reflection').length;
+    const entryCount = yearlyLogs.length;
     
     // Group events by month
     const months: Record<string, number> = {};
-    yearlyLogs.filter(l => l.type === 'Event').forEach(l => {
+    yearlyLogs.forEach(l => {
       const month = format(new Date(l.date), 'MMMM');
       months[month] = (months[month] || 0) + 1;
     });
     
     const mostActiveMonth = Object.entries(months).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
     
-    return { eventCount, reflectionCount, mostActiveMonth };
+    return { entryCount, mostActiveMonth };
   };
 
   const yearlyStats = getYearlyStats();
@@ -403,12 +426,10 @@ export function CalendarView({
   const getMonthlyStats = () => {
     const monthStr = format(currentDate, 'yyyy-MM');
     const monthlyLogs = logs.filter(l => l.date.startsWith(monthStr));
-    const eventCount = monthlyLogs.filter(l => l.type === 'Event').length;
-    const reflectionCount = monthlyLogs.filter(l => l.type === 'Reflection').length;
-    return { eventCount, reflectionCount };
+    return { entryCount: monthlyLogs.length };
   };
 
-  const { eventCount: monthlyEventCount, reflectionCount: monthlyReflectionCount } = getMonthlyStats();
+  const { entryCount: monthlyEntryCount } = getMonthlyStats();
 
   if (viewMode === 'Year') {
     return (
@@ -425,12 +446,8 @@ export function CalendarView({
            </div>
            <div className="flex gap-4">
               <div className="p-4 sketch-border border-dashed bg-white/40 shadow-sm flex flex-col items-center min-w-[120px]">
-                <span className="text-[10px] font-bold uppercase text-ink/40 tracking-widest">Events</span>
-                <span className="text-3xl font-black text-crimson">{yearlyStats.eventCount}</span>
-              </div>
-              <div className="p-4 sketch-border border-dashed bg-white/40 shadow-sm flex flex-col items-center min-w-[120px]">
-                <span className="text-[10px] font-bold uppercase text-ink/40 tracking-widest">Reflections</span>
-                <span className="text-3xl font-black text-ink">{yearlyStats.reflectionCount}</span>
+                <span className="text-[10px] font-bold uppercase text-ink/40 tracking-widest">Total Entries</span>
+                <span className="text-3xl font-black text-ink">{yearlyStats.entryCount}</span>
               </div>
               <div className="hidden sm:flex p-4 sketch-border border-dashed bg-white/40 shadow-sm flex flex-col items-center min-w-[150px]">
                 <span className="text-[10px] font-bold uppercase text-ink/40 tracking-widest">Peak Activity</span>
@@ -534,27 +551,24 @@ export function CalendarView({
                   
                   {/* Visual Markers Section */}
                   <div className="flex gap-1 items-center">
-                    {dayLogs.filter(l => l.type === 'Event').map((_, idx) => (
+                    {dayLogs.map((_, idx) => (
                       <div key={idx} className="w-1.5 h-1.5 rounded-full bg-crimson shadow-sm" />
                     ))}
                   </div>
                 </div>
 
                 <div className="absolute inset-x-0 top-[15%] pointer-events-none overflow-hidden opacity-50 text-amber-500 flex flex-wrap gap-2 px-2 items-start justify-center z-0 group-hover:opacity-70 transition-opacity">
-                  {dayLogs.filter(l => l.type === 'Reflection').map(log => (
+                  {dayLogs.map(log => (
                     <HandDrawnIcon key={log.id} type={log.icon || 'document'} className="w-16 h-16" />
                   ))}
                 </div>
                 
                 <div className="flex-1 overflow-hidden mt-6 space-y-1 relative z-10">
                   {dayLogs.map(log => (
-                    <div key={log.id} className={cn(
-                      "leading-tight truncate flex items-center gap-1 relative z-10 px-1 rounded",
-                      log.type === 'Event' ? "big-project w-full text-left text-xs" : "hand-text text-[11px] opacity-80"
-                    )}>
-                      {log.type === 'Reflection' && <span>•</span>}
+                    <div key={log.id} className="leading-tight truncate flex items-center gap-1 relative z-10 px-1 rounded hand-text text-[11px] opacity-80">
+                      <span>•</span>
                       <span className="truncate">
-                        {log.type === 'Event' && log.time && <span className="font-bold mr-1">{log.time}</span>}
+                        {log.time && <span className="font-bold mr-1">{log.time}</span>}
                         {log.content}
                       </span>
                     </div>
@@ -581,23 +595,7 @@ export function CalendarView({
           
           {selectedDate ? (
             <div className="p-6 sketch-border bg-white/60 shadow-xl flex flex-col gap-4">
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setLogType('Reflection')}
-                  className={cn("px-3 py-1 rounded-full font-sans text-xs border-2 border-ink", logType === 'Reflection' ? "bg-ink text-paper" : "bg-transparent")}
-                >
-                  Reflection
-                </button>
-                <button 
-                  onClick={() => setLogType('Event')}
-                  className={cn("px-3 py-1 rounded-full font-sans text-xs border-2 border-crimson", logType === 'Event' ? "bg-crimson text-paper" : "bg-transparent text-crimson")}
-                >
-                  Event
-                </button>
-             </div>
-             
-             {logType === 'Reflection' && (
-               <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                  <div className="flex gap-2 items-center">
                    <span className="text-[10px] font-bold uppercase tracking-widest text-ink/50">Icon:</span>
                    <div className="flex gap-1 flex-wrap">
@@ -613,22 +611,22 @@ export function CalendarView({
                    </div>
                  </div>
                </div>
-             )}
 
-             {logType === 'Event' && (
-               <input 
-                 type="time" 
-                 value={eventTime}
-                 onChange={e => setEventTime(e.target.value)}
-                 className="sketch-input w-max font-sans text-sm py-1"
-               />
-             )}
+               <div className="flex gap-2 items-center">
+                 <span className="text-[10px] font-bold uppercase tracking-widest text-ink/50">Time (Optional):</span>
+                 <input 
+                   type="time" 
+                   value={eventTime}
+                   onChange={e => setEventTime(e.target.value)}
+                   className="sketch-input w-max font-sans text-sm py-1 border-ink/20"
+                 />
+               </div>
 
              <textarea 
                value={logText}
                onChange={(e) => setLogText(e.target.value)}
-               placeholder={logType === 'Reflection' ? "Dear diary..." : "Event title & details..."}
-               className={cn("w-full min-h-[60px] p-2 sketch-input resize-y", logType === 'Reflection' ? "hand-text text-lg" : "font-sans text-sm")}
+               placeholder="Log details..."
+               className="w-full min-h-[60px] p-2 sketch-input resize-y hand-text text-lg"
                rows={2}
              />
              <div className="flex gap-2">
@@ -667,9 +665,9 @@ export function CalendarView({
                       editingId === log.id ? "bg-crimson/5 border-crimson" : "hover:border-ink/50"
                     )}
                   >
-                     <span className={cn("absolute -top-3 left-3 px-1 bg-paper text-[10px] font-sans font-bold flex items-center gap-1", log.type === 'Event' ? "text-crimson" : "text-ink/50")}>
-                        {log.type === 'Reflection' && <HandDrawnIcon type={log.icon || 'document'} className="w-3 h-3 mr-1 text-crimson inline" />}
-                        {log.type} {log.type === 'Reflection' && "-"}
+                     <span className="absolute -top-3 left-3 px-1 bg-paper text-[10px] font-sans font-bold flex items-center gap-1 text-ink/70">
+                        <HandDrawnIcon type={log.icon || 'document'} className="w-3 h-3 mr-1 text-crimson inline" />
+                        Entry
                      </span>
                      <button 
                        onClick={(e) => handleDeleteLog(log.id, e)}
@@ -700,14 +698,10 @@ export function CalendarView({
           <div className="flex flex-col gap-4 border-b-2 border-ink pb-4">
             <h3 className="text-2xl font-sans font-black tracking-tight uppercase">Monthly Recap</h3>
             
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <div className="p-3 sketch-border border-dashed bg-paper/50 flex flex-col items-center">
-                <span className="text-[9px] font-black uppercase text-ink/40 tracking-widest">Events</span>
-                <span className="text-xl font-black text-crimson">{monthlyEventCount}</span>
-              </div>
-              <div className="p-3 sketch-border border-dashed bg-paper/50 flex flex-col items-center">
-                <span className="text-[9px] font-black uppercase text-ink/40 tracking-widest">Reflections</span>
-                <span className="text-xl font-black text-ink">{monthlyReflectionCount}</span>
+                <span className="text-[9px] font-black uppercase text-ink/40 tracking-widest">Total Entries</span>
+                <span className="text-xl font-black text-ink">{monthlyEntryCount}</span>
               </div>
             </div>
           </div>
