@@ -129,6 +129,12 @@ export interface PracticeParagraph {
   english: string;
   sentences?: PracticeSentence[];
   createdAt: number;
+  practiceCount?: number;
+  lastProgress?: {
+    sentences: any[];
+    currentIndex: number;
+    totalMistakes: number;
+  };
 }
 
 export interface StudyGoal {

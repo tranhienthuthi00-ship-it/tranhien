@@ -559,7 +559,7 @@ export function CalendarView({
 
                 <div className="absolute inset-x-0 top-[15%] pointer-events-none overflow-hidden opacity-50 text-amber-500 flex flex-wrap gap-2 px-2 items-start justify-center z-0 group-hover:opacity-70 transition-opacity">
                   {dayLogs.map(log => (
-                    <HandDrawnIcon key={log.id} type={log.icon || 'document'} className="w-16 h-16" />
+                    <HandDrawnIcon key={log.id} type={log.icon || 'document'} className="w-10 h-10" />
                   ))}
                 </div>
                 

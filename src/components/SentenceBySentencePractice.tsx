@@ -28,6 +28,7 @@ export function SentenceBySentencePractice() {
   const [evaluation, setEvaluation] = useState<{ explanation?: string; isCorrect?: boolean; accuracy?: number } | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [currentPracticeId, setCurrentPracticeId] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [isEditingHint, setIsEditingHint] = useState(false);
   const [tempHint, setTempHint] = useState("");
@@ -48,21 +49,7 @@ export function SentenceBySentencePractice() {
 
   const isPunctuation = (char: string) => /[.,!?;:()"]/.test(char);
 
-  // Track mistakes in real-time
-  useEffect(() => {
-    const reference = sentences[currentIndex]?.en || "";
-    if (userInput.length > 0) {
-      const lastIndex = userInput.length - 1;
-      const char = userInput[lastIndex];
-      const targetChar = reference[lastIndex];
-      
-      if (targetChar && !isPunctuation(targetChar)) {
-        if (char.toLowerCase() !== targetChar.toLowerCase()) {
-          setSessionMistakes(prev => prev + 1);
-        }
-      }
-    }
-  }, [userInput, currentIndex, sentences]);
+  const normalize = (str: string) => str.toLowerCase().replace(/[.,!?;:()"]/g, "").replace(/\s+/g, " ").trim();
 
   // Character display logic (Shadow Typing)
   const typingStatus = useMemo(() => {
@@ -80,8 +67,6 @@ export function SentenceBySentencePractice() {
       return { char, isMatch, target };
     });
   }, [userInput, sentences, currentIndex]);
-
-  const normalize = (str: string) => str.toLowerCase().replace(/[.,!?;:()]/g, "").replace(/\s+/g, " ").trim();
 
   // Auto-advance logic
   const isCorrect = useMemo(() => {
@@ -123,34 +108,66 @@ export function SentenceBySentencePractice() {
 
   const handleStart = async (p?: PracticeParagraph) => {
     if (p) {
+      setCurrentPracticeId(p.id);
       setTitle(p.title);
       setInputText(p.vietnamese);
       setReferenceText(p.english);
+      
+      let initialSentences: Sentence[] = [];
       if (p.sentences) {
-        setSentences(p.sentences.map(s => ({ ...s, status: 'pending' as const })));
+        initialSentences = p.sentences.map(s => ({ ...s, status: "pending" as const }));
       } else {
         const vi = p.vietnamese;
         const en = p.english;
-        const rawSentences = vi.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
-        const rawRefs = en ? en.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0) : [];
-        const newSentences: Sentence[] = rawSentences.map((s, i) => ({
+        const rawSentences = vi.split(/(?<=[.!?])\s+/).filter((s) => s.trim().length > 0);
+        const rawRefs = en ? en.split(/(?<=[.!?])\s+/).filter((s) => s.trim().length > 0) : [];
+        initialSentences = rawSentences.map((s, i) => ({
           vi: s.trim(),
           en: rawRefs[i]?.trim() || "",
-          status: 'pending' as const
+          status: "pending" as const,
         }));
-        setSentences(newSentences);
       }
+
+      if (p.lastProgress) {
+        const confirmResume = confirm("Bạn có muốn tiếp tục phần bài đang dở không?");
+        if (confirmResume) {
+          setSentences(p.lastProgress.sentences);
+          setCurrentIndex(p.lastProgress.currentIndex || 0);
+          setTotalMistakes(p.lastProgress.totalMistakes || 0);
+        } else {
+          setSentences(initialSentences);
+          setCurrentIndex(0);
+          setTotalMistakes(0);
+          
+          // Tracking start
+          const updatedParagraph = { ...p, practiceCount: (p.practiceCount || 0) + 1 };
+          void setPracticeParagraphs(practiceParagraphs.map(item => item.id === p.id ? updatedParagraph : item));
+        }
+      } else {
+        setSentences(initialSentences);
+        setCurrentIndex(0);
+        setTotalMistakes(0);
+        
+        // Tracking start
+        const updatedParagraph = { ...p, practiceCount: (p.practiceCount || 0) + 1 };
+        void setPracticeParagraphs(practiceParagraphs.map(item => item.id === p.id ? updatedParagraph : item));
+      }
+
       setIsPracticing(true);
       setShowLibrary(false);
       setIsReviewing(false);
     } else {
+      setCurrentPracticeId(null);
+      setCurrentIndex(0);
+      setTotalMistakes(0);
       setIsPracticing(true);
       setIsReviewing(false);
     }
-    
-    setCurrentIndex(0);
+
     setUserInput("");
+    setSessionMistakes(0);
     setEvaluation(null);
+    setShowHint(false);
   };
 
   const handleSave = async () => {
@@ -236,29 +253,53 @@ export function SentenceBySentencePractice() {
     const currentSentence = sentences[currentIndex];
     const reference = currentSentence.en || "";
 
-    const normalize = (str: string) => str.toLowerCase().replace(/[.,!?;:()]/g, "").replace(/\s+/g, " ").trim();
-    const isCorrect = normalize(userInput) === normalize(reference);
+    const normalizeWordLevel = (str: string) => str.toLowerCase().replace(/[.,!?;:()"]/g, "").trim();
     
-    // Accuracy calculation: 100 - (mistakes / max(ref_len, user_len) * 100)
-    // We want to penalize every wrong keystroke
-    const accuracy = Math.max(0, Math.round(((Math.max(userInput.length, reference.length) - sessionMistakes) / Math.max(1, userInput.length, reference.length)) * 100));
+    const userWords = normalizeWordLevel(userInput).split(/\s+/).filter(Boolean);
+    const refWords = normalizeWordLevel(reference).split(/\s+/).filter(Boolean);
+    
+    let currentMistakes = 0;
+    const m = userWords.length;
+    const n = refWords.length;
+    const dp = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
 
-    if (isCorrect) {
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        const cost = userWords[i - 1] === refWords[j - 1] ? 0 : 1;
+        dp[i][j] = Math.min(
+          dp[i - 1][j] + 1,
+          dp[i][j - 1] + 1,
+          dp[i - 1][j - 1] + cost
+        );
+      }
+    }
+    
+    currentMistakes = dp[m][n];
+    setSessionMistakes(currentMistakes);
+
+    const maxWords = Math.max(1, userWords.length, refWords.length);
+    const accuracy = Math.max(0, Math.round(((maxWords - currentMistakes) / maxWords) * 100));
+    
+    const isActuallyCorrect = normalize(userInput) === normalize(reference);
+
+    if (currentMistakes === 0 || isActuallyCorrect) {
       speak(reference);
       setEvaluation({
         isCorrect: true,
         accuracy,
-        explanation: accuracy >= 95 ? "Tuyệt vời! Bạn đã dịch hoàn hảo." : "Rất tốt! Bạn đã dịch chính xác."
+        explanation: "Tuyệt vời! Bạn đã dịch phần lớn chính xác."
       });
     } else {
       setEvaluation({
         isCorrect: false,
         accuracy,
-        explanation: accuracy >= 70 ? "Khá ổn! Nhưng vẫn còn một số lỗi nhỏ." : "Bản dịch có khá nhiều lỗi. Bạn nên thử lại!"
+        explanation: accuracy >= 70 ? "Khá ổn! Chú ý một vài từ chưa chính xác so với mẫu." : "Bản dịch có khá nhiều từ sai khác. Bạn nên thử lại!"
       });
     }
     
-    setTotalMistakes(prev => prev + sessionMistakes);
+    setTotalMistakes(prev => prev + currentMistakes);
     setIsVerifying(false);
   };
 
@@ -274,7 +315,7 @@ export function SentenceBySentencePractice() {
     }
   }, [currentIndex, isPracticing, isReviewing, evaluation]);
 
-  const nextSentence = (wasCorrectOrEvent?: boolean | React.MouseEvent) => {
+  const nextSentence = (wasCorrectOrEvent?: boolean | any) => {
     const isCompleted = typeof wasCorrectOrEvent === 'boolean' ? wasCorrectOrEvent : !!evaluation?.isCorrect;
     const updated = [...sentences];
     updated[currentIndex].userTranslation = userInput;
@@ -282,26 +323,51 @@ export function SentenceBySentencePractice() {
     setSentences(updated);
     setIsEditingHint(false);
     
+    let isFinished = false;
+    
     if (currentIndex < sentences.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setUserInput("");
       setSessionMistakes(0);
       setEvaluation(null);
       setShowHint(false);
+      
+      // Save progress
+      if (currentPracticeId) {
+        const pIndex = practiceParagraphs.findIndex(p => p.id === currentPracticeId);
+        if (pIndex !== -1) {
+          const newP = { ...practiceParagraphs[pIndex] };
+          newP.lastProgress = {
+             sentences: updated,
+             currentIndex: currentIndex + 1,
+             totalMistakes: totalMistakes + sessionMistakes
+          };
+          void setPracticeParagraphs([...practiceParagraphs.slice(0, pIndex), newP, ...practiceParagraphs.slice(pIndex + 1)]);
+        }
+      }
     } else {
-      // Last sentence completed
-      const totalEnLength = sentences.reduce((acc, s) => acc + (s.en?.length || 0), 0);
-      const totalCombinedMistakes = totalMistakes + sessionMistakes;
-      const finalAccuracy = Math.max(0, Math.round((totalEnLength / (totalEnLength + totalCombinedMistakes)) * 100));
+      isFinished = true;
+      // Last sentence completed => Clear progress
+      if (currentPracticeId) {
+        const pIndex = practiceParagraphs.findIndex(p => p.id === currentPracticeId);
+        if (pIndex !== -1) {
+          const newP = { ...practiceParagraphs[pIndex] };
+          newP.lastProgress = undefined;
+          void setPracticeParagraphs([...practiceParagraphs.slice(0, pIndex), newP, ...practiceParagraphs.slice(pIndex + 1)]);
+        }
+      }
+      
+      // Let's compute average accuracy of sentences or just keep a simple metric
+      const avgAccuracy = Math.max(0, 100 - (totalMistakes + sessionMistakes) * 10);
       
       const failedCount = updated.filter(s => s.status === 'failed').length;
       const msg = failedCount > 0 
         ? `Bạn đã hoàn thành bài dịch, nhưng còn ${failedCount} câu chưa chính xác. Cố gắng ghi nhớ nhé!`
-        : `Tuyệt vời! Bạn đã hoàn thành xuất sắc bài dịch với độ chính xác ${finalAccuracy}%.`;
+        : `Tuyệt vời! Xin chúc mừng, bạn đã hoàn thành xuất sắc bài dịch!`;
 
       setEvaluation({
         isCorrect: true,
-        accuracy: finalAccuracy,
+        accuracy: avgAccuracy,
         explanation: msg
       });
     }
@@ -385,8 +451,19 @@ export function SentenceBySentencePractice() {
                       <div key={p.id} className="group relative sketch-border bg-white p-4 hover:bg-paper transition-all">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 cursor-pointer" onClick={() => handleStart(p)}>
-                            <h4 className="font-bold text-ink leading-tight mb-1">{p.title}</h4>
-                            <p className="text-[10px] text-ink/40 line-clamp-2 italic">{p.vietnamese}</p>
+                            <div className="flex items-center gap-2 mb-1">
+                               <h4 className="font-bold text-ink leading-tight">{p.title}</h4>
+                               {p.lastProgress && (
+                                 <span className="text-[8px] bg-amber-500/20 text-amber-600 px-2 py-0.5 rounded-full font-black uppercase tracking-widest leading-none">Đang dở</span>
+                               )}
+                            </div>
+                            <p className="text-[10px] text-ink/40 line-clamp-2 italic mb-2">{p.vietnamese}</p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-bold text-ink/30 uppercase tracking-widest flex items-center gap-1">
+                                <Award size={10} />
+                                Đã luyện {p.practiceCount || 0} lần
+                              </span>
+                            </div>
                           </div>
                           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button 
