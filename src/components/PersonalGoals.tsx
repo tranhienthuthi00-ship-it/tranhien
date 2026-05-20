@@ -3,7 +3,7 @@ import {
   Plus, Target, Calendar, Trash2, CheckCircle2, Edit2,
   TrendingUp, X, FileText, ChevronDown, ChevronUp,
   Medal, Square, History, Send, Clock, ClipboardList,
-  Check
+  Check, Trophy, Sparkles
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { format } from "date-fns";
@@ -41,6 +41,10 @@ export function PersonalGoals({
   const [taskSortBy, setTaskSortBy] = useState<'Default' | 'Priority'>('Default');
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showAddTodo, setShowAddTodo] = useState(false);
+
+  // Achievement modal / celebration states
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
+  const [isCelebration, setIsCelebration] = useState(false);
 
   const toggleNotes = (id: string) => {
     setExpandedNotes(prev => 
@@ -177,6 +181,8 @@ export function PersonalGoals({
         icon: 'Medal'
       };
       await setAchievements([ach, ...achievements]);
+      setSelectedAchievement(ach);
+      setIsCelebration(true);
     }
     await setGoals(updated);
   };
@@ -734,14 +740,26 @@ export function PersonalGoals({
                               </p>
                               
                               {linkedGoal && (
-                                <div className="mt-2 pt-2 border-t border-ink/5 flex items-center gap-2">
-                                  <Calendar size={10} className="text-ink/30" style={{ filter: 'url(#hand-drawn-filter)' }} />
-                                  <input 
-                                    type="date"
-                                    value={linkedGoal.completedAt ? new Date(linkedGoal.completedAt).toISOString().split('T')[0] : ""}
-                                    onChange={(e) => updateCompletionDate(linkedGoal.id, e.target.value)}
-                                    className="bg-paper/20 sketch-border-sm border-none p-1.5 text-[10px] font-bold text-ink/60 focus:outline-none h-auto w-auto min-w-[120px] cursor-pointer hover:bg-paper/40 rounded transition-all"
-                                  />
+                                <div className="mt-2 pt-2 border-t border-ink/5 flex flex-wrap gap-2 items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Calendar size={10} className="text-ink/30" style={{ filter: 'url(#hand-drawn-filter)' }} />
+                                    <input 
+                                      type="date"
+                                      value={linkedGoal.completedAt ? new Date(linkedGoal.completedAt).toISOString().split('T')[0] : ""}
+                                      onChange={(e) => updateCompletionDate(linkedGoal.id, e.target.value)}
+                                      className="bg-paper/20 sketch-border-sm border-none p-1.5 text-[10px] font-bold text-ink/60 focus:outline-none h-auto w-auto min-w-[120px] cursor-pointer hover:bg-paper/40 rounded transition-all"
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedAchievement(ach);
+                                      setIsCelebration(false);
+                                    }}
+                                    className="text-[10px] font-black uppercase text-crimson hover:underline flex items-center gap-1.5"
+                                    title="Xem chi tiết"
+                                  >
+                                    <Trophy size={11} className="stroke-[2.5]" style={{ filter: 'url(#hand-drawn-filter)' }} /> Chi tiết
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -792,6 +810,212 @@ export function PersonalGoals({
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {selectedAchievement && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/70 backdrop-blur-sm overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative bg-[#f4f1ea] sketch-border w-full max-w-lg p-6 md:p-8 space-y-6 shadow-2xl my-8 text-ink"
+            >
+              {/* Confetti or hand-drawn sparkles behind icon in celebration mode */}
+              {isCelebration && (
+                <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-lg">
+                  <div className="absolute top-1/4 left-1/4 w-3.5 h-3.5 bg-crimson rounded-full animate-ping opacity-75" />
+                  <div className="absolute top-1/3 right-1/4 w-4 h-4 bg-yellow-500 rounded-full animate-ping opacity-50 delay-100" />
+                  <div className="absolute bottom-1/3 left-1/3 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping opacity-60 delay-300" />
+                </div>
+              )}
+
+              {/* Close Button */}
+              <button 
+                onClick={() => {
+                  setSelectedAchievement(null);
+                  setIsCelebration(false);
+                }}
+                className="absolute top-4 right-4 text-ink/40 hover:text-crimson transition-colors p-1"
+                aria-label="Đóng"
+                id="close-achievement-modal"
+              >
+                <X size={20} />
+              </button>
+
+              {/* Header Icons and Styling */}
+              <div className="flex flex-col items-center text-center space-y-3 pt-4 font-sans">
+                <div 
+                  className={cn(
+                    "p-4 rounded-full border-4 border-dashed",
+                    isCelebration ? "border-yellow-500 bg-yellow-50 text-yellow-600 animate-bounce" : "border-ink/20 bg-white text-ink"
+                  )}
+                  style={{ filter: 'url(#hand-drawn-filter)' }}
+                >
+                  {isCelebration ? <Trophy size={48} className="stroke-[2.5]" /> : <Medal size={48} className="stroke-[2.5]" />}
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-[11px] font-black uppercase text-crimson tracking-widest flex items-center justify-center gap-1.5 font-sans">
+                    {isCelebration ? (
+                      <>
+                        <Sparkles size={12} className="text-yellow-500 animate-pulse" />
+                        MỞ KHÓA THÀNH TÍCH MỚI!
+                        <Sparkles size={12} className="text-yellow-500 animate-pulse" />
+                      </>
+                    ) : "CHI TIẾT THÀNH TÍCH"}
+                  </h4>
+                  <h3 className="text-2xl font-sans font-black uppercase tracking-tight leading-tight">
+                    {selectedAchievement.title}
+                  </h3>
+                  <p className="text-xs text-ink/45 flex items-center justify-center gap-1.5 mt-1 font-mono">
+                    <Clock size={12} /> Đạt được vào: {format(new Date(selectedAchievement.unlockedAt), "dd/MM/yyyy HH:mm")}
+                  </p>
+                </div>
+              </div>
+
+              {/* Associated Goal Details */}
+              {(() => {
+                const goal = goals.find(g => g.id === selectedAchievement.goalId);
+                if (!goal) {
+                  return (
+                    <p className="text-xs text-ink/40 italic text-center py-4 bg-white/50 rounded">
+                      Mục tiêu liên kết đã bị xóa hoặc không tìm thấy.
+                    </p>
+                  );
+                }
+
+                const createdDate = format(new Date(goal.createdAt), "dd/MM/yyyy");
+                const completedDate = goal.completedAt ? format(new Date(goal.completedAt), "dd/MM/yyyy") : null;
+                const deadlineDate = goal.deadline ? format(new Date(goal.deadline), "dd/MM/yyyy") : null;
+                
+                let durationDays = 0;
+                if (goal.completedAt) {
+                  durationDays = Math.ceil((goal.completedAt - goal.createdAt) / (1000 * 60 * 60 * 24));
+                }
+
+                let isOnTime = true;
+                if (goal.completedAt && goal.deadline && goal.completedAt > goal.deadline) {
+                  isOnTime = false;
+                }
+
+                return (
+                  <div className="space-y-5 text-left">
+                    {/* Goal Overview Card */}
+                    <div className="sketch-border bg-white p-4 space-y-3 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-8 h-8 pointer-events-none opacity-5">
+                        <Target size={32} />
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-ink/40 bg-[#f4f1ea] border border-ink/10 px-2 py-0.5 rounded-full w-fit block">
+                          Thông tin Mục tiêu liên kết
+                        </span>
+                        <h4 className="text-lg font-bold text-ink leading-snug">
+                          {goal.title}
+                        </h4>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-ink/5 font-sans text-xs">
+                        <div>
+                          <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block">Ngày bắt đầu</span>
+                          <strong className="text-ink/80">{createdDate}</strong>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block">Ngày hoàn thành</span>
+                          <strong className="text-emerald-700">{completedDate || "Đã hoàn thành"}</strong>
+                        </div>
+                        {durationDays > 0 && (
+                          <div className="col-span-2">
+                            <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block">Thời gian thực hiện</span>
+                            <strong className="text-ink/80 font-mono text-xs">
+                              {durationDays} ngày {durationDays === 1 ? "(Hoàn thành trong ngày!) 🚀" : ""}
+                            </strong>
+                          </div>
+                        )}
+                        {deadlineDate && (
+                          <div className="col-span-2 space-y-1">
+                            <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block">Kế hoạch (Deadline)</span>
+                            <div className="flex items-center gap-1.5 font-sans">
+                              <strong className="text-ink/80">{deadlineDate}</strong>
+                              {isOnTime ? (
+                                <span className="bg-emerald-50 text-emerald-700 text-[8px] font-bold uppercase tracking-widest border border-emerald-300 px-2 py-0.5 rounded-full">
+                                  Đúng hạn ⚡
+                                </span>
+                              ) : (
+                                <span className="bg-crimson/5 text-crimson text-[8px] font-bold uppercase tracking-widest border border-crimson/20 px-2 py-0.5 rounded-full">
+                                  Trễ hạn
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {goal.notes && (
+                        <div className="pt-2.5 border-t border-ink/5">
+                          <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block mb-1">Ghi chú mục tiêu</span>
+                          <p className="text-xs text-ink/70 italic bg-[#f4f1ea]/50 p-2.5 rounded border-l-2 border-ink/20 whitespace-pre-wrap font-sans">
+                            {goal.notes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Review Section */}
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 text-[10px] font-black uppercase text-ink/50 tracking-widest" htmlFor="goal-modal-review">
+                        <FileText size={14} style={{ filter: 'url(#hand-drawn-filter)' }} /> Cảm xúc & Đánh giá (Review)
+                      </label>
+                      <textarea 
+                        id="goal-modal-review"
+                        value={goal.review || ""}
+                        onChange={(e) => updateReview(goal.id, e.target.value)}
+                        placeholder="Hãy chia sẻ những bài học, cảm xúc hay khó khăn bạn đã vượt qua để hoàn thành mục tiêu này..."
+                        className="w-full bg-[#f4f1ea]/40 p-3.5 text-sm font-sans focus:outline-none focus:bg-white transition-all h-24 resize-none italic text-ink/85 sketch-border-sm"
+                      />
+                    </div>
+
+                    {/* Journey Timeline */}
+                    {goal.journey && goal.journey.length > 0 && (
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-1.5 text-[10px] font-black uppercase text-ink/50 tracking-widest">
+                          <History size={14} style={{ filter: 'url(#hand-drawn-filter)' }} /> Các dấu mốc hành trình
+                        </label>
+                        <div className="space-y-3 max-h-[150px] overflow-y-auto pr-2 scrollbar-none border-l-2 border-ink/10 pl-4 py-1">
+                          {goal.journey.map(entry => (
+                            <div key={entry.id} className="space-y-0.5 font-sans relative group/modal-entry">
+                              <div className="absolute -left-[21.5px] top-1.5 w-1.5 h-1.5 rounded-full bg-crimson" />
+                              <div className="text-[8px] font-bold text-ink/30 uppercase tracking-wider">
+                                {format(new Date(entry.timestamp), 'dd/MM/yyyy HH:mm')}
+                              </div>
+                              <p className="text-xs text-ink/75 leading-relaxed">{entry.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Modal Actions */}
+              <div className="pt-4 border-t-2 border-dashed border-ink/10 flex justify-end gap-3 z-30 font-sans">
+                <button
+                  onClick={() => {
+                    setSelectedAchievement(null);
+                    setIsCelebration(false);
+                  }}
+                  className="sketch-button py-2 px-6 text-xs font-black uppercase tracking-widest bg-ink text-white hover:bg-crimson transition-all"
+                  id="close-achievement-modal-btn"
+                >
+                  Đóng (Close)
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
