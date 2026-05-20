@@ -433,7 +433,7 @@ export function CalendarView({
 
   if (viewMode === 'Year') {
     return (
-      <div className="w-full max-w-[1400px] mx-auto p-2 md:p-6 flex flex-col gap-10">
+      <div className="w-full max-w-[1400px] mx-auto p-2 md:p-6 flex flex-col gap-6 md:gap-10">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
            <div className="flex items-center gap-4">
               <button 
@@ -498,9 +498,9 @@ export function CalendarView({
   }
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto p-2 md:p-6 flex flex-col gap-10">
+    <div className="w-full max-w-[1400px] mx-auto p-2 md:p-6 flex flex-col gap-6 md:gap-10">
       {/* Calendar Grid - Full Width */}
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <div className="flex items-center justify-center gap-6 relative">
           <button onClick={onPrevMonth} className="sketch-button px-3 py-2"><ChevronLeft style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
           <div className="flex flex-col items-center">
@@ -526,7 +526,7 @@ export function CalendarView({
           ))}
           
           {Array.from({ length: startDay === 0 ? 6 : startDay - 1 }).map((_, i) => (
-            <div key={`empty-${i}`} className="min-h-[120px] calendar-day bg-white/10 opacity-20" />
+            <div key={`empty-${i}`} className="min-h-[80px] md:min-h-[100px] calendar-day bg-white/10 opacity-20" />
           ))}
 
           {daysInMonth.map((day) => {
@@ -537,7 +537,7 @@ export function CalendarView({
                 key={day.toISOString()}
                 onClick={() => setSelectedDate(day)}
                 className={cn(
-                  "min-h-[120px] p-2 transition-all cursor-pointer bg-white/40 hover:bg-white/80 flex flex-col calendar-day relative overflow-hidden group",
+                  "min-h-[80px] md:min-h-[100px] p-2 transition-all cursor-pointer bg-white/40 hover:bg-white/80 flex flex-col calendar-day relative overflow-hidden group",
                   isSelected ? "border-crimson bg-crimson/5 scale-[1.02] shadow-2xl z-20 border-2" : "border border-ink/5"
                 )}
               >
@@ -559,7 +559,7 @@ export function CalendarView({
 
                 <div className="absolute inset-x-0 top-[15%] pointer-events-none overflow-hidden opacity-50 text-amber-500 flex flex-wrap gap-2 px-2 items-start justify-center z-0 group-hover:opacity-70 transition-opacity">
                   {dayLogs.map(log => (
-                    <HandDrawnIcon key={log.id} type={log.icon || 'document'} className="w-10 h-10" />
+                    <HandDrawnIcon key={log.id} type={log.icon || 'document'} className="w-8 h-8 md:w-10 md:h-10" />
                   ))}
                 </div>
                 

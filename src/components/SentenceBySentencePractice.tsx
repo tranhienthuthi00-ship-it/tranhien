@@ -304,6 +304,7 @@ export function SentenceBySentencePractice() {
   };
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const isShiftCombination = useRef(false);
 
   useEffect(() => {
     if (isPracticing && !isReviewing && !evaluation) {
@@ -839,15 +840,22 @@ export function SentenceBySentencePractice() {
                     disabled={isVerifying || evaluation?.isCorrect}
                     onKeyDown={(e) => {
                       if (e.key === 'Shift') {
+                        isShiftCombination.current = false;
+                      } else if (e.shiftKey) {
+                        isShiftCombination.current = true;
+                      }
+                      if (e.key === 'Enter' && !e.shiftKey && !evaluation?.isCorrect) {
+                        e.preventDefault();
+                        handleVerify();
+                      }
+                    }}
+                    onKeyUp={(e) => {
+                      if (e.key === 'Shift' && !isShiftCombination.current) {
                         e.preventDefault();
                         setShowHint(prev => {
                           if (prev) setIsEditingHint(false);
                           return !prev;
                         });
-                      }
-                      if (e.key === 'Enter' && !e.shiftKey && !evaluation?.isCorrect) {
-                        e.preventDefault();
-                        handleVerify();
                       }
                     }}
                   />
