@@ -32,6 +32,19 @@ export function SentenceBySentencePractice() {
   const [isEditingHint, setIsEditingHint] = useState(false);
   const [tempHint, setTempHint] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceName, setSelectedVoiceName] = useState<string | null>(localStorage.getItem('preferredVoice'));
+
+  // Load voices
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = window.speechSynthesis.getVoices();
+      setVoices(availableVoices.filter(v => v.lang.startsWith('en')));
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    return () => { window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
 
   const isPunctuation = (char: string) => /[.,!?;:()"]/.test(char);
 
@@ -98,12 +111,13 @@ export function SentenceBySentencePractice() {
   useEffect(() => {
     if (isCorrect && !evaluation?.isCorrect) {
       const reference = sentences[currentIndex]?.en || "";
-      speak(reference);
-      // Automatic next sentence after a small delay
-      const timer = setTimeout(() => {
-        nextSentence();
-      }, 2000);
-      return () => clearTimeout(timer);
+      // Read the sentence, then move to next when finished
+      speak(reference, () => {
+        // Add a buffer delay after speaking finishes
+        setTimeout(() => {
+          nextSentence();
+        }, 1000);
+      });
     }
   }, [isCorrect, evaluation, currentIndex, sentences]);
 
@@ -198,13 +212,20 @@ export function SentenceBySentencePractice() {
     }
   };
 
-  const speak = (text: string) => {
+  const speak = (text: string, onEnd?: () => void) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
+      
+      const v = voices.find(v => v.name === selectedVoiceName) || voices.find(v => v.lang === 'en-US');
+      if (v) utterance.voice = v;
+      
       utterance.lang = 'en-US';
       utterance.rate = 0.9;
+      if (onEnd) utterance.onend = () => onEnd();
       window.speechSynthesis.speak(utterance);
+    } else if (onEnd) {
+      onEnd();
     }
   };
 
@@ -558,6 +579,22 @@ export function SentenceBySentencePractice() {
         </div>
 
         <div className="flex items-center gap-4 w-full md:w-auto">
+          {voices.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Volume2 className="w-3 h-3 text-ink/40" />
+              <select 
+                value={selectedVoiceName || ""} 
+                onChange={(e) => {
+                  setSelectedVoiceName(e.target.value);
+                  localStorage.setItem('preferredVoice', e.target.value);
+                }}
+                className="text-[9px] font-black uppercase tracking-widest bg-paper/50 sketch-border-sm px-2 py-1 outline-none"
+              >
+                <option value="">Giọng mặc định</option>
+                {voices.map(v => <option key={v.name} value={v.name}>{v.name.replace('Google', '').trim()}</option>)}
+              </select>
+            </div>
+          )}
           <div className="flex-1 md:w-48 bg-ink/5 h-1.5 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}

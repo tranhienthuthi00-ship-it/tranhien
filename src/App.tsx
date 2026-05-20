@@ -107,7 +107,7 @@ function AppContent() {
         <div className="max-w-[100vw] overflow-hidden px-1 sm:px-2">
           {activeTab === "English Hub" && (
             <div className="flex flex-col gap-4 overflow-hidden">
-              <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center gap-1.5 md:gap-4 mb-2 px-1 md:px-4 flex-wrap max-w-full overflow-hidden">
+              <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper py-2 flex justify-center gap-1.5 md:gap-4 mb-2 px-1 md:px-4 flex-wrap max-w-full overflow-hidden">
                 <button 
                   onClick={() => setActiveEnglishSubTab("Academy")}
                   className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-2.5 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeEnglishSubTab === "Academy" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
@@ -164,7 +164,7 @@ function AppContent() {
         
         {activeTab === "Collections" && (
           <div className="flex flex-col gap-4 overflow-hidden">
-            <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper/80 backdrop-blur-sm py-2 flex justify-center flex-wrap gap-1.5 md:gap-4 mb-2 px-1 md:px-4 text-ink/60 max-w-full overflow-hidden">
+            <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper py-2 flex justify-center flex-wrap gap-1.5 md:gap-4 mb-2 px-1 md:px-4 text-ink/60 max-w-full overflow-hidden">
               {(["Lists", "Places", "Content", "Assets"] as const).map(tab => (
                 <button
                   key={tab}
