@@ -6,6 +6,7 @@ import {
   Check
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { format } from "date-fns";
 import type { StudyGoal, Achievement, Task } from "../types";
 import { cn } from "../lib/utils";
 
@@ -27,7 +28,6 @@ export function PersonalGoals({
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [createdAt, setCreatedAt] = useState(new Date().toISOString().split('T')[0]);
   const [showAdd, setShowAdd] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<string[]>([]);
   const [expandedJourney, setExpandedJourney] = useState<string[]>([]);
@@ -143,14 +143,13 @@ export function PersonalGoals({
       currentValue: 0,
       notes: notes.trim() || undefined,
       deadline: deadline ? new Date(deadline).getTime() : undefined,
-      createdAt: new Date(createdAt).getTime() || Date.now(),
+      createdAt: Date.now(),
       isCompleted: false
     };
     await setGoals([newGoal, ...goals]);
     setTitle("");
     setNotes("");
     setDeadline("");
-    setCreatedAt(new Date().toISOString().split('T')[0]);
     setShowAdd(false);
   };
 
@@ -320,20 +319,7 @@ export function PersonalGoals({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest flex items-center gap-1">
-                      <Calendar size={10} style={{ filter: 'url(#hand-drawn-filter)' }} /> Ngày tạo (Tùy chọn)
-                    </label>
-                    <div className="relative">
-                      <input 
-                        type="date" 
-                        value={createdAt}
-                        onChange={e => setCreatedAt(e.target.value)}
-                        className="w-full bg-paper/20 sketch-border-sm p-4 text-xs font-sans focus:outline-none h-[54px]"
-                      />
-                    </div>
-                  </div>
+              <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Ghi chú / Chi tiết</label>
                   <textarea 
@@ -520,15 +506,11 @@ export function PersonalGoals({
                                     onChange={(e) => updateDeadline(goal.id, e.target.value)}
                                     className="bg-crimson/5 border-none p-1 text-[10px] font-bold text-crimson focus:outline-none w-fit cursor-pointer hover:bg-crimson/10 rounded transition-colors"
                                   />
-                                  <div className="text-[10px] font-black text-crimson bg-crimson/5 px-2 py-0.5 rounded-full w-fit animate-pulse mt-1">
+                                  <div className="text-[10px] font-black text-crimson bg-crimson/5 px-2 py-0.5 rounded-full w-fit mt-1">
                                     {getTimeRemaining(goal.deadline)}
                                   </div>
                                 </div>
                               )}
-                              <div className="text-[10px] font-bold text-ink/20 uppercase tracking-widest flex items-center gap-1">
-                                <FileText size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                                Ngày tạo: {new Date(goal.createdAt).toLocaleDateString('vi-VN')}
-                              </div>
                             </div>
                           </div>
                           <button onClick={() => removeGoal(goal.id)} className="text-ink/10 hover:text-crimson transition-colors p-1"><Trash2 size={18} style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
@@ -564,7 +546,7 @@ export function PersonalGoals({
                         <div className="pt-2">
                           <button 
                             onClick={() => toggleJourney(goal.id)}
-                            className="flex items-center gap-1.5 text-[9px] font-black uppercase text-crimson animate-pulse hover:animate-none transition-all"
+                            className="flex items-center gap-1.5 text-[9px] font-black uppercase text-crimson transition-all"
                           >
                             <History size={14} style={{ filter: 'url(#hand-drawn-filter)' }} />
                             Ghi lại hành trình ({goal.journey?.length || 0})
@@ -598,7 +580,7 @@ export function PersonalGoals({
                                 <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-none">
                                   {Object.entries(
                                     (goal.journey || []).reduce((acc, entry) => {
-                                      const date = new Date(entry.timestamp).toLocaleDateString('vi-VN');
+                                      const date = format(new Date(entry.timestamp), 'dd/MM/yyyy');
                                       if (!acc[date]) acc[date] = [];
                                       acc[date].push(entry);
                                       return acc;
@@ -699,7 +681,7 @@ export function PersonalGoals({
             ) : (
               Object.entries(
                 achievements.reduce((acc, ach) => {
-                  const date = new Date(ach.unlockedAt).toLocaleDateString('vi-VN');
+                  const date = format(new Date(ach.unlockedAt), 'dd/MM/yyyy');
                   if (!acc[date]) acc[date] = [];
                   acc[date].push(ach);
                   return acc;
@@ -790,7 +772,7 @@ export function PersonalGoals({
                                     {linkedGoal.journey.map(entry => (
                                       <div key={entry.id} className="space-y-0.5">
                                         <div className="text-[7px] font-bold text-ink/20 uppercase">
-                                          {new Date(entry.timestamp).toLocaleDateString('vi-VN')}
+                                          {format(new Date(entry.timestamp), 'dd/MM/yyyy')}
                                         </div>
                                         <p className="text-[11px] text-ink/70 leading-snug">{entry.content}</p>
                                       </div>

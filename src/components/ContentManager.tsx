@@ -1,5 +1,6 @@
 import { useState, FormEvent } from "react";
 import { Plus, Trash2, CheckCircle2, Circle, ExternalLink, Video, Edit2 } from "lucide-react";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { ContentIdea } from "@/types";
 
@@ -216,7 +217,7 @@ export function ContentManager({ ideas, setIdeas }: {
 
             <div className="flex justify-between items-center mt-2">
               <span className="text-[8px] font-mono opacity-30">
-                Lưu ngày: {new Date(idea.createdAt).toLocaleDateString()}
+                Lưu ngày: {format(new Date(idea.createdAt), 'dd/MM/yyyy')}
               </span>
               <button 
                 onClick={() => removeIdea(idea.id)}

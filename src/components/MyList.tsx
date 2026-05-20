@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Check, Plus, Trash2, Heart, HeartPulse, Star } from "lucide-react";
+import { format } from "date-fns";
 import type { Task, WishlistItem } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -336,7 +337,7 @@ export function MyList({
                      {wish.necessity} Need {wish.isPurchased && "✅"}
                    </span>
                  </div>
-                 <span className="text-[10px] opacity-40 uppercase font-sans font-bold">{new Date(wish.addedDate).toLocaleDateString()}</span>
+                 <span className="text-[10px] opacity-40 uppercase font-sans font-bold">{format(new Date(wish.addedDate), 'dd/MM/yyyy')}</span>
                </div>
                
                {wish.history && wish.history.length > 0 && (
@@ -348,7 +349,7 @@ export function MyList({
                           entry.necessity === 'Medium' ? "border-yellow-500 text-yellow-600 bg-yellow-400/5" :
                           "border-gray-400 text-gray-500 bg-gray-400/5"
                        )}>{entry.necessity}</span>
-                       <span className="opacity-50 min-w-[60px]">{new Date(entry.date).toLocaleDateString()}</span>
+                       <span className="opacity-50 min-w-[60px]">{format(new Date(entry.date), 'dd/MM/yyyy')}</span>
                        <span className="font-hand italic text-ink/80 flex-1">{entry.note}</span>
                      </div>
                    ))}

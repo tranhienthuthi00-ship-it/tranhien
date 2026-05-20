@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { VideoDictation } from '../types';
 import { cn } from '../lib/utils';
 import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2, Mic, Library, PlayCircle, Star, MicOff, RotateCcw } from 'lucide-react';
+import { format } from 'date-fns';
 import { YoutubeTranscript } from 'youtube-transcript';
 import YouTube from 'react-youtube';
 import { RECOMMENDED_VIDEOS } from '../constants/recommendedVideos';
@@ -715,7 +716,7 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
             <div className="flex-1 min-w-0 flex flex-col justify-center">
               <h3 className="font-bold text-ink truncate mb-1">{doc.title}</h3>
               <p className="text-[10px] font-bold uppercase tracking-widest text-ink/40">
-                {new Date(doc.lastModified).toLocaleDateString()}
+                {format(new Date(doc.lastModified), 'dd/MM/yyyy')}
               </p>
             </div>
             <button 
