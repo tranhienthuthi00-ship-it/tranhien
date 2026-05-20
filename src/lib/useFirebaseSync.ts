@@ -80,18 +80,6 @@ export function useFirebaseSync() {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       if (!u) {
-        setWords([]);
-        setTasks([]);
-        setWishlist([]);
-        setLogs([]);
-        setFoodPlaces([]);
-        setContentIdeas([]);
-        setAssets([]);
-        setDictations([]);
-        setCustomSentences([]);
-        setPracticeParagraphs([]);
-        setStudyGoals([]);
-        setAchievements([]);
         setLoading(false);
       } else {
         migrateLocalStorage(u.uid);

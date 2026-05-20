@@ -32,7 +32,6 @@ function AppContent() {
     assetCategories, setAssetCategories,
     dictations, setDictations,
     practiceParagraphs, setPracticeParagraphs,
-    customSentences, setCustomSentences,
     studyGoals, setStudyGoals,
     achievements, setAchievements
   } = useFirebase();
@@ -205,22 +204,7 @@ function AppContent() {
         )}
         <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
           {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
-          {activeTab === "Dashboard" && (
-            <Progress 
-              words={words} setWords={setWords}
-              tasks={tasks} setTasks={setTasks}
-              logs={logs} setLogs={setLogs}
-              wishlist={wishlist} setWishlist={setWishlist}
-              goals={studyGoals} setGoals={setStudyGoals}
-              foodPlaces={foodPlaces} setFoodPlaces={setFoodPlaces}
-              contentIdeas={contentIdeas} setContentIdeas={setContentIdeas}
-              assets={assets} setAssets={setAssets}
-              dictations={dictations} setDictations={setDictations}
-              practiceParagraphs={practiceParagraphs} setPracticeParagraphs={setPracticeParagraphs}
-              customSentences={customSentences} setCustomSentences={setCustomSentences}
-              achievements={achievements} setAchievements={setAchievements}
-            />
-          )}
+          {activeTab === "Dashboard" && <Progress words={words} tasks={tasks} logs={logs} wishlist={wishlist} goals={studyGoals} />}
         </div>
       </div>
     </main>
