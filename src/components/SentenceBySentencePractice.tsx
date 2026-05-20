@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Loader2, Send, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus, Trophy, Target, Calendar, Award, Volume2 } from "lucide-react";
+import { Loader2, Send, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus, Trophy, Target, Calendar, Award, Volume2, Sliders, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useFirebase } from "../context/FirebaseContext";
 import type { PracticeParagraph, StudyGoal, Achievement } from "../types";
@@ -36,12 +36,40 @@ export function SentenceBySentencePractice() {
   const [showSummary, setShowSummary] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceName, setSelectedVoiceName] = useState<string | null>(localStorage.getItem('preferredVoice'));
+  const [speechRate, setSpeechRate] = useState<number>(() => {
+    const r = localStorage.getItem('preferredRate');
+    return r ? parseFloat(r) : 0.9;
+  });
+  const [speechPitch, setSpeechPitch] = useState<number>(() => {
+    const p = localStorage.getItem('preferredPitch');
+    return p ? parseFloat(p) : 1.0;
+  });
+  const [showVoiceControl, setShowVoiceControl] = useState(false);
 
   // Load voices
   useEffect(() => {
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
-      setVoices(availableVoices.filter(v => v.lang.startsWith('en')));
+      const enVoices = availableVoices.filter(v => v.lang.startsWith('en'));
+      
+      // Score and prioritize high-quality natural/online/Google/Premium voices
+      const sorted = [...enVoices].sort((a, b) => {
+        const getScore = (voice: SpeechSynthesisVoice) => {
+          const name = voice.name.toLowerCase();
+          if (name.includes("natural")) return 100;
+          if (name.includes("online")) return 90;
+          if (name.includes("google")) return 80;
+          if (name.includes("premium")) return 70;
+          if (name.includes("neural")) return 60;
+          if (name.includes("samantha")) return 50;
+          if (name.includes("apple") || name.includes("macos")) return 40;
+          if (name.includes("microsoft") || name.includes("desktop")) return 30;
+          return 0;
+        };
+        return getScore(b) - getScore(a);
+      });
+      
+      setVoices(sorted);
     };
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -239,7 +267,8 @@ export function SentenceBySentencePractice() {
       if (v) utterance.voice = v;
       
       utterance.lang = 'en-US';
-      utterance.rate = 0.9;
+      utterance.rate = speechRate;
+      utterance.pitch = speechPitch;
       if (onEnd) utterance.onend = () => onEnd();
       window.speechSynthesis.speak(utterance);
     } else if (onEnd) {
@@ -675,24 +704,126 @@ export function SentenceBySentencePractice() {
           </button>
         </div>
 
-        <div className="flex items-center gap-4 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {voices.length > 0 && (
-            <div className="flex items-center gap-2">
-              <Volume2 className="w-3 h-3 text-ink/40" />
+            <div className="flex items-center gap-2 relative">
+              <Volume2 className="w-4 h-4 text-ink animate-pulse-slow shrink-0" />
               <select 
                 value={selectedVoiceName || ""} 
                 onChange={(e) => {
                   setSelectedVoiceName(e.target.value);
                   localStorage.setItem('preferredVoice', e.target.value);
+                  setTimeout(() => {
+                    speak("Voice updated");
+                  }, 150);
                 }}
-                className="text-[9px] font-black uppercase tracking-widest bg-paper/50 sketch-border-sm px-2 py-1 outline-none"
+                className="text-[10px] font-black uppercase tracking-wider bg-white border border-ink/15 shadow-sm rounded-lg px-2.5 py-1.5 outline-none max-w-[150px] sm:max-w-[200px]"
               >
                 <option value="">Giọng mặc định</option>
-                {voices.map(v => <option key={v.name} value={v.name}>{v.name.replace('Google', '').trim()}</option>)}
+                {voices.map(v => {
+                  const isPremium = v.name.toLowerCase().includes("natural") || 
+                                    v.name.toLowerCase().includes("online") || 
+                                    v.name.toLowerCase().includes("google") || 
+                                    v.name.toLowerCase().includes("premium");
+                  const displayName = v.name.replace('Microsoft', '').replace('Google', '').replace('Desktop', '').trim();
+                  return (
+                    <option key={v.name} value={v.name}>
+                      {isPremium ? "✨ " : ""}{displayName}
+                    </option>
+                  );
+                })}
               </select>
+
+              <button
+                onClick={() => setShowVoiceControl(!showVoiceControl)}
+                title="Cân chỉnh giọng đọc (Tốc độ & Cao độ)"
+                className={`p-1.5 rounded-lg border transition-all hover:bg-ink/5 ${showVoiceControl ? 'bg-crimson/5 border-crimson/30 text-crimson' : 'border-ink/10 text-ink/60'}`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+              </button>
+
+              <AnimatePresence>
+                {showVoiceControl && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 top-full mt-2 z-30 w-72 p-4 bg-white/95 backdrop-blur-md sketch-border shadow-xl flex flex-col gap-3.5 pointer-events-auto text-left"
+                  >
+                     <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-ink pb-1.5 border-b border-ink/10">
+                       <Sparkles className="w-3.5 h-3.5 text-crimson animate-pulse" />
+                       <span>Hiệu chỉnh giọng đọc</span>
+                     </div>
+
+                     {/* Speech Rate (Speed) */}
+                     <div className="space-y-1">
+                       <div className="flex justify-between items-center">
+                         <span className="text-[10px] font-bold text-ink/60 uppercase tracking-wider">Tốc độ đọc:</span>
+                         <span className="text-[10px] font-black text-crimson font-mono bg-crimson/5 px-1.5 py-0.5 rounded">{speechRate.toFixed(2)}x</span>
+                       </div>
+                       <input 
+                         type="range"
+                         min="0.6"
+                         max="1.3"
+                         step="0.05"
+                         value={speechRate}
+                         onChange={(e) => {
+                           const val = parseFloat(e.target.value);
+                           setSpeechRate(val);
+                           localStorage.setItem('preferredRate', val.toString());
+                         }}
+                         className="w-full accent-crimson cursor-ew-resize h-1 bg-ink/5 rounded-lg appearance-none"
+                       />
+                       <div className="flex justify-between text-[8px] font-bold text-ink/30 px-0.5">
+                         <span>Chậm (0.6x)</span>
+                         <span>Mặc định (0.9x)</span>
+                         <span>Nhanh (1.3x)</span>
+                       </div>
+                     </div>
+
+                     {/* Speech Pitch */}
+                     <div className="space-y-1">
+                       <div className="flex justify-between items-center">
+                         <span className="text-[10px] font-bold text-ink/60 uppercase tracking-wider">Cao độ giọng:</span>
+                         <span className="text-[10px] font-black text-teal-600 font-mono bg-teal-50 px-1.5 py-0.5 rounded">{speechPitch.toFixed(2)}x</span>
+                       </div>
+                       <input 
+                         type="range"
+                         min="0.75"
+                         max="1.25"
+                         step="0.05"
+                         value={speechPitch}
+                         onChange={(e) => {
+                           const val = parseFloat(e.target.value);
+                           setSpeechPitch(val);
+                           localStorage.setItem('preferredPitch', val.toString());
+                         }}
+                         className="w-full accent-teal-600 cursor-ew-resize h-1 bg-ink/5 rounded-lg appearance-none"
+                       />
+                       <div className="flex justify-between text-[8px] font-bold text-ink/30 px-0.5">
+                         <span>Thấp/Trầm</span>
+                         <span>Bình thường</span>
+                         <span>Thanh/Cao</span>
+                       </div>
+                     </div>
+
+                     <div className="p-2 rounded-lg bg-ink/5 text-[9px] text-ink/50 leading-relaxed italic border border-ink/5 select-none">
+                       💡 <strong>Mẹo hay:</strong> Ưu tiên chọn giọng đọc bắt đầu bằng kí tự <strong>"✨"</strong> (Chrome/Edge Natural hoặc Online) để nghe ngữ điệu nhấn nhá chân thực nhất!
+                     </div>
+
+                     <button
+                       type="button"
+                       onClick={() => speak("Hello! Practice makes perfect. Try translating sentences correctly!")}
+                       className="w-full bg-ink text-white text-[10px] font-bold uppercase tracking-widest py-1.5 rounded-lg hover:scale-102 transition-transform shadow-md"
+                     >
+                       🔊 Thử giọng hiện tại
+                     </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
-          <div className="flex-1 md:w-48 bg-ink/5 h-1.5 rounded-full overflow-hidden">
+          <div className="flex-1 md:w-32 bg-ink/5 h-1.5 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
@@ -949,37 +1080,111 @@ export function SentenceBySentencePractice() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-paper/90 backdrop-blur-sm overflow-y-auto"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-paper/95 backdrop-blur-sm overflow-y-auto"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               className="sketch-border bg-white p-6 md:p-8 max-w-2xl w-full flex flex-col gap-6 shadow-2xl my-auto"
             >
-               <h2 className="text-2xl font-black uppercase tracking-tight text-center">Kết quả bài dịch</h2>
-               <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                  {sentences.map((s, i) => (
-                    <div key={i} className={`p-4 rounded-xl border ${s.status === 'correct' ? 'border-emerald-500/30 bg-emerald-50' : 'border-crimson/30 bg-crimson/5'}`}>
-                       <div className="flex items-start gap-3">
-                         <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${s.status === 'correct' ? 'bg-emerald-500 text-white' : 'bg-crimson text-white'}`}>
-                           {i + 1}
-                         </div>
-                         <div className="space-y-2 w-full">
-                           <p className="text-sm font-bold text-ink">{s.vi}</p>
-                           <div className="space-y-1">
-                             <p className="text-xs text-ink/60 font-medium">Bạn dịch: <span className={s.status === 'correct' ? 'text-emerald-700 font-bold' : 'text-crimson font-bold'}>{s.userTranslation || "(Bỏ qua)"}</span></p>
-                             {s.status === 'failed' && (
-                               <p className="text-xs text-emerald-700 font-bold bg-emerald-500/10 inline-block px-2 py-1 rounded">Mẫu: {s.en}</p>
-                             )}
+               <div className="text-center space-y-2">
+                 <motion.div
+                   animate={{ y: [0, -8, 0] }}
+                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                   className="flex justify-center"
+                 >
+                   <Trophy className="w-12 h-12 text-amber-500" style={{ filter: 'url(#hand-drawn-filter)' }} />
+                 </motion.div>
+                 <h2 className="text-3xl font-black uppercase tracking-tight">Kết quả bài dịch</h2>
+                 <p className="text-xs font-bold uppercase tracking-widest text-ink/40">Hoàn thành bài luyện dịch song ngữ</p>
+               </div>
+
+               {/* Chấm điểm & Thống kê */}
+               {(() => {
+                 const correctCount = sentences.filter(s => s.status === 'correct').length;
+                 const totalCount = sentences.length;
+                 const scorePercent = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+                 
+                 let gradeLabel = "Khá";
+                 let gradeColor = "text-amber-500 bg-amber-50 border-amber-500/20";
+                 if (scorePercent === 100) {
+                   gradeLabel = "Xuất Sắc 🌟";
+                   gradeColor = "text-emerald-600 bg-emerald-50 border-emerald-500/20";
+                 } else if (scorePercent >= 80) {
+                   gradeLabel = "Tuyệt Vời 👍";
+                   gradeColor = "text-teal-600 bg-teal-50 border-teal-500/20";
+                 } else if (scorePercent >= 50) {
+                   gradeLabel = "Đạt Yêu Cầu 🙂";
+                   gradeColor = "text-amber-600 bg-amber-50 border-amber-500/20";
+                 } else {
+                   gradeLabel = "Cần Cố Gắng 💔";
+                   gradeColor = "text-crimson bg-crimson/5 border-crimson/20";
+                 }
+
+                 return (
+                   <div className="grid grid-cols-3 gap-3 md:gap-4 text-center">
+                     <div className="p-3 sketch-border bg-paper/40 flex flex-col justify-center items-center">
+                       <span className="text-[8px] md:text-[9px] font-black uppercase text-ink/40 tracking-widest">Đúng / Tổng</span>
+                       <span className="text-base md:text-xl font-black text-ink">{correctCount} / {totalCount}</span>
+                       <span className="text-[9px] font-bold text-ink/40">Câu</span>
+                     </div>
+                     <div className="p-3 sketch-border bg-paper/40 flex flex-col justify-center items-center">
+                       <span className="text-[8px] md:text-[9px] font-black uppercase text-ink/40 tracking-widest">Độ Chính Xác</span>
+                       <span className="text-base md:text-xl font-black text-ink">{scorePercent}%</span>
+                       <span className="text-[9px] font-bold text-ink/40">Tỉ lệ</span>
+                     </div>
+                     <div className="p-3 sketch-border flex flex-col justify-center items-center bg-paper/40">
+                       <span className="text-[8px] md:text-[9px] font-black uppercase text-ink/40 tracking-widest">Xếp Loại</span>
+                       <span className={`text-[11px] md:text-xs font-black px-2 py-0.5 rounded-full border ${gradeColor} mt-1`}>
+                         {gradeLabel}
+                       </span>
+                     </div>
+                   </div>
+                 );
+               })()}
+
+               <div className="space-y-3 max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar">
+                  {sentences.map((s, i) => {
+                    const isCorrect = s.status === 'correct';
+                    const hasUserTranslation = !!s.userTranslation?.trim();
+                    const statusColor = isCorrect 
+                      ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-950' 
+                      : 'border-crimson/30 bg-crimson/5 text-crimson-950';
+
+                    return (
+                      <div key={i} className={`p-4 rounded-xl border transition-all ${statusColor}`}>
+                         <div className="flex items-start gap-3">
+                           <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${isCorrect ? 'bg-emerald-500 text-white shadow-sm' : 'bg-crimson text-white shadow-sm'}`}>
+                             {i + 1}
+                           </div>
+                           <div className="space-y-2 w-full text-left">
+                             <div className="flex items-center justify-between gap-2">
+                               <p className="text-sm font-bold leading-relaxed">{s.vi}</p>
+                               <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${isCorrect ? 'bg-emerald-500/15 text-emerald-700' : 'bg-crimson/15 text-crimson'}`}>
+                                 {isCorrect ? 'Đúng' : (!hasUserTranslation ? 'Bản Nháp / Bỏ Qua' : 'Chưa Đúng')}
+                               </span>
+                             </div>
+                             <div className="space-y-1.5 pt-1 border-t border-dashed border-ink/5">
+                               <p className="text-xs font-medium">
+                                 Bạn dịch: <span className={isCorrect ? 'text-emerald-700 font-bold' : 'text-crimson font-bold italic'}>
+                                   {s.userTranslation?.trim() || "(Bỏ qua)"}
+                                 </span>
+                               </p>
+                               {!isCorrect && (
+                                 <p className="text-xs text-emerald-800 font-bold bg-emerald-500/10 inline-block px-2 py-1 rounded">
+                                   Bản dịch mẫu: <span className="font-mono">{s.en}</span>
+                                 </p>
+                               )}
+                             </div>
                            </div>
                          </div>
-                       </div>
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                </div>
                
                <div className="flex gap-4 pt-4 border-t-2 border-ink/10">
-                 <button onClick={restartCurrent} className="flex-1 sketch-button bg-paper py-3 font-black text-[10px] uppercase tracking-widest hover:bg-ink/5">Làm lại</button>
+                 <button onClick={restartCurrent} className="flex-1 sketch-button bg-paper py-3 font-black text-[10px] uppercase tracking-widest hover:bg-ink/5 transition-colors">Làm lại</button>
                  <button onClick={reset} className="flex-1 sketch-button bg-ink text-white py-3 font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform">Hoàn tất</button>
                </div>
             </motion.div>
