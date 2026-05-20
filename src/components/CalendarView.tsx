@@ -498,35 +498,35 @@ export function CalendarView({
   }
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto p-2 md:p-6 flex flex-col gap-6 md:gap-10">
-      {/* Calendar Grid - Full Width */}
-      <div className="space-y-4 md:space-y-6">
-        <div className="flex items-center justify-center gap-6 relative">
-          <button onClick={onPrevMonth} className="sketch-button px-3 py-2"><ChevronLeft style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
+    <div className="w-full max-w-[1400px] mx-auto p-2 md:p-4 flex flex-col xl:flex-row gap-4 md:gap-6 items-start">
+      {/* Calendar Grid */}
+      <div className="w-full xl:w-[65%] space-y-2 md:space-y-4 shrink-0">
+        <div className="flex items-center justify-center gap-4 relative">
+          <button onClick={onPrevMonth} className="sketch-button px-3 py-1.5"><ChevronLeft style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
           <div className="flex flex-col items-center">
-            <h2 className="text-4xl font-bold font-sans tracking-tight text-center min-w-[250px] flex items-center justify-center gap-3">
-              <HandDrawnIcon type="document" className="w-8 h-8 text-crimson" />
+            <h2 className="text-2xl md:text-3xl font-bold font-sans tracking-tight text-center min-w-[200px] flex items-center justify-center gap-2">
+              <HandDrawnIcon type="document" className="w-6 h-6 text-crimson" />
               {format(currentDate, "MMMM yyyy")}
             </h2>
             <button 
               onClick={() => setViewMode('Year')}
-              className="text-[10px] font-bold uppercase tracking-widest text-crimson hover:underline mt-1"
+              className="text-[9px] font-bold uppercase tracking-widest text-crimson hover:underline mt-0.5"
             >
               View Yearly Recap →
             </button>
           </div>
-          <button onClick={onNextMonth} className="sketch-button px-3 py-2"><ChevronRight style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
+          <button onClick={onNextMonth} className="sketch-button px-3 py-1.5"><ChevronRight style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
         </div>
 
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1 md:gap-2">
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
-            <div key={day} className="text-center font-sans font-bold uppercase text-sm tracking-widest opacity-60 py-2">
+            <div key={day} className="text-center font-sans font-bold uppercase text-[10px] md:text-xs tracking-widest opacity-60 py-1">
               {day}
             </div>
           ))}
           
           {Array.from({ length: startDay === 0 ? 6 : startDay - 1 }).map((_, i) => (
-            <div key={`empty-${i}`} className="min-h-[80px] md:min-h-[100px] calendar-day bg-white/10 opacity-20" />
+            <div key={`empty-${i}`} className="min-h-[60px] md:min-h-[75px] xl:min-h-[85px] calendar-day bg-white/10 opacity-20" />
           ))}
 
           {daysInMonth.map((day) => {
@@ -537,7 +537,7 @@ export function CalendarView({
                 key={day.toISOString()}
                 onClick={() => setSelectedDate(day)}
                 className={cn(
-                  "min-h-[80px] md:min-h-[100px] p-2 transition-all cursor-pointer bg-white/40 hover:bg-white/80 flex flex-col calendar-day relative overflow-hidden group",
+                  "min-h-[60px] md:min-h-[75px] xl:min-h-[85px] p-1.5 md:p-2 transition-all cursor-pointer bg-white/40 hover:bg-white/80 flex flex-col calendar-day relative overflow-hidden group",
                   isSelected ? "border-crimson bg-crimson/5 scale-[1.02] shadow-2xl z-20 border-2" : "border border-ink/5"
                 )}
               >
@@ -580,12 +580,12 @@ export function CalendarView({
         </div>
       </div>
 
-      {/* Bottom Section: Inputs and Recap side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        {/* Daily Log Panel (Left) */}
-        <div className="space-y-4">
+      {/* Side Section: Inputs and Recap */}
+      <div className="w-full xl:w-[35%] flex flex-col gap-4 md:gap-6 xl:sticky xl:top-4 relative">
+        {/* Daily Log Panel */}
+        <div className="space-y-3 md:space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-sans font-black uppercase tracking-tight">
+            <h3 className="text-xl md:text-2xl font-sans font-black uppercase tracking-tight">
               {selectedDate ? format(selectedDate, "MMMM do, yyyy") : "Select a day"}
             </h3>
             {selectedDate && (
@@ -594,7 +594,7 @@ export function CalendarView({
           </div>
           
           {selectedDate ? (
-            <div className="p-6 sketch-border bg-white/60 shadow-xl flex flex-col gap-4">
+            <div className="p-4 md:p-5 sketch-border bg-white/60 shadow-xl flex flex-col gap-3">
               <div className="flex flex-col gap-2">
                  <div className="flex gap-2 items-center">
                    <span className="text-[10px] font-bold uppercase tracking-widest text-ink/50">Icon:</span>
@@ -694,7 +694,7 @@ export function CalendarView({
       </div>
 
       {/* Monthly Summary Section (Right) */}
-      <div className="sketch-border bg-white/40 p-6 space-y-6 h-full min-h-[500px]">
+      <div className="sketch-border bg-white/40 p-4 space-y-4 h-full min-h-[300px]">
           <div className="flex flex-col gap-4 border-b-2 border-ink pb-4">
             <h3 className="text-2xl font-sans font-black tracking-tight uppercase">Monthly Recap</h3>
             

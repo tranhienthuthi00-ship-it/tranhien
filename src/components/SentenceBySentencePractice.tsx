@@ -33,6 +33,7 @@ export function SentenceBySentencePractice() {
   const [isEditingHint, setIsEditingHint] = useState(false);
   const [tempHint, setTempHint] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceName, setSelectedVoiceName] = useState<string | null>(localStorage.getItem('preferredVoice'));
 
@@ -366,11 +367,8 @@ export function SentenceBySentencePractice() {
         ? `Bạn đã hoàn thành bài dịch, nhưng còn ${failedCount} câu chưa chính xác. Cố gắng ghi nhớ nhé!`
         : `Tuyệt vời! Xin chúc mừng, bạn đã hoàn thành xuất sắc bài dịch!`;
 
-      setEvaluation({
-        isCorrect: true,
-        accuracy: avgAccuracy,
-        explanation: msg
-      });
+      setShowSummary(true);
+      setEvaluation(null);
     }
   };
 
@@ -381,6 +379,7 @@ export function SentenceBySentencePractice() {
     setTotalMistakes(0);
     setEvaluation(null);
     setShowHint(false);
+    setShowSummary(false);
     setSentences(sentences.map(s => ({ ...s, status: 'pending' as const })));
   };
 
@@ -393,6 +392,7 @@ export function SentenceBySentencePractice() {
     setSessionMistakes(0);
     setTotalMistakes(0);
     setEvaluation(null);
+    setShowSummary(false);
   };
 
   if (!isPracticing) {
@@ -930,10 +930,10 @@ export function SentenceBySentencePractice() {
                           </button>
                         )}
                         <button 
-                          onClick={currentIndex < sentences.length - 1 || !evaluation.isCorrect ? nextSentence : reset}
+                          onClick={() => nextSentence()}
                           className={`flex-2 md:flex-none sketch-button py-2 px-6 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 whitespace-nowrap transition-all ${evaluation.isCorrect ? "bg-ink text-white" : "bg-paper text-ink"}`}
                         >
-                          {currentIndex < sentences.length - 1 ? (evaluation.isCorrect ? "Kế tiếp" : "Bỏ qua & Tiếp") : "Hoàn tất & Thoát"} <ChevronRight className="w-4 h-4" />
+                          {currentIndex < sentences.length - 1 ? (evaluation.isCorrect ? "Kế tiếp" : "Bỏ qua & Tiếp") : "Xem kết quả"} <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
                    </div>
@@ -943,6 +943,49 @@ export function SentenceBySentencePractice() {
           </div>
         </div>
       </div>
+      <AnimatePresence>
+        {showSummary && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-paper/90 backdrop-blur-sm overflow-y-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="sketch-border bg-white p-6 md:p-8 max-w-2xl w-full flex flex-col gap-6 shadow-2xl my-auto"
+            >
+               <h2 className="text-2xl font-black uppercase tracking-tight text-center">Kết quả bài dịch</h2>
+               <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                  {sentences.map((s, i) => (
+                    <div key={i} className={`p-4 rounded-xl border ${s.status === 'correct' ? 'border-emerald-500/30 bg-emerald-50' : 'border-crimson/30 bg-crimson/5'}`}>
+                       <div className="flex items-start gap-3">
+                         <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${s.status === 'correct' ? 'bg-emerald-500 text-white' : 'bg-crimson text-white'}`}>
+                           {i + 1}
+                         </div>
+                         <div className="space-y-2 w-full">
+                           <p className="text-sm font-bold text-ink">{s.vi}</p>
+                           <div className="space-y-1">
+                             <p className="text-xs text-ink/60 font-medium">Bạn dịch: <span className={s.status === 'correct' ? 'text-emerald-700 font-bold' : 'text-crimson font-bold'}>{s.userTranslation || "(Bỏ qua)"}</span></p>
+                             {s.status === 'failed' && (
+                               <p className="text-xs text-emerald-700 font-bold bg-emerald-500/10 inline-block px-2 py-1 rounded">Mẫu: {s.en}</p>
+                             )}
+                           </div>
+                         </div>
+                       </div>
+                    </div>
+                  ))}
+               </div>
+               
+               <div className="flex gap-4 pt-4 border-t-2 border-ink/10">
+                 <button onClick={restartCurrent} className="flex-1 sketch-button bg-paper py-3 font-black text-[10px] uppercase tracking-widest hover:bg-ink/5">Làm lại</button>
+                 <button onClick={reset} className="flex-1 sketch-button bg-ink text-white py-3 font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform">Hoàn tất</button>
+               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
