@@ -540,9 +540,9 @@ export function CalendarView({
                   </div>
                 </div>
 
-                <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-10 flex flex-wrap gap-2 p-4 items-center justify-center">
+                <div className="absolute inset-x-0 top-[15%] pointer-events-none overflow-hidden opacity-50 text-amber-500 flex flex-wrap gap-2 px-2 items-start justify-center z-0 group-hover:opacity-70 transition-opacity">
                   {dayLogs.filter(l => l.type === 'Reflection').map(log => (
-                    <HandDrawnIcon key={log.id} type={log.icon || 'document'} className="w-12 h-12" />
+                    <HandDrawnIcon key={log.id} type={log.icon || 'document'} className="w-16 h-16" />
                   ))}
                 </div>
                 

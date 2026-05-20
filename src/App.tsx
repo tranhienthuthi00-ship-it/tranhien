@@ -91,7 +91,7 @@ function AppContent() {
   const dueCount = words.filter(w => new Date(w.nextReview) <= new Date()).length;
 
   return (
-    <div className="min-h-screen pb-20 relative overflow-x-hidden w-full">
+    <div className="min-h-screen pb-20 relative overflow-x-clip w-full">
       <Doodles />
       <svg width="0" height="0" className="absolute pointer-events-none" style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
@@ -103,11 +103,11 @@ function AppContent() {
       </svg>
       <NavBar activeTab={activeTab} setActiveTab={setActiveTab} lastSaved={lastSaved} onLogout={handleLogout} dueCount={dueCount} />
       
-      <main className="mt-4 relative z-10 animate-in fade-in duration-500 overflow-x-hidden w-full">
-        <div className="max-w-[100vw] overflow-hidden px-1 sm:px-2">
+      <main className="mt-4 relative z-10 animate-in fade-in duration-500 overflow-x-clip w-full">
+        <div className="max-w-[100vw] px-1 sm:px-2">
           {activeTab === "English Hub" && (
-            <div className="flex flex-col gap-4 overflow-hidden">
-              <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper py-2 flex justify-center gap-1.5 md:gap-4 mb-2 px-1 md:px-4 flex-wrap max-w-full overflow-hidden">
+            <div className="flex flex-col gap-4">
+              <div className="bg-paper py-2 flex justify-center gap-1.5 md:gap-4 mb-2 px-1 md:px-4 flex-wrap max-w-full">
                 <button 
                   onClick={() => setActiveEnglishSubTab("Academy")}
                   className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-2.5 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeEnglishSubTab === "Academy" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
@@ -151,7 +151,7 @@ function AppContent() {
                 SRS
               </button>
             </div>
-            <div className="max-w-7xl mx-auto w-full px-2 md:px-6 overflow-hidden">
+            <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
               {activeEnglishSubTab === "Academy" && <Academy words={words} setWords={setWords} tags={tags} setTags={setTags} />}
               {activeEnglishSubTab === "Learning Games" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={setActiveEnglishSubTab} />}
               {activeEnglishSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} />}
@@ -163,8 +163,8 @@ function AppContent() {
         )}
         
         {activeTab === "Collections" && (
-          <div className="flex flex-col gap-4 overflow-hidden">
-            <div className="sticky top-[58px] md:top-[68px] z-40 bg-paper py-2 flex justify-center flex-wrap gap-1.5 md:gap-4 mb-2 px-1 md:px-4 text-ink/60 max-w-full overflow-hidden">
+          <div className="flex flex-col gap-4">
+            <div className="bg-paper py-2 flex justify-center flex-wrap gap-1.5 md:gap-4 mb-2 px-1 md:px-4 text-ink/60 max-w-full">
               {(["Lists", "Places", "Content", "Assets"] as const).map(tab => (
                 <button
                   key={tab}
@@ -180,9 +180,9 @@ function AppContent() {
               ))}
             </div>
             
-            <div className="max-w-7xl mx-auto w-full px-2 md:px-6 overflow-hidden">
+            <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
               {activeCollectionSubTab === "Lists" && (
-                <div className="max-w-5xl mx-auto space-y-12 overflow-hidden">
+                <div className="max-w-5xl mx-auto space-y-12">
                   <PersonalGoals 
                     goals={studyGoals} 
                     setGoals={setStudyGoals} 
@@ -191,7 +191,7 @@ function AppContent() {
                     tasks={tasks}
                     setTasks={setTasks}
                   />
-                  <div className="sketch-border-sm border-t-8 border-ink/5 pt-12 overflow-hidden">
+                  <div className="sketch-border-sm border-t-8 border-ink/5 pt-12">
                     <MyList wishlist={wishlist} setWishlist={setWishlist} />
                   </div>
                 </div>
@@ -202,7 +202,7 @@ function AppContent() {
             </div>
           </div>
         )}
-        <div className="max-w-7xl mx-auto w-full px-2 md:px-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
           {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
           {activeTab === "Dashboard" && <Progress words={words} tasks={tasks} logs={logs} wishlist={wishlist} goals={studyGoals} />}
         </div>

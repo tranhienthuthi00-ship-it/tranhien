@@ -343,7 +343,7 @@ export function Places({
         </div>
       </form>
 
-      <div className="flex flex-col gap-4 mb-8 sticky top-0 bg-[#f4f1ea]/80 backdrop-blur-md py-4 z-20 mx-[-1rem] px-4">
+      <div className="flex flex-col gap-4 mb-8 bg-[#f4f1ea] py-4 z-20 mx-[-1rem] px-4">
         <div className="flex gap-1.5 flex-wrap justify-center">
           {(['All', 'Food', 'Cafe', 'Dessert', 'Travel', 'Other'] as const).map(cat => (
             <button
