@@ -123,6 +123,7 @@ export function SentenceBySentencePractice() {
   };
 
   useEffect(() => {
+    if (showSummary) return;
     if (isCorrect && !evaluation?.isCorrect) {
       const reference = sentences[currentIndex]?.en || "";
       // Read the sentence, then move to next when finished
@@ -133,7 +134,7 @@ export function SentenceBySentencePractice() {
         }, 1000);
       });
     }
-  }, [isCorrect, evaluation, currentIndex, sentences]);
+  }, [isCorrect, evaluation, currentIndex, sentences, showSummary]);
 
   const handleStart = async (p?: PracticeParagraph) => {
     if (p) {
@@ -347,7 +348,9 @@ export function SentenceBySentencePractice() {
   }, [currentIndex, isPracticing, isReviewing, evaluation]);
 
   const nextSentence = (wasCorrectOrEvent?: boolean | any) => {
-    const isCompleted = typeof wasCorrectOrEvent === 'boolean' ? wasCorrectOrEvent : !!evaluation?.isCorrect;
+    const isCompleted = typeof wasCorrectOrEvent === 'boolean' 
+      ? wasCorrectOrEvent 
+      : (isCorrect || (evaluation ? !!evaluation.isCorrect : false));
     const updated = [...sentences];
     updated[currentIndex].userTranslation = userInput;
     updated[currentIndex].status = isCompleted ? 'correct' : 'failed';
