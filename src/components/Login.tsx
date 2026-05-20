@@ -15,8 +15,9 @@ export function Login({ onLogin }: { onLogin: () => void }) {
     e.preventDefault();
     setError("");
     
-    // Convert generic username to an email format required by Firebase
-    const email = username.includes("@") ? username : `${username}@spatialhub.abc`;
+    // Convert generic username to a clean email format required by Firebase without spaces or mixed case
+    const cleanUsername = username.trim().toLowerCase();
+    const email = cleanUsername.includes("@") ? cleanUsername : `${cleanUsername}@spatialhub.abc`;
     
     try {
       try {
@@ -98,6 +99,9 @@ export function Login({ onLogin }: { onLogin: () => void }) {
                 }}
                 className="sketch-input w-full text-lg font-sans bg-white/50"
                 placeholder="Enter username..."
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 autoFocus
                 required
               />

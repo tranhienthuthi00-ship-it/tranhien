@@ -670,15 +670,16 @@ export function SentenceBySentencePractice() {
     setSentences(updatedSentences);
     setIsEditingHint(false);
 
-    // If it's a saved exercise, update the library automatically
-    if (editingId) {
-      const p = practiceParagraphs.find(item => item.id === editingId);
+    // If it's a saved exercise (either in editor or active practice), update the library automatically
+    const targetId = editingId || currentPracticeId;
+    if (targetId) {
+      const p = practiceParagraphs.find(item => item.id === targetId);
       if (p) {
         const newParagraph: PracticeParagraph = {
           ...p,
           sentences: updatedSentences.map(({ vi, en, hint }) => ({ vi, en: en || "", hint: hint || "" }))
         };
-        const updatedLibrary = practiceParagraphs.map(item => item.id === editingId ? newParagraph : item);
+        const updatedLibrary = practiceParagraphs.map(item => item.id === targetId ? newParagraph : item);
         await setPracticeParagraphs(updatedLibrary);
       }
     }
