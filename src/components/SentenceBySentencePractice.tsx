@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Loader2, Send, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus, Trophy, Target, Calendar, Award, Volume2, Sliders, Sparkles } from "lucide-react";
+import { Loader2, Send, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus, Trophy, Target, Calendar, Award, Volume2, Sliders, Sparkles, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useFirebase } from "../context/FirebaseContext";
 import type { PracticeParagraph, StudyGoal, Achievement } from "../types";
@@ -45,6 +45,11 @@ export function SentenceBySentencePractice() {
     return p ? parseFloat(p) : 1.0;
   });
   const [showVoiceControl, setShowVoiceControl] = useState(false);
+
+  // Full Transcript states
+  const [showFullTranscript, setShowFullTranscript] = useState(true);
+  const [editingHintIndex, setEditingHintIndex] = useState<number | null>(null);
+  const [tempHintText, setTempHintText] = useState("");
 
   // Load voices
   useEffect(() => {
@@ -684,6 +689,27 @@ export function SentenceBySentencePractice() {
     }
   };
 
+  const handleSaveHintAtIndex = async (idx: number) => {
+    const updatedSentences = [...sentences];
+    updatedSentences[idx].hint = tempHintText;
+    setSentences(updatedSentences);
+    setEditingHintIndex(null);
+
+    // If it's a practicing saved exercise, let's auto-update it in Firestore too!
+    const targetId = currentPracticeId || editingId;
+    if (targetId) {
+      const p = practiceParagraphs.find(item => item.id === targetId);
+      if (p) {
+        const newParagraph: PracticeParagraph = {
+          ...p,
+          sentences: updatedSentences.map(({ vi, en, hint }) => ({ vi, en: en || "", hint: hint || "" }))
+        };
+        const updatedLibrary = practiceParagraphs.map(item => item.id === targetId ? newParagraph : item);
+        await setPracticeParagraphs(updatedLibrary);
+      }
+    }
+  };
+
   const currentSentence = sentences[currentIndex];
   const progress = ((currentIndex) / sentences.length) * 100;
 
@@ -1077,6 +1103,149 @@ export function SentenceBySentencePractice() {
           </div>
         </div>
       </div>
+
+      {/* Full Transcript Section */}
+      <div className="mt-8 sketch-border bg-white/80 p-4 md:p-6 space-y-4 shadow-xl relative overflow-hidden" id="full-transcript-section">
+        <div className="flex items-center justify-between border-b-2 border-ink/5 pb-3">
+          <div className="flex items-center gap-2.5">
+            <BookOpen className="w-5 h-5 text-crimson" style={{ filter: 'url(#hand-drawn-filter)' }} />
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-tight">Bài đọc toàn bộ (Full Transcript)</h3>
+              <p className="text-[9px] font-bold text-ink/40 uppercase tracking-widest mt-0.5">Tiếng Việt phía trên • Tiếng Anh phía dưới • Sửa gợi ý trực quan</p>
+            </div>
+          </div>
+          <button 
+            type="button"
+            onClick={() => setShowFullTranscript(!showFullTranscript)}
+            className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-ink/50 hover:text-ink transition-colors px-2 py-1 bg-paper rounded-lg"
+          >
+            {showFullTranscript ? (
+              <>Thu gọn <ChevronUp size={12} /></>
+            ) : (
+              <>Hiển thị <ChevronDown size={12} /></>
+            )}
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {showFullTranscript && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-4 pt-1 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar"
+            >
+              <div className="grid grid-cols-1 gap-4">
+                {sentences.map((s, idx) => {
+                  const isCurrent = idx === currentIndex;
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`p-4 rounded-xl border transition-all duration-300 relative overflow-hidden ${
+                        isCurrent 
+                          ? "border-crimson bg-crimson/5 shadow-md ring-2 ring-crimson/10" 
+                          : "border-ink/5 bg-paper/20 hover:bg-paper/40"
+                      }`}
+                    >
+                      {/* Badge and action row */}
+                      <div className="flex items-center justify-between mb-3 text-[10px]">
+                        <span className={`font-black uppercase tracking-wider px-2 py-0.5 rounded ${
+                          isCurrent ? "bg-crimson text-white animate-pulse" : "bg-ink/5 text-ink/40"
+                        }`}>
+                          Câu {idx + 1} {isCurrent && "⚡ Đang luyện tập"}
+                        </span>
+
+                        {editingHintIndex === idx ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleSaveHintAtIndex(idx)}
+                              className="text-[9px] font-black uppercase text-emerald-600 hover:text-emerald-700 tracking-widest flex items-center gap-1 transition-colors"
+                              id={`save-hint-btn-${idx}`}
+                            >
+                              <Save size={11} /> Lưu lại
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingHintIndex(null)}
+                              className="text-[9px] font-black uppercase text-ink/40 hover:text-crimson tracking-widest flex items-center gap-1 transition-colors"
+                              id={`cancel-hint-btn-${idx}`}
+                            >
+                              <X size={11} /> Huỷ
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingHintIndex(idx);
+                              setTempHintText(s.hint || "");
+                            }}
+                            className="text-[9px] font-black uppercase text-crimson hover:underline tracking-widest flex items-center gap-1.5 transition-colors"
+                            title="Sửa gợi ý từ vựng cho câu này"
+                            id={`edit-hint-btn-${idx}`}
+                          >
+                            <Edit2 size={11} className="stroke-[2.5]" /> Sửa gợi ý
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Bilingual box */}
+                      <div className="space-y-3">
+                        {/* Vietnamese sentence on top */}
+                        <div className="space-y-0.5">
+                          <span className="text-[8px] font-sans font-black text-ink/30 uppercase tracking-widest block">Tiếng Việt</span>
+                          <p className="text-sm font-sans font-bold leading-relaxed text-ink">
+                            {s.vi}
+                          </p>
+                        </div>
+
+                        {/* English sentence below */}
+                        <div className="space-y-0.5 pt-2 border-t border-dashed border-ink/5">
+                          <span className="text-[8px] font-sans font-black text-teal-600 uppercase tracking-widest block">English (Bản dịch mẫu)</span>
+                          <p className="text-sm font-sans font-black leading-relaxed text-teal-800 font-mono">
+                            {s.en || <span className="text-ink/20 italic font-sans font-medium">Chưa có bản dịch</span>}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Suggestions list / editor */}
+                      <div className="mt-3 pt-3 border-t border-ink/5">
+                        <span className="text-[8px] font-black uppercase text-ink/40 tracking-widest block mb-1">Gợi ý từ vựng & cấu trúc</span>
+                        {editingHintIndex === idx ? (
+                          <textarea
+                            value={tempHintText}
+                            onChange={(e) => setTempHintText(e.target.value)}
+                            className="w-full h-20 bg-white sketch-border-sm p-3 text-xs font-sans focus:outline-none resize-none border border-ink/10"
+                            placeholder="Nhập gợi ý mới (Mỗi dòng một ý)..."
+                            autoFocus
+                          />
+                        ) : (
+                          <div className="bg-[#fcfbf9]/60 p-2.5 rounded-lg border border-dashed border-ink/5 flex flex-col">
+                            {s.hint ? (
+                              <ul className="space-y-1">
+                                {s.hint.split('\n').filter(h => h.trim()).map((hintLine, hIdx) => (
+                                  <li key={hIdx} className="text-[11px] font-sans text-ink/70 flex items-start gap-1.5 leading-relaxed">
+                                    <span className="w-1 h-1 rounded-full bg-ink/20 mt-1.5 shrink-0" />
+                                    <span>{hintLine}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-[10px] font-sans text-ink/30 italic">Chưa có gợi ý nào cho câu này. Hãy bấm "Sửa gợi ý" để bổ sung!</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       <AnimatePresence>
         {showSummary && (
           <motion.div 
