@@ -753,21 +753,31 @@ export function PersonalGoals({
                                   <div className="flex flex-wrap items-center gap-4">
                                     <div className="flex items-center gap-1.5 font-sans">
                                       <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 font-sans" title="Ngày bắt đầu">Bắt đầu:</span>
-                                      <input 
-                                        type="date"
-                                        value={linkedGoal.createdAt ? new Date(linkedGoal.createdAt).toISOString().split('T')[0] : ""}
-                                        onChange={(e) => updateStartDate(linkedGoal.id, e.target.value)}
-                                        className="bg-paper/20 rounded border border-ink/10 px-1.5 py-0.5 text-[10px] font-bold text-ink/70 focus:outline-none cursor-pointer hover:bg-paper/40 transition-all font-sans"
-                                      />
+                                      <div className="relative">
+                                        <div className="bg-paper/20 rounded border border-ink/10 px-2 py-0.5 text-[10px] font-bold text-ink/70 font-sans min-w-[75px] text-center">
+                                          {linkedGoal.createdAt ? format(new Date(linkedGoal.createdAt), "dd/MM/yyyy") : "Chưa chọn"}
+                                        </div>
+                                        <input 
+                                          type="date"
+                                          value={linkedGoal.createdAt ? new Date(linkedGoal.createdAt).toISOString().split('T')[0] : ""}
+                                          onChange={(e) => updateStartDate(linkedGoal.id, e.target.value)}
+                                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                        />
+                                      </div>
                                     </div>
                                     <div className="flex items-center gap-1.5 font-sans">
                                       <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 font-sans" title="Ngày hoàn thành">Đạt được:</span>
-                                      <input 
-                                        type="date"
-                                        value={linkedGoal.completedAt ? new Date(linkedGoal.completedAt).toISOString().split('T')[0] : ""}
-                                        onChange={(e) => updateCompletionDate(linkedGoal.id, e.target.value)}
-                                        className="bg-paper/20 rounded border border-ink/10 px-1.5 py-0.5 text-[10px] font-bold text-ink/70 focus:outline-none cursor-pointer hover:bg-paper/40 transition-all font-sans"
-                                      />
+                                      <div className="relative">
+                                        <div className="bg-paper/20 rounded border border-ink/10 px-2 py-0.5 text-[10px] font-bold text-ink/70 font-sans min-w-[75px] text-center">
+                                          {linkedGoal.completedAt ? format(new Date(linkedGoal.completedAt), "dd/MM/yyyy") : "Chưa chọn"}
+                                        </div>
+                                        <input 
+                                          type="date"
+                                          value={linkedGoal.completedAt ? new Date(linkedGoal.completedAt).toISOString().split('T')[0] : ""}
+                                          onChange={(e) => updateCompletionDate(linkedGoal.id, e.target.value)}
+                                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                        />
+                                      </div>
                                     </div>
                                   </div>
                                   <button
@@ -939,16 +949,31 @@ export function PersonalGoals({
                       <div className="grid grid-cols-2 gap-4 pt-2 border-t border-ink/5 font-sans text-xs">
                         <div>
                           <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block mb-1 font-sans">Ngày bắt đầu</span>
-                          <input 
-                            type="date"
-                            value={goal.createdAt ? new Date(goal.createdAt).toISOString().split('T')[0] : ""}
-                            onChange={(e) => updateStartDate(goal.id, e.target.value)}
-                            className="bg-paper/20 sketch-border-sm border-none p-1.5 text-[11px] font-bold text-ink/80 focus:outline-none h-auto w-full cursor-pointer hover:bg-[#eae6db] rounded transition-all font-sans"
-                          />
+                          <div className="relative">
+                            <div className="bg-paper/20 sketch-border-sm p-1.5 text-[11px] font-bold text-ink/80 text-center w-full min-h-[34px] flex items-center justify-center rounded">
+                              {goal.createdAt ? format(new Date(goal.createdAt), "dd/MM/yyyy") : "Chưa chọn"}
+                            </div>
+                            <input 
+                              type="date"
+                              value={goal.createdAt ? new Date(goal.createdAt).toISOString().split('T')[0] : ""}
+                              onChange={(e) => updateStartDate(goal.id, e.target.value)}
+                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            />
+                          </div>
                         </div>
                         <div>
-                          <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block">Ngày hoàn thành</span>
-                          <strong className="text-emerald-700">{completedDate || "Đã hoàn thành"}</strong>
+                          <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block mb-1 font-sans">Ngày hoàn thành</span>
+                          <div className="relative">
+                            <div className="bg-paper/20 sketch-border-sm p-1.5 text-[11px] font-bold text-emerald-700 text-center w-full min-h-[34px] flex items-center justify-center rounded">
+                              {completedDate || "Đã hoàn thành"}
+                            </div>
+                            <input 
+                              type="date"
+                              value={goal.completedAt ? new Date(goal.completedAt).toISOString().split('T')[0] : ""}
+                              onChange={(e) => updateCompletionDate(goal.id, e.target.value)}
+                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            />
+                          </div>
                         </div>
                         {durationDays > 0 && (
                           <div className="col-span-2">

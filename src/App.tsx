@@ -14,9 +14,10 @@ import { YouTubeDictation } from "./components/YouTubeDictation";
 import { PersonalGoals } from "./components/PersonalGoals";
 import { SpeechGame } from "./components/SpeechGame";
 import { TranslationPractice } from "./components/TranslationPractice";
+import { ReflexPractice } from "./components/ReflexPractice";
 import Flashcards from "./components/Flashcards";
 import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
-import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target } from "lucide-react";
+import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target, Sparkles } from "lucide-react";
 
 function AppContent() {
   const {
@@ -37,7 +38,7 @@ function AppContent() {
   } = useFirebase();
 
   const [activeTab, setActiveTab] = useState<Tab>("English Hub");
-  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation" | "Speech" | "SRS" | "Translation">("Academy");
+  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation" | "Speech" | "SRS" | "Translation" | "Reflex">("Academy");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Places" | "Content" | "Assets">("Lists");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
@@ -144,6 +145,13 @@ function AppContent() {
                 Translation
               </button>
               <button 
+                onClick={() => setActiveEnglishSubTab("Reflex")}
+                className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-2.5 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeEnglishSubTab === "Reflex" ? "bg-ink text-paper border-ink scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
+              >
+                <Sparkles className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />
+                Reflex
+              </button>
+              <button 
                 onClick={() => setActiveEnglishSubTab("SRS")}
                 className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-2.5 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeEnglishSubTab === "SRS" ? "bg-crimson text-white border-crimson scale-105 shadow-md" : "text-ink/60 border-ink/20 hover:border-ink/50"}`}
               >
@@ -154,9 +162,10 @@ function AppContent() {
             <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
               {activeEnglishSubTab === "Academy" && <Academy words={words} setWords={setWords} tags={tags} setTags={setTags} />}
               {activeEnglishSubTab === "Learning Games" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={setActiveEnglishSubTab} />}
-              {activeEnglishSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} />}
+              {activeEnglishSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} words={words} setWords={setWords} />}
               {activeEnglishSubTab === "Speech" && <SpeechGame words={words} updateWordDifficulty={updateWordDifficulty} />}
               {activeEnglishSubTab === "Translation" && <TranslationPractice words={words} setWords={setWords} />}
+              {activeEnglishSubTab === "Reflex" && <ReflexPractice />}
               {activeEnglishSubTab === "SRS" && <Flashcards words={words} setWords={setWords} />}
             </div>
           </div>

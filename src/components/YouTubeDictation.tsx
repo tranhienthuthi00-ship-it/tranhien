@@ -1,20 +1,198 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { VideoDictation } from '../types';
+import type { VideoDictation, Word } from '../types';
 import { cn } from '../lib/utils';
-import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2, Mic, Library, PlayCircle, Star, MicOff, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2, Mic, Library, PlayCircle, Star, MicOff, RotateCcw, Languages, Sparkles, BookOpen, Search, Volume2, X, Sparkle, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { YoutubeTranscript } from 'youtube-transcript';
 import YouTube from 'react-youtube';
 import { RECOMMENDED_VIDEOS } from '../constants/recommendedVideos';
 import stringSimilarity from "string-similarity";
 
-export function YouTubeDictation({ dictations, setDictations }: { dictations: VideoDictation[], setDictations: (d: VideoDictation[]) => void }) {
+export function YouTubeDictation({ 
+  dictations, 
+  setDictations,
+  words,
+  setWords
+}: { 
+  dictations: VideoDictation[]; 
+  setDictations: (d: VideoDictation[]) => void;
+  words?: Word[];
+  setWords?: (w: Word[]) => void;
+}) {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [newUrl, setNewUrl] = useState('');
-  const [mode, setMode] = useState<'transcript' | 'practice' | 'shadowing'>('practice');
+  const [mode, setMode] = useState<'subtitles' | 'transcript' | 'practice' | 'shadowing'>('subtitles');
   const [userInput, setUserInput] = useState('');
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [transcriptError, setTranscriptError] = useState('');
+
+  const [subSearchQuery, setSubSearchQuery] = useState('');
+  const [currentPlaybackTime, setCurrentPlaybackTime] = useState<number>(0);
+  const [activeSubtitleIndex, setActiveSubtitleIndex] = useState<number>(-1);
+  const [autoScrollSubtitles, setAutoScrollSubtitles] = useState<boolean>(true);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const [lookedUpWord, setLookedUpWord] = useState<string | null>(null);
+  const [lookupResult, setLookupResult] = useState<any | null>(null);
+  const [isLookingUp, setIsLookingUp] = useState<boolean>(false);
+  const [isSavedToWordbook, setIsSavedToWordbook] = useState<boolean>(false);
+  const [translatingIndex, setTranslatingIndex] = useState<number | null>(null);
+  const [isTranslatingAll, setIsTranslatingAll] = useState(false);
+
+  const formatTime = (sec: number) => {
+    if (isNaN(sec)) return "00:00";
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const speakWord = (word: string) => {
+    if (!word || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.lang = 'en-US';
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const translateTranscriptLine = async (index: number) => {
+    if (!activeSession || !activeSession.transcriptItems) return;
+    const items = [...activeSession.transcriptItems];
+    const targetItem = items[index];
+    if (!targetItem || targetItem.translation) return;
+
+    setTranslatingIndex(index);
+    try {
+      const response = await fetch("/api/translation/translate-line", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: targetItem.text }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.translation) {
+          items[index] = { ...targetItem, translation: data.translation };
+          updateSession(activeSession.id, "transcriptItems", items);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to translate line:", err);
+    } finally {
+      setTranslatingIndex(null);
+    }
+  };
+
+  const translateAllTranscriptLines = async () => {
+    if (!activeSession || !activeSession.transcriptItems) return;
+    const items = [...activeSession.transcriptItems];
+    const untranslatedIndices = items
+      .map((item, idx) => (item.translation ? -1 : idx))
+      .filter((idx) => idx !== -1);
+
+    if (untranslatedIndices.length === 0) {
+      alert("Tất cả các dòng phụ đề đều đã có bản dịch!");
+      return;
+    }
+
+    if (!confirm(`Bạn có muốn dịch tự động ${untranslatedIndices.length} dòng phụ đề còn lại bằng AI (mất một chút thời gian)?`)) {
+      return;
+    }
+
+    setIsTranslatingAll(true);
+    try {
+      for (const idx of untranslatedIndices) {
+        const item = items[idx];
+        const response = await fetch("/api/translation/translate-line", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: item.text }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.translation) {
+            items[idx] = { ...item, translation: data.translation };
+            updateSession(activeSession.id, "transcriptItems", [...items]);
+          }
+        }
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+    } catch (e) {
+      console.error("Error translating all:", e);
+    } finally {
+      setIsTranslatingAll(false);
+    }
+  };
+
+  const handleLookupWord = async (word: string) => {
+    const cleaned = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "").trim();
+    if (!cleaned) return;
+    setLookedUpWord(cleaned);
+    setIsLookingUp(true);
+    setLookupResult(null);
+    setIsSavedToWordbook(false);
+    
+    try {
+      const response = await fetch("/api/translation/define-word", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word: cleaned }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setLookupResult(data);
+        
+        if (words) {
+          const alreadyExists = words.some(w => w.vocabulary.toLowerCase() === cleaned.toLowerCase() || w.vocabulary.toLowerCase() === (data.vocabulary || "").toLowerCase());
+          setIsSavedToWordbook(alreadyExists);
+        }
+      } else {
+        setLookupResult({
+          vocabulary: cleaned,
+          wordType: "noun",
+          ipa: "",
+          definition: "Chưa tìm thấy nghĩa trực tuyến. Bạn có thể tự thêm.",
+          example: "",
+        });
+      }
+    } catch (err) {
+      console.error("Error looking up word:", err);
+      setLookupResult({
+        vocabulary: cleaned,
+        wordType: "noun",
+        ipa: "",
+        definition: "Lỗi kết nối từ điển.",
+        example: "",
+      });
+    } finally {
+      setIsLookingUp(false);
+    }
+  };
+
+  const handleSaveToWordbook = () => {
+    if (!lookupResult || !words || !setWords) return;
+    
+    const vocab = lookupResult.vocabulary || lookedUpWord || "";
+    const exists = words.some(w => w.vocabulary.toLowerCase() === vocab.toLowerCase());
+    if (exists) {
+      setIsSavedToWordbook(true);
+      return;
+    }
+
+    const newWord: Word = {
+      id: crypto.randomUUID(),
+      vocabulary: vocab,
+      wordType: lookupResult.wordType || "noun",
+      ipa: lookupResult.ipa || "",
+      definition: lookupResult.definition || "",
+      examples: lookupResult.example ? [lookupResult.example] : [],
+      tags: ["YouTube Subtitles"],
+      difficulty: 0,
+      lastReviewed: new Date().toISOString(),
+      nextReview: new Date().toISOString()
+    };
+
+    setWords([newWord, ...words]);
+    setIsSavedToWordbook(true);
+  };
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const playerRef = useRef<any>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
@@ -204,6 +382,7 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
         }
         
         updateSession(sessionId, 'content', formattedText);
+        setMode('subtitles');
       } else {
          throw new Error("Transcript data is invalid");
       }
@@ -358,6 +537,48 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
     return () => clearInterval(interval);
   }, [activeSession?.progress, activeSession?.id, mode, activeSession?.transcriptItems, activeSession?.content, isPlayerReady]);
 
+  // Time tracking effect for Subtitle highlighting
+  useEffect(() => {
+    let interval: any;
+    if (activeSession && mode === 'subtitles' && isPlayerReady) {
+      interval = setInterval(async () => {
+        if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+          try {
+            const time = await playerRef.current.getCurrentTime();
+            setCurrentPlaybackTime(time);
+            
+            // Find which subtitle item is currently active
+            if (activeSession.transcriptItems) {
+              const activeIndex = activeSession.transcriptItems.findIndex((item) => {
+                const start = item.offset / 1000;
+                const end = (item.offset + item.duration) / 1000;
+                return time >= start && time <= end;
+              });
+              
+              if (activeIndex !== -1) {
+                setActiveSubtitleIndex(activeIndex);
+              }
+            }
+          } catch (e) {}
+        }
+      }, 250);
+    }
+    return () => clearInterval(interval);
+  }, [activeSession, mode, isPlayerReady]);
+
+  // Auto scroll effect to center the highlighted subtitle
+  useEffect(() => {
+    if (autoScrollSubtitles && activeSubtitleIndex !== -1 && scrollContainerRef.current) {
+      const activeEl = scrollContainerRef.current.querySelector(`[data-subtitle-index="${activeSubtitleIndex}"]`);
+      if (activeEl) {
+        activeEl.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }
+  }, [activeSubtitleIndex, autoScrollSubtitles]);
+
   useEffect(() => {
     if (activeSession && mode === 'practice') {
       const sentences = getSentences(activeSession.content);
@@ -424,6 +645,17 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
           </div>
           
           <div className="flex gap-1 shrink-0">
+            <button 
+              onClick={() => {
+                if (!activeSession.content) { alert("Vui lòng nhập transcript trước."); return; }
+                setMode('subtitles');
+              }}
+              className={cn("p-1.5 text-[9px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1", 
+                mode === 'subtitles' ? "bg-ink text-paper" : "bg-ink/5 text-ink/60 hover:bg-ink/10"
+              )}
+            >
+              <Languages size={10} /> <span className="hidden xs:inline">Subtitles</span>
+            </button>
             <button 
               onClick={() => setMode('transcript')}
               className={cn("p-1.5 text-[9px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1", 
@@ -514,7 +746,287 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
           
           <div className="flex-1 flex flex-col min-h-0 bg-white sketch-border shadow-md relative overflow-hidden">
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              {mode === 'transcript' ? (
+              {mode === 'subtitles' ? (
+                <div className="flex-1 flex h-full min-h-0 overflow-hidden font-sans">
+                  <div className="flex-1 flex flex-col p-2 md:p-4 min-h-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 shrink-0">
+                      <div className="flex items-center gap-2 flex-1 max-w-sm">
+                        <div className="relative w-full">
+                          <span className="absolute inset-y-0 left-2.5 flex items-center text-ink/40">
+                            <Search size={12} />
+                          </span>
+                          <input
+                            type="text"
+                            value={subSearchQuery}
+                            onChange={(e) => setSubSearchQuery(e.target.value)}
+                            placeholder="Tìm kiếm trong phụ đề..."
+                            className="w-full pl-8 pr-2.5 py-1 text-xs bg-ink/3 hover:bg-ink/5 focus:bg-white border border-ink/10 rounded outline-none focus:ring-1 focus:ring-ink/20 transition-all font-sans animate-in fade-in"
+                          />
+                          {subSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => setSubSearchQuery("")}
+                              className="absolute inset-y-0 right-2 flex items-center text-ink/40 hover:text-ink/80"
+                            >
+                              <X size={12} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+                        <label className="flex items-center gap-1.5 text-[10px] text-ink/50 cursor-pointer font-bold select-none hover:text-ink">
+                          <input
+                            type="checkbox"
+                            checked={autoScrollSubtitles}
+                            onChange={(e) => setAutoScrollSubtitles(e.target.checked)}
+                            className="rounded text-crimson focus:ring-crimson"
+                          />
+                          Cuộn tự động
+                        </label>
+
+                        {activeSession.transcriptItems && activeSession.transcriptItems.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={translateAllTranscriptLines}
+                            disabled={isTranslatingAll}
+                            className={cn(
+                              "flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded transition-all cursor-pointer border",
+                              isTranslatingAll
+                                ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse font-bold"
+                                : "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700"
+                            )}
+                          >
+                            <Sparkles size={11} className={cn(isTranslatingAll ? "animate-spin" : "")} />
+                            {isTranslatingAll ? "Đang dịch..." : "Dịch tất cả (AI)"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {!activeSession.transcriptItems || activeSession.transcriptItems.length === 0 ? (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-ink/65">
+                        <Languages size={32} className="mb-2 opacity-50 text-crimson" />
+                        <p className="text-xs font-semibold mb-2">Chưa có dữ liệu phụ đề hoặc dòng thời gian!</p>
+                        <p className="text-[10px] text-ink/50 mb-4 max-w-xs">
+                          Phụ đề chưa được lấy tự động hoặc chưa có mốc thời gian. Bạn hãy bấm vào chế độ <strong>Transcript</strong> để bổ sung hoặc tự động tìm kiếm.
+                        </p>
+                        <button onClick={() => setMode('transcript')} className="sketch-button py-1.5 px-4 text-[9px]">Lấy phụ đề ngay</button>
+                      </div>
+                    ) : (
+                      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scrollbar">
+                        {activeSession.transcriptItems
+                          .map((item, idx) => ({ ...item, originalIndex: idx }))
+                          .filter((item) => {
+                            if (!subSearchQuery.trim()) return true;
+                            return (
+                              item.text.toLowerCase().includes(subSearchQuery.toLowerCase()) ||
+                              (item.translation && item.translation.toLowerCase().includes(subSearchQuery.toLowerCase()))
+                            );
+                          })
+                          .map((item) => {
+                            const isActive = activeSubtitleIndex === item.originalIndex;
+                            return (
+                              <div
+                                key={item.originalIndex}
+                                data-subtitle-index={item.originalIndex}
+                                onClick={() => {
+                                  if (playerRef.current) {
+                                    playerRef.current.seekTo(item.offset / 1000, true);
+                                    playerRef.current.playVideo();
+                                  }
+                                }}
+                                className={cn(
+                                  "group flex items-start gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer text-left relative",
+                                  isActive
+                                    ? "bg-amber-50/70 border-amber-400/80 shadow-md ring-1 ring-amber-400/30"
+                                    : "bg-paper/30 hover:bg-ink/[0.02] border-ink/5 hover:border-ink/10"
+                                )}
+                              >
+                                {isActive && (
+                                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500 rounded-l-lg animate-pulse" />
+                                )}
+
+                                <span className={cn(
+                                  "font-mono text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 self-start mt-0.5 shadow-sm",
+                                  isActive
+                                    ? "bg-amber-500 text-white"
+                                    : "bg-ink/5 text-ink/50 group-hover:bg-ink/10 group-hover:text-ink/80 transition-colors"
+                                )}>
+                                  {formatTime(item.offset / 1000)}
+                                </span>
+
+                                <div className="flex-1 space-y-1 min-w-0">
+                                  <div className="text-sm font-sans font-bold leading-relaxed text-ink/90 flex flex-wrap gap-x-1 gap-y-0.5">
+                                    {item.text.trim().split(/\s+/).map((word, wIdx) => {
+                                      const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "").trim();
+                                      const isLookedUp = lookedUpWord?.toLowerCase() === cleanWord.toLowerCase();
+                                      return (
+                                        <span
+                                          key={wIdx}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (cleanWord) {
+                                              handleLookupWord(cleanWord);
+                                            }
+                                          }}
+                                          className={cn(
+                                            "inline hover:bg-amber-200/90 hover:text-ink border-b-2 border-dashed border-transparent hover:border-amber-600 rounded px-0.5 transition-all text-sm font-extrabold cursor-pointer",
+                                            isLookedUp ? "bg-amber-200/90 text-ink border-amber-600 font-extrabold scale-102" : ""
+                                          )}
+                                          title="Bấm để tra từ điển"
+                                        >
+                                          {word}{" "}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {item.translation ? (
+                                    <p className="text-xs font-semibold text-ink/65 border-t border-dashed border-ink/5 pt-1.5 mt-1 leading-relaxed">
+                                      {item.translation}
+                                    </p>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5 pt-1">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          translateTranscriptLine(item.originalIndex);
+                                        }}
+                                        disabled={translatingIndex === item.originalIndex}
+                                        className="text-[9px] font-bold text-ink/40 hover:text-emerald-700 bg-black/[0.03] hover:bg-emerald-50 px-2 py-0.5 rounded flex items-center gap-1 transition-colors"
+                                      >
+                                        {translatingIndex === item.originalIndex ? (
+                                          <Loader2 size={8} className="animate-spin text-emerald-600" />
+                                        ) : (
+                                          <Sparkle size={8} className="text-indigo-500 fill-indigo-500" />
+                                        )}
+                                        {translatingIndex === item.originalIndex ? "Đang dịch..." : "Dịch dòng này"}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="shrink-0 self-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (playerRef.current) {
+                                        playerRef.current.seekTo(item.offset / 1000, true);
+                                        playerRef.current.playVideo();
+                                      }
+                                    }}
+                                    className="p-1.5 bg-ink/5 hover:bg-ink text-ink/70 hover:text-white rounded-full transition-all"
+                                    title="Nghe lại câu này"
+                                  >
+                                    <PlayCircle size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+
+                  {lookedUpWord && (
+                    <div className="w-80 border-l border-ink/10 bg-paper/95 p-4 flex flex-col min-h-0 animate-in slide-in-from-right duration-300 shadow-lg relative shrink-0">
+                      <div className="flex items-center justify-between pb-2 border-b border-ink/10">
+                        <div className="flex items-center gap-1 text-crimson font-black text-xs uppercase tracking-widest font-logo">
+                          <BookOpen size={14} />
+                          Từ điển AI
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setLookedUpWord(null)}
+                          className="p-1 text-ink/40 hover:text-ink hover:bg-ink/5 rounded transition-all"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      {isLookingUp ? (
+                        <div className="flex-1 flex flex-col items-center justify-center p-4 text-center text-ink/50 space-y-3">
+                          <Loader2 size={24} className="animate-spin text-amber-500" />
+                          <p className="text-xs font-semibold font-sans">Đang tra từ <span className="font-bold text-ink">"{lookedUpWord}"</span>...</p>
+                        </div>
+                      ) : lookupResult ? (
+                        <div className="flex-1 flex flex-col min-h-0 justify-between py-2">
+                          <div className="space-y-4 overflow-y-auto pr-1 flex-1 custom-scrollbar">
+                            <div>
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <h4 className="text-md font-black tracking-tight text-ink first-letter:uppercase">{lookupResult.vocabulary || lookedUpWord}</h4>
+                                <button
+                                  type="button"
+                                  onClick={() => speakWord(lookupResult.vocabulary || lookedUpWord)}
+                                  className="p-1.5 bg-ink/5 hover:bg-ink text-ink/60 hover:text-paper rounded-full transition-all"
+                                  title="Nghe phát âm"
+                                >
+                                  <Volume2 size={13} />
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                {lookupResult.ipa && (
+                                  <span className="font-mono text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 font-bold">
+                                    {lookupResult.ipa}
+                                  </span>
+                                )}
+                                {lookupResult.wordType && (
+                                  <span className="text-[8px] font-extrabold uppercase tracking-widest text-[#900] bg-rose-50 border border-rose-100 rounded px-1.5 py-0.5">
+                                    {lookupResult.wordType}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <span className="text-[9px] font-black uppercase text-ink/40 tracking-wider">ĐỊNH NGHĨA</span>
+                              <p className="text-xs font-sans font-semibold text-ink bg-amber-50/20 p-2.5 rounded border border-amber-200/50 leading-relaxed whitespace-pre-wrap">
+                                {lookupResult.definition || "Chưa có định nghĩa tiếng Việt."}
+                              </p>
+                            </div>
+
+                            {lookupResult.example && (
+                              <div className="space-y-1">
+                                <span className="text-[9px] font-black uppercase text-ink/40 tracking-wider">VÍ DỤ</span>
+                                <div className="bg-ink/[0.02] p-2.5 rounded border border-dashed border-ink/10 space-y-1.5 text-xs text-left">
+                                  <p className="font-bold text-ink italic leading-relaxed">
+                                    "{lookupResult.example}"
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="pt-3 border-t border-ink/10 mt-2 shrink-0">
+                            {isSavedToWordbook ? (
+                              <div className="w-full text-center py-2 bg-green-50 text-green-700 font-extrabold rounded-lg border border-green-200 text-xs flex items-center justify-center gap-1">
+                                <Check size={14} />
+                                Đã lưu vào sổ từ
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={handleSaveToWordbook}
+                                className="w-full py-2 bg-ink text-paper hover:bg-slate-800 transition-colors text-xs font-black uppercase tracking-widest rounded flex items-center justify-center gap-1.5 shadow"
+                              >
+                                <BookOpen size={13} />
+                                Thêm vào sổ từ
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 flex items-center justify-center text-center p-4 text-xs text-ink/40 italic">
+                          Không tìm thấy nghĩa của từ.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : mode === 'transcript' ? (
                 <div className="flex-1 flex flex-col p-2 md:p-4 min-h-0">
                   <div className="flex justify-between items-center mb-2 shrink-0">
                     <h3 className="text-[9px] font-black uppercase tracking-widest text-ink/40">Transcript Editor</h3>

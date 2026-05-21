@@ -272,6 +272,51 @@ English: "${text}"`);
     }
   });
 
+  app.post("/api/translation/verify-reflex", async (req, res) => {
+    const { question, questionVi, userAnswer, suggestedAnswer } = req.body;
+    if (!question || !userAnswer) {
+      return res.status(400).json({ error: "Missing question or userAnswer" });
+    }
+
+    try {
+      const result = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `You are an expert English conversation coach. Evaluate a student's answer to a conversation question.
+Question: "${question}" ${questionVi ? `(Vietnamese version: "${questionVi}")` : ""}
+Student's Answer: "${userAnswer}"
+${suggestedAnswer ? `Suggested/Sample Answer: "${suggestedAnswer}"` : ""}
+
+Evaluate the answer and provide:
+1. "score": A rating from 1 to 100 based on grammar, comprehension, vocabulary, and natural style.
+2. "isCorrect": Boolean, true if the answer is grammatically solid and contextually sensible, false if there are fatal errors.
+3. "feedback": Short, encouraging feedback in Vietnamese on both grammar and vocabulary.
+4. "mistakes": List of specific grammatical or spelling mistakes in Vietnamese (if any). If none, write "Không có lỗi sai nào.".
+5. "naturalSuggestion": 1-2 examples of how native speakers would express this answer naturally.
+6. "suggestionExplanation": A brief explanation in Vietnamese explaining why the suggested phrasing is better or more advanced.
+
+Return ONLY a valid JSON object matching this schema:
+{
+  "score": number,
+  "isCorrect": boolean,
+  "feedback": "string",
+  "mistakes": "string",
+  "naturalSuggestion": "string",
+  "suggestionExplanation": "string"
+}`,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const responseText = result.text.trim();
+      const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
+      res.json(JSON.parse(cleanJson));
+    } catch (error: any) {
+      console.error("Gemini Error (Verify Reflex):", error);
+      res.status(500).json({ error: "Failed to evaluate answer" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
