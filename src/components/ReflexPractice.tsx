@@ -141,8 +141,117 @@ const DEFAULT_SCENARIOS: ReflexScenario[] = [
         suggestedAnswer: "I usually go hiking in the countryside with friends or visit art exhibitions to clear my head."
       }
     ]
+  },
+  {
+    id: "sc-office",
+    title: "Giao tiếp Công sở & Đàm thoại",
+    description: "Luyện các tình huống họp báo cáo tiến độ, xử lý mâu thuẫn đồng nghiệp và chuẩn bị thuyết trình dự án.",
+    questions: [
+      {
+        id: "q-off-1",
+        en: "Could you please update us on the progress of the new product roadmap?",
+        vi: "Bạn có thể vui lòng cập nhật cho chúng tôi về tiến độ của lộ trình sản phẩm mới không?",
+        suggestedAnswer: "Sure. We've completed the UI layouts, and the engineering team is currently integrating the database and testing API routes. We should be on track next Monday."
+      },
+      {
+        id: "q-off-2",
+        en: "What should we do to resolve the feedback delays from our offshore development partners?",
+        vi: "Chúng ta nên làm gì để giải quyết sự chậm trễ phản hồi từ đối tác phát triển ở nước ngoài của chúng ta?",
+        suggestedAnswer: "I suggest scheduling a daily ten-minute sync meeting at nine AM to align our priorities and clarify blocker bugs immediately."
+      },
+      {
+        id: "q-off-3",
+        en: "Are you ready for your pitch presentation with the VIP client this afternoon?",
+        vi: "Bạn đã sẵn sàng cho buổi thuyết trình bán hàng với đối tác VIP chiều nay chưa?",
+        suggestedAnswer: "Yes, I've polished the slide deck and practiced the demo multiple times. I'm highly confident we can close the deal."
+      }
+    ]
+  },
+  {
+    id: "sc-hotel",
+    title: "Khách sạn & Thủ tục Nhận/Trả phòng",
+    description: "Luyện phản xạ nhanh khi làm thủ tục check-in, check-out, báo lỗi điều hòa và hỏi các dịch vụ miễn phí.",
+    questions: [
+      {
+        id: "q-hot-1",
+        en: "Hi there! I have a reservation under the name Hien. Can I check in now?",
+        vi: "Xin chào! Tôi có đặt phòng dưới tên Hiền. Tôi có thể thực hiện thủ tục nhận phòng bây giờ không?",
+        suggestedAnswer: "Hello. Let me pull up your booking. Yes, your room is ready. May I have your passport and a credit card for the deposit, please?"
+      },
+      {
+        id: "q-hot-2",
+        en: "Excuse me, the air conditioner in room 305 is leaking water. Can you send someone to take a look?",
+        vi: "Xin lỗi, điều hòa nhiệt độ phòng 305 đang bị rò rỉ nước. Bạn có thể cử ai đó lên kiểm tra không?",
+        suggestedAnswer: "We're very sorry for the inconvenience, ma'am. I'll dispatch our maintenance technician to your room immediately, or we can move you to a suite if you prefer."
+      },
+      {
+        id: "q-hot-3",
+        en: "Are there any additional fees for the gym, or is it included in our booking package?",
+        vi: "Có phụ phí nào đối với phòng gym không, hay nó đã bao gồm sẵn trong gói phòng của chúng tôi rồi?",
+        suggestedAnswer: "The fitness center and indoor pool are completely free for all hotel guests. You just need to scan your keycard to enter."
+      }
+    ]
+  },
+  {
+    id: "sc-shopping",
+    title: "Mua sắm & Trả giá Giao tiếp",
+    description: "Cách hỏi kích cỡ quần áo, thương lượng chính sách hoàn tiền và mặc cả khi mua quà lưu niệm.",
+    questions: [
+      {
+        id: "q-shop-1",
+        en: "Do you have this cotton shirt in a medium size, or is it out of stock?",
+        vi: "Bạn còn chiếc áo sơ mi cotton này cỡ trung bình (Medium) không, hay là hết hàng rồi?",
+        suggestedAnswer: "We have plenty of medium sizes in the back. Let me grab one for you. Would you like to try it on in the fitting room?"
+      },
+      {
+        id: "q-shop-2",
+        en: "Is there any special discount if I purchase three of these keychains at once?",
+        vi: "Có chương trình giảm giá đặc biệt nào nếu tôi mua ba chiếc móc khóa này cùng một lúc không?",
+        suggestedAnswer: "If you buy three, we can offer you a fifteen percent discount on the bundle, plus a free decorative stamp!"
+      },
+      {
+        id: "q-shop-3",
+        en: "What is your return policy if the dress doesn't fit my daughter?",
+        vi: "Chính sách trả hàng của bạn như thế nào nếu chiếc váy này không vừa với con gái tôi?",
+        suggestedAnswer: "We offer a flexible fourteen-day return or exchange policy as long as the security tags are intact and you bring the original receipt."
+      }
+    ]
   }
 ];
+
+// Bulk parser utility
+export function parseBulkInput(text: string): Omit<ReflexQuestion, "id">[] {
+  const lines = text.split("\n");
+  const parsed: Omit<ReflexQuestion, "id">[] = [];
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    
+    const parts = line.split("|").map(p => p.trim());
+    if (parts.length === 1) {
+      if (parts[0]) {
+        parsed.push({
+          en: parts[0],
+          vi: "Hãy phản xạ câu hỏi này",
+          suggestedAnswer: "That's an interesting question! Let me share my thoughts."
+        });
+      }
+    } else if (parts.length === 2) {
+      const isPart2Vietnamese = /[\u0300-\u036f\u1ea0-\u1ef9a-fA-FÀ-ỹ]/.test(parts[1]); 
+      parsed.push({
+        en: parts[0],
+        vi: isPart2Vietnamese ? parts[1] : "Hãy phản xạ câu hỏi này",
+        suggestedAnswer: isPart2Vietnamese ? "I think that is a wonderful topic." : parts[1]
+      });
+    } else if (parts.length >= 3) {
+      parsed.push({
+        en: parts[0],
+        vi: parts[1],
+        suggestedAnswer: parts[2]
+      });
+    }
+  }
+  return parsed;
+}
 
 export function ReflexPractice() {
   const [scenarios, setScenarios] = useState<ReflexScenario[]>([]);
@@ -150,11 +259,18 @@ export function ReflexPractice() {
   const [activeTab, setActiveTab] = useState<"library" | "custom">("library");
 
   // Custom scenario builder state
+  const [customMode, setCustomMode] = useState<"bulk" | "manual">("bulk");
+  const [bulkText, setBulkText] = useState("");
   const [customTitle, setCustomTitle] = useState("");
   const [customDesc, setCustomDesc] = useState("");
   const [customQuestions, setCustomQuestions] = useState<Omit<ReflexQuestion, "id">[]>([
     { en: "", vi: "", suggestedAnswer: "" }
   ]);
+
+  // Temp session save details state
+  const [showSaveTempDialog, setShowSaveTempDialog] = useState(false);
+  const [tempSaveTitle, setTempSaveTitle] = useState("");
+  const [tempSaveDesc, setTempSaveDesc] = useState("");
 
   // Practice session state
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -321,6 +437,81 @@ export function ReflexPractice() {
     } else {
       setIsSessionFinished(true);
     }
+  };
+
+  // Quick bulk practice instant engine
+  const handleBulkPracticeNow = () => {
+    if (!bulkText.trim()) {
+      alert("Vui lòng nhập văn bản hoặc câu hỏi phản xạ.");
+      return;
+    }
+
+    const parsed = parseBulkInput(bulkText);
+    if (parsed.length === 0) {
+      alert("Không tìm thấy bất kỳ câu hỏi hợp lệ nào trong khối văn bản dán.");
+      return;
+    }
+
+    const tempScenario: ReflexScenario = {
+      id: "sc-temp-bulk",
+      title: "Luyện Phản Xạ Dán Sẵn",
+      description: "Tình huống phản xạ khởi động từ danh sách dán sẵn thô của bạn.",
+      questions: parsed.map((q, idx) => ({
+        id: `q-temp-${idx}-${Date.now()}`,
+        en: q.en,
+        vi: q.vi,
+        suggestedAnswer: q.suggestedAnswer
+      })),
+      isCustom: true
+    };
+
+    handleStartScenario(tempScenario);
+  };
+
+  // Convert raw temporary run into a stored library custom scenario
+  const handleSaveTempScenario = () => {
+    if (!tempSaveTitle.trim() || !activeScenario) {
+      alert("Vui lòng nhập tên tình huống để lưu.");
+      return;
+    }
+
+    const newScenario: ReflexScenario = {
+      id: `sc-custom-${Date.now()}`,
+      title: tempSaveTitle.trim(),
+      description: tempSaveDesc.trim() || `Tình huống phản xạ tự tạo lưu trữ lúc ${new Date().toLocaleDateString()}`,
+      questions: activeScenario.questions.map((q, idx) => ({
+        id: `q-custom-${idx}-${Date.now()}`,
+        en: q.en,
+        vi: q.vi,
+        suggestedAnswer: q.suggestedAnswer
+      })),
+      isCustom: true
+    };
+
+    const stored = localStorage.getItem("custom_reflex_scenarios");
+    let parsed: ReflexScenario[] = [];
+    if (stored) {
+      try {
+        parsed = JSON.parse(stored);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    const updatedList = [...parsed, newScenario];
+    localStorage.setItem("custom_reflex_scenarios", JSON.stringify(updatedList));
+    setScenarios([...DEFAULT_SCENARIOS, ...updatedList]);
+
+    // Transition existing state
+    setActiveScenario({
+      ...activeScenario,
+      id: newScenario.id,
+      title: newScenario.title,
+      description: newScenario.description
+    });
+
+    alert("Đã lưu tình huống này vào Thư viện thành công!");
+    setShowSaveTempDialog(false);
   };
 
   // Add custom builders rows
@@ -504,133 +695,243 @@ export function ReflexPractice() {
                 ))}
               </motion.div>
             ) : (
-              <motion.form
-                key="custom-tab"
-                onSubmit={handleSaveCustomScenario}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                className="sketch-border bg-white p-6 space-y-6 shadow-sm"
-              >
-                <div className="space-y-4">
-                  <h3 className="text-md font-black uppercase tracking-wider text-ink flex items-center gap-1.5">
-                    <Library size={18} className="text-crimson" />
-                    Thiết lập tình huống phản xạ của riêng bạn
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-ink/55 tracking-widest block">Tên tình huống / Đề tài</label>
-                      <input
-                        type="text"
-                        value={customTitle}
-                        onChange={(e) => setCustomTitle(e.target.value)}
-                        placeholder="Ví dụ: Giao tiếp tại sân bay, Giới thiệu sản phẩm..."
-                        className="w-full bg-paper/20 sketch-border-sm p-3.5 text-sm font-sans font-bold focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-ink/55 tracking-widest block">Mô tả ngắn gọn</label>
-                      <input
-                        type="text"
-                        value={customDesc}
-                        onChange={(e) => setCustomDesc(e.target.value)}
-                        placeholder="Ví dụ: Luyện phản xạ nhanh các tình huống hải quan, xuất nhập cảnh..."
-                        className="w-full bg-paper/20 sketch-border-sm p-3.5 text-sm font-sans focus:outline-none"
-                      />
-                    </div>
-                  </div>
+              <div className="space-y-6 animate-in fade-in duration-300">
+                {/* Custom input mode toggle */}
+                <div className="flex border-b-2 border-ink/5 pb-1 gap-6">
+                  <button
+                    onClick={() => setCustomMode("bulk")}
+                    className={cn(
+                      "pb-2.5 text-xs md:text-sm font-black uppercase tracking-widest border-b-2 transition-all flex items-center gap-1.5",
+                      customMode === "bulk" ? "border-crimson text-crimson" : "border-transparent text-ink/40 hover:text-ink/80"
+                    )}
+                  >
+                    <Sparkles size={14} className={cn(customMode === "bulk" ? "text-amber-500" : "text-ink/30")} />
+                    Nhập văn bản nhanh (Bulk Import)
+                  </button>
+                  <button
+                    onClick={() => setCustomMode("manual")}
+                    className={cn(
+                      "pb-2.5 text-xs md:text-sm font-black uppercase tracking-widest border-b-2 transition-all flex items-center gap-1.5",
+                      customMode === "manual" ? "border-crimson text-crimson" : "border-transparent text-ink/40 hover:text-ink/80"
+                    )}
+                  >
+                    <Library size={13} className={cn(customMode === "manual" ? "text-crimson" : "text-ink/30")} />
+                    Nhập từng câu thủ công (Manual rows)
+                  </button>
                 </div>
 
-                <div className="space-y-4 border-t border-ink/10 pt-4">
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-ink/50 block">Danh sách Q&A phản xạ</h4>
-                    <button
-                      type="button"
-                      onClick={handleAddCustomQuestionRow}
-                      className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-300 rounded hover:bg-emerald-100 transition-colors flex items-center gap-1"
-                    >
-                      <Plus size={10} /> Thêm câu hỏi
-                    </button>
-                  </div>
+                {customMode === "bulk" ? (
+                  <motion.div
+                    key="bulk-editor"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="sketch-border bg-white p-6 space-y-6 shadow-sm"
+                  >
+                    <div className="space-y-1">
+                      <h3 className="text-md font-bold uppercase tracking-wide text-ink flex items-center gap-1.5">
+                        <Sparkles className="w-5 h-5 text-amber-500" />
+                        Phản xạ với danh sách dán sẵn tức thì
+                      </h3>
+                      <p className="text-xs text-ink/50 font-sans leading-relaxed">
+                        Dán khối danh sách câu hỏi và câu gợi ý từ ngữ của bạn tại đây, hệ thống sẽ phân tách ra các thẻ phản xạ học tập ngay lập tức.
+                      </p>
+                    </div>
 
-                  <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 scrollbar-none">
-                    {customQuestions.map((q, idx) => (
-                      <div key={idx} className="relative bg-paper/10 p-4 sketch-border shadow-sm flex flex-col gap-4">
-                        <div className="absolute top-2 right-2 text-xs font-black text-ink/20 font-mono">
-                          #{idx + 1}
-                        </div>
+                    {/* Format Guide Alert Box */}
+                    <div className="bg-amber-50/70 border border-amber-200/60 p-4 rounded text-xs text-amber-900 font-sans space-y-2">
+                      <strong className="block uppercase tracking-wider text-[9px] text-amber-800 font-black">💡 Hướng dẫn định dạng dòng:</strong>
+                      <p className="leading-relaxed">
+                        Mỗi dòng mới đại diện cho một câu hỏi. Chia tách Câu hỏi Tiếng Anh, Gợi ý Tiếng Việt, câu trả lời mẫu bằng ký tự <code className="bg-white px-1 py-0.5 border border-amber-300 font-mono font-bold">|</code> (phím Shift + gạch chéo ngược).
+                      </p>
+                      <div className="bg-white/95 p-3 rounded border border-amber-200 font-mono text-[10px] space-y-1 block leading-normal text-ink/80 shadow-sm">
+                        <div className="font-bold text-ink/45 border-b border-ink/5 pb-1 mb-1">DÒNG NHẬP MẪU:</div>
+                        <div>Câu hỏi Tiếng Anh | Phụ đề Tiếng Việt | Câu trả lời gợi ý Tiếng Anh</div>
+                        <div className="text-ink/30 italic mt-1.5 pt-1.5 border-t border-ink/5">Ví dụ cụ thể:</div>
+                        <div className="text-[#a15c00]">Tell me about your morning routine. | Kể về thói quen buổi sáng của bạn. | I usually wake up at 6 AM, drink coffee, and read for 20 minutes.</div>
+                        <div className="text-[#a15c00]">What's your plan for tonight? | Kế hoạch tối nay của bạn là gì? | I'm going to cook pasta and watch a movie with friends.</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setBulkText(`Can you name three major challenges in your current role? | Kể tên ba thử thách lớn trong vai trò hiện tại của bạn? | Communication delays, shifting requirements, and resource constraints are our main hurdles.
+What's your strategy to improve team collaboration? | Chiến lược cải thiện hợp tác nhóm của bạn là gì? | We will set up regular code reviews, weekly syncs, and clear documentation.
+How do you handle client feedback under pressure? | Bạn giải quyết phản hồi của khách hàng dưới áp lực như thế nào? | I prioritize items based on business impact, stay proactive, and double-check solutions before delivering.`)}
+                        className="text-[9px] font-black uppercase text-[#a15c00] hover:text-[#7d4800] underline mt-1 block transition-colors"
+                      >
+                        ⚡ Nhấp để tự động điền các câu hỏi mẫu tuyển dụng & công sở
+                      </button>
+                    </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                            <label className="text-[8px] font-black uppercase text-ink/40 tracking-wider">Câu hỏi Tiếng Anh (Question)</label>
-                            <input
-                              type="text"
-                              value={q.en}
-                              onChange={(e) => {
-                                const copy = [...customQuestions];
-                                copy[idx].en = e.target.value;
-                                setCustomQuestions(copy);
-                              }}
-                              placeholder="e.g. What is your favorite food?"
-                              className="w-full bg-white sketch-border-sm p-2 text-xs font-sans font-bold focus:outline-none"
-                              required
-                            />
-                          </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-ink/55 tracking-widest block" htmlFor="bulk-reflex-textbox">Văn bản thô danh sách câu hỏi / câu trả lời</label>
+                      <textarea
+                        id="bulk-reflex-textbox"
+                        value={bulkText}
+                        onChange={(e) => setBulkText(e.target.value)}
+                        placeholder="Câu hỏi 1 | Gợi ý 1 | Câu trả lời 1&#10;Câu hỏi 2 | Gợi ý 2 | Câu trả lời 2..."
+                        className="w-full h-80 bg-paper/5 focus:bg-white sketch-border p-4 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-ink/20 resize-none transition-all placeholder:opacity-40 text-ink leading-relaxed"
+                      />
+                    </div>
 
-                          <div className="space-y-1">
-                            <label className="text-[8px] font-black uppercase text-ink/40 tracking-wider">Phụ đề tiếng Việt gợi ý (Vietnamese prompt)</label>
-                            <input
-                              type="text"
-                              value={q.vi}
-                              onChange={(e) => {
-                                const copy = [...customQuestions];
-                                copy[idx].vi = e.target.value;
-                                setCustomQuestions(copy);
-                              }}
-                              placeholder="e.g. Món ăn yêu thích của bạn là gì?"
-                              className="w-full bg-white sketch-border-sm p-2 text-xs font-sans focus:outline-none"
-                              required
-                            />
-                          </div>
-                        </div>
+                    {/* Bulk Action Buttons */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => handleBulkPracticeNow()}
+                        disabled={!bulkText.trim()}
+                        className="sketch-button py-3.5 px-4 font-black uppercase tracking-widest bg-ink text-white hover:bg-crimson disabled:opacity-40 hover:scale-[1.01] transition-all text-xs flex items-center justify-center gap-2 shadow"
+                      >
+                        <Play size={14} /> Luyện tập tức thì (Luyên thô ngay)
+                      </button>
 
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const parsed = parseBulkInput(bulkText);
+                          if (parsed.length === 0) {
+                            alert("Vui lòng nhập văn bản phản xạ hợp lệ trước.");
+                            return;
+                          }
+                          setCustomQuestions(parsed);
+                          setCustomTitle("Tình huống dán thô nhanh");
+                          setCustomDesc(`Luyện phản xạ từ danh sách dán sẵn tạo lúc ${new Date().toLocaleTimeString()}`);
+                          setCustomMode("manual");
+                        }}
+                        disabled={!bulkText.trim()}
+                        className="sketch-button py-3.5 px-4 font-black uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 disabled:opacity-40 text-xs flex items-center justify-center gap-2 shadow"
+                      >
+                        <Library size={14} /> Phân tích dán thô và Sửa thủ công / Lưu
+                      </button>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.form
+                    key="manual-editor"
+                    onSubmit={handleSaveCustomScenario}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="sketch-border bg-white p-6 space-y-6 shadow-sm"
+                  >
+                    <div className="space-y-4">
+                      <h3 className="text-md font-black uppercase tracking-wider text-ink flex items-center gap-1.5">
+                        <Library size={18} className="text-crimson" />
+                        Thiết lập tình huống phản xạ của riêng bạn
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <label className="text-[8px] font-black uppercase text-ink/40 tracking-wider">Bản trả lời mẫu Tiếng Anh (Suggested native answer)</label>
-                          <textarea
-                            value={q.suggestedAnswer}
-                            onChange={(e) => {
-                              const copy = [...customQuestions];
-                              copy[idx].suggestedAnswer = e.target.value;
-                              setCustomQuestions(copy);
-                            }}
-                            placeholder="e.g. I absolutely love Pho! It has an incredibly rich broth and tender noodles."
-                            className="w-full bg-white sketch-border-sm p-2 text-xs font-sans focus:outline-none h-14 resize-none italic"
+                          <label className="text-[10px] font-black uppercase text-ink/55 tracking-widest block">Tên tình huống / Đề tài</label>
+                          <input
+                            type="text"
+                            value={customTitle}
+                            onChange={(e) => setCustomTitle(e.target.value)}
+                            placeholder="Ví dụ: Giao tiếp tại sân bay, Giới thiệu sản phẩm..."
+                            className="w-full bg-paper/20 sketch-border-sm p-3.5 text-sm font-sans font-bold focus:outline-none"
+                            required
                           />
                         </div>
-
-                        {customQuestions.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveCustomQuestionRow(idx)}
-                            className="text-ink/30 hover:text-rose-600 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 mt-1 justify-end"
-                          >
-                            <Trash2 size={12} /> Bỏ câu hỏi #{idx + 1}
-                          </button>
-                        )}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-ink/55 tracking-widest block">Mô tả ngắn gọn</label>
+                          <input
+                            type="text"
+                            value={customDesc}
+                            onChange={(e) => setCustomDesc(e.target.value)}
+                            placeholder="Ví dụ: Luyện phản xạ nhanh các tình huống hải quan, xuất nhập cảnh..."
+                            className="w-full bg-paper/20 sketch-border-sm p-3.5 text-sm font-sans focus:outline-none"
+                          />
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
 
-                <button
-                  type="submit"
-                  className="w-full sketch-button bg-ink text-white py-3.5 font-black uppercase tracking-widest hover:bg-crimson transition-colors shadow-md text-sm"
-                >
-                  Xác nhận Tạo tình huống
-                </button>
-              </motion.form>
+                    <div className="space-y-4 border-t border-ink/10 pt-4">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-ink/50 block">Danh sách Q&A phản xạ</h4>
+                        <button
+                          type="button"
+                          onClick={handleAddCustomQuestionRow}
+                          className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-300 rounded hover:bg-emerald-100 transition-colors flex items-center gap-1"
+                        >
+                          <Plus size={10} /> Thêm câu hỏi
+                        </button>
+                      </div>
+
+                      <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 scrollbar-none">
+                        {customQuestions.map((q, idx) => (
+                          <div key={idx} className="relative bg-paper/10 p-4 sketch-border shadow-sm flex flex-col gap-4">
+                            <div className="absolute top-2 right-2 text-xs font-black text-ink/20 font-mono">
+                              #{idx + 1}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-ink/40 tracking-wider">Câu hỏi Tiếng Anh (Question)</label>
+                                <input
+                                  type="text"
+                                  value={q.en}
+                                  onChange={(e) => {
+                                    const copy = [...customQuestions];
+                                    copy[idx].en = e.target.value;
+                                    setCustomQuestions(copy);
+                                  }}
+                                  placeholder="e.g. What is your favorite food?"
+                                  className="w-full bg-white sketch-border-sm p-2 text-xs font-sans font-bold focus:outline-none"
+                                  required
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-ink/40 tracking-wider">Phụ đề tiếng Việt gợi ý (Vietnamese prompt)</label>
+                                <input
+                                  type="text"
+                                  value={q.vi}
+                                  onChange={(e) => {
+                                    const copy = [...customQuestions];
+                                    copy[idx].vi = e.target.value;
+                                    setCustomQuestions(copy);
+                                  }}
+                                  placeholder="e.g. Món ăn yêu thích của bạn là gì?"
+                                  className="w-full bg-white sketch-border-sm p-2 text-xs font-sans focus:outline-none"
+                                  required
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black uppercase text-ink/40 tracking-wider">Bản trả lời mẫu Tiếng Anh (Suggested native answer)</label>
+                              <textarea
+                                value={q.suggestedAnswer}
+                                onChange={(e) => {
+                                  const copy = [...customQuestions];
+                                  copy[idx].suggestedAnswer = e.target.value;
+                                  setCustomQuestions(copy);
+                                }}
+                                placeholder="e.g. I absolutely love Pho! It has an incredibly rich broth and tender noodles."
+                                className="w-full bg-white sketch-border-sm p-2 text-xs font-sans focus:outline-none h-14 resize-none italic"
+                              />
+                            </div>
+
+                            {customQuestions.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveCustomQuestionRow(idx)}
+                                className="text-ink/30 hover:text-rose-600 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 mt-1 justify-end"
+                              >
+                                <Trash2 size={12} /> Bỏ câu hỏi #{idx + 1}
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full sketch-button bg-ink text-white py-3.5 font-black uppercase tracking-widest hover:bg-crimson transition-colors shadow-md text-sm"
+                    >
+                      Xác nhận Tạo tình huống
+                    </button>
+                  </motion.form>
+                )}
+              </div>
             )}
           </AnimatePresence>
         </div>
@@ -967,6 +1268,67 @@ export function ReflexPractice() {
                   ))}
                 </div>
               </div>
+
+              {/* Optional temp save panel for sc-temp-bulk runs */}
+              {activeScenario.id === "sc-temp-bulk" && (
+                <div className="bg-amber-50/50 p-6 border-2 border-dashed border-amber-300 rounded-lg max-w-sm mx-auto space-y-3 relative z-10 my-4 shadow-sm animate-in zoom-in-95 duration-200 text-center">
+                  <span className="text-[9px] font-black text-amber-700 bg-white border border-amber-300 rounded px-2 py-0.5 uppercase tracking-wider block w-fit mx-auto">
+                    💾 Lưu lại tình huống dán sẵn này?
+                  </span>
+                  <p className="text-xs text-ink/65 leading-relaxed font-sans">
+                    Bạn thấy tâm đắc với các câu dán thô vừa rồi? Hãy lưu lại vào Thư viện để tiện luyện tập định kỳ sau này:
+                  </p>
+                  
+                  {!showSaveTempDialog ? (
+                    <button
+                      onClick={() => {
+                        setTempSaveTitle("Luyện phản xạ dán sẵn ngày " + new Date().toLocaleDateString());
+                        setTempSaveDesc("Tình huống dán thô lưu từ buổi tập.");
+                        setShowSaveTempDialog(true);
+                      }}
+                      className="px-4 py-2 text-xs font-black uppercase tracking-wider text-amber-800 border border-amber-300 bg-white rounded hover:bg-amber-100 transition-colors w-full"
+                    >
+                      Nhấp tên để lưu trữ
+                    </button>
+                  ) : (
+                    <div className="space-y-3 text-left">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold uppercase text-ink/50 block">Tên tình huống mới:</label>
+                        <input
+                          type="text"
+                          value={tempSaveTitle}
+                          onChange={(e) => setTempSaveTitle(e.target.value)}
+                          className="w-full bg-white border border-ink/20 p-2 text-xs font-sans font-bold focus:outline-none focus:ring-1 focus:ring-ink"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold uppercase text-ink/50 block">Mô tả ngắn:</label>
+                        <input
+                          type="text"
+                          value={tempSaveDesc}
+                          onChange={(e) => setTempSaveDesc(e.target.value)}
+                          className="w-full bg-white border border-ink/20 p-2 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-ink"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSaveTempScenario}
+                          className="flex-1 px-3 py-1.5 bg-amber-600 text-white text-[10px] font-black uppercase tracking-wider rounded border border-amber-700 hover:bg-amber-700 transition-colors"
+                        >
+                          Xác nhận Lưu
+                        </button>
+                        <button
+                          onClick={() => setShowSaveTempDialog(false)}
+                          className="px-3 py-1.5 bg-white text-ink text-[10px] font-black uppercase tracking-wider rounded border border-ink/10 hover:bg-paper/20 transition-colors"
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Actions panel */}
               <div className="pt-6 border-t-2 border-dashed border-ink/10 flex flex-col sm:flex-row justify-center gap-4 relative z-10 font-sans">

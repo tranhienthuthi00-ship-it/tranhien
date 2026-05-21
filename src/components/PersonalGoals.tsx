@@ -843,22 +843,25 @@ export function PersonalGoals({
 
       <AnimatePresence>
         {selectedAchievement && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/70 backdrop-blur-sm overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/75 backdrop-blur-sm overflow-y-auto">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              exit={{ opacity: 0, scale: 0.9, y: 15 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="relative bg-[#f4f1ea] sketch-border w-full max-w-lg p-6 md:p-8 space-y-6 shadow-2xl my-8 text-ink"
+              className="relative bg-[#fdfcf9] border-4 border-amber-500 rounded-2xl w-full max-w-lg p-5 md:p-8 space-y-5 md:space-y-6 shadow-[0_25px_60px_rgba(217,119,6,0.35)] my-auto max-h-[92vh] overflow-y-auto scrollbar-thin text-ink focus:outline-none"
             >
-              {/* Confetti or hand-drawn sparkles behind icon in celebration mode */}
-              {isCelebration && (
-                <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-lg">
-                  <div className="absolute top-1/4 left-1/4 w-3.5 h-3.5 bg-crimson rounded-full animate-ping opacity-75" />
-                  <div className="absolute top-1/3 right-1/4 w-4 h-4 bg-yellow-500 rounded-full animate-ping opacity-50 delay-100" />
-                  <div className="absolute bottom-1/3 left-1/3 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping opacity-60 delay-300" />
-                </div>
-              )}
+              {/* Confetti and radiant golden aura in celebration mode */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-xl">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[radial-gradient(circle,rgba(251,191,36,0.18)_0%,transparent_65%)] animate-pulse" />
+                {isCelebration && (
+                  <>
+                    <div className="absolute top-10 left-12 w-3.5 h-3.5 bg-amber-400 rounded-full animate-ping opacity-75" />
+                    <div className="absolute top-20 right-14 w-4 h-4 bg-yellow-500 rounded-full animate-ping opacity-50 delay-100" />
+                    <div className="absolute bottom-24 left-16 w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping opacity-60 delay-300" />
+                  </>
+                )}
+              </div>
 
               {/* Close Button */}
               <button 
@@ -866,56 +869,88 @@ export function PersonalGoals({
                   setSelectedAchievement(null);
                   setIsCelebration(false);
                 }}
-                className="absolute top-4 right-4 text-ink/40 hover:text-crimson transition-colors p-1"
+                className="absolute top-4 right-4 text-ink/40 hover:text-crimson bg-paper/30 hover:bg-paper/80 p-1.5 rounded-full transition-all duration-200 z-20"
                 aria-label="Đóng"
                 id="close-achievement-modal"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
 
-              {/* Header Icons and Styling */}
-              <div className="flex flex-col items-center text-center space-y-3 pt-4 font-sans">
-                <div 
-                  className={cn(
-                    "p-4 rounded-full border-4 border-dashed",
-                    isCelebration ? "border-yellow-500 bg-yellow-50 text-yellow-600 animate-bounce" : "border-ink/20 bg-white text-ink"
-                  )}
-                  style={{ filter: 'url(#hand-drawn-filter)' }}
-                >
-                  {isCelebration ? <Trophy size={48} className="stroke-[2.5]" /> : <Medal size={48} className="stroke-[2.5]" />}
-                </div>
+              {/* Spectacular Golden Badge ("Huy hiệu Vàng") Illustration */}
+              <div className="relative pt-6 flex flex-col items-center text-center space-y-4">
                 
-                <div className="space-y-1">
-                  <h4 className="text-[11px] font-black uppercase text-crimson tracking-widest flex items-center justify-center gap-1.5 font-sans">
+                {/* Gold Medallion assembly */}
+                <div className="relative w-28 h-28 flex items-center justify-center shrink-0">
+                  {/* Medallion Ribbon Tails behind the circle */}
+                  <div 
+                    className="absolute top-[60%] left-1/2 -translate-x-[24px] w-6 h-14 bg-gradient-to-b from-amber-600 via-amber-700 to-amber-900 origin-top rotate-[18deg] shadow-[0_3px_6px_rgba(0,0,0,0.2)]" 
+                    style={{ clipPath: 'polygon(0% 0%, 100% 0%, 100% 85%, 50% 100%, 0% 85%)' }}
+                  />
+                  <div 
+                    className="absolute top-[60%] left-1/2 -translate-x-[2px] w-6 h-14 bg-gradient-to-b from-amber-600 via-amber-700 to-amber-900 origin-top -rotate-[18deg] shadow-[0_3px_6px_rgba(0,0,0,0.2)]" 
+                    style={{ clipPath: 'polygon(0% 0%, 100% 0%, 100% 85%, 50% 100%, 0% 85%)' }}
+                  />
+                  
+                  {/* Glowing aura halo rings */}
+                  <div className="absolute inset-0 bg-amber-400/20 rounded-full animate-pulse scale-110" />
+                  
+                  {/* Outer notched scalloped rim */}
+                  <div className="absolute w-24 h-24 bg-gradient-to-tr from-amber-700 via-yellow-400 to-amber-400 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(180,83,9,0.4)] border-[3px] border-amber-900/10">
+                    
+                    {/* Inner gold coin face with rich metallic gradients */}
+                    <div className="w-[82px] h-[82px] bg-gradient-to-b from-yellow-200 via-amber-400 to-amber-600 rounded-full flex items-center justify-center relative shadow-inner">
+                      
+                      {/* Decorative concentric gold ringlets */}
+                      <div className="absolute inset-1 border-[1.5px] border-yellow-100/40 rounded-full" />
+                      <div className="absolute inset-2 border border-amber-950/15 rounded-full border-dashed" />
+                      
+                      {/* Sparkle & trophy core */}
+                      <div className="relative z-10 text-amber-950 drop-shadow-[0_1.5px_2px_rgba(255,255,255,0.85)] hover:scale-110 transition-transform duration-300">
+                        {isCelebration ? (
+                          <Trophy size={42} className="stroke-[2.5] text-amber-950 animate-bounce" />
+                        ) : (
+                          <Medal size={42} className="stroke-[2.5] text-amber-950" />
+                        )}
+                      </div>
+
+                      {/* Sparkles around inner coin */}
+                      <Sparkles className="absolute -top-1 -right-1 w-6 h-6 text-yellow-100 animate-pulse drop-shadow-[0_0_5px_rgba(251,191,36,0.9)]" />
+                      <Sparkles className="absolute -bottom-1 -left-1 w-5 h-5 text-amber-100 animate-bounce drop-shadow-[0_0_4px_rgba(251,191,36,0.8)] animate-delay-200" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Badge typography */}
+                <div className="space-y-1.5 relative z-10 w-full px-2">
+                  <h4 className="text-[10px] md:text-[11px] font-black uppercase text-amber-700 tracking-widest flex items-center justify-center gap-1.5 font-sans">
                     {isCelebration ? (
                       <>
-                        <Sparkles size={12} className="text-yellow-500 animate-pulse" />
-                        MỞ KHÓA THÀNH TÍCH MỚI!
-                        <Sparkles size={12} className="text-yellow-500 animate-pulse" />
+                        <Sparkles size={12} className="text-amber-500 animate-pulse" />
+                        ĐÃ MỞ KHÓA HUY HIỆU VÀNG THÀNH TÍCH!
+                        <Sparkles size={12} className="text-amber-500 animate-pulse" />
                       </>
-                    ) : "CHI TIẾT THÀNH TÍCH"}
+                    ) : "THÔNG TIN HUY HIỆU THÀNH TÍCH"}
                   </h4>
-                  <h3 className="text-2xl font-sans font-black uppercase tracking-tight leading-tight">
+                  <h3 className="text-xl md:text-2xl font-sans font-black uppercase tracking-tight leading-tight text-amber-950 max-w-[#90%] mx-auto">
                     {selectedAchievement.title}
                   </h3>
-                  <p className="text-xs text-ink/45 flex items-center justify-center gap-1.5 mt-1 font-mono">
-                    <Clock size={12} /> Đạt được vào: {format(new Date(selectedAchievement.unlockedAt), "dd/MM/yyyy HH:mm")}
+                  <p className="text-[10px] md:text-xs text-ink/50 flex items-center justify-center gap-1.5 mt-1 font-mono">
+                    <Clock size={12} /> Đạt được: {format(new Date(selectedAchievement.unlockedAt), "dd/MM/yyyy HH:mm")}
                   </p>
                 </div>
               </div>
 
-              {/* Associated Goal Details */}
+              {/* Associated Goal Details (Optimized for Mobile view limits) */}
               {(() => {
                 const goal = goals.find(g => g.id === selectedAchievement.goalId);
                 if (!goal) {
                   return (
-                    <p className="text-xs text-ink/40 italic text-center py-4 bg-white/50 rounded">
+                    <p className="text-xs text-ink/40 italic text-center py-4 bg-white/50 rounded border border-dashed border-ink/10 relative z-10">
                       Mục tiêu liên kết đã bị xóa hoặc không tìm thấy.
                     </p>
                   );
                 }
 
-                const createdDate = format(new Date(goal.createdAt), "dd/MM/yyyy");
                 const completedDate = goal.completedAt ? format(new Date(goal.completedAt), "dd/MM/yyyy") : null;
                 const deadlineDate = goal.deadline ? format(new Date(goal.deadline), "dd/MM/yyyy") : null;
                 
@@ -930,27 +965,28 @@ export function PersonalGoals({
                 }
 
                 return (
-                  <div className="space-y-5 text-left">
-                    {/* Goal Overview Card */}
+                  <div className="space-y-4 text-left relative z-10">
+                    
+                    {/* Goal Overview Card with adaptive grid rows on tiny screens */}
                     <div className="sketch-border bg-white p-4 space-y-3 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-8 h-8 pointer-events-none opacity-5">
+                      <div className="absolute top-0 right-0 w-8 h-8 pointer-events-none opacity-[0.03]">
                         <Target size={32} />
                       </div>
                       
-                      <div className="space-y-1.5">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-ink/40 bg-[#f4f1ea] border border-ink/10 px-2 py-0.5 rounded-full w-fit block">
-                          Thông tin Mục tiêu liên kết
+                      <div className="space-y-1">
+                        <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full w-fit block">
+                          MỤC TIÊU LIÊN KẾT
                         </span>
-                        <h4 className="text-lg font-bold text-ink leading-snug">
+                        <h4 className="text-base md:text-lg font-bold text-ink leading-snug">
                           {goal.title}
                         </h4>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-ink/5 font-sans text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-ink/5 font-sans text-xs">
                         <div>
-                          <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block mb-1 font-sans">Ngày bắt đầu</span>
+                          <span className="text-[8px] md:text-[9px] uppercase font-black tracking-wider text-ink/40 block mb-1">Ngày bắt đầu</span>
                           <div className="relative">
-                            <div className="bg-paper/20 sketch-border-sm p-1.5 text-[11px] font-bold text-ink/80 text-center w-full min-h-[34px] flex items-center justify-center rounded">
+                            <div className="bg-paper/30 border border-ink/10 p-2 text-[10px] md:text-xs font-bold text-ink/80 text-center w-full min-h-[34px] flex items-center justify-center rounded transition-all">
                               {goal.createdAt ? format(new Date(goal.createdAt), "dd/MM/yyyy") : "Chưa chọn"}
                             </div>
                             <input 
@@ -961,10 +997,11 @@ export function PersonalGoals({
                             />
                           </div>
                         </div>
+
                         <div>
-                          <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block mb-1 font-sans">Ngày hoàn thành</span>
+                          <span className="text-[8px] md:text-[9px] uppercase font-black tracking-wider text-ink/40 block mb-1">Ngày hoàn thành</span>
                           <div className="relative">
-                            <div className="bg-paper/20 sketch-border-sm p-1.5 text-[11px] font-bold text-emerald-700 text-center w-full min-h-[34px] flex items-center justify-center rounded">
+                            <div className="bg-emerald-50/60 border border-emerald-200 p-2 text-[10px] md:text-xs font-bold text-emerald-800 text-center w-full min-h-[34px] flex items-center justify-center rounded">
                               {completedDate || "Đã hoàn thành"}
                             </div>
                             <input 
@@ -975,26 +1012,28 @@ export function PersonalGoals({
                             />
                           </div>
                         </div>
+
                         {durationDays > 0 && (
-                          <div className="col-span-2">
-                            <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block">Thời gian thực hiện</span>
-                            <strong className="text-ink/80 font-mono text-xs">
-                              {durationDays} ngày {durationDays === 1 ? "(Hoàn thành trong ngày!) 🚀" : ""}
+                          <div className="sm:col-span-2 pt-1">
+                            <span className="text-[8px] md:text-[9px] uppercase font-black tracking-wider text-ink/40 block">Thời gian thực hiện</span>
+                            <strong className="text-amber-800 font-sans text-[11px] md:text-xs block mt-0.5">
+                              🚀 Hoàn thành xuất sắc trong {durationDays} ngày!
                             </strong>
                           </div>
                         )}
+
                         {deadlineDate && (
-                          <div className="col-span-2 space-y-1">
-                            <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block">Kế hoạch (Deadline)</span>
-                            <div className="flex items-center gap-1.5 font-sans">
-                              <strong className="text-ink/80">{deadlineDate}</strong>
+                          <div className="sm:col-span-2 pt-1 border-t border-dashed border-ink/5 space-y-0.5">
+                            <span className="text-[8px] md:text-[9px] uppercase font-black tracking-wider text-ink/40 block">Hạn chặng (Deadline)</span>
+                            <div className="flex items-center gap-2">
+                              <strong className="text-ink/80 text-[11px] md:text-xs">{deadlineDate}</strong>
                               {isOnTime ? (
-                                <span className="bg-emerald-50 text-emerald-700 text-[8px] font-bold uppercase tracking-widest border border-emerald-300 px-2 py-0.5 rounded-full">
-                                  Đúng hạn ⚡
+                                <span className="bg-emerald-50 text-emerald-700 text-[8px] font-black uppercase tracking-widest border border-emerald-300 px-2 py-0.5 rounded-full inline-block">
+                                  ĐÚNG HẠN ⚡
                                 </span>
                               ) : (
-                                <span className="bg-crimson/5 text-crimson text-[8px] font-bold uppercase tracking-widest border border-crimson/20 px-2 py-0.5 rounded-full">
-                                  Trễ hạn
+                                <span className="bg-crimson/5 text-crimson text-[8px] font-black uppercase tracking-widest border border-crimson/20 px-2 py-0.5 rounded-full inline-block">
+                                  TRỄ HẠN
                                 </span>
                               )}
                             </div>
@@ -1003,9 +1042,9 @@ export function PersonalGoals({
                       </div>
 
                       {goal.notes && (
-                        <div className="pt-2.5 border-t border-ink/5">
-                          <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block mb-1">Ghi chú mục tiêu</span>
-                          <p className="text-xs text-ink/70 italic bg-[#f4f1ea]/50 p-2.5 rounded border-l-2 border-ink/20 whitespace-pre-wrap font-sans">
+                        <div className="pt-2 border-t border-ink/5">
+                          <span className="text-[8px] md:text-[9px] uppercase font-black tracking-wider text-ink/40 block mb-0.5">Ghi chú</span>
+                          <p className="text-xs text-ink/65 italic bg-paper/20 p-2 rounded whitespace-pre-wrap font-sans leading-relaxed">
                             {goal.notes}
                           </p>
                         </div>
@@ -1013,33 +1052,33 @@ export function PersonalGoals({
                     </div>
 
                     {/* Review Section */}
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 text-[10px] font-black uppercase text-ink/50 tracking-widest" htmlFor="goal-modal-review">
-                        <FileText size={14} style={{ filter: 'url(#hand-drawn-filter)' }} /> Cảm xúc & Đánh giá (Review)
+                    <div className="space-y-1">
+                      <label className="flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-800 tracking-widest" htmlFor="goal-modal-review">
+                        <FileText size={13} style={{ filter: 'url(#hand-drawn-filter)' }} /> CHIA SẺ REVIEW HOÀN THÀNH
                       </label>
                       <textarea 
                         id="goal-modal-review"
                         value={goal.review || ""}
                         onChange={(e) => updateReview(goal.id, e.target.value)}
-                        placeholder="Hãy chia sẻ những bài học, cảm xúc hay khó khăn bạn đã vượt qua để hoàn thành mục tiêu này..."
-                        className="w-full bg-[#f4f1ea]/40 p-3.5 text-sm font-sans focus:outline-none focus:bg-white transition-all h-24 resize-none italic text-ink/85 sketch-border-sm"
+                        placeholder="Hãy ghi lại cảm xúc của bạn, bài học kinh nghiệm hay bí quyết vượt qua khó chịu..."
+                        className="w-full bg-[#fcfbfa] p-3 text-xs md:text-sm font-sans focus:outline-none focus:bg-white focus:ring-1 focus:ring-amber-500/30 transition-all h-20 resize-none italic text-ink/85 sketch-border-sm"
                       />
                     </div>
 
                     {/* Journey Timeline */}
                     {goal.journey && goal.journey.length > 0 && (
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-1.5 text-[10px] font-black uppercase text-ink/50 tracking-widest">
-                          <History size={14} style={{ filter: 'url(#hand-drawn-filter)' }} /> Các dấu mốc hành trình
+                      <div className="space-y-1.5 pt-1">
+                        <label className="flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-800 tracking-widest">
+                          <History size={13} style={{ filter: 'url(#hand-drawn-filter)' }} /> NHẬT KÝ HÀNH TRÌNH ĐỂ ĐẠT THÀNH TÍCH
                         </label>
-                        <div className="space-y-3 max-h-[150px] overflow-y-auto pr-2 scrollbar-none border-l-2 border-ink/10 pl-4 py-1">
+                        <div className="space-y-2.5 max-h-[140px] overflow-y-auto pr-1.5 border-l border-amber-300 pl-3 py-0.5 text-xs">
                           {goal.journey.map(entry => (
                             <div key={entry.id} className="space-y-0.5 font-sans relative group/modal-entry">
-                              <div className="absolute -left-[21.5px] top-1.5 w-1.5 h-1.5 rounded-full bg-crimson" />
+                              <div className="absolute -left-[16.5px] top-1.5 w-1.5 h-1.5 rounded-full bg-amber-500 ring-2 ring-white" />
                               <div className="text-[8px] font-bold text-ink/30 uppercase tracking-wider">
                                 {format(new Date(entry.timestamp), 'dd/MM/yyyy HH:mm')}
                               </div>
-                              <p className="text-xs text-ink/75 leading-relaxed">{entry.content}</p>
+                              <p className="text-xs text-ink/75 leading-relaxed font-sans">{entry.content}</p>
                             </div>
                           ))}
                         </div>
@@ -1050,7 +1089,7 @@ export function PersonalGoals({
               })()}
 
               {/* Modal Actions */}
-              <div className="pt-4 border-t-2 border-dashed border-ink/10 flex justify-end gap-3 z-30 font-sans">
+              <div className="pt-4 border-t-2 border-dashed border-ink/10 flex justify-end gap-3 font-sans relative z-10 shrink-0">
                 <button
                   onClick={() => {
                     setSelectedAchievement(null);
