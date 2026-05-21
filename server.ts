@@ -215,6 +215,41 @@ Example: ["Sử dụng 'Look forward to' khi...", "Cấu trúc 'It takes someone
     }
   });
 
+  app.post("/api/translation/define-word", async (req, res) => {
+    const { word } = req.body;
+    if (!word) {
+      return res.status(400).json({ error: "Missing word" });
+    }
+
+    try {
+      const result = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: `Analyze this English or Vietnamese word or phrase: "${word}".
+Provide its IPA pronunciation (if English), word type (must be one of: noun, verb, adj, adv, idiom, phrasal verb, phrase, sentence), a clear definition in Vietnamese, and an illustrative English sentence.
+
+Return ONLY a valid JSON object:
+{
+  "vocabulary": "${word}",
+  "wordType": "noun/verb/adj/etc.",
+  "ipa": "/.../",
+  "definition": "Định nghĩa rõ ràng, ngắn gọn bằng tiếng Việt",
+  "example": "An illustrative English sentence"
+}`,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const responseText = result.text.trim();
+      const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
+      const wordDefinition = JSON.parse(cleanJson);
+      res.json(wordDefinition);
+    } catch (error: any) {
+      console.error("Gemini Error (Define Word):", error);
+      res.status(500).json({ error: "Failed to define word" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

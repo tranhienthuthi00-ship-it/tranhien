@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Loader2, Send, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus, Trophy, Target, Calendar, Award, Volume2, Sliders, Sparkles, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Send, CheckCircle2, ChevronRight, X, Play, RotateCcw, ListChecks, FileText, Save, Library, Trash2, Edit2, Plus, Trophy, Target, Calendar, Award, Volume2, Sliders, Sparkles, BookOpen, ChevronDown, ChevronUp, AlertCircle, Sparkle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useFirebase } from "../context/FirebaseContext";
-import type { PracticeParagraph, StudyGoal, Achievement } from "../types";
+import type { PracticeParagraph, StudyGoal, Achievement, Word } from "../types";
+import { cn } from "../lib/utils";
 
 interface Sentence {
   vi: string;
@@ -13,7 +14,13 @@ interface Sentence {
   explanation?: string;
 }
 
-export function SentenceBySentencePractice() {
+export function SentenceBySentencePractice({
+  words = [],
+  setWords = () => {}
+}: {
+  words?: Word[];
+  setWords?: (words: Word[]) => void;
+}) {
   const { practiceParagraphs, setPracticeParagraphs } = useFirebase();
   const [inputText, setInputText] = useState("");
   const [referenceText, setReferenceText] = useState("");
@@ -50,6 +57,137 @@ export function SentenceBySentencePractice() {
   const [showFullTranscript, setShowFullTranscript] = useState(true);
   const [editingHintIndex, setEditingHintIndex] = useState<number | null>(null);
   const [tempHintText, setTempHintText] = useState("");
+  const [activeTab, setActiveTab] = useState<'practice' | 'transcript'>('practice');
+
+  // Word selection and highlight popover state
+  const [selectedText, setSelectedText] = useState("");
+  const [selectionRect, setSelectionRect] = useState<{ x: number; y: number } | null>(null);
+  const [isDefiningWord, setIsDefiningWord] = useState(false);
+  const [definedWordResult, setDefinedWordResult] = useState<any | null>(null);
+  const [showQuickAddDialog, setShowQuickAddDialog] = useState(false);
+
+  // Editable fields for Quick Add
+  const [quickWord, setQuickWord] = useState("");
+  const [quickType, setQuickType] = useState("noun");
+  const [quickIpa, setQuickIpa] = useState("");
+  const [quickDefinition, setQuickDefinition] = useState("");
+  const [quickExample, setQuickExample] = useState("");
+
+  // Sync API results to editor
+  useEffect(() => {
+    if (definedWordResult) {
+      setQuickWord(definedWordResult.vocabulary || "");
+      setQuickType(definedWordResult.wordType || "noun");
+      setQuickIpa(definedWordResult.ipa || "");
+      setQuickDefinition(definedWordResult.definition || "");
+      setQuickExample(definedWordResult.example || "");
+    }
+  }, [definedWordResult]);
+
+  // Handle text selection events
+  useEffect(() => {
+    const handleMouseUp = () => {
+      const selection = window.getSelection();
+      if (!selection) return;
+
+      const text = selection.toString().trim();
+      // Only process English/Vietnamese highlighted phrase/sentence segment with max 60 chars
+      if (text && text.length > 0 && text.length < 60 && /[a-zA-Z\u00C0-\u1EF9]/g.test(text)) {
+        try {
+          const range = selection.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+          const container = document.getElementById("sentence-by-sentence-practice-container");
+          const containerRect = container?.getBoundingClientRect();
+
+          if (containerRect && rect.width > 0) {
+            setSelectedText(text);
+            // Position above the selection center relative to practice card
+            setSelectionRect({
+              x: rect.left - containerRect.left + rect.width / 2,
+              y: rect.top - containerRect.top - 45
+            });
+          }
+        } catch (e) {
+          // Range rect exception safe
+        }
+      } else {
+        // Delay to let button click trigger before hiding
+        setTimeout(() => {
+          const sel = window.getSelection();
+          if (!sel || !sel.toString().trim()) {
+            setSelectedText("");
+            setSelectionRect(null);
+          }
+        }, 120);
+      }
+    };
+
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  const handleAddNewHighlightedWord = async () => {
+    if (!selectedText) return;
+    setIsDefiningWord(true);
+    setDefinedWordResult(null);
+    setShowQuickAddDialog(true);
+
+    try {
+      const response = await fetch("/api/translation/define-word", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word: selectedText })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDefinedWordResult(data);
+      } else {
+        setDefinedWordResult({
+          vocabulary: selectedText,
+          wordType: "noun",
+          ipa: "",
+          definition: "",
+          example: ""
+        });
+      }
+    } catch (e) {
+      setDefinedWordResult({
+        vocabulary: selectedText,
+        wordType: "noun",
+        ipa: "",
+        definition: "",
+        example: ""
+      });
+    } finally {
+      setIsDefiningWord(false);
+      setSelectedText("");
+      setSelectionRect(null);
+      window.getSelection()?.removeAllRanges();
+    }
+  };
+
+  const handleSaveQuickWord = () => {
+    if (!quickWord.trim() || !quickDefinition.trim()) return;
+
+    const newWord: Word = {
+      id: Date.now().toString(),
+      vocabulary: quickWord,
+      wordType: quickType,
+      ipa: quickIpa,
+      definition: quickDefinition,
+      examples: quickExample ? [quickExample] : [],
+      tags: ["Translation"],
+      difficulty: 0,
+      lastReviewed: new Date().toISOString(),
+      nextReview: new Date(Date.now() + 86400000).toISOString(),
+    };
+
+    setWords([newWord, ...words]);
+    setShowQuickAddDialog(false);
+    setDefinedWordResult(null);
+  };
 
   // Load voices
   useEffect(() => {
@@ -203,6 +341,7 @@ export function SentenceBySentencePractice() {
     setSessionMistakes(0);
     setEvaluation(null);
     setShowHint(false);
+    setActiveTab('practice');
   };
 
   const handleSave = async () => {
@@ -418,6 +557,7 @@ export function SentenceBySentencePractice() {
     setShowHint(false);
     setShowSummary(false);
     setSentences(sentences.map(s => ({ ...s, status: 'pending' as const })));
+    setActiveTab('practice');
   };
 
   const reset = () => {
@@ -430,6 +570,7 @@ export function SentenceBySentencePractice() {
     setTotalMistakes(0);
     setEvaluation(null);
     setShowSummary(false);
+    setActiveTab('practice');
   };
 
   if (!isPracticing) {
@@ -714,7 +855,7 @@ export function SentenceBySentencePractice() {
   const progress = ((currentIndex) / sentences.length) * 100;
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-2 md:p-6 animate-in fade-in duration-500">
+    <div id="sentence-by-sentence-practice-container" className="w-full max-w-4xl mx-auto p-2 md:p-6 animate-in fade-in duration-500 relative">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
         <div className="flex items-center gap-4">
           <button 
@@ -864,387 +1005,437 @@ export function SentenceBySentencePractice() {
           </span>
         </div>
       </div>
+      <div className="flex items-center gap-1.5 mb-6 border-b border-ink/10 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('practice')}
+          className={cn(
+            "px-4 py-2 text-xs font-black uppercase tracking-widest transition-all rounded-lg flex items-center gap-2 border cursor-pointer",
+            activeTab === 'practice'
+              ? "bg-ink text-[#fcfbf9] border-ink shadow-sm scale-102"
+              : "bg-white text-ink/60 border-ink/10 hover:bg-ink/5"
+          )}
+          id="practice-tab-button"
+        >
+          <Target className="w-3.5 h-3.5" />
+          Practice (Làm bài)
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('transcript')}
+          className={cn(
+            "px-4 py-2 text-xs font-black uppercase tracking-widest transition-all rounded-lg flex items-center gap-2 border cursor-pointer",
+            activeTab === 'transcript'
+              ? "bg-ink text-[#fcfbf9] border-ink shadow-sm scale-102"
+              : "bg-white text-ink/60 border-ink/10 hover:bg-ink/5"
+          )}
+          id="transcript-tab-button"
+        >
+          <BookOpen className="w-3.5 h-3.5" />
+          Full Transcript (Bản dịch toàn bộ)
+        </button>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Progress sidebar */}
-        <div className="lg:col-span-3 space-y-2 hidden lg:block">
-           <div className="grid grid-cols-1 gap-1.5 max-h-[500px] overflow-y-auto scrollbar-none">
-            {sentences.map((s, i) => (
-              <div 
-                key={i} 
-                className={`p-2 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${i === currentIndex ? "bg-white sketch-border-sm ring-1 ring-ink/10" : s.status === 'correct' ? "text-emerald-500/60 bg-emerald-50/20" : s.status === 'failed' ? "text-crimson/60 bg-crimson/10" : "text-ink/10"}`}
-              >
-                <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[8px] ${i === currentIndex ? "bg-ink text-white" : s.status === 'correct' ? "bg-emerald-500 text-white" : s.status === 'failed' ? "bg-crimson text-white" : "bg-ink/5"}`}>
-                  {i + 1}
-                </div>
-                <p className="truncate">{s.vi}</p>
-                {s.status === 'correct' && <CheckCircle2 className="w-3 h-3 ml-auto text-emerald-500" />}
-                {s.status === 'failed' && <X className="w-3 h-3 ml-auto text-crimson" />}
+      <AnimatePresence mode="wait">
+        {activeTab === 'practice' ? (
+          <motion.div
+            key="practice-sub-view"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
+          >
+            {/* Progress sidebar */}
+            <div className="lg:col-span-3 space-y-2 hidden lg:block">
+               <div className="grid grid-cols-1 gap-1.5 max-h-[500px] overflow-y-auto scrollbar-none">
+                {sentences.map((s, i) => (
+                  <div 
+                    key={i} 
+                    className={`p-2 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${i === currentIndex ? "bg-white sketch-border-sm ring-1 ring-ink/10" : s.status === 'correct' ? "text-emerald-500/60 bg-emerald-50/20" : s.status === 'failed' ? "text-crimson/60 bg-crimson/10" : "text-ink/10"}`}
+                  >
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[8px] ${i === currentIndex ? "bg-ink text-white" : s.status === 'correct' ? "bg-emerald-500 text-white" : s.status === 'failed' ? "bg-crimson text-white" : "bg-ink/5"}`}>
+                      {i + 1}
+                    </div>
+                    <p className="truncate">{s.vi}</p>
+                    {s.status === 'correct' && <CheckCircle2 className="w-3 h-3 ml-auto text-emerald-500" />}
+                    {s.status === 'failed' && <X className="w-3 h-3 ml-auto text-crimson" />}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        <div className="lg:col-span-9 space-y-4">
-          <div className="sketch-border bg-white p-4 md:p-6 space-y-6 shadow-xl relative overflow-hidden">
-             <div className="space-y-4">
-               <div className="flex items-center justify-between">
-                 <span className="text-[9px] font-black uppercase text-crimson tracking-widest">Đang dịch câu:</span>
-                 {sentences[currentIndex]?.en && (
-                   <div className="flex items-center gap-3">
-                     {showHint && (
-                       <button 
-                         onClick={() => {
-                           if (!isEditingHint) {
-                             setTempHint(currentSentence.hint || "");
-                           }
-                           setIsEditingHint(!isEditingHint);
-                         }}
-                         className="text-[9px] font-black uppercase text-ink/40 hover:text-ink tracking-widest flex items-center gap-1 transition-colors"
-                       >
-                         <Edit2 size={12} />
-                         {isEditingHint ? "Hủy sửa" : "Sửa gợi ý"}
-                       </button>
-                     )}
-                     <button 
-                       onClick={() => {
-                         setShowHint(!showHint);
-                         if (showHint) setIsEditingHint(false);
-                       }}
-                       className="text-[9px] font-black uppercase text-ink/40 hover:text-ink tracking-widest flex items-center gap-1.5 transition-colors"
-                     >
-                       <ListChecks className="w-3 h-3" />
-                       {showHint ? "Ẩn gợi ý" : "Xem gợi ý"}
-                     </button>
-                   </div>
-                 )}
-               </div>
-               
-               <p className="text-lg md:text-xl font-sans font-bold leading-relaxed text-ink">
-                 "{currentSentence.vi}"
-               </p>
- 
-               {showHint && (
-                 <motion.div 
-                  initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-                  className="bg-paper/50 p-4 rounded-lg border border-dashed border-ink/10"
-                 >
-                   <div className="flex items-start justify-between mb-2">
-                     <div className="flex items-start gap-2">
-                       <ListChecks className="w-3 h-3 text-crimson mt-0.5 shrink-0" />
-                       <h5 className="text-[10px] font-black uppercase tracking-widest text-ink/60">Gợi ý cấu trúc & từ vựng</h5>
-                     </div>
-                     {isEditingHint && (
-                       <button 
-                         onClick={handleSaveHint}
-                         className="text-[9px] font-black uppercase text-emerald-600 hover:text-emerald-700 tracking-widest flex items-center gap-1"
-                       >
-                         Lưu lại
-                       </button>
+            <div className="lg:col-span-9 space-y-4">
+              <div className="sketch-border bg-white p-4 md:p-6 space-y-6 shadow-xl relative overflow-hidden">
+                 <div className="space-y-4">
+                   <div className="flex items-center justify-between">
+                     <span className="text-[9px] font-black uppercase text-crimson tracking-widest">Đang dịch câu:</span>
+                     {sentences[currentIndex]?.en && (
+                       <div className="flex items-center gap-3">
+                         {showHint && (
+                           <button 
+                             onClick={() => {
+                               if (!isEditingHint) {
+                                 setTempHint(currentSentence.hint || "");
+                               }
+                               setIsEditingHint(!isEditingHint);
+                             }}
+                             className="text-[9px] font-black uppercase text-ink/40 hover:text-ink tracking-widest flex items-center gap-1 transition-colors"
+                           >
+                             <Edit2 size={12} />
+                             {isEditingHint ? "Hủy sửa" : "Sửa gợi ý"}
+                           </button>
+                         )}
+                         <button 
+                           onClick={() => {
+                             setShowHint(!showHint);
+                             if (showHint) setIsEditingHint(false);
+                           }}
+                           className="text-[9px] font-black uppercase text-ink/40 hover:text-ink tracking-widest flex items-center gap-1.5 transition-colors"
+                         >
+                           <ListChecks className="w-3 h-3" />
+                           {showHint ? "Ẩn gợi ý" : "Xem gợi ý"}
+                         </button>
+                       </div>
                      )}
                    </div>
                    
-                   {isEditingHint ? (
-                     <textarea
-                       value={tempHint}
-                       onChange={(e) => setTempHint(e.target.value)}
-                       className="w-full h-24 bg-white/50 sketch-border-sm p-3 text-[11px] font-sans focus:outline-none resize-none"
-                       placeholder="Nhập gợi ý mới (Mỗi dòng một ý)..."
-                       autoFocus
-                     />
-                   ) : (
-                     <ul className="space-y-1.5">
-                       {currentSentence.hint ? currentSentence.hint.split('\n').filter(h => h.trim()).map((hint, i) => (
-                         <li key={i} className="text-[11px] font-sans text-ink/70 leading-relaxed flex items-start gap-2">
-                           <span className="w-1 h-1 rounded-full bg-ink/20 mt-1.5 shrink-0" />
-                           {hint}
-                         </li>
-                       )) : (
-                         <li className="text-[11px] font-sans text-ink/40 italic">Không có gợi ý cho câu này.</li>
+                   <p className="text-lg md:text-xl font-sans font-bold leading-relaxed text-ink">
+                     "{currentSentence.vi}"
+                   </p>
+     
+                   {showHint && (
+                     <motion.div 
+                      initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+                      className="bg-paper/50 p-4 rounded-lg border border-dashed border-ink/10"
+                     >
+                       <div className="flex items-start justify-between mb-2">
+                         <div className="flex items-start gap-2">
+                           <ListChecks className="w-3 h-3 text-crimson mt-0.5 shrink-0" />
+                           <h5 className="text-[10px] font-black uppercase tracking-widest text-ink/60">Gợi ý cấu trúc & từ vựng</h5>
+                         </div>
+                         {isEditingHint && (
+                           <button 
+                             onClick={handleSaveHint}
+                             className="text-[9px] font-black uppercase text-emerald-600 hover:text-emerald-700 tracking-widest flex items-center gap-1"
+                           >
+                             Lưu lại
+                           </button>
+                         )}
+                       </div>
+                       
+                       {isEditingHint ? (
+                         <textarea
+                           value={tempHint}
+                           onChange={(e) => setTempHint(e.target.value)}
+                           className="w-full h-24 bg-white/50 sketch-border-sm p-3 text-[11px] font-sans focus:outline-none resize-none"
+                           placeholder="Nhập gợi ý mới (Mỗi dòng một ý)..."
+                           autoFocus
+                         />
+                       ) : (
+                         <ul className="space-y-1.5">
+                           {currentSentence.hint ? currentSentence.hint.split('\n').filter(h => h.trim()).map((hint, i) => (
+                             <li key={i} className="text-[11px] font-sans text-ink/70 leading-relaxed flex items-start gap-2">
+                               <span className="w-1 h-1 rounded-full bg-ink/20 mt-1.5 shrink-0" />
+                               {hint}
+                             </li>
+                           )) : (
+                             <li className="text-[11px] font-sans text-ink/40 italic">Không có gợi ý cho câu này.</li>
+                           )}
+                         </ul>
                        )}
-                     </ul>
+                     </motion.div>
                    )}
-                 </motion.div>
-               )}
-             </div>
+                 </div>
 
-              <div className="space-y-4 pt-4 border-t border-ink/5">
-                <div className="flex items-center justify-between">
-                  <label className="text-[9px] font-black uppercase text-ink/40 tracking-widest block">Gõ lại bản dịch (Sai sẽ hiện màu đỏ):</label>
-                  <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-ink/30">
-                    <span className="text-crimson">Lỗi: {sessionMistakes}</span>
-                  </div>
-                </div>
-                
-                <div className="relative group min-h-[100px] flex items-center bg-paper/20 rounded-xl overflow-hidden border-2 border-transparent focus-within:border-ink/5 transition-all">
-                  <div className="w-full min-h-[100px] p-4 font-sans text-xl md:text-2xl font-bold leading-relaxed whitespace-pre-wrap pointer-events-none break-words">
-                    {typingStatus.map((item, idx) => (
-                      <span key={idx} className={item.isMatch ? "text-ink" : "text-crimson bg-crimson/10"}>
-                        {item.char}
-                      </span>
-                    ))}
-                    {!userInput && <span className="text-ink/10 italic text-sm font-medium">Bắt đầu nhập tại đây...</span>}
-                    <motion.span 
-                      animate={{ opacity: [1, 0] }}
-                      transition={{ duration: 0.8, repeat: Infinity }}
-                      className="inline-block w-0.5 h-6 bg-crimson ml-0.5 align-middle" 
-                    />
-                  </div>
-
-                  <textarea
-                    ref={inputRef}
-                    autoFocus
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-text resize-none"
-                    disabled={isVerifying || evaluation?.isCorrect}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Shift') {
-                        isShiftCombination.current = false;
-                      } else if (e.shiftKey) {
-                        isShiftCombination.current = true;
-                      }
-                      if (e.key === 'Enter' && !e.shiftKey && !evaluation?.isCorrect) {
-                        e.preventDefault();
-                        handleVerify();
-                      }
-                    }}
-                    onKeyUp={(e) => {
-                      if (e.key === 'Shift' && !isShiftCombination.current) {
-                        e.preventDefault();
-                        setShowHint(prev => {
-                          if (prev) setIsEditingHint(false);
-                          return !prev;
-                        });
-                      }
-                    }}
-                  />
-                  
-                  {!evaluation?.isCorrect && (
-                    <button
-                      onClick={handleVerify}
-                      disabled={isVerifying || !userInput.trim()}
-                      className="absolute right-2 bottom-2 md:right-4 md:bottom-4 bg-ink text-white p-2.5 rounded-full shadow-lg hover:scale-110 disabled:opacity-0 transition-all z-10"
-                    >
-                      {isVerifying ? <Loader2 className="animate-spin w-4 h-4" /> : <Send className="w-4 h-4" />}
-                    </button>
-                  )}
-                </div>
-             </div>
-
-             <AnimatePresence mode="wait">
-               {evaluation && (
-                 <motion.div
-                   initial={{ opacity: 0, height: 0 }}
-                   animate={{ opacity: 1, height: "auto" }}
-                   exit={{ opacity: 0, height: 0 }}
-                   className="pt-2"
-                 >
-                   <div className={`p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 ${evaluation.isCorrect ? "bg-emerald-50 border border-emerald-500/20" : "bg-crimson/5 border border-crimson/20"}`}>
-                      <div className="flex items-center gap-3 w-full">
-                        {evaluation.isCorrect ? <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> : <X className="w-5 h-5 text-crimson shrink-0" />}
-                        <div className="space-y-0.5">
-                          <p className={`text-[11px] font-bold ${evaluation.isCorrect ? "text-emerald-900" : "text-crimson"}`}>
-                             {evaluation.explanation}
-                          </p>
-                          {evaluation.accuracy !== undefined && (
-                            <p className="text-[9px] font-black uppercase text-ink/30 tracking-tight">
-                              Độ chính xác: {evaluation.accuracy}% | Lỗi: {sessionMistakes}
-                            </p>
-                          )}
-                        </div>
+                  <div className="space-y-4 pt-4 border-t border-ink/5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[9px] font-black uppercase text-ink/40 tracking-widest block">Gõ lại bản dịch (Sai sẽ hiện màu đỏ):</label>
+                      <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-ink/30">
+                        <span className="text-crimson">Lỗi: {sessionMistakes}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="relative group min-h-[100px] flex items-center bg-paper/20 rounded-xl overflow-hidden border-2 border-transparent focus-within:border-ink/5 transition-all">
+                      <div className="w-full min-h-[100px] p-4 font-sans text-xl md:text-2xl font-bold leading-relaxed whitespace-pre-wrap pointer-events-none break-words">
+                        {typingStatus.map((item, idx) => (
+                          <span key={idx} className={item.isMatch ? "text-ink" : "text-crimson bg-crimson/10"}>
+                            {item.char}
+                          </span>
+                        ))}
+                        {!userInput && <span className="text-ink/10 italic text-sm font-medium">Bắt đầu nhập tại đây...</span>}
+                        <motion.span 
+                          animate={{ opacity: [1, 0] }}
+                          transition={{ duration: 0.8, repeat: Infinity }}
+                          className="inline-block w-0.5 h-6 bg-crimson ml-0.5 align-middle" 
+                        />
                       </div>
 
-                      <div className="flex items-center gap-3 w-full md:w-auto">
-                        <button 
-                          onClick={() => speak(currentSentence.en || "")}
-                          className="p-2 rounded-full hover:bg-black/5 text-ink/40 hover:text-ink transition-colors"
-                          title="Nghe lại"
+                      <textarea
+                        ref={inputRef}
+                        autoFocus
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-text resize-none"
+                        disabled={isVerifying || evaluation?.isCorrect}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Shift') {
+                            isShiftCombination.current = false;
+                          } else if (e.shiftKey) {
+                            isShiftCombination.current = true;
+                          }
+                          if (e.key === 'Enter' && !e.shiftKey && !evaluation?.isCorrect) {
+                            e.preventDefault();
+                            handleVerify();
+                          }
+                        }}
+                        onKeyUp={(e) => {
+                          if (e.key === 'Shift' && !isShiftCombination.current) {
+                            e.preventDefault();
+                            setShowHint(prev => {
+                              if (prev) setIsEditingHint(false);
+                              return !prev;
+                            });
+                          }
+                        }}
+                      />
+                      
+                      {!evaluation?.isCorrect && (
+                        <button
+                          onClick={handleVerify}
+                          disabled={isVerifying || !userInput.trim()}
+                          className="absolute right-2 bottom-2 md:right-4 md:bottom-4 bg-ink text-white p-2.5 rounded-full shadow-lg hover:scale-110 disabled:opacity-0 transition-all z-10"
                         >
-                          <Volume2 size={16} />
+                          {isVerifying ? <Loader2 className="animate-spin w-4 h-4" /> : <Send className="w-4 h-4" />}
                         </button>
-                        {currentIndex === sentences.length - 1 && evaluation.isCorrect && (
-                          <div className="flex items-center gap-2">
-                            {!editingId && (
+                      )}
+                    </div>
+                 </div>
+
+                 <AnimatePresence mode="wait">
+                   {evaluation && (
+                     <motion.div
+                       initial={{ opacity: 0, height: 0 }}
+                       animate={{ opacity: 1, height: "auto" }}
+                       exit={{ opacity: 0, height: 0 }}
+                       className="pt-2"
+                     >
+                       <div className={`p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 ${evaluation.isCorrect ? "bg-emerald-50 border border-emerald-500/20" : "bg-crimson/5 border border-crimson/20"}`}>
+                          <div className="flex items-center gap-3 w-full">
+                            {evaluation.isCorrect ? <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> : <X className="w-5 h-5 text-crimson shrink-0" />}
+                            <div className="space-y-0.5">
+                              <p className={`text-[11px] font-bold ${evaluation.isCorrect ? "text-emerald-900" : "text-crimson"}`}>
+                                 {evaluation.explanation}
+                              </p>
+                              {evaluation.accuracy !== undefined && (
+                                <p className="text-[9px] font-black uppercase text-ink/30 tracking-tight">
+                                  Độ chính xác: {evaluation.accuracy}% | Lỗi: {sessionMistakes}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 w-full md:w-auto">
+                            <button 
+                              onClick={() => speak(currentSentence.en || "")}
+                              className="p-2 rounded-full hover:bg-black/5 text-ink/40 hover:text-ink transition-colors"
+                              title="Nghe lại"
+                            >
+                              <Volume2 size={16} />
+                            </button>
+                            {currentIndex === sentences.length - 1 && evaluation.isCorrect && (
+                              <div className="flex items-center gap-2">
+                                {!editingId && (
+                                  <button 
+                                    onClick={handleSave}
+                                    className="text-[9px] font-black uppercase text-emerald-600 hover:text-emerald-800 flex items-center gap-1 px-3 py-2 bg-emerald-50 rounded-lg transition-colors"
+                                  >
+                                    <Save size={12} /> Lưu vào thư viện
+                                  </button>
+                                )}
+                                <button 
+                                  onClick={restartCurrent}
+                                  className="text-[9px] font-black uppercase text-ink/60 hover:text-ink underline tracking-widest px-4 py-2"
+                                >
+                                  Làm lại
+                                </button>
+                              </div>
+                            )}
+                            {!evaluation.isCorrect && (
                               <button 
-                                onClick={handleSave}
-                                className="text-[9px] font-black uppercase text-emerald-600 hover:text-emerald-800 flex items-center gap-1 px-3 py-2 bg-emerald-50 rounded-lg transition-colors"
+                                onClick={() => { setUserInput(""); setSessionMistakes(0); setEvaluation(null); }}
+                                className="flex-1 md:flex-none text-[9px] font-black uppercase text-crimson underline tracking-widest px-4 py-2"
                               >
-                                <Save size={12} /> Lưu vào thư viện
+                                Thử lại
                               </button>
                             )}
                             <button 
-                              onClick={restartCurrent}
-                              className="text-[9px] font-black uppercase text-ink/60 hover:text-ink underline tracking-widest px-4 py-2"
+                              onClick={() => nextSentence()}
+                              className={`flex-2 md:flex-none sketch-button py-2 px-6 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 whitespace-nowrap transition-all ${evaluation.isCorrect ? "bg-ink text-white" : "bg-paper text-ink"}`}
                             >
-                              Làm lại
+                              {currentIndex < sentences.length - 1 ? (evaluation.isCorrect ? "Kế tiếp" : "Bỏ qua & Tiếp") : "Xem kết quả"} <ChevronRight className="w-4 h-4" />
                             </button>
                           </div>
-                        )}
-                        {!evaluation.isCorrect && (
-                          <button 
-                            onClick={() => { setUserInput(""); setSessionMistakes(0); setEvaluation(null); }}
-                            className="flex-1 md:flex-none text-[9px] font-black uppercase text-crimson underline tracking-widest px-4 py-2"
-                          >
-                            Thử lại
-                          </button>
-                        )}
-                        <button 
-                          onClick={() => nextSentence()}
-                          className={`flex-2 md:flex-none sketch-button py-2 px-6 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 whitespace-nowrap transition-all ${evaluation.isCorrect ? "bg-ink text-white" : "bg-paper text-ink"}`}
-                        >
-                          {currentIndex < sentences.length - 1 ? (evaluation.isCorrect ? "Kế tiếp" : "Bỏ qua & Tiếp") : "Xem kết quả"} <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                   </div>
-                 </motion.div>
-               )}
-             </AnimatePresence>
-          </div>
-        </div>
-      </div>
-
-      {/* Full Transcript Section */}
-      <div className="mt-8 sketch-border bg-white/80 p-4 md:p-6 space-y-4 shadow-xl relative overflow-hidden" id="full-transcript-section">
-        <div className="flex items-center justify-between border-b-2 border-ink/5 pb-3">
-          <div className="flex items-center gap-2.5">
-            <BookOpen className="w-5 h-5 text-crimson" style={{ filter: 'url(#hand-drawn-filter)' }} />
-            <div>
-              <h3 className="text-sm font-black uppercase tracking-tight">Bài đọc toàn bộ (Full Transcript)</h3>
-              <p className="text-[9px] font-bold text-ink/40 uppercase tracking-widest mt-0.5">Tiếng Việt phía trên • Tiếng Anh phía dưới • Sửa gợi ý trực quan</p>
-            </div>
-          </div>
-          <button 
-            type="button"
-            onClick={() => setShowFullTranscript(!showFullTranscript)}
-            className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-ink/50 hover:text-ink transition-colors px-2 py-1 bg-paper rounded-lg"
-          >
-            {showFullTranscript ? (
-              <>Thu gọn <ChevronUp size={12} /></>
-            ) : (
-              <>Hiển thị <ChevronDown size={12} /></>
-            )}
-          </button>
-        </div>
-
-        <AnimatePresence>
-          {showFullTranscript && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="space-y-4 pt-1 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar"
-            >
-              <div className="grid grid-cols-1 gap-4">
-                {sentences.map((s, idx) => {
-                  const isCurrent = idx === currentIndex;
-                  return (
-                    <div 
-                      key={idx} 
-                      className={`p-4 rounded-xl border transition-all duration-300 relative overflow-hidden ${
-                        isCurrent 
-                          ? "border-crimson bg-crimson/5 shadow-md ring-2 ring-crimson/10" 
-                          : "border-ink/5 bg-paper/20 hover:bg-paper/40"
-                      }`}
-                    >
-                      {/* Badge and action row */}
-                      <div className="flex items-center justify-between mb-3 text-[10px]">
-                        <span className={`font-black uppercase tracking-wider px-2 py-0.5 rounded ${
-                          isCurrent ? "bg-crimson text-white animate-pulse" : "bg-ink/5 text-ink/40"
-                        }`}>
-                          Câu {idx + 1} {isCurrent && "⚡ Đang luyện tập"}
-                        </span>
-
-                        {editingHintIndex === idx ? (
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleSaveHintAtIndex(idx)}
-                              className="text-[9px] font-black uppercase text-emerald-600 hover:text-emerald-700 tracking-widest flex items-center gap-1 transition-colors"
-                              id={`save-hint-btn-${idx}`}
-                            >
-                              <Save size={11} /> Lưu lại
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingHintIndex(null)}
-                              className="text-[9px] font-black uppercase text-ink/40 hover:text-crimson tracking-widest flex items-center gap-1 transition-colors"
-                              id={`cancel-hint-btn-${idx}`}
-                            >
-                              <X size={11} /> Huỷ
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingHintIndex(idx);
-                              setTempHintText(s.hint || "");
-                            }}
-                            className="text-[9px] font-black uppercase text-crimson hover:underline tracking-widest flex items-center gap-1.5 transition-colors"
-                            title="Sửa gợi ý từ vựng cho câu này"
-                            id={`edit-hint-btn-${idx}`}
-                          >
-                            <Edit2 size={11} className="stroke-[2.5]" /> Sửa gợi ý
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Bilingual box */}
-                      <div className="space-y-3">
-                        {/* Vietnamese sentence on top */}
-                        <div className="space-y-0.5">
-                          <span className="text-[8px] font-sans font-black text-ink/30 uppercase tracking-widest block">Tiếng Việt</span>
-                          <p className="text-sm font-sans font-bold leading-relaxed text-ink">
-                            {s.vi}
-                          </p>
-                        </div>
-
-                        {/* English sentence below */}
-                        <div className="space-y-0.5 pt-2 border-t border-dashed border-ink/5">
-                          <span className="text-[8px] font-sans font-black text-teal-600 uppercase tracking-widest block">English (Bản dịch mẫu)</span>
-                          <p className="text-sm font-sans font-black leading-relaxed text-teal-800 font-mono">
-                            {s.en || <span className="text-ink/20 italic font-sans font-medium">Chưa có bản dịch</span>}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Suggestions list / editor */}
-                      <div className="mt-3 pt-3 border-t border-ink/5">
-                        <span className="text-[8px] font-black uppercase text-ink/40 tracking-widest block mb-1">Gợi ý từ vựng & cấu trúc</span>
-                        {editingHintIndex === idx ? (
-                          <textarea
-                            value={tempHintText}
-                            onChange={(e) => setTempHintText(e.target.value)}
-                            className="w-full h-20 bg-white sketch-border-sm p-3 text-xs font-sans focus:outline-none resize-none border border-ink/10"
-                            placeholder="Nhập gợi ý mới (Mỗi dòng một ý)..."
-                            autoFocus
-                          />
-                        ) : (
-                          <div className="bg-[#fcfbf9]/60 p-2.5 rounded-lg border border-dashed border-ink/5 flex flex-col">
-                            {s.hint ? (
-                              <ul className="space-y-1">
-                                {s.hint.split('\n').filter(h => h.trim()).map((hintLine, hIdx) => (
-                                  <li key={hIdx} className="text-[11px] font-sans text-ink/70 flex items-start gap-1.5 leading-relaxed">
-                                    <span className="w-1 h-1 rounded-full bg-ink/20 mt-1.5 shrink-0" />
-                                    <span>{hintLine}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="text-[10px] font-sans text-ink/30 italic">Chưa có gợi ý nào cho câu này. Hãy bấm "Sửa gợi ý" để bổ sung!</p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                       </div>
+                     </motion.div>
+                   )}
+                 </AnimatePresence>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="transcript-sub-view"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="w-full"
+          >
+            {/* Full Transcript Section */}
+            <div className="sketch-border bg-white/80 p-4 md:p-6 space-y-4 shadow-xl relative overflow-hidden" id="full-transcript-section">
+              <div className="flex items-center justify-between border-b-2 border-ink/5 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <BookOpen className="w-5 h-5 text-crimson" style={{ filter: 'url(#hand-drawn-filter)' }} />
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-tight">Bài đọc toàn bộ (Full Transcript)</h3>
+                    <p className="text-[9px] font-bold text-ink/40 uppercase tracking-widest mt-0.5">Tiếng Việt phía trên • Tiếng Anh phía dưới • Sửa gợi ý trực quan</p>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setShowFullTranscript(!showFullTranscript)}
+                  className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-ink/50 hover:text-ink transition-colors px-2 py-1 bg-paper rounded-lg"
+                >
+                  {showFullTranscript ? (
+                    <>Thu gọn <ChevronUp size={12} /></>
+                  ) : (
+                    <>Hiển thị <ChevronDown size={12} /></>
+                  )}
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {showFullTranscript && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-4 pt-1 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar"
+                  >
+                    <div className="grid grid-cols-1 gap-4">
+                      {sentences.map((s, idx) => {
+                        const isCurrent = idx === currentIndex;
+                        return (
+                          <div 
+                            key={idx} 
+                            className={`p-4 rounded-xl border transition-all duration-300 relative overflow-hidden ${
+                              isCurrent 
+                                ? "border-crimson bg-crimson/5 shadow-md ring-2 ring-crimson/10" 
+                                : "border-ink/5 bg-paper/20 hover:bg-paper/40"
+                            }`}
+                          >
+                            {/* Badge and action row */}
+                            <div className="flex items-center justify-between mb-3 text-[10px]">
+                              <span className={`font-black uppercase tracking-wider px-2 py-0.5 rounded ${
+                                isCurrent ? "bg-crimson text-white animate-pulse" : "bg-ink/5 text-ink/40"
+                              }`}>
+                                Câu {idx + 1} {isCurrent && "⚡ Đang luyện tập"}
+                              </span>
+
+                              {editingHintIndex === idx ? (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveHintAtIndex(idx)}
+                                    className="text-[9px] font-black uppercase text-emerald-600 hover:text-emerald-700 tracking-widest flex items-center gap-1 transition-colors"
+                                    id={`save-hint-btn-${idx}`}
+                                  >
+                                    <Save size={11} /> Lưu lại
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingHintIndex(null)}
+                                    className="text-[9px] font-black uppercase text-ink/40 hover:text-crimson tracking-widest flex items-center gap-1 transition-colors"
+                                    id={`cancel-hint-btn-${idx}`}
+                                  >
+                                    <X size={11} /> Huỷ
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingHintIndex(idx);
+                                    setTempHintText(s.hint || "");
+                                  }}
+                                  className="text-[9px] font-black uppercase text-crimson hover:underline tracking-widest flex items-center gap-1.5 transition-colors"
+                                  title="Sửa gợi ý từ vựng cho câu này"
+                                  id={`edit-hint-btn-${idx}`}
+                                >
+                                  <Edit2 size={11} className="stroke-[2.5]" /> Sửa gợi ý
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Bilingual box */}
+                            <div className="space-y-3">
+                              {/* Vietnamese sentence on top */}
+                              <div className="space-y-0.5">
+                                <span className="text-[8px] font-sans font-black text-ink/30 uppercase tracking-widest block">Tiếng Việt</span>
+                                <p className="text-sm font-sans font-bold leading-relaxed text-ink">
+                                  {s.vi}
+                                </p>
+                              </div>
+
+                              {/* English sentence below */}
+                              <div className="space-y-0.5 pt-2 border-t border-dashed border-ink/5">
+                                <span className="text-[8px] font-sans font-black text-teal-600 uppercase tracking-widest block">English (Bản dịch mẫu)</span>
+                                <p className="text-sm font-sans font-black leading-relaxed text-teal-800 font-mono">
+                                  {s.en || <span className="text-ink/20 italic font-sans font-medium">Chưa có bản dịch</span>}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Suggestions list / editor */}
+                            <div className="mt-3 pt-3 border-t border-ink/5">
+                              <span className="text-[8px] font-black uppercase text-ink/40 tracking-widest block mb-1">Gợi ý từ vựng & cấu trúc</span>
+                              {editingHintIndex === idx ? (
+                                <textarea
+                                  value={tempHintText}
+                                  onChange={(e) => setTempHintText(e.target.value)}
+                                  className="w-full h-20 bg-white sketch-border-sm p-3 text-xs font-sans focus:outline-none resize-none border border-ink/10"
+                                  placeholder="Nhập gợi ý mới (Mỗi dòng một ý)..."
+                                  autoFocus
+                                />
+                              ) : (
+                                <div className="bg-[#fcfbf9]/60 p-2.5 rounded-lg border border-dashed border-ink/5 flex flex-col">
+                                  {s.hint ? (
+                                    <ul className="space-y-1">
+                                      {s.hint.split('\n').filter(h => h.trim()).map((hintLine, hIdx) => (
+                                        <li key={hIdx} className="text-[11px] font-sans text-ink/70 flex items-start gap-1.5 leading-relaxed">
+                                          <span className="w-1 h-1 rounded-full bg-ink/20 mt-1.5 shrink-0" />
+                                          <span>{hintLine}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <p className="text-[10px] font-sans text-ink/30 italic">Chưa có gợi ý nào cho câu này. Hãy bấm "Sửa gợi ý" để bổ sung!</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showSummary && (
@@ -1359,6 +1550,155 @@ export function SentenceBySentencePractice() {
                  <button onClick={restartCurrent} className="flex-1 sketch-button bg-paper py-3 font-black text-[10px] uppercase tracking-widest hover:bg-ink/5 transition-colors">Làm lại</button>
                  <button onClick={reset} className="flex-1 sketch-button bg-ink text-white py-3 font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform">Hoàn tất</button>
                </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Selection Tooltip */}
+      {selectionRect && selectedText && (
+        <div 
+          style={{ 
+            position: 'absolute', 
+            left: `${selectionRect.x}px`, 
+            top: `${selectionRect.y}px`,
+            transform: 'translateX(-50%)'
+          }}
+          className="z-50 animate-in fade-in zoom-in duration-100 pointer-events-auto"
+        >
+          <button
+            type="button"
+            onClick={handleAddNewHighlightedWord}
+            className="flex items-center gap-1.5 bg-ink text-paper text-[10px] font-black uppercase tracking-widest px-3 py-1.5 shadow-xl cursor-pointer hover:bg-slate-800 transition-colors border-2 border-ink rounded-none shrink-0"
+            style={{ filter: 'url(#hand-drawn-filter)' }}
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            Thêm vào Vocab
+          </button>
+          {/* Small tail to match hand-drawn sketch style */}
+          <div className="w-2 h-2 bg-ink rotate-45 mx-auto -mt-1 shadow-md border-r-2 border-b-2 border-ink" />
+        </div>
+      )}
+
+      {/* Quick Add Word Modal */}
+      <AnimatePresence>
+        {showQuickAddDialog && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-paper/95 backdrop-blur-sm overflow-y-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              className="bg-paper border-4 border-ink p-6 md:p-8 max-w-md w-full shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative"
+            >
+              <button 
+                onClick={() => setShowQuickAddDialog(false)}
+                className="absolute top-4 right-4 text-ink/40 hover:text-ink transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-2 mb-6">
+                <Sparkles className="w-5 h-5 text-crimson" style={{ filter: 'url(#hand-drawn-filter)' }} />
+                <h3 className="text-lg font-black uppercase tracking-wider text-ink font-sans">
+                  Quick Add Vocabulary
+                </h3>
+              </div>
+
+              {isDefiningWord ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3 text-ink/60">
+                  <Loader2 className="w-8 h-8 animate-spin text-ink" />
+                  <p className="text-xs font-mono tracking-widest uppercase">Đang tra cứu từ điển AI...</p>
+                </div>
+              ) : (
+                <div className="space-y-4 font-sans text-left">
+                  {/* Word Input */}
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest font-black text-ink/40">Từ vựng (Vocabulary)</label>
+                    <input 
+                      type="text" 
+                      value={quickWord} 
+                      onChange={e => setQuickWord(e.target.value)} 
+                      className="w-full bg-transparent border-b-2 border-ink py-1 focus:outline-none font-bold text-lg hand-text"
+                    />
+                  </div>
+
+                  {/* Word Details Row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] uppercase tracking-widest font-black text-ink/40">Loại từ</label>
+                      <select 
+                        value={quickType} 
+                        onChange={e => setQuickType(e.target.value)} 
+                        className="w-full bg-transparent border-b-2 border-ink py-1 focus:outline-none uppercase font-black text-xs h-8 cursor-pointer"
+                      >
+                        {['noun', 'verb', 'adj', 'adv', 'idiom', 'phrasal verb', 'phrase', 'sentence'].map(t => (
+                          <option key={t} value={t} className="bg-paper uppercase text-ink">{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-widest font-black text-ink/40">Phiên âm (IPA)</label>
+                      <input 
+                        type="text" 
+                        value={quickIpa} 
+                        onChange={e => setQuickIpa(e.target.value)} 
+                        placeholder="/.../"
+                        className="w-full bg-transparent border-b-2 border-ink py-1 focus:outline-none text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Definition */}
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest font-black text-ink/40">Nghĩa tiếng Việt (Definition)</label>
+                    <textarea 
+                      value={quickDefinition} 
+                      onChange={e => setQuickDefinition(e.target.value)} 
+                      className="w-full bg-transparent border-b-2 border-ink py-1 focus:outline-none text-sm leading-relaxed"
+                      rows={2}
+                    />
+                  </div>
+
+                  {/* Example */}
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest font-black text-ink/40">Câu ví dụ (Example sentence)</label>
+                    <textarea 
+                      value={quickExample} 
+                      onChange={e => setQuickExample(e.target.value)} 
+                      className="w-full bg-transparent border-2 border-ink p-2 text-xs leading-relaxed focus:outline-none font-mono"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="flex gap-1.5 items-center bg-emerald-500/10 p-2 text-[10px] text-emerald-800 uppercase tracking-widest font-bold">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Sẽ được tự động thêm nhãn "Translation"</span>
+                  </div>
+
+                  {/* Save button */}
+                  <div className="pt-4 flex gap-3">
+                    <button 
+                      type="button"
+                      onClick={() => setShowQuickAddDialog(false)}
+                      className="flex-1 border-2 border-ink py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-ink/5 transition-colors"
+                    >
+                      Hủy và Đóng
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={handleSaveQuickWord}
+                      className="flex-1 bg-ink text-paper py-2.5 text-[10px] font-black uppercase tracking-widest hover:scale-[1.03] transition-transform"
+                    >
+                      Lưu Từ Điển
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}

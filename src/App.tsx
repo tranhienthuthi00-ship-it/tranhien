@@ -156,7 +156,7 @@ function AppContent() {
               {activeEnglishSubTab === "Learning Games" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={setActiveEnglishSubTab} />}
               {activeEnglishSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} />}
               {activeEnglishSubTab === "Speech" && <SpeechGame words={words} updateWordDifficulty={updateWordDifficulty} />}
-              {activeEnglishSubTab === "Translation" && <TranslationPractice />}
+              {activeEnglishSubTab === "Translation" && <TranslationPractice words={words} setWords={setWords} />}
               {activeEnglishSubTab === "SRS" && <Flashcards words={words} setWords={setWords} />}
             </div>
           </div>

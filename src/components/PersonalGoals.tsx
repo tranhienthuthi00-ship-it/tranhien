@@ -749,15 +749,26 @@ export function PersonalGoals({
                               </p>
                               
                               {linkedGoal && (
-                                <div className="mt-2 pt-2 border-t border-ink/5 flex flex-wrap gap-2 items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <Calendar size={10} className="text-ink/30" style={{ filter: 'url(#hand-drawn-filter)' }} />
-                                    <input 
-                                      type="date"
-                                      value={linkedGoal.completedAt ? new Date(linkedGoal.completedAt).toISOString().split('T')[0] : ""}
-                                      onChange={(e) => updateCompletionDate(linkedGoal.id, e.target.value)}
-                                      className="bg-paper/20 sketch-border-sm border-none p-1.5 text-[10px] font-bold text-ink/60 focus:outline-none h-auto w-auto min-w-[120px] cursor-pointer hover:bg-paper/40 rounded transition-all"
-                                    />
+                                <div className="mt-2 pt-2 border-t border-ink/5 flex flex-wrap gap-3 items-center justify-between">
+                                  <div className="flex flex-wrap items-center gap-4">
+                                    <div className="flex items-center gap-1.5 font-sans">
+                                      <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 font-sans" title="Ngày bắt đầu">Bắt đầu:</span>
+                                      <input 
+                                        type="date"
+                                        value={linkedGoal.createdAt ? new Date(linkedGoal.createdAt).toISOString().split('T')[0] : ""}
+                                        onChange={(e) => updateStartDate(linkedGoal.id, e.target.value)}
+                                        className="bg-paper/20 rounded border border-ink/10 px-1.5 py-0.5 text-[10px] font-bold text-ink/70 focus:outline-none cursor-pointer hover:bg-paper/40 transition-all font-sans"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-1.5 font-sans">
+                                      <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 font-sans" title="Ngày hoàn thành">Đạt được:</span>
+                                      <input 
+                                        type="date"
+                                        value={linkedGoal.completedAt ? new Date(linkedGoal.completedAt).toISOString().split('T')[0] : ""}
+                                        onChange={(e) => updateCompletionDate(linkedGoal.id, e.target.value)}
+                                        className="bg-paper/20 rounded border border-ink/10 px-1.5 py-0.5 text-[10px] font-bold text-ink/70 focus:outline-none cursor-pointer hover:bg-paper/40 transition-all font-sans"
+                                      />
+                                    </div>
                                   </div>
                                   <button
                                     onClick={() => {
