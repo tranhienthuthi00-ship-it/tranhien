@@ -1,28 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { VideoDictation, Word } from '../types';
-import { cn } from '../lib/utils';
+import { cn, getAbsoluteUrl } from '../lib/utils';
 import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2, Mic, Library, PlayCircle, Star, MicOff, RotateCcw, Languages, Sparkles, BookOpen, Search, Volume2, X, Sparkle, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { YoutubeTranscript } from 'youtube-transcript';
 import YouTube from 'react-youtube';
 import { RECOMMENDED_VIDEOS } from '../constants/recommendedVideos';
 import stringSimilarity from "string-similarity";
-
-function getAbsoluteUrl(path: string): string {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  let origin = window.location.origin;
-  if (!origin || origin === "null") {
-    try {
-      const url = new URL(window.location.href);
-      origin = `${url.protocol}//${url.host}`;
-    } catch (e) {
-      origin = "";
-    }
-  }
-  return `${origin}${path.startsWith("/") ? "" : "/"}${path}`;
-}
 
 export function YouTubeDictation({ 
   dictations, 

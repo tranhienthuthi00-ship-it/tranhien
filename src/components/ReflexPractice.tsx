@@ -23,7 +23,7 @@ import {
   VolumeX
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { cn } from "../lib/utils";
+import { cn, getAbsoluteUrl } from "../lib/utils";
 
 export interface ReflexQuestion {
   id: string;
@@ -38,22 +38,6 @@ export interface ReflexScenario {
   description: string;
   questions: ReflexQuestion[];
   isCustom?: boolean;
-}
-
-function getAbsoluteUrl(path: string): string {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  let origin = window.location.origin;
-  if (!origin || origin === "null") {
-    try {
-      const url = new URL(window.location.href);
-      origin = `${url.protocol}//${url.host}`;
-    } catch (e) {
-      origin = "";
-    }
-  }
-  return `${origin}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
 // Preset conversations / reflex scenarios

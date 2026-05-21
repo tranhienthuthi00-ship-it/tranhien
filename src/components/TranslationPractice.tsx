@@ -8,22 +8,7 @@ import {
 } from "lucide-react";
 import YouTube from "react-youtube";
 import { motion, AnimatePresence } from "motion/react";
-
-function getAbsoluteUrl(path: string): string {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  let origin = window.location.origin;
-  if (!origin || origin === "null") {
-    try {
-      const url = new URL(window.location.href);
-      origin = `${url.protocol}//${url.host}`;
-    } catch (e) {
-      origin = "";
-    }
-  }
-  return `${origin}${path.startsWith("/") ? "" : "/"}${path}`;
-}
+import { getAbsoluteUrl } from "../lib/utils";
 
 const RECOMMENDED_VIDEOS = [
   { id: "sY7L5Y_yUPg", title: "Daily English Conversation Topics for Beginners", duration: "10:14" },

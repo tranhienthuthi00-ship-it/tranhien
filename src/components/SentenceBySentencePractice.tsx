@@ -32,23 +32,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { useFirebase } from "../context/FirebaseContext";
 import type { PracticeParagraph, StudyGoal, Achievement, Word } from "../types";
-import { cn } from "../lib/utils";
-
-function getAbsoluteUrl(path: string): string {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  let origin = window.location.origin;
-  if (!origin || origin === "null") {
-    try {
-      const url = new URL(window.location.href);
-      origin = `${url.protocol}//${url.host}`;
-    } catch (e) {
-      origin = "";
-    }
-  }
-  return `${origin}${path.startsWith("/") ? "" : "/"}${path}`;
-}
+import { cn, getAbsoluteUrl } from "../lib/utils";
 
 interface Sentence {
   vi: string;
