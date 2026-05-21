@@ -37,7 +37,7 @@ export function TranslationPractice({
   const [autoScoll, setAutoScroll] = useState(true);
 
   // Tab State for YouTube Mode
-  const [activeTab, setActiveTab] = useState<"subtitles" | "pronunciation" | "listening" | "conversation" | "vocabulary" | "quizzes">("subtitles");
+  const [activeTab, setActiveTab] = useState<"subtitles" | "pronunciation" | "listening" | "vocabulary" | "quizzes">("subtitles");
 
   // Dictionary Lookup State
   const [lookupWord, setLookupWord] = useState<string | null>(null);
@@ -139,7 +139,7 @@ export function TranslationPractice({
         throw new Error(transcriptData.error || "Cannot load YouTube transcript.");
       }
 
-      setAnalyzingStep("Gemini 3.5 đang biên soạn bộ tư liệu 4YOU (Phụ đề, Luyện nói, Luyện nghe, Hội thoại, Từ vựng, Trắc nghiệm)...");
+      setAnalyzingStep("Gemini 3.5 đang biên soạn bộ tư liệu 4YOU (Phụ đề, Luyện nói, Luyện nghe, Từ vựng, Trắc nghiệm)...");
 
       // 2. Query Gemini 4You Package API to get full structured content
       const packageRes = await fetch(getAbsoluteUrl("/api/translation/generate-4you-package"), {
@@ -409,7 +409,7 @@ export function TranslationPractice({
               <div className="max-w-xl mx-auto space-y-2">
                 <h3 className="font-sans font-bold text-xl text-ink">Bắt đầu học Anh văn kiểu 4YOU</h3>
                 <p className="text-sm text-ink/60">
-                  Dán bất kỳ liên kết video học tiếng Anh nào từ YouTube. Trình AI sẽ tự động phân tích và tạo bài học phụ đề song ngữ, luyện nghe chuyên sâu, phát âm, hội thoại, trích xuất từ vựng và bài kiểm tra cá nhân hóa.
+                  Dán bất kỳ liên kết video học tiếng Anh nào từ YouTube. Trình AI sẽ tự động phân tích và tạo bài học phụ đề song ngữ, luyện nghe chuyên sâu, phát âm, trích xuất từ vựng và bài kiểm tra cá nhân hóa.
                 </p>
               </div>
 
@@ -532,12 +532,6 @@ export function TranslationPractice({
                     className={`px-3 py-2 text-xs font-sans font-bold uppercase rounded-xl transition-all shrink-0 flex items-center gap-1.5 ${activeTab === "listening" ? "bg-ink text-paper" : "text-ink/60 hover:text-ink hover:bg-ink/5"}`}
                   >
                     <Headphones className="w-4 h-4" /> 🎧 Luyện Nghe
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("conversation")}
-                    className={`px-3 py-2 text-xs font-sans font-bold uppercase rounded-xl transition-all shrink-0 flex items-center gap-1.5 ${activeTab === "conversation" ? "bg-ink text-paper" : "text-ink/60 hover:text-ink hover:bg-ink/5"}`}
-                  >
-                    <MessageSquare className="w-4 h-4" /> 💬 Hội Thoại
                   </button>
                   <button
                     onClick={() => setActiveTab("vocabulary")}
@@ -849,62 +843,6 @@ export function TranslationPractice({
                             </div>
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 4: CONVERSATION SIMULATOR */}
-                  {activeTab === "conversation" && (
-                    <div className="space-y-6">
-                      <div className="border-b pb-2 flex justify-between items-center">
-                        <span className="text-xs font-mono text-ink/50 uppercase">Hội Thoại Joe & Hana</span>
-                        <span className="text-xs text-ink/70 italic font-sans">Dialog practice</span>
-                      </div>
-
-                      <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
-                        {learningPackage.conversation?.map((turn: any, idx: number) => {
-                          const isJoe = turn.speaker === "Joe";
-                          const isSelected = selectedDialogueTurn === idx;
-                          return (
-                            <div
-                              key={idx}
-                              onClick={() => setSelectedDialogueTurn(idx)}
-                              className={`flex gap-3 leading-relaxed rounded-2xl p-3 cursor-pointer transition-colors border ${isJoe ? "bg-white border-neutral-100" : "bg-[#fcfbf9] border-[#eae5d8]"} ${isSelected ? "ring-2 ring-ink" : "hover:bg-neutral-50"}`}
-                            >
-                              <div className={`w-8 h-8 rounded-full sketch-border-sm flex items-center justify-center font-sans font-black text-xs shrink-0 ${isJoe ? "bg-indigo-100 text-indigo-800" : "bg-teal-100 text-teal-800"}`}>
-                                {turn.speaker[0]}
-                              </div>
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-sans font-black text-xs text-ink">{turn.speaker}</span>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      speakText(turn.textEn);
-                                    }}
-                                    className="p-1 rounded hover:bg-neutral-100 text-ink/50 hover:text-ink cursor-pointer"
-                                    title="Nghe hội thoại này"
-                                  >
-                                    <Volume2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                                <p className="font-sans text-[13px] font-semibold text-ink leading-relaxed">
-                                  {turn.textEn}
-                                </p>
-                                <p className="font-sans text-xs text-ink/65 leading-relaxed">
-                                  {turn.textVi}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="bg-amber-50/20 p-3 rounded-xl sketch-border-sm flex items-center gap-2">
-                        <HelpCircle className="w-5 h-5 text-amber-700 leading-none shrink-0" />
-                        <p className="text-[11px] text-ink/80 leading-normal">
-                          Luyện tập hội thoại mô phỏng: Nhấp vào bất kỳ bong bóng thoại nào để chọn vai diễn và bấm nút loa để luyện nghe giọng đọc bản xứ chuẩn xác.
-                        </p>
                       </div>
                     </div>
                   )}
