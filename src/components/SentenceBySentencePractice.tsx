@@ -26,6 +26,8 @@ import {
   ChevronUp,
   AlertCircle,
   Sparkle,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useFirebase } from "../context/FirebaseContext";
@@ -129,6 +131,97 @@ export function SentenceBySentencePractice({
       setQuickExample(definedWordResult.example || "");
     }
   }, [definedWordResult]);
+
+  // Voice recording states & functions
+  const [voiceRecordingField, setVoiceRecordingField] = useState<"userInput" | "inputText" | "referenceText" | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  const startVoiceInput = (field: "userInput" | "inputText" | "referenceText", lang: string) => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói (Speech Recognition). Vui lòng sử dụng Google Chrome hoặc Safari.");
+      return;
+    }
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+
+    const rec = new SpeechRecognition();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = lang;
+
+    rec.onstart = () => {
+      setVoiceRecordingField(field);
+    };
+
+    rec.onresult = (event: any) => {
+      let interimTranscript = "";
+      let finalTranscript = "";
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const transcriptText = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcriptText;
+        } else {
+          interimTranscript += transcriptText;
+        }
+      }
+
+      const currentTranscript = (finalTranscript || interimTranscript);
+      if (currentTranscript) {
+        if (field === "userInput") {
+          setUserInput(currentTranscript);
+        } else if (field === "inputText") {
+          setInputText(currentTranscript);
+        } else if (field === "referenceText") {
+          setReferenceText(currentTranscript);
+        }
+      }
+    };
+
+    rec.onerror = (e: any) => {
+      console.error("Speech recognition error:", e);
+      stopVoiceInput();
+    };
+
+    rec.onend = () => {
+      setVoiceRecordingField(null);
+    };
+
+    recognitionRef.current = rec;
+    try {
+      rec.start();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const stopVoiceInput = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+    setVoiceRecordingField(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    stopVoiceInput();
+  }, [currentIndex]);
 
   // Handle text selection events
   useEffect(() => {
@@ -935,9 +1028,31 @@ export function SentenceBySentencePractice({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest ml-1">
-                      Đoạn văn Tiếng Việt (Gốc)
-                    </label>
+                    <div className="flex items-center justify-between ml-1">
+                      <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest">
+                        Đoạn văn Tiếng Việt (Gốc)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (voiceRecordingField === "inputText") {
+                            stopVoiceInput();
+                          } else {
+                            startVoiceInput("inputText", "vi-VN");
+                          }
+                        }}
+                        className={cn(
+                          "text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 px-2 py-1 rounded transition-all cursor-pointer border",
+                          voiceRecordingField === "inputText"
+                            ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse font-bold"
+                            : "bg-paper/40 hover:bg-ink/5 text-ink/50 hover:text-ink border-ink/10"
+                        )}
+                        title={voiceRecordingField === "inputText" ? "Đang ghi âm... Nhấp để dừng" : "Nhập bằng giọng nói (Tiếng Việt)"}
+                      >
+                        {voiceRecordingField === "inputText" ? <MicOff size={10} className="text-rose-600" /> : <Mic size={10} />}
+                        {voiceRecordingField === "inputText" ? "Đang nghe..." : "Giọng nói (VI)"}
+                      </button>
+                    </div>
                     <textarea
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
@@ -946,9 +1061,31 @@ export function SentenceBySentencePractice({
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest ml-1">
-                      Bản dịch Tiếng Anh (Mẫu - Bắt buộc)
-                    </label>
+                    <div className="flex items-center justify-between ml-1">
+                      <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest">
+                        Bản dịch Tiếng Anh (Mẫu - Bắt buộc)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (voiceRecordingField === "referenceText") {
+                            stopVoiceInput();
+                          } else {
+                            startVoiceInput("referenceText", "en-US");
+                          }
+                        }}
+                        className={cn(
+                          "text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 px-2 py-1 rounded transition-all cursor-pointer border",
+                          voiceRecordingField === "referenceText"
+                            ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse font-bold"
+                            : "bg-paper/40 hover:bg-ink/5 text-ink/50 hover:text-ink border-ink/10"
+                        )}
+                        title={voiceRecordingField === "referenceText" ? "Đang ghi âm... Nhấp để dừng" : "Nhập bằng giọng nói (Tiếng Anh)"}
+                      >
+                        {voiceRecordingField === "referenceText" ? <MicOff size={10} className="text-rose-600" /> : <Mic size={10} />}
+                        {voiceRecordingField === "referenceText" ? "Đang nghe..." : "Giọng nói (EN)"}
+                      </button>
+                    </div>
                     <textarea
                       value={referenceText}
                       onChange={(e) => setReferenceText(e.target.value)}
@@ -1576,17 +1713,42 @@ export function SentenceBySentencePractice({
                     />
 
                     {!evaluation?.isCorrect && (
-                      <button
-                        onClick={handleVerify}
-                        disabled={isVerifying || !userInput.trim()}
-                        className="absolute right-2 bottom-2 md:right-4 md:bottom-4 bg-ink text-white p-2.5 rounded-full shadow-lg hover:scale-110 disabled:opacity-0 transition-all z-10"
-                      >
-                        {isVerifying ? (
-                          <Loader2 className="animate-spin w-4 h-4" />
-                        ) : (
-                          <Send className="w-4 h-4" />
-                        )}
-                      </button>
+                      <div className="absolute right-2 bottom-2 md:right-4 md:bottom-4 flex items-center gap-2 z-10">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (voiceRecordingField === "userInput") {
+                              stopVoiceInput();
+                            } else {
+                              startVoiceInput("userInput", "en-US");
+                            }
+                          }}
+                          className={cn(
+                            "p-2.5 rounded-full shadow-lg hover:scale-110 transition-all cursor-pointer flex items-center justify-center border-2 border-transparent",
+                            voiceRecordingField === "userInput"
+                              ? "bg-rose-600 text-white animate-pulse"
+                              : "bg-amber-500 hover:bg-amber-600 text-white"
+                          )}
+                          title={voiceRecordingField === "userInput" ? "Đang ghi âm... Nhấp để dừng" : "Nhập bằng giọng nói (Tiếng Anh)"}
+                        >
+                          {voiceRecordingField === "userInput" ? (
+                            <MicOff className="w-4 h-4" />
+                          ) : (
+                            <Mic className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={handleVerify}
+                          disabled={isVerifying || !userInput.trim()}
+                          className="bg-ink text-white p-2.5 rounded-full shadow-lg hover:scale-110 disabled:opacity-0 transition-all"
+                        >
+                          {isVerifying ? (
+                            <Loader2 className="animate-spin w-4 h-4" />
+                          ) : (
+                            <Send className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
