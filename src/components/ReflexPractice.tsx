@@ -40,6 +40,22 @@ export interface ReflexScenario {
   isCustom?: boolean;
 }
 
+function getAbsoluteUrl(path: string): string {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+  let origin = window.location.origin;
+  if (!origin || origin === "null") {
+    try {
+      const url = new URL(window.location.href);
+      origin = `${url.protocol}//${url.host}`;
+    } catch (e) {
+      origin = "";
+    }
+  }
+  return `${origin}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 // Preset conversations / reflex scenarios
 const DEFAULT_SCENARIOS: ReflexScenario[] = [
   {
@@ -366,7 +382,7 @@ export function ReflexPractice() {
     const activeQuestion = activeScenario.questions[currentIdx];
 
     try {
-      const response = await fetch("/api/translation/verify-reflex", {
+      const response = await fetch(getAbsoluteUrl("/api/translation/verify-reflex"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -34,6 +34,22 @@ import { useFirebase } from "../context/FirebaseContext";
 import type { PracticeParagraph, StudyGoal, Achievement, Word } from "../types";
 import { cn } from "../lib/utils";
 
+function getAbsoluteUrl(path: string): string {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+  let origin = window.location.origin;
+  if (!origin || origin === "null") {
+    try {
+      const url = new URL(window.location.href);
+      origin = `${url.protocol}//${url.host}`;
+    } catch (e) {
+      origin = "";
+    }
+  }
+  return `${origin}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 interface Sentence {
   vi: string;
   en?: string;
@@ -281,7 +297,7 @@ export function SentenceBySentencePractice({
     setShowQuickAddDialog(true);
 
     try {
-      const response = await fetch("/api/translation/define-word", {
+      const response = await fetch(getAbsoluteUrl("/api/translation/define-word"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ word: selectedText }),

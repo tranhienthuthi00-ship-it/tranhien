@@ -8,6 +8,22 @@ import YouTube from 'react-youtube';
 import { RECOMMENDED_VIDEOS } from '../constants/recommendedVideos';
 import stringSimilarity from "string-similarity";
 
+function getAbsoluteUrl(path: string): string {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+  let origin = window.location.origin;
+  if (!origin || origin === "null") {
+    try {
+      const url = new URL(window.location.href);
+      origin = `${url.protocol}//${url.host}`;
+    } catch (e) {
+      origin = "";
+    }
+  }
+  return `${origin}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 export function YouTubeDictation({ 
   dictations, 
   setDictations,
@@ -62,7 +78,7 @@ export function YouTubeDictation({
 
     setTranslatingIndex(index);
     try {
-      const response = await fetch("/api/translation/translate-line", {
+      const response = await fetch(getAbsoluteUrl("/api/translation/translate-line"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: targetItem.text }),
@@ -101,7 +117,7 @@ export function YouTubeDictation({
     try {
       for (const idx of untranslatedIndices) {
         const item = items[idx];
-        const response = await fetch("/api/translation/translate-line", {
+        const response = await fetch(getAbsoluteUrl("/api/translation/translate-line"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: item.text }),
@@ -131,7 +147,7 @@ export function YouTubeDictation({
     setIsSavedToWordbook(false);
     
     try {
-      const response = await fetch("/api/translation/define-word", {
+      const response = await fetch(getAbsoluteUrl("/api/translation/define-word"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ word: cleaned }),
@@ -352,7 +368,7 @@ export function YouTubeDictation({
     setIsLoadingTranscript(true);
     setTranscriptError('');
     try {
-      const res = await fetch(`/api/transcript?videoId=${videoId}`);
+      const res = await fetch(getAbsoluteUrl(`/api/transcript?videoId=${videoId}`));
       const data = await res.json();
       if (!res.ok || data.error) {
         throw new Error(data.error || 'Failed to fetch transcript');
@@ -569,12 +585,16 @@ export function YouTubeDictation({
   // Auto scroll effect to center the highlighted subtitle
   useEffect(() => {
     if (autoScrollSubtitles && activeSubtitleIndex !== -1 && scrollContainerRef.current) {
-      const activeEl = scrollContainerRef.current.querySelector(`[data-subtitle-index="${activeSubtitleIndex}"]`);
-      if (activeEl) {
-        activeEl.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
+      try {
+        const activeEl = scrollContainerRef.current.querySelector(`[data-subtitle-index="${activeSubtitleIndex}"]`);
+        if (activeEl) {
+          activeEl.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }
+      } catch (err) {
+        console.error("Auto scroll error:", err);
       }
     }
   }, [activeSubtitleIndex, autoScrollSubtitles]);

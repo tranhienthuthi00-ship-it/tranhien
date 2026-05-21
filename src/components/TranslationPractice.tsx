@@ -9,6 +9,22 @@ import {
 import YouTube from "react-youtube";
 import { motion, AnimatePresence } from "motion/react";
 
+function getAbsoluteUrl(path: string): string {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+  let origin = window.location.origin;
+  if (!origin || origin === "null") {
+    try {
+      const url = new URL(window.location.href);
+      origin = `${url.protocol}//${url.host}`;
+    } catch (e) {
+      origin = "";
+    }
+  }
+  return `${origin}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 const RECOMMENDED_VIDEOS = [
   { id: "sY7L5Y_yUPg", title: "Daily English Conversation Topics for Beginners", duration: "10:14" },
   { id: "J3_S81yBia4", title: "How to Introduce Yourself Fluently", duration: "8:25" },
@@ -131,7 +147,7 @@ export function TranslationPractice({
 
     try {
       // 1. Fetch transcript segments from server API
-      const transcriptRes = await fetch(`/api/transcript?videoId=${id}`);
+      const transcriptRes = await fetch(getAbsoluteUrl(`/api/transcript?videoId=${id}`));
       const transcriptData = await transcriptRes.json();
       
       if (!transcriptRes.ok || transcriptData.error) {
@@ -141,7 +157,7 @@ export function TranslationPractice({
       setAnalyzingStep("Gemini 3.5 đang biên soạn bộ tư liệu 4YOU (Phụ đề, Luyện nói, Luyện nghe, Hội thoại, Từ vựng, Trắc nghiệm)...");
 
       // 2. Query Gemini 4You Package API to get full structured content
-      const packageRes = await fetch("/api/translation/generate-4you-package", {
+      const packageRes = await fetch(getAbsoluteUrl("/api/translation/generate-4you-package"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -167,6 +183,7 @@ export function TranslationPractice({
       setActivePronIndex(0);
       setScoringSpeech(null);
     } catch (e: any) {
+      console.error("Lỗi phân tích học trình 4YOU:", e);
       alert("Lỗi phân tích: " + e.message + "\nHệ thống đã tự động kích hoạt gói bài mẫu để bạn học.");
       // Fallback sample data package
       setLearningPackage({
@@ -241,7 +258,7 @@ export function TranslationPractice({
     setWordSavedStatus(words.some(w => w.vocabulary.toLowerCase() === cleanWord.toLowerCase()));
 
     try {
-      const res = await fetch("/api/translation/define-word", {
+      const res = await fetch(getAbsoluteUrl("/api/translation/define-word"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ word: cleanWord })
