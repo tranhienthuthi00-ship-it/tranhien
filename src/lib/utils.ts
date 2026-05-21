@@ -11,19 +11,32 @@ export function getAbsoluteUrl(path: string): string {
   }
   
   let base = "";
+  
+  // 1. Try process.env.APP_URL or import.meta.env.VITE_APP_URL if defined (compiled at build time or injected)
   try {
-    // 1. Try to get the origin of the current module file (Vite/ESM)
-    const moduleUrl = import.meta.url;
-    if (moduleUrl && (moduleUrl.startsWith("http://") || moduleUrl.startsWith("https://"))) {
-      base = new URL(moduleUrl).origin;
+    const envUrl = (process.env as any).APP_URL || (import.meta as any).env?.VITE_APP_URL || (import.meta as any).env?.APP_URL;
+    if (envUrl && (envUrl.startsWith("http://") || envUrl.startsWith("https://"))) {
+      base = new URL(envUrl).origin;
     }
   } catch (e) {
     // Ignore error
   }
 
+  // 2. Try to get the origin of the current module file (Vite/ESM)
   if (!base) {
     try {
-      // 2. Fallback: Try to look up scripts or stylesheet URLs in the document
+      const moduleUrl = import.meta.url;
+      if (moduleUrl && (moduleUrl.startsWith("http://") || moduleUrl.startsWith("https://"))) {
+        base = new URL(moduleUrl).origin;
+      }
+    } catch (e) {
+      // Ignore error
+    }
+  }
+
+  // 3. Fallback: Try to look up scripts or stylesheet URLs in the document
+  if (!base) {
+    try {
       const scriptUrls = Array.from(document.querySelectorAll("script"))
         .map(s => s.src)
         .filter(src => src && (src.startsWith("http://") || src.startsWith("https://")));
@@ -35,16 +48,81 @@ export function getAbsoluteUrl(path: string): string {
     }
   }
 
+  // 4. Try window.location.origin
   if (!base) {
     try {
-      // 3. Last fallback: Try window.location
       const origin = window.location.origin;
       if (origin && origin !== "null" && origin !== "about:srcdoc" && !origin.startsWith("about:")) {
         base = origin;
-      } else {
-        const urlObj = new URL(window.location.href);
-        if (urlObj.protocol.startsWith("http")) {
-          base = `${urlObj.protocol}//${urlObj.host}`;
+      }
+    } catch (e) {
+      // Ignore error
+    }
+  }
+
+  // 5. Try to extract origin from any HTML elements that might have absolute URLs
+  if (!base) {
+    try {
+      const elements = Array.from(document.querySelectorAll("[src], [href]"));
+      for (const el of elements) {
+        const urlStr = el.getAttribute("src") || el.getAttribute("href");
+        if (urlStr && (urlStr.startsWith("http://") || urlStr.startsWith("https://"))) {
+          if (!urlStr.includes("fonts.googleapis.com") && !urlStr.includes("gstatic.com") && !urlStr.includes("youtube.com") && !urlStr.includes("ytimg.com")) {
+            base = new URL(urlStr).origin;
+            break;
+          }
+        }
+      }
+      
+      // Secondary loop if nothing specific found
+      if (!base) {
+        for (const el of elements) {
+          const urlStr = el.getAttribute("src") || el.getAttribute("href");
+          if (urlStr && (urlStr.startsWith("http://") || urlStr.startsWith("https://"))) {
+            base = new URL(urlStr).origin;
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore error
+    }
+  }
+
+  // 6. Try window.parent.location/window.top.location if not cross-origin blocked
+  if (!base) {
+    try {
+      if (window.parent && window.parent.location) {
+        const parentHref = window.parent.location.href;
+        if (parentHref && (parentHref.startsWith("http://") || parentHref.startsWith("https://"))) {
+          base = new URL(parentHref).origin;
+        }
+      }
+    } catch (e) {
+      // Ignore error
+    }
+  }
+
+  // 7. Try standard window.location.href if it is HTTP/HTTPS
+  if (!base) {
+    try {
+      const href = window.location.href;
+      if (href && (href.startsWith("http://") || href.startsWith("https://"))) {
+        base = new URL(href).origin;
+      }
+    } catch (e) {
+      // Ignore error
+    }
+  }
+
+  // 8. Try window.location.ancestorOrigins
+  if (!base) {
+    try {
+      const ancestorOrigins = (window.location as any).ancestorOrigins;
+      if (ancestorOrigins && ancestorOrigins.length > 0) {
+        const ancestor = ancestorOrigins[0];
+        if (ancestor && (ancestor.startsWith("http://") || ancestor.startsWith("https://"))) {
+          base = ancestor;
         }
       }
     } catch (e) {
