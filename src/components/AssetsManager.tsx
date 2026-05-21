@@ -11,6 +11,26 @@ export const ICON_MAP: Record<string, React.FC<any>> = {
 
 export const AVAILABLE_ICONS = Object.keys(ICON_MAP);
 
+export const CATEGORY_ICON_DEFINITIONS = [
+  { key: "Wallet", label: "Ví tiền (Wallet)" },
+  { key: "Home", label: "Nhà cửa (Home)" },
+  { key: "Car", label: "Xe cộ (Car)" },
+  { key: "Laptop", label: "Công nghệ (Tech)" },
+  { key: "PiggyBank", label: "Tiết kiệm (Savings)" },
+  { key: "TrendingUp", label: "Đầu tư (Investment)" },
+  { key: "Landmark", label: "Ngân hàng (Bank)" },
+  { key: "Bitcoin", label: "Crypto (Bitcoin)" },
+  { key: "Gem", label: "Trang sức (Jewelry/Gem)" },
+  { key: "Briefcase", label: "Kinh doanh (Business)" },
+  { key: "Building", label: "BĐS Dự án (Building)" },
+  { key: "Coins", label: "Tiền mặt (Cash)" },
+  { key: "CreditCard", label: "Thẻ tín dụng (Card)" },
+  { key: "Handshake", label: "Cho vay (Loans)" },
+  { key: "Users", label: "Dùng chung (Shared)" },
+  { key: "Smartphone", label: "Điện thoại (Phone)" },
+  { key: "MonitorSmartphone", label: "Thiết bị số (Devices)" }
+];
+
 export const renderIcon = (iconName: string, size: number = 16, className?: string) => {
    const Icon = ICON_MAP[iconName];
    if (Icon) return <Icon size={size} className={className} />;
@@ -377,13 +397,37 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                {editingCatId ? "Cập Nhật Danh Mục" : "Thêm Danh Mục Mới"}
             </h4>
             
-            <div className="flex flex-wrap gap-2">
-              {AVAILABLE_ICONS.map(icon => (
-                <button type="button" key={icon} onClick={() => setNewCatIcon(icon)}
-                  className={cn("p-2 rounded sketch-border flex items-center justify-center transition-colors", newCatIcon === icon ? "bg-ink text-paper" : "bg-white text-ink hover:bg-ink/10")}>
-                  {renderIcon(icon, 18)}
-                </button>
-              ))}
+            <div className="flex flex-col gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">
+                Chọn Biểu Tượng Danh Mục (Select Category Icon)
+              </span>
+              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 gap-2 bg-white/70 p-3.5 rounded-xl border border-dashed border-ink/20 max-h-[200px] overflow-y-auto">
+                {CATEGORY_ICON_DEFINITIONS.map(({ key, label }) => {
+                  const isSelected = newCatIcon === key;
+                  return (
+                    <button
+                      type="button"
+                      key={key}
+                      onClick={() => setNewCatIcon(key)}
+                      className={cn(
+                        "flex items-center gap-2 p-2 rounded-lg text-xs font-semibold text-left border transition-all duration-200 cursor-pointer shadow-xs",
+                        isSelected
+                          ? "bg-ink text-[#fcfbf9] border-ink font-bold scale-[1.03]"
+                          : "bg-white/90 text-ink/80 border-ink/10 hover:bg-ink/5 hover:border-ink/30"
+                      )}
+                      id={`icon-select-${key}`}
+                    >
+                      <span className={cn(
+                        "p-1.5 rounded flex items-center justify-center shrink-0",
+                        isSelected ? "bg-[#fcfbf9]/20 text-[#fcfbf9]" : "bg-ink/5 text-ink"
+                      )}>
+                        {renderIcon(key, 15)}
+                      </span>
+                      <span className="truncate text-[11px] leading-tight flex-1">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex items-end gap-2">

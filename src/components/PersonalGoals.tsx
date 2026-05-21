@@ -231,6 +231,15 @@ export function PersonalGoals({
     await setGoals(updated);
   };
 
+  const updateStartDate = async (id: string, newDate: string) => {
+    const timestamp = new Date(newDate).getTime();
+    if (isNaN(timestamp)) return;
+    const updated = goals.map(g => 
+      g.id === id ? { ...g, createdAt: timestamp } : g
+    );
+    await setGoals(updated);
+  };
+
   const getTimeRemaining = (deadline: number) => {
     const now = Date.now();
     const diff = deadline - now;
@@ -918,8 +927,13 @@ export function PersonalGoals({
 
                       <div className="grid grid-cols-2 gap-4 pt-2 border-t border-ink/5 font-sans text-xs">
                         <div>
-                          <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block">Ngày bắt đầu</span>
-                          <strong className="text-ink/80">{createdDate}</strong>
+                          <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block mb-1 font-sans">Ngày bắt đầu</span>
+                          <input 
+                            type="date"
+                            value={goal.createdAt ? new Date(goal.createdAt).toISOString().split('T')[0] : ""}
+                            onChange={(e) => updateStartDate(goal.id, e.target.value)}
+                            className="bg-paper/20 sketch-border-sm border-none p-1.5 text-[11px] font-bold text-ink/80 focus:outline-none h-auto w-full cursor-pointer hover:bg-[#eae6db] rounded transition-all font-sans"
+                          />
                         </div>
                         <div>
                           <span className="text-[9px] uppercase font-black tracking-wider text-ink/40 block">Ngày hoàn thành</span>
