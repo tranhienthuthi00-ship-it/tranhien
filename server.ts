@@ -130,10 +130,12 @@ async function startServer() {
     const topic = req.query.topic as string || "daily life";
     console.log(`[Translation] Generating sentence for topic: ${topic}`);
     try {
-      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(`Generate one natural, medium-difficulty Vietnamese sentence for translation practice. Topic: ${topic}. Output ONLY the raw Vietnamese text. No quotes, no translation, no labels.`);
+      const result = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `Generate one natural, medium-difficulty Vietnamese sentence for translation practice. Topic: ${topic}. Output ONLY the raw Vietnamese text. No quotes, no translation, no labels.`
+      });
       
-      const sentence = result.response.text().trim().replace(/^["']|["']$/g, '');
+      const sentence = result.text.trim().replace(/^["']|["']$/g, '');
       
       console.log(`[Translation] Generated: ${sentence}`);
       
@@ -158,7 +160,7 @@ async function startServer() {
 
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.5-flash",
         contents: `Analyze this Vietnamese to English translation.
 Original (VN): "${original}"
 Translation (EN): "${translation}"
@@ -193,19 +195,21 @@ Return ONLY a valid JSON object.
     }
 
     try {
-      const model = ai.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
-        generationConfig: { responseMimeType: "application/json" }
-      });
-      const result = await model.generateContent(`Analyze this translation pair:
+      const result = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `Analyze this translation pair:
 Vietnamese: "${original}"
 English: "${reference}"
 
 Extract 2-3 key grammar points, phrases, or phrasal verbs from the English version that a learner should know. 
 Return ONLY a valid JSON array of strings in Vietnamese explaining these points.
-Example: ["Sử dụng 'Look forward to' khi...", "Cấu trúc 'It takes someone time to do'..." ]`);
+Example: ["Sử dụng 'Look forward to' khi...", "Cấu trúc 'It takes someone time to do'..." ]`,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
       
-      const responseText = result.response.text().trim();
+      const responseText = result.text.trim();
       const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
       const hints = JSON.parse(cleanJson);
       res.json({ hints });
@@ -223,7 +227,7 @@ Example: ["Sử dụng 'Look forward to' khi...", "Cấu trúc 'It takes someone
 
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.5-flash",
         contents: `Analyze this English or Vietnamese word or phrase: "${word}".
 Provide its IPA pronunciation (if English), word type (must be one of: noun, verb, adj, adv, idiom, phrasal verb, phrase, sentence), a clear definition in Vietnamese, and an illustrative English sentence.
 
@@ -257,14 +261,16 @@ Return ONLY a valid JSON object:
     }
 
     try {
-      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(`Translate the following English subtitle or line to natural, context-aware Vietnamese.
+      const result = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `Translate the following English subtitle or line to natural, context-aware Vietnamese.
 We are translating a subtitle/caption line inside a video, so please keep the translation natural, human-like, brief, and matching the original sentence's style and emotion. Do NOT do literal/word-for-word translation.
 Return ONLY the raw translated text, without quotes, explanations, or markdown.
 
-English: "${text}"`);
+English: "${text}"`
+      });
       
-      const translation = result.response.text().trim().replace(/^["']|["']$/g, '');
+      const translation = result.text.trim().replace(/^["']|["']$/g, '');
       res.json({ translation });
     } catch (error: any) {
       console.error("Gemini Error (Translate Line):", error);
@@ -314,6 +320,150 @@ Return ONLY a valid JSON object matching this schema:
     } catch (error: any) {
       console.error("Gemini Error (Verify Reflex):", error);
       res.status(500).json({ error: "Failed to evaluate answer" });
+    }
+  });
+
+  app.post("/api/translation/generate-4you-package", async (req, res) => {
+    const { videoId, transcript, title } = req.body;
+    if (!transcript || !Array.isArray(transcript)) {
+      return res.status(400).json({ error: "Missing or invalid transcript" });
+    }
+
+    console.log(`[Translation 4You] Processing transcript for video: ${videoId || "unknown"} - ${title || ""}`);
+
+    // Take a healthy slice of transcript to fit nicely: say up to 45 lines
+    const transcriptSlice = transcript.slice(0, 45);
+    const transcriptTextForPrompt = transcriptSlice.map((t: any, i: number) => `[${i}] start:${t.offset / 1000}s - text: ${t.text}`).join("\n");
+
+    try {
+      const prompt = `You are a professional ESL teacher and translation course designer.
+Based on the YouTube video transcript snippet below, generate a comprehensive, highly engaging learning package for Vietnamese learners, inspired by the features in "app 4you".
+
+Video Title: "${title || "Useful English lesson"}"
+Transcript snippet:
+${transcriptTextForPrompt}
+
+Please produce a single JSON object containing ALL of the following 6 sections:
+1. "subtitles": An array of maximum 20 subtitle segments. Translate the transcript segments into matching natural, colloquial Vietnamese. Keep the exact index order and timing.
+   Each element must have:
+   - "id": string (index e.g. "sub0", "sub1", ...)
+   - "en": string (original English text)
+   - "vi": string (natural Vietnamese translation)
+   - "startSec": number (start time in seconds corresponding to the start in transcript)
+   - "durationSec": number (duration in seconds)
+
+2. "pronunciation": An array of 5 selective English sentences from the transcript for speech practice.
+   Each element must have:
+   - "id": string (e.g. "p1", "p2", ...)
+   - "en": string (the English sentence)
+   - "vi": string (the Vietnamese translation)
+   - "tips": string (pronunciation tips in Vietnamese: sound linkage like "want to -> wanna", silent letters, specific sound endings like -ed, -s)
+   - "words": array of objects, each with {"word": "...", "ipa": "IPA phonetic", "meaning": "Vietnamese meaning"} (provide 3 key words from the sentence)
+
+3. "listening": An array of 6 auditory/dictation tasks based on the video sentences.
+   Each element must have:
+   - "id": string (e.g. "l1", "l2", ...)
+   - "en": string (original full English sentence)
+   - "vi": string (the Vietnamese translation)
+   - "blankText": string (the sentence where exactly ONE key vocabulary word is replaced with "[blank]", e.g. "This is a [blank] movie.")
+   - "missingWord": string (the lowercase word that fills the [blank], e.g. "fantastic")
+   - "clue": string (a precise Vietnamese definition/clue for the missing word)
+   - "startSec": number (estimated start time in seconds, copy from matching transcript segment)
+
+4. "conversation": An array of 6 conversational dialogue turns simulating a real-world discussion about the topic of this video between Joe and Hana.
+   Each element must have:
+   - "speaker": string ("Joe" or "Hana")
+   - "textEn": string (the dialogue line in English, short and natural)
+   - "textVi": string (the natural Vietnamese translation)
+
+5. "vocabulary": An array of 6 key vocabulary terms extracted from this segment.
+   Each element must have:
+   - "vocabulary": string (the English word or idiom)
+   - "wordType": string ("noun", "verb", "adjective", "adverb", "idiom", "phrase")
+   - "ipa": string (the English IPA phonetic symbols)
+   - "definition": string (the Vietnamese definition)
+   - "example": string (an illustrative English example sentence unrelated to the transcript)
+
+6. "quizzes": An array of 5 quiz questions. At least 3 multiple choice questions ("mc") and 2 spelling/translation questions ("spelling").
+   Each element must have:
+   - "id": string (e.g. "q1", "q2")
+   - "type": string ("mc" or "spelling")
+   - "question": string (the question in English, e.g. "What is the meaning of...?" or "Translate to English:...")
+   - "options": array of 4 choices as strings (only for "mc" type, or leave empty [] for "spelling")
+   - "answer": string (the correct choice if "mc", or the correct word/phrase if "spelling")
+   - "explanation": string (brief explanation in Vietnamese about why this is correct)
+
+CRITICAL: Return ONLY a raw JSON object. Do NOT wrap it in any formatting, explanation, or additional markdown text except the raw JSON string itself. Check your JSON brackets and make sure it is valid JSON.`;
+
+      const result = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const responseText = result.text.trim();
+      const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
+      const payload = JSON.parse(cleanJson);
+      res.json(payload);
+    } catch (error: any) {
+      console.error("Gemini Error (4You Package):", error);
+      // Fallback data package to avoid crashing in case of failure or network issues
+      const fallbackPayload = {
+        subtitles: transcriptSlice.slice(0, 15).map((t: any, i: number) => ({
+          id: `sub${i}`,
+          en: t.text,
+          vi: `[Bản dịch tiếng Việt tự động cho câu]: ${t.text}`,
+          startSec: t.offset / 1000,
+          durationSec: (t.duration || 3000) / 1000
+        })),
+        pronunciation: [
+          {
+            id: "p1",
+            en: "This is a great opportunity for us to learn English.",
+            vi: "Đây là một cơ hội tuyệt vời để chúng ta học tiếng Anh.",
+            tips: "Nối âm: 'great_opportunity' đọc mềm mại thành 'grea-topportunity'. Chú ý âm đuôi /t/ trong từ 'great'.",
+            words: [
+              { word: "opportunity", ipa: "/ˌɒp.əˈtʃuː.nə.ti/", meaning: "cơ hội" },
+              { word: "great", ipa: "/ɡreɪt/", meaning: "tuyệt vời" },
+              { word: "learn", ipa: "/lɜːn/", meaning: "học tập" }
+            ]
+          }
+        ],
+        listening: [
+          {
+            id: "l1",
+            en: "Practice makes perfect when learning a new language.",
+            vi: "Có công mài sắt có ngày nên kim khi học một ngôn ngữ mới.",
+            blankText: "Practice makes [blank] when learning a new language.",
+            missingWord: "perfect",
+            clue: "hoàn hảo, tuyệt hảo",
+            startSec: transcriptSlice[0]?.offset ? transcriptSlice[0].offset / 1000 : 2
+          }
+        ],
+        conversation: [
+          { speaker: "Joe", textEn: "Have you watched this YouTube video yet?", textVi: "Cậu đã xem video YouTube này chưa?" },
+          { speaker: "Hana", textEn: "Yes, it contains so many useful English words!", textVi: "Rồi, nó chứa rất nhiều từ vựng tiếng Anh bổ ích đấy!" },
+          { speaker: "Joe", textEn: "Should we practice shadowing and translating it?", textVi: "Chúng mình có nên luyện tập bắt chước giọng và dịch nó không?" },
+          { speaker: "Hana", textEn: "Absolutely, app 4you style is fantastic for learners.", textVi: "Chắc chắn rồi, học kiểu app 4you cực kỳ đỉnh cho người học luôn." }
+        ],
+        vocabulary: [
+          { vocabulary: "opportunity", wordType: "noun", ipa: "/ˌɒp.əˈtʃuː.nə.ti/", definition: "Cơ hội, dịp may", example: "Don't miss this rare opportunity to speak English." },
+          { vocabulary: "shadowing", wordType: "noun", ipa: "/ˈʃæd.əʊ.ɪŋ/", definition: "Phương pháp luyện nói bắt chước âm điệu", example: "Shadowing helps improve accent and natural rhythm." }
+        ],
+        quizzes: [
+          {
+            id: "q1",
+            type: "mc",
+            question: "What is the meaning of the word 'opportunity'?",
+            options: ["Cơ hội", "Khó khăn", "Kế hoạch", "Thất bại"],
+            answer: "Cơ hội",
+            explanation: "'Opportunity' có nghĩa là cơ hội thuận lợi trong cuộc sống."
+          }
+        ]
+      };
+      res.json(fallbackPayload);
     }
   });
 
