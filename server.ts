@@ -250,6 +250,28 @@ Return ONLY a valid JSON object:
     }
   });
 
+  app.post("/api/translation/translate-line", async (req, res) => {
+    const { text } = req.body;
+    if (!text) {
+      return res.status(400).json({ error: "Missing text" });
+    }
+
+    try {
+      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(`Translate the following English subtitle or line to natural, context-aware Vietnamese.
+We are translating a subtitle/caption line inside a video, so please keep the translation natural, human-like, brief, and matching the original sentence's style and emotion. Do NOT do literal/word-for-word translation.
+Return ONLY the raw translated text, without quotes, explanations, or markdown.
+
+English: "${text}"`);
+      
+      const translation = result.response.text().trim().replace(/^["']|["']$/g, '');
+      res.json({ translation });
+    } catch (error: any) {
+      console.error("Gemini Error (Translate Line):", error);
+      res.status(500).json({ error: "Failed to translate line" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

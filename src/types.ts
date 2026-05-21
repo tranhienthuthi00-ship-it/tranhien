@@ -103,7 +103,7 @@ export interface VideoDictation {
   youtubeId: string;
   title: string;
   content: string; // Used for raw text input if no items
-  transcriptItems?: { text: string; offset: number; duration: number }[];
+  transcriptItems?: { text: string; offset: number; duration: number; translation?: string }[];
   lastModified: number;
   progress?: number;
 }
