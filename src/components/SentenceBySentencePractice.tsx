@@ -92,6 +92,7 @@ export function SentenceBySentencePractice({
     return p ? parseFloat(p) : 1.0;
   });
   const [showVoiceControl, setShowVoiceControl] = useState(false);
+  const [showVoiceGuide, setShowVoiceGuide] = useState(false);
 
   // Full Transcript states
   const [showFullTranscript, setShowFullTranscript] = useState(true);
@@ -509,6 +510,7 @@ export function SentenceBySentencePractice({
 
       const v =
         voices.find((v) => v.name === selectedVoiceName) ||
+        voices[0] ||
         voices.find((v) => v.lang === "en-US");
       if (v) utterance.voice = v;
 
@@ -1094,25 +1096,56 @@ export function SentenceBySentencePractice({
                 }}
                 className="text-[10px] font-black uppercase tracking-wider bg-white border border-ink/15 shadow-sm rounded-lg px-2.5 py-1.5 outline-none max-w-[150px] sm:max-w-[200px]"
               >
-                <option value="">Giọng mặc định</option>
-                {voices.map((v) => {
-                  const isPremium =
-                    v.name.toLowerCase().includes("natural") ||
-                    v.name.toLowerCase().includes("online") ||
-                    v.name.toLowerCase().includes("google") ||
-                    v.name.toLowerCase().includes("premium");
-                  const displayName = v.name
-                    .replace("Microsoft", "")
-                    .replace("Google", "")
-                    .replace("Desktop", "")
-                    .trim();
-                  return (
-                    <option key={v.name} value={v.name}>
-                      {isPremium ? "✨ " : ""}
-                      {displayName}
-                    </option>
-                  );
-                })}
+                <option value="">🍀 Giọng mặc định</option>
+                {voices.some(v => 
+                  v.name.toLowerCase().includes("natural") ||
+                  v.name.toLowerCase().includes("online") ||
+                  v.name.toLowerCase().includes("google") ||
+                  v.name.toLowerCase().includes("premium")
+                ) && (
+                  <optgroup label="✨ GIỌNG AI SIÊU THỰC (KHUYÊN DÙNG)">
+                    {voices
+                      .filter(v => 
+                        v.name.toLowerCase().includes("natural") ||
+                        v.name.toLowerCase().includes("online") ||
+                        v.name.toLowerCase().includes("google") ||
+                        v.name.toLowerCase().includes("premium")
+                      )
+                      .map((v) => {
+                        const displayName = v.name
+                          .replace("Microsoft", "")
+                          .replace("Google", "")
+                          .replace("Desktop", "")
+                          .trim();
+                        return (
+                          <option key={v.name} value={v.name} className="font-sans font-bold py-1">
+                            ✨ {displayName}
+                          </option>
+                        );
+                      })}
+                  </optgroup>
+                )}
+                <optgroup label="🐌 GIỌNG PHỔ THÔNG (OFFLINE / ROBOTIC)">
+                  {voices
+                    .filter(v => 
+                      !(v.name.toLowerCase().includes("natural") ||
+                        v.name.toLowerCase().includes("online") ||
+                        v.name.toLowerCase().includes("google") ||
+                        v.name.toLowerCase().includes("premium"))
+                    )
+                    .map((v) => {
+                      const displayName = v.name
+                        .replace("Microsoft", "")
+                        .replace("Google", "")
+                        .replace("Desktop", "")
+                        .trim();
+                      return (
+                        <option key={v.name} value={v.name} className="font-sans py-1 text-ink/70">
+                          {displayName}
+                        </option>
+                      );
+                    })}
+                </optgroup>
               </select>
 
               <button
@@ -1199,10 +1232,43 @@ export function SentenceBySentencePractice({
                       </div>
                     </div>
 
-                    <div className="p-2 rounded-lg bg-ink/5 text-[9px] text-ink/50 leading-relaxed italic border border-ink/5 select-none">
-                      💡 <strong>Mẹo hay:</strong> Ưu tiên chọn giọng đọc bắt
-                      đầu bằng kí tự <strong>"✨"</strong> (Chrome/Edge Natural
-                      hoặc Online) để nghe ngữ điệu nhấn nhá chân thực nhất!
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowVoiceGuide(!showVoiceGuide)}
+                        className="w-full text-left p-2 rounded bg-crimson/5 hover:bg-crimson/10 border border-crimson/15 text-[10px] text-crimson font-bold flex items-center justify-between transition-colors cursor-pointer"
+                      >
+                        <span className="flex items-center gap-1.5 font-sans uppercase tracking-wider">
+                          💡 Cách bật Giọng AI Siêu Thực như người
+                        </span>
+                        <span className="font-mono text-xs font-black">{showVoiceGuide ? "−" : "+"}</span>
+                      </button>
+
+                      {showVoiceGuide && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          className="bg-paper p-2.5 rounded border border-ink/10 space-y-2.5 text-[9px] text-ink/70 leading-relaxed font-sans overflow-hidden"
+                        >
+                          <div>
+                            <span className="font-black text-[10px] text-teal-600 block mb-0.5">🌐 TRÊN MICROSOFT EDGE:</span>
+                            <p>Không cần cài đặt! Edge hỗ trợ giọng **Microsoft Natural** tốt nhất thế giới. Hãy tìm các giọng bắt đầu bằng **"✨"** trong menu (ví dụ: *Aria, Guy*).</p>
+                          </div>
+                          <div>
+                            <span className="font-black text-[10px] text-teal-600 block mb-0.5">🌐 TRÊN GOOGLE CHROME:</span>
+                            <p>Chrome cài sẵn giọng nói đám mây **"✨ Google US English"** vô cùng ấm áp và tự nhiên. Hãy kết nối Internet và chọn giọng có biểu tượng **"✨"**.</p>
+                          </div>
+                          <div>
+                            <span className="font-black text-[10px] text-teal-600 block mb-0.5">🍎 TRÊN IPHONE / IPAD / MACBOOK (SAFARI):</span>
+                            <p>Hãy tải giọng đọc Siri cao cấp miễn phí từ Apple:</p>
+                            <ol className="list-decimal pl-3.5 space-y-0.5 mt-1">
+                              <li>Vào **Cài đặt** &gt; **Trợ năng** &gt; **Nội dung được nói**.</li>
+                              <li>Chọn **Giọng nói** &gt; **Tiếng Anh** &gt; chọn **Siri (Giọng 1-4)** hoặc **Samantha (Nâng cao)**.</li>
+                              <li>Nhấn biểu tượng đám mây để tải xuống, rồi tải lại trang này để sử dụng giọng siêu thực!</li>
+                            </ol>
+                          </div>
+                        </motion.div>
+                      )}
                     </div>
 
                     <button
@@ -1212,7 +1278,7 @@ export function SentenceBySentencePractice({
                           "Hello! Practice makes perfect. Try translating sentences correctly!",
                         )
                       }
-                      className="w-full bg-ink text-white text-[10px] font-bold uppercase tracking-widest py-1.5 rounded-lg hover:scale-102 transition-transform shadow-md"
+                      className="w-full bg-ink text-white text-[10px] font-bold uppercase tracking-widest py-1.5 rounded-lg hover:scale-102 transition-transform shadow-md cursor-pointer"
                     >
                       🔊 Thử giọng hiện tại
                     </button>

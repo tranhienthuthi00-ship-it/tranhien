@@ -262,8 +262,44 @@ export function YouTubeDictation({ dictations, setDictations }: { dictations: Vi
     if (!text || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
+
+    const voices = window.speechSynthesis.getVoices();
+    const enVoices = voices.filter((v) => v.lang.startsWith("en"));
+    
+    const preferredVoice = localStorage.getItem("preferredVoice");
+    const preferredRate = localStorage.getItem("preferredRate");
+    const preferredPitch = localStorage.getItem("preferredPitch");
+
+    let voiceToUse = null;
+    if (preferredVoice) {
+      voiceToUse = enVoices.find((v) => v.name === preferredVoice);
+    }
+
+    if (!voiceToUse && enVoices.length > 0) {
+      // Sort and prioritize high-quality natural/online/Google/Premium voices
+      const sortedEn = [...enVoices].sort((a, b) => {
+        const getScore = (voice: SpeechSynthesisVoice) => {
+          const name = voice.name.toLowerCase();
+          if (name.includes("natural")) return 100;
+          if (name.includes("online")) return 90;
+          if (name.includes("google")) return 80;
+          if (name.includes("premium")) return 70;
+          if (name.includes("neural")) return 60;
+          if (name.includes("samantha")) return 50;
+          if (name.includes("apple") || name.includes("macos")) return 40;
+          if (name.includes("microsoft") || name.includes("desktop")) return 30;
+          return 0;
+        };
+        return getScore(b) - getScore(a);
+      });
+      voiceToUse = sortedEn[0];
+    }
+
+    if (voiceToUse) utterance.voice = voiceToUse;
     utterance.lang = 'en-US';
-    utterance.rate = 0.9;
+    utterance.rate = preferredRate ? parseFloat(preferredRate) : 0.9;
+    utterance.pitch = preferredPitch ? parseFloat(preferredPitch) : 1.0;
+
     window.speechSynthesis.speak(utterance);
   };
 
