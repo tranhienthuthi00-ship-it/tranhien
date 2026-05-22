@@ -12,6 +12,16 @@ export function getAbsoluteUrl(path: string): string {
   
   let base = "";
   
+  // 0. Try window.__BACKEND_URL__ injected dynamically by our custom template router
+  try {
+    const injectedUrl = (window as any).__BACKEND_URL__;
+    if (injectedUrl && (injectedUrl.startsWith("http://") || injectedUrl.startsWith("https://"))) {
+      base = new URL(injectedUrl).origin;
+    }
+  } catch (e) {
+    // Ignore error
+  }
+  
   // 1. Try process.env.APP_URL or import.meta.env.VITE_APP_URL if defined (compiled at build time or injected)
   try {
     const envUrl = (process.env as any).APP_URL || (import.meta as any).env?.VITE_APP_URL || (import.meta as any).env?.APP_URL;
@@ -42,6 +52,25 @@ export function getAbsoluteUrl(path: string): string {
         .filter(src => src && (src.startsWith("http://") || src.startsWith("https://")));
       if (scriptUrls.length > 0) {
         base = new URL(scriptUrls[0]).origin;
+      }
+    } catch (e) {
+      // Ignore error
+    }
+  }
+
+  // 3.5 Try document.baseURI and base element href
+  if (!base) {
+    try {
+      const baseUri = document.baseURI;
+      if (baseUri && (baseUri.startsWith("http://") || baseUri.startsWith("https://"))) {
+        base = new URL(baseUri).origin;
+      }
+      if (!base) {
+        const baseEl = document.querySelector("base");
+        const baseHref = baseEl?.getAttribute("href");
+        if (baseHref && (baseHref.startsWith("http://") || baseHref.startsWith("https://"))) {
+          base = new URL(baseHref).origin;
+        }
       }
     } catch (e) {
       // Ignore error

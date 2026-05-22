@@ -1,6 +1,7 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
+import fs from "fs";
 import { YoutubeTranscript } from 'youtube-transcript';
 import { Innertube } from 'youtubei.js';
 import { createRequire } from 'module';
@@ -577,12 +578,62 @@ CRITICAL: Return ONLY a raw JSON object. Do NOT wrap it in any formatting, expla
       server: { middlewareMode: true },
       appType: "spa",
     });
+
+    // Custom index.html interceptor to inject window.__BACKEND_URL__ in dev mode
+    app.get(["/", "/index.html"], async (req, res, next) => {
+      try {
+        const indexPath = path.join(process.cwd(), "index.html");
+        if (fs.existsSync(indexPath)) {
+          let html = fs.readFileSync(indexPath, "utf8");
+          // Apply Vite's HTML transforms (inject dev scripts etc)
+          html = await vite.transformIndexHtml(req.url, html);
+
+          const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
+          const host = req.headers["x-forwarded-host"] || req.get("host");
+          const originUrl = `${protocol}://${host}`;
+
+          // Inject BACKEND_URL variable to the head tag
+          html = html.replace(
+            "<head>",
+            `<head><script>window.__BACKEND_URL__ = "${originUrl}";</script>`
+          );
+          res.setHeader("Content-Type", "text/html");
+          return res.status(200).end(html);
+        }
+      } catch (err) {
+        console.error("Error transforming dev index.html:", err);
+      }
+      next();
+    });
+
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
+
+    // Dynamic index.html template compiler for Safari iframe resolution
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexPath = path.join(distPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        fs.readFile(indexPath, 'utf8', (err, html) => {
+          if (err) {
+            return res.sendFile(indexPath);
+          }
+          const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+          const host = req.headers['x-forwarded-host'] || req.get("host");
+          const originUrl = `${protocol}://${host}`;
+
+          // Inject BACKEND_URL variable to the head tag
+          const injectedHtml = html.replace(
+            '<head>',
+            `<head><script>window.__BACKEND_URL__ = "${originUrl}";</script>`
+          );
+          res.setHeader("Content-Type", "text/html");
+          return res.send(injectedHtml);
+        });
+      } else {
+        res.status(404).send("Application files not fully built yet.");
+      }
     });
   }
 
