@@ -17,9 +17,34 @@ import {
 const require = createRequire(import.meta.url);
 const { getSubtitles } = require('youtube-captions-scraper');
 
-// Gemini Initialization
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const ai: any = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+// Gemini Lazy Initialization via ES6 getter to prevent startup crashes and ensure correct User-Agent
+let aiClient: any = null;
+function getGeminiClient(): any {
+  if (!aiClient) {
+    const key = process.env.GEMINI_API_KEY || "";
+    aiClient = new GoogleGenAI({ 
+      apiKey: key,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build'
+        }
+      }
+    });
+  }
+  return aiClient;
+}
+
+const ai: any = {
+  get models() {
+    return getGeminiClient().models;
+  },
+  get files() {
+    return getGeminiClient().files;
+  },
+  get caches() {
+    return getGeminiClient().caches;
+  }
+};
 
 async function startServer() {
   const app = express();

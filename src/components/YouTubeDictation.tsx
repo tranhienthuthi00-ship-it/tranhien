@@ -15,7 +15,7 @@ export function YouTubeDictation({
   setWords
 }: { 
   dictations: VideoDictation[]; 
-  setDictations: (d: VideoDictation[]) => void;
+  setDictations: React.Dispatch<React.SetStateAction<VideoDictation[]>>;
   words?: Word[];
   setWords?: (w: Word[]) => void;
 }) {
@@ -416,7 +416,7 @@ export function YouTubeDictation({
   };
 
   const updateSession = (id: string, field: keyof VideoDictation, value: any) => {
-    setDictations(dictations.map(d => 
+    setDictations(prev => prev.map(d => 
       d.id === id ? { ...d, [field]: value, lastModified: Date.now() } : d
     ));
   };
@@ -425,7 +425,7 @@ export function YouTubeDictation({
     e.stopPropagation();
     if(confirm('Are you sure you want to delete this dictation session?')) {
       if (activeSessionId === id) setActiveSessionId(null);
-      setDictations(dictations.filter(d => d.id !== id));
+      setDictations(prev => prev.filter(d => d.id !== id));
     }
   };
 

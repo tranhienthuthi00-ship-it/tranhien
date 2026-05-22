@@ -373,8 +373,8 @@ export function generateDynamicFallbackPackage(transcript: any[], title: string)
 
   // Fillers up to 6 vocabs if needed
   const coreVocabKeys = Object.keys(OFFLINE_DICTIONARY);
-  while (vocabList.length < 5) {
-    const fillKey = coreVocabKeys[vocabList.length % coreVocabKeys.length];
+  for (const fillKey of coreVocabKeys) {
+    if (vocabList.length >= 5) break;
     if (!vocabList.find(v => v.vocabulary === fillKey)) {
       vocabList.push({
         vocabulary: fillKey,
