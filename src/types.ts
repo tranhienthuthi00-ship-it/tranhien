@@ -189,4 +189,5 @@ export interface TodayTask {
   habitId?: string;
   snoozedCount?: number;
   notified?: boolean;
+  date?: string;
 }

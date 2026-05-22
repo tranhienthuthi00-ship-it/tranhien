@@ -3,10 +3,10 @@ import {
   Plus, Trash2, Check, Clock, Bell, Flame, Award, 
   Sparkles, X, Coffee, Droplet, Dumbbell, BookOpen, 
   Smile, Shield, Calendar, Heart, HelpCircle, CheckCircle,
-  Play, RotateCcw, Volume2
+  Play, RotateCcw, Volume2, Edit2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import type { Habit, TodayTask } from "../types";
+import type { Habit, TodayTask, LogEntry } from "../types";
 import { cn } from "../lib/utils";
 
 // Web Audio API synthesized sound cues
@@ -99,7 +99,20 @@ const CATEGORIES = [
   { name: "Cá nhân", color: "bg-pink-50 border-pink-400 text-pink-800 accent bg-[#fce8e6]" }
 ];
 
-export function HabitTracker() {
+interface HabitTrackerProps {
+  logs?: LogEntry[];
+  setLogs?: React.Dispatch<React.SetStateAction<LogEntry[]>>;
+}
+
+interface EditingTaskState {
+  id: string;
+  title: string;
+  time: string;
+  date: string;
+  type: 'task' | 'event';
+}
+
+export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
   // --- States ---
   const [habits, setHabits] = useState<Habit[]>(() => {
     const saved = localStorage.getItem("studyHub_habits");
@@ -115,8 +128,12 @@ export function HabitTracker() {
   const getTodayStr = () => new Date().toISOString().split('T')[0];
   const [todayStr, setTodayStr] = useState(getTodayStr());
 
-  // Form states for new habit
+  // Navigation and date states
+  const [selectedDate, setSelectedDate] = useState(getTodayStr());
+
+  // Form states for new habit (or editing habit)
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
   const [newHabitName, setNewHabitName] = useState("");
   const [newHabitIcon, setNewHabitIcon] = useState("🥤");
   const [newHabitCategory, setNewHabitCategory] = useState("Sức khỏe");
@@ -124,9 +141,14 @@ export function HabitTracker() {
   const [newHabitReminders, setNewHabitReminders] = useState<string[]>(["08:00"]);
   const [tempTime, setTempTime] = useState("");
 
-  // Form state for today's quick todo task
+  // Form state for today's quick todo task / calendar event
   const [quickTaskTitle, setQuickTaskTitle] = useState("");
   const [quickTaskTime, setQuickTaskTime] = useState("");
+  const [quickTaskDate, setQuickTaskDate] = useState(getTodayStr());
+  const [quickTaskType, setQuickTaskType] = useState<'task' | 'event'>('task');
+
+  // Edit popups for task/event
+  const [editingTask, setEditingTask] = useState<EditingTaskState | null>(null);
 
   // System State for triggered alert popup
   const [activeAlert, setActiveAlert] = useState<{
@@ -147,6 +169,11 @@ export function HabitTracker() {
     return () => clearInterval(timer);
   }, []);
 
+  // Sync quick task default date with selectedDate
+  useEffect(() => {
+    setQuickTaskDate(selectedDate);
+  }, [selectedDate]);
+
   // Save changes to LocalStorage
   useEffect(() => {
     localStorage.setItem("studyHub_habits", JSON.stringify(habits));
@@ -156,11 +183,11 @@ export function HabitTracker() {
     localStorage.setItem("studyHub_oneOffTasks", JSON.stringify(oneOffTasks));
   }, [oneOffTasks]);
 
-  // --- Core Computations for Today's Checklist ---
+  // --- Core Computations for Today's Alarms ---
   // Today's day index (0 for Sunday, 1 for Monday, etc.)
   const todayDayIndex = new Date().getDay();
 
-  // Compute all scheduled items for today
+  // LIVE ALARM CHECKLIST (always reflects current system day!)
   const todayTasksList = useMemo(() => {
     const list: TodayTask[] = [];
 
@@ -168,11 +195,10 @@ export function HabitTracker() {
     habits.forEach(habit => {
       if (!habit.isActive) return;
       
-      // Check if habit is scheduled for today
       const isScheduledToday = habit.daysOfWeek.length === 0 || habit.daysOfWeek.includes(todayDayIndex);
       
       if (isScheduledToday) {
-        habit.reminderTimes.forEach((time, index) => {
+        habit.reminderTimes.forEach((time) => {
           const instanceId = `habit-${habit.id}-${time}`;
           const isDone = !!(habit.history[todayStr]?.[time]);
           
@@ -181,20 +207,93 @@ export function HabitTracker() {
             title: `${habit.icon} ${habit.name}`,
             time: time,
             isCompleted: isDone,
-            habitId: habit.id
+            habitId: habit.id,
+            date: todayStr
           });
         });
       }
     });
 
-    // 2. Add one-off custom tasks for today
+    // 2. Add one-off custom tasks designated for today
     oneOffTasks.forEach(task => {
-      list.push(task);
+      const taskDate = task.date || todayStr;
+      if (taskDate === todayStr) {
+        list.push(task);
+      }
     });
 
-    // Sort chronologically by time
     return list.sort((a, b) => a.time.localeCompare(b.time));
   }, [habits, oneOffTasks, todayStr, todayDayIndex]);
+
+  // DISPLAY SCHEDULE LIST (reflects user's custom selectedDate!)
+  const selectedDateTasksList = useMemo(() => {
+    const list: {
+      id: string;
+      title: string;
+      time: string;
+      isCompleted: boolean;
+      habitId?: string;
+      oneOffTaskId?: string;
+      eventId?: string;
+      date: string;
+    }[] = [];
+
+    const selectedDayIndex = new Date(selectedDate).getDay();
+
+    // 1. Habits for selected day
+    habits.forEach(habit => {
+      if (!habit.isActive) return;
+      
+      const isScheduled = habit.daysOfWeek.length === 0 || habit.daysOfWeek.includes(selectedDayIndex);
+      
+      if (isScheduled) {
+        habit.reminderTimes.forEach((time) => {
+          const instanceId = `habit-${habit.id}-${time}`;
+          const isDone = !!(habit.history[selectedDate]?.[time]);
+          
+          list.push({
+            id: instanceId,
+            title: `${habit.icon} ${habit.name}`,
+            time: time,
+            isCompleted: isDone,
+            habitId: habit.id,
+            date: selectedDate
+          });
+        });
+      }
+    });
+
+    // 2. Custom tasks for selected day
+    oneOffTasks.forEach(task => {
+      const taskDate = task.date || todayStr; // backward compatibility
+      if (taskDate === selectedDate) {
+        list.push({
+          id: task.id,
+          title: task.title,
+          time: task.time,
+          isCompleted: task.isCompleted,
+          oneOffTaskId: task.id,
+          date: selectedDate
+        });
+      }
+    });
+
+    // 3. Google Calendar Events from logs
+    logs.forEach(log => {
+      if (log.type === "Event" && log.date === selectedDate) {
+        list.push({
+          id: `cal-${log.id}`,
+          title: `📅 ${log.content}`,
+          time: log.time || "00:00",
+          isCompleted: false, // Calendar events are just scheduled reminders or informational
+          eventId: log.id,
+          date: selectedDate
+        });
+      }
+    });
+
+    return list.sort((a, b) => a.time.localeCompare(b.time));
+  }, [habits, oneOffTasks, logs, selectedDate, todayStr]);
 
   // Total completed tasks stats
   const stats = useMemo(() => {
@@ -237,34 +336,34 @@ export function HabitTracker() {
   // --- Handlers ---
   
   // Toggle status of a scheduled item
-  const handleToggleTask = (task: TodayTask) => {
+  const handleToggleTask = (task: any) => {
     const targetStatus = !task.isCompleted;
     
     if (task.habitId) {
       // Toggle a Habit Instance
       const updatedHabits = habits.map(h => {
         if (h.id === task.habitId) {
-          const dailyHistory = { ...(h.history[todayStr] || {}) };
+          const dailyHistory = { ...(h.history[selectedDate] || {}) };
           dailyHistory[task.time] = targetStatus;
-
+ 
           const updatedHistory = {
             ...h.history,
-            [todayStr]: dailyHistory
+            [selectedDate]: dailyHistory
           };
-
-          // Re-calculate streak if marking complete
+ 
+          // Re-calculate streak if toggling on today live
           let currentStreak = h.streak;
           let lastCompleted = h.lastCompletedDate;
-
+ 
           const yesterday = new Date();
           yesterday.setDate(yesterday.getDate() - 1);
           const yesterdayStr = yesterday.toISOString().split('T')[0];
-
+ 
           // Check if today is completed (all times for today are completed)
           const todayTimes = h.reminderTimes;
           const isTodayAllCompleted = todayTimes.every(t => dailyHistory[t] === true);
-
-          if (isTodayAllCompleted && targetStatus) {
+ 
+          if (isTodayAllCompleted && targetStatus && selectedDate === todayStr) {
             // Habit fully done today
             if (lastCompleted === yesterdayStr) {
               currentStreak += 1;
@@ -272,7 +371,7 @@ export function HabitTracker() {
               currentStreak = 1; // reset streak if broken but started today
             }
             lastCompleted = todayStr;
-          } else if (!isTodayAllCompleted) {
+          } else if (!isTodayAllCompleted && selectedDate === todayStr) {
             // Broken today or was completed but now unchecked
             if (lastCompleted === todayStr) {
               // Unmarked a complete today task, restore streak to previous
@@ -280,9 +379,9 @@ export function HabitTracker() {
               lastCompleted = undefined; // reset last completed date
             }
           }
-
+ 
           const maxStreak = Math.max(h.maxStreak, currentStreak);
-
+ 
           return {
             ...h,
             history: updatedHistory,
@@ -294,61 +393,102 @@ export function HabitTracker() {
         return h;
       });
       setHabits(updatedHabits);
-    } else {
+    } else if (task.oneOffTaskId) {
       // Toggle a one-off task
       setOneOffTasks(oneOffTasks.map(t => 
-        t.id === task.id ? { ...t, isCompleted: targetStatus } : t
+        t.id === task.oneOffTaskId ? { ...t, isCompleted: targetStatus } : t
       ));
     }
-
+ 
     if (targetStatus) {
       playSound('complete');
     }
   };
-
-  // Add a new Habit
+ 
+  // Add or Update Habit
   const handleAddHabit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHabitName.trim()) return;
-
-    const newHabit: Habit = {
-      id: `h-${Date.now()}`,
-      name: newHabitName.trim(),
-      icon: newHabitIcon,
-      category: newHabitCategory,
-      reminderTimes: [...newHabitReminders].sort(),
-      daysOfWeek: newHabitDays,
-      streak: 0,
-      maxStreak: 0,
-      createdAt: Date.now(),
-      isActive: true,
-      history: {}
-    };
-
-    setHabits([newHabit, ...habits]);
+ 
+    if (editingHabitId) {
+      // Update existing habit
+      setHabits(habits.map(h => 
+        h.id === editingHabitId ? {
+          ...h,
+          name: newHabitName.trim(),
+          icon: newHabitIcon,
+          category: newHabitCategory,
+          reminderTimes: [...newHabitReminders].sort(),
+          daysOfWeek: newHabitDays
+        } : h
+      ));
+      setEditingHabitId(null);
+    } else {
+      // Create new habit
+      const newHabit: Habit = {
+        id: `h-${Date.now()}`,
+        name: newHabitName.trim(),
+        icon: newHabitIcon,
+        category: newHabitCategory,
+        reminderTimes: [...newHabitReminders].sort(),
+        daysOfWeek: newHabitDays,
+        streak: 0,
+        maxStreak: 0,
+        createdAt: Date.now(),
+        isActive: true,
+        history: {}
+      };
+      setHabits([newHabit, ...habits]);
+    }
     
     // Reset Form
     setNewHabitName("");
     setNewHabitIcon("🥤");
+    setNewHabitCategory("Sức khỏe");
     setNewHabitDays([]);
     setNewHabitReminders(["08:00"]);
     setShowAddForm(false);
   };
 
+  // Start editing a habit
+  const startEditHabit = (habit: Habit) => {
+    setEditingHabitId(habit.id);
+    setNewHabitName(habit.name);
+    setNewHabitIcon(habit.icon);
+    setNewHabitCategory(habit.category);
+    setNewHabitDays(habit.daysOfWeek);
+    setNewHabitReminders(habit.reminderTimes);
+    setShowAddForm(true);
+  };
+
+  // Cancel editing habit
+  const cancelEditHabit = () => {
+    setEditingHabitId(null);
+    setNewHabitName("");
+    setNewHabitIcon("🥤");
+    setNewHabitCategory("Sức khỏe");
+    setNewHabitDays([]);
+    setNewHabitReminders(["08:00"]);
+    setShowAddForm(false);
+  };
+ 
   // Delete a Habit
   const handleDeleteHabit = (id: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa thói quen này không?")) {
+      if (editingHabitId === id) {
+        cancelEditHabit();
+      }
       setHabits(habits.filter(h => h.id !== id));
     }
   };
-
+ 
   // Toggle active/inactive state of a habit
   const handleToggleActiveHabit = (id: string) => {
     setHabits(habits.map(h => 
       h.id === id ? { ...h, isActive: !h.isActive } : h
     ));
   };
-
+ 
   // Add dynamic quick reminder time of a habit in form close-ups
   const handleAddReminderTime = () => {
     if (tempTime && !newHabitReminders.includes(tempTime)) {
@@ -356,7 +496,7 @@ export function HabitTracker() {
       setTempTime("");
     }
   };
-
+ 
   const handleRemoveReminderTime = (time: string) => {
     if (newHabitReminders.length > 1) {
       setNewHabitReminders(newHabitReminders.filter(t => t !== time));
@@ -364,7 +504,7 @@ export function HabitTracker() {
       alert("Cần có ít nhất một mốc thời gian nhắc nhở!");
     }
   };
-
+ 
   // Toggle day selection
   const handleToggleDay = (day: number) => {
     if (newHabitDays.includes(day)) {
@@ -373,29 +513,109 @@ export function HabitTracker() {
       setNewHabitDays([...newHabitDays, day].sort());
     }
   };
-
-  // Create quick one-off task for today
+ 
+  // Create quick task or calendar event
   const handleAddQuickTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickTaskTitle.trim()) return;
-
+ 
     const taskTime = quickTaskTime || new Date().toTimeString().split(' ')[0].substring(0, 5); // Current hour if empty
-    
-    const newTask: TodayTask = {
-      id: `task-${Date.now()}`,
-      title: `⚡ ${quickTaskTitle.trim()}`,
-      time: taskTime,
-      isCompleted: false
-    };
+    const targetDate = quickTaskDate || selectedDate;
 
-    setOneOffTasks([...oneOffTasks, newTask]);
+    if (quickTaskType === 'task') {
+      const newTask: TodayTask = {
+        id: `task-${Date.now()}`,
+        title: `⚡ ${quickTaskTitle.trim()}`,
+        time: taskTime,
+        isCompleted: false,
+        date: targetDate
+      };
+      setOneOffTasks([...oneOffTasks, newTask]);
+    } else {
+      // Calendar Event
+      const newEvent: LogEntry = {
+        id: `cal-${Date.now()}`,
+        date: targetDate,
+        content: quickTaskTitle.trim(),
+        type: 'Event',
+        time: taskTime,
+        emoji: '📆'
+      };
+      if (setLogs) {
+        setLogs(prev => [...prev, newEvent]);
+      }
+    }
+ 
     setQuickTaskTitle("");
     setQuickTaskTime("");
     playSound('complete');
   };
-
+ 
   const handleDeleteQuickTask = (id: string) => {
     setOneOffTasks(oneOffTasks.filter(t => t.id !== id));
+  };
+
+  const handleDeleteCalendarEvent = (id: string) => {
+    if (confirm("Bạn có chắc chắn muốn xóa sự kiện lịch này không?")) {
+      if (setLogs) {
+        setLogs(prev => prev.filter(log => log.id !== id));
+      }
+    }
+  };
+
+  const startEditTask = (item: any) => {
+    if (item.oneOffTaskId) {
+      const task = oneOffTasks.find(t => t.id === item.oneOffTaskId);
+      if (task) {
+        setEditingTask({
+          id: task.id,
+          title: task.title.replace(/^⚡\s*/, ""),
+          time: task.time,
+          date: task.date || selectedDate,
+          type: 'task'
+        });
+      }
+    } else if (item.eventId) {
+      const log = logs.find(l => l.id === item.eventId);
+      if (log) {
+        setEditingTask({
+          id: log.id,
+          title: log.content.replace(/^📅\s*/, ""),
+          time: log.time || "00:00",
+          date: log.date,
+          type: 'event'
+        });
+      }
+    }
+  };
+
+  const handleSaveEditTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTask || !editingTask.title.trim()) return;
+
+    if (editingTask.type === 'task') {
+      setOneOffTasks(oneOffTasks.map(t => 
+        t.id === editingTask.id ? {
+          ...t,
+          title: `⚡ ${editingTask.title.trim()}`,
+          time: editingTask.time,
+          date: editingTask.date
+        } : t
+      ));
+    } else {
+      if (setLogs) {
+        setLogs(logs.map(l =>
+          l.id === editingTask.id ? {
+            ...l,
+            content: editingTask.title.trim(),
+            time: editingTask.time,
+            date: editingTask.date
+          } : l
+        ));
+      }
+    }
+    setEditingTask(null);
+    playSound('complete');
   };
 
   // Alert Modal actions
@@ -489,64 +709,153 @@ export function HabitTracker() {
       {/* DETAILED LAYOUT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* LEFT COLUMN: TODAY SCHEDULE TIMELINE (8 columns) */}
+        {/* LEFT COLUMN: SELECTED DATE SCHEDULE TIMELINE (8 columns) */}
         <div className="lg:col-span-7 space-y-6">
           <div className="sketch-border bg-white p-5 md:p-6 shadow-md border-b-4 border-r-4 border-ink">
-            <div className="flex justify-between items-center border-b-2 border-dashed border-ink/10 pb-3 mb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-dashed border-ink/10 pb-4 mb-4">
               <div>
                 <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2">
-                  <Clock className="w-6 h-6 text-crimson" style={{ filter: 'url(#hand-drawn-filter)' }} />
-                  LỊCH TRÌNH HÔM NAY
+                  <Clock className="w-6 h-6 text-crimson" />
+                  CHI TIẾT LỊCH TRÌNH
                 </h2>
-                <p className="hand-text text-sm opacity-60">Các mốc thời gian chi tiết trong ngày</p>
+                <p className="hand-text text-sm opacity-60">Theo dõi, lên lịch thói quen & sự kiện chi tiết</p>
               </div>
-              <div className="bg-[#efefef] font-bold text-xs uppercase px-2.5 py-1 text-center sketch-border-sm text-ink bg-[#fef7e0]">
-                {todayStr.split('-').reverse().join('/')}
+              
+              {/* Date selection & navigation */}
+              <div className="flex items-center gap-1.5 self-start md:self-auto">
+                <button 
+                  onClick={() => {
+                    const d = new Date(selectedDate);
+                    d.setDate(d.getDate() - 1);
+                    setSelectedDate(d.toISOString().split('T')[0]);
+                  }}
+                  type="button"
+                  className="px-2 py-1 text-xs font-black border-2 border-ink rounded bg-white hover:bg-ink hover:text-white transition-all select-none"
+                  title="Ngày trước"
+                >
+                  &larr;
+                </button>
+                <input 
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="sketch-input font-bold text-xs py-1 px-2.5 bg-[#fef7e0] font-mono text-center outline-none cursor-pointer border-2 border-ink rounded select-none"
+                />
+                <button 
+                  onClick={() => {
+                    const d = new Date(selectedDate);
+                    d.setDate(d.getDate() + 1);
+                    setSelectedDate(d.toISOString().split('T')[0]);
+                  }}
+                  type="button"
+                  className="px-2 py-1 text-xs font-black border-2 border-ink rounded bg-white hover:bg-ink hover:text-white transition-all select-none"
+                  title="Ngày sau"
+                >
+                  &rarr;
+                </button>
+                <button 
+                  onClick={() => setSelectedDate(getTodayStr())}
+                  type="button"
+                  className="px-2 py-1 text-xs font-black border-2 border-ink rounded bg-[#e8f0fe] hover:bg-crimson hover:text-white transition-all select-none"
+                  title="Về hôm nay"
+                >
+                  Hôm nay
+                </button>
               </div>
             </div>
 
             {/* Quick create one-off task today */}
-            <form onSubmit={handleAddQuickTask} className="bg-[#fdfbf7] p-3 border-2 border-dashed border-ink/20 rounded-md mb-6 flex flex-col sm:flex-row gap-2 items-end sm:items-center">
-              <div className="flex-1 w-full flex flex-col gap-1">
-                <label className="text-[10px] font-black uppercase text-ink/40 tracking-wider">Việc cần làm đột xuất hôm nay</label>
-                <input
-                  type="text"
-                  value={quickTaskTitle}
-                  onChange={(e) => setQuickTaskTitle(e.target.value)}
-                  placeholder="Ví dụ: Đi họp nhóm, Gửi email cho Sếp..."
-                  className="sketch-input bg-white py-1 px-2.5 text-xs w-full"
-                />
+            <form onSubmit={handleAddQuickTask} className="bg-[#fdfbf7] p-3 border-2 border-dashed border-ink/20 rounded-md mb-6 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Type Choice */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-ink/40 tracking-wider">Cách thức:</span>
+                  <div className="flex border-2 border-ink rounded overflow-hidden text-xs bg-white">
+                    <button
+                      type="button"
+                      onClick={() => setQuickTaskType('task')}
+                      className={cn(
+                        "px-3 py-1 font-bold transition-all",
+                        quickTaskType === 'task' ? "bg-ink text-white" : "hover:bg-ink/5"
+                      )}
+                    >
+                      ⚡ Công việc
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickTaskType('event')}
+                      className={cn(
+                        "px-3 py-1 font-bold transition-all",
+                        quickTaskType === 'event' ? "bg-[#3367d6] text-white" : "hover:bg-ink/5"
+                      )}
+                    >
+                      📅 Lịch sự kiện
+                    </button>
+                  </div>
+                </div>
+
+                {/* Specific date / deadline picker */}
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-[10px] font-black uppercase text-ink/40 tracking-wider">Hạn thực hiện (Deadline):</span>
+                  <input
+                    type="date"
+                    value={quickTaskDate}
+                    onChange={(e) => setQuickTaskDate(e.target.value)}
+                    className="sketch-input py-0.5 px-2 bg-white font-mono text-[11px] text-center w-32 border border-ink"
+                    required
+                  />
+                </div>
               </div>
-              <div className="w-full sm:w-28 flex flex-col gap-1">
-                <label className="text-[10px] font-black uppercase text-ink/40 tracking-wider">Mốc giờ</label>
-                <input
-                  type="time"
-                  value={quickTaskTime}
-                  onChange={(e) => setQuickTaskTime(e.target.value)}
-                  className="sketch-input bg-white py-1 px-2.5 text-xs w-full font-mono text-center"
-                />
+
+              <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+                <div className="flex-1 w-full flex flex-col gap-1">
+                  <input
+                    type="text"
+                    value={quickTaskTitle}
+                    onChange={(e) => setQuickTaskTitle(e.target.value)}
+                    placeholder={
+                      quickTaskType === 'task' 
+                        ? "Điền công việc cần làm... (ví dụ: Đi họp nhóm, Gửi báo cáo)" 
+                        : "Điền sự kiện ghi chép... (ví dụ: Kiểm tra sức khoẻ định kỳ, Sinh nhật mẹ)"
+                    }
+                    className="sketch-input bg-white py-1.5 px-2.5 text-xs w-full"
+                    required
+                  />
+                </div>
+                <div className="w-full sm:w-28 flex flex-col gap-1">
+                  <input
+                    type="time"
+                    value={quickTaskTime}
+                    onChange={(e) => setQuickTaskTime(e.target.value)}
+                    className="sketch-input bg-white py-1.5 px-2.5 text-xs w-full font-mono text-center"
+                  />
+                </div>
+                <button 
+                  type="submit" 
+                  className={cn(
+                    "sketch-button py-1.5 px-4 text-xs font-black uppercase transition-all w-full sm:w-auto shrink-0 flex items-center justify-center gap-1.5 border-2 border-ink",
+                    quickTaskType === 'task' ? "bg-[#fbcfe8] hover:bg-crimson hover:text-white" : "bg-[#d2e3fc] hover:bg-[#1a73e8] hover:text-white text-[#1a73e8]"
+                  )}
+                >
+                  <Plus className="w-4 h-4" /> {quickTaskType === 'task' ? "Thêm việc" : "Thêm sự kiện"}
+                </button>
               </div>
-              <button 
-                type="submit" 
-                className="sketch-button py-1 px-4 text-xs font-bold bg-[#fbcfe8] text-ink hover:bg-crimson hover:text-white transition-all w-full sm:w-auto shrink-0 flex items-center justify-center gap-1.5"
-              >
-                <Plus className="w-4 h-4" /> Thêm việc
-              </button>
             </form>
 
             {/* Timeline wrapper */}
-            {todayTasksList.length === 0 ? (
+            {selectedDateTasksList.length === 0 ? (
               <div className="text-center py-12 px-4 bg-paper/35 rounded border border-dashed border-ink/10">
                 <Smile className="w-12 h-12 text-ink/20 mx-auto mb-3" />
-                <p className="text-sm font-semibold text-ink/50">Không có thói quen hay việc cần làm nào được lên lịch hôm nay.</p>
-                <p className="text-xs text-ink/40 mt-1">Bật hoạt động thói quen bên phải hoặc thêm việc đột xuất phía trên!</p>
+                <p className="text-sm font-semibold text-ink/50">Không có thói quen, công việc hay sự kiện nào được lên lịch cho ngày này.</p>
+                <p className="text-xs text-ink/40 mt-1">Dùng công cụ phía trên hoặc bật thói quen bất kỳ!</p>
               </div>
             ) : (
               <div className="relative pl-5 sm:pl-8 border-l-[3px] border-dashed border-ink/20 space-y-4">
-                {todayTasksList.map((task) => {
+                {selectedDateTasksList.map((task) => {
                   const now = new Date();
                   const currentHHMM = now.toTimeString().split(' ')[0].substring(0, 5);
-                  const isPast = task.time < currentHHMM && !task.isCompleted;
+                  const isTodayActive = selectedDate === todayStr;
+                  const isPast = isTodayActive && task.time < currentHHMM && !task.isCompleted && !task.eventId;
 
                   return (
                     <motion.div 
@@ -558,32 +867,40 @@ export function HabitTracker() {
                       className={cn(
                         "group relative bg-paper rounded-lg border-2 border-ink p-3 shadow-sm hover:shadow-md transition-all flex items-center justify-between gap-3",
                         task.isCompleted ? "opacity-60 bg-[#e6f4ea]/10 border-ink/50" : "",
-                        isPast ? "border-amber-400 bg-amber-50/10" : ""
+                        isPast ? "border-amber-400 bg-amber-50/10" : "",
+                        task.eventId ? "border-blue-400 bg-blue-50/5" : ""
                       )}
                     >
                       {/* Timeline dot point */}
                       <div className={cn(
                         "absolute -left-[30px] sm:-left-[41px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-ink z-10 transition-colors flex items-center justify-center bg-white",
-                        task.isCompleted ? "bg-emerald-500 text-white" : isPast ? "bg-amber-400" : "bg-white"
+                        task.isCompleted ? "bg-emerald-500 text-white" : isPast ? "bg-amber-400" : task.eventId ? "bg-blue-500 text-white" : "bg-white"
                       )}>
                         {task.isCompleted && <Check className="w-3 h-3" />}
                         {!task.isCompleted && isPast && <span className="w-1.5 h-1.5 rounded-full bg-ink" />}
+                        {task.eventId && <Calendar className="w-2.5 h-2.5" />}
                       </div>
 
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <button 
-                          onClick={() => handleToggleTask(task)}
-                          className={cn(
-                            "w-8 h-8 rounded border-2 border-ink flex items-center justify-center shrink-0 transition-all select-none hover:bg-ink/5",
-                            task.isCompleted ? "bg-emerald-100 text-emerald-800" : "bg-white"
-                          )}
-                        >
-                          {task.isCompleted ? (
-                            <Check className="w-5 h-5 font-black" />
-                          ) : (
-                            <div className="w-3 h-3 rounded-full opacity-0 hover:opacity-20 bg-ink" />
-                          )}
-                        </button>
+                        {task.eventId ? (
+                          <div className="w-8 h-8 rounded border-2 border-blue-400 bg-blue-50 flex items-center justify-center shrink-0 text-blue-600 font-bold">
+                            📅
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => handleToggleTask(task)}
+                            className={cn(
+                              "w-8 h-8 rounded border-2 border-ink flex items-center justify-center shrink-0 transition-all select-none hover:bg-ink/5",
+                              task.isCompleted ? "bg-emerald-100 text-emerald-800" : "bg-white"
+                            )}
+                          >
+                            {task.isCompleted ? (
+                              <Check className="w-5 h-5 font-black" />
+                            ) : (
+                              <div className="w-3 h-3 rounded-full opacity-0 hover:opacity-20 bg-ink" />
+                            )}
+                          </button>
+                        )}
 
                         <div className="min-w-0 flex-1">
                           <span 
@@ -598,7 +915,7 @@ export function HabitTracker() {
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className={cn(
                               "inline-flex items-center gap-1 text-[11px] font-bold font-mono px-1.5 py-0.5 rounded",
-                              task.isCompleted ? "bg-emerald-50 text-emerald-600" : isPast ? "bg-amber-100 text-amber-800" : "bg-ink/5 text-ink/60"
+                              task.isCompleted ? "bg-emerald-50 text-emerald-600" : isPast ? "bg-amber-100 text-amber-800" : task.eventId ? "bg-blue-100 text-blue-800" : "bg-ink/5 text-ink/60"
                             )}>
                               <Clock className="w-3 h-3" />
                               {task.time}
@@ -608,18 +925,49 @@ export function HabitTracker() {
                             {task.habitId && (
                               <span className="text-[10px] text-crimson uppercase font-black tracking-widest px-1 bg-crimson/5 rounded">HABIT</span>
                             )}
+
+                            {task.eventId && (
+                              <span className="text-[10px] text-blue-600 uppercase font-black tracking-widest px-1 bg-blue-50 rounded border border-blue-200">SỰ KIỆN LỊCH</span>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center shrink-0">
-                        {!task.habitId ? (
+                      {/* Operations buttons (Edit & Delete) */}
+                      <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
+                        {/* Edit task/event */}
+                        {(task.oneOffTaskId || task.eventId) ? (
+                          <button
+                            onClick={() => startEditTask(task)}
+                            type="button"
+                            className="p-1 px-1.5 text-ink/40 hover:text-blue-600 hover:bg-blue-50 rounded border border-transparent hover:border-blue-200 transition-all"
+                            title="Sửa"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        ) : null}
+
+                        {/* Delete task */}
+                        {task.oneOffTaskId ? (
                           <button 
-                            onClick={() => handleDeleteQuickTask(task.id)}
+                            onClick={() => handleDeleteQuickTask(task.oneOffTaskId!)}
+                            type="button"
                             className="p-1 px-1.5 text-ink/30 hover:text-crimson hover:bg-crimson/5 rounded border border-transparent hover:border-crimson/10 transition-all"
                             title="Xóa việc"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        ) : null}
+
+                        {/* Delete event */}
+                        {task.eventId ? (
+                          <button 
+                            onClick={() => handleDeleteCalendarEvent(task.eventId!)}
+                            type="button"
+                            className="p-1 px-1.5 text-ink/30 hover:text-crimson hover:bg-crimson/5 rounded border border-transparent hover:border-crimson/10 transition-all"
+                            title="Xóa sự kiện lịch"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         ) : null}
                       </div>
@@ -664,7 +1012,9 @@ export function HabitTracker() {
                   onSubmit={handleAddHabit}
                   className="overflow-hidden bg-[#faf8f5] p-3 text-xs border-2 border-dashed border-ink/30 rounded-md mb-6 space-y-4"
                 >
-                  <h3 className="text-sm font-black uppercase text-crimson">Thiết lập thói quen mới</h3>
+                  <h3 className="text-sm font-black uppercase text-crimson">
+                    {editingHabitId ? "Cập nhật thói quen" : "Thiết lập thói quen mới"}
+                  </h3>
                   
                   {/* Name field */}
                   <div className="space-y-1">
@@ -775,12 +1125,23 @@ export function HabitTracker() {
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    className="sketch-button py-2 w-full text-xs uppercase tracking-widest font-black bg-ink text-white hover:bg-crimson transition-all"
-                  >
-                    Kích Hoạt Thói Quen
-                  </button>
+                  <div className="flex gap-2">
+                    {editingHabitId && (
+                      <button
+                        type="button"
+                        onClick={cancelEditHabit}
+                        className="sketch-button py-2 flex-1 text-xs uppercase tracking-widest font-black bg-white text-ink hover:bg-ink/10 transition-all border-2 border-ink"
+                      >
+                        Hủy bỏ
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      className="sketch-button py-2 flex-2 w-full text-xs uppercase tracking-widest font-black bg-ink text-white hover:bg-crimson transition-all"
+                    >
+                      {editingHabitId ? "Lưu Thay Đổi" : "Kích Hoạt Thói Quen"}
+                    </button>
+                  </div>
                 </motion.form>
               )}
             </AnimatePresence>
@@ -828,6 +1189,14 @@ export function HabitTracker() {
                             title={habit.isActive ? "Tạm ngưng thói quen" : "Kích hoạt lại thói quen"}
                           >
                             {habit.isActive ? "Bật" : "Tắt"}
+                          </button>
+                          <button
+                            onClick={() => startEditHabit(habit)}
+                            className="p-1 px-1.5 text-ink/30 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"
+                            title="Sửa thói quen"
+                            type="button"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteHabit(habit.id)}
@@ -983,6 +1352,93 @@ export function HabitTracker() {
                 </div>
 
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* EDIT TASK/EVENT POPUP MODAL */}
+      <AnimatePresence>
+        {editingTask && (
+          <div 
+            id="edit-task-overlay"
+            className="fixed inset-0 bg-ink/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="w-full max-w-md bg-[#faf8f5] sketch-border p-5 md:p-6 shadow-2xl relative border-b-8 border-r-8 border-ink"
+            >
+              <div className="flex justify-between items-center border-b-2 border-dashed border-ink/10 pb-3 mb-4">
+                <h3 className="text-md font-black uppercase tracking-tight flex items-center gap-1.5 text-crimson">
+                  <Edit2 className="w-5 h-5 text-crimson" />
+                  SỬA {editingTask.type === 'task' ? "CÔNG VIỆC" : "SỰ KIỆN LỊCH"}
+                </h3>
+                <button 
+                  onClick={() => setEditingTask(null)}
+                  className="p-1 text-ink/40 hover:text-crimson transition-colors"
+                  type="button"
+                >
+                  <X className="w-5 h-5 stroke-[2.5]" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEditTask} className="space-y-4 text-xs">
+                {/* Title */}
+                <div className="space-y-1">
+                  <label className="block font-bold uppercase text-ink/65">Tiêu đề ghi nhớ</label>
+                  <input
+                    type="text"
+                    value={editingTask.title}
+                    onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                    className="sketch-input w-full bg-white text-xs py-2 px-3"
+                    required
+                  />
+                </div>
+
+                {/* Date & Time Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block font-bold uppercase text-ink/65">Thời gian thực hiện</label>
+                    <input
+                      type="date"
+                      value={editingTask.date}
+                      onChange={(e) => setEditingTask({ ...editingTask, date: e.target.value })}
+                      className="sketch-input w-full bg-white text-xs py-2 px-3 font-mono text-center"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block font-bold uppercase text-ink/65">Mốc giờ</label>
+                    <input
+                      type="time"
+                      value={editingTask.time}
+                      onChange={(e) => setEditingTask({ ...editingTask, time: e.target.value })}
+                      className="sketch-input w-full bg-white text-xs py-2 px-3 font-mono text-center"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t-2 border-dashed border-ink/10 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingTask(null)}
+                    className="sketch-button py-2 flex-1 text-xs uppercase font-black bg-white text-ink hover:bg-ink/10 transition-all border-2 border-ink"
+                  >
+                    Hủy bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    className="sketch-button py-2 flex-1 text-xs uppercase font-black bg-[#fbcfe8] text-ink hover:bg-crimson hover:text-white transition-all border-2 border-ink"
+                  >
+                    Lưu thay đổi
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
