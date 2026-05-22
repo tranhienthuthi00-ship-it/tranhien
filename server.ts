@@ -47,6 +47,139 @@ async function startServer() {
     next();
   });
 
+  // Helper for fetching caption tracks directly bypassing standard library limitations and blocks
+  async function fetchCaptionsCustom(videoId: string): Promise<any[] | null> {
+    try {
+      const url = `https://www.youtube.com/watch?v=${videoId}`;
+      console.log(`[Custom Scraper] Fetching video watch page for ID: ${videoId}`);
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+
+      if (!response.ok) {
+        console.warn(`[Custom Scraper] Failed to fetch watch page: ${response.status} ${response.statusText}`);
+        return null;
+      }
+
+      const html = await response.text();
+      let captionTracks: any[] | null = null;
+      
+      // Attempt 1: Regular regex match for captionTracks in html page JSON
+      let match = html.match(/"captionTracks":\s*(\[.*?\])/);
+      if (match) {
+        try {
+          captionTracks = JSON.parse(match[1]);
+          console.log(`[Custom Scraper] Found captionTracks JSON under standard regex.`);
+        } catch (err) {
+          console.warn(`[Custom Scraper] Failed to parse captionTracks match[1]:`, err);
+        }
+      }
+
+      // Attempt 2: Escaped captionTracks under playerResponse
+      if (!captionTracks) {
+        match = html.match(/&quot;captionTracks&quot;:\s*(&quot;\[.*?\]&quot;|\[.*?\])/);
+        if (match) {
+          try {
+            const rawTrack = match[1].replace(/&quot;/g, '"');
+            captionTracks = JSON.parse(rawTrack);
+            console.log(`[Custom Scraper] Found captionTracks JSON under escaped regex.`);
+          } catch (err) {
+            console.warn(`[Custom Scraper] Failed to parse escaped captionTracks`, err);
+          }
+        }
+      }
+
+      // Attempt 3: ytInitialPlayerResponse content extract
+      if (!captionTracks) {
+        const playerResponseMatch = html.match(/ytInitialPlayerResponse\s*=\s*({.*?});/);
+        if (playerResponseMatch) {
+          try {
+            const parsed = JSON.parse(playerResponseMatch[1]);
+            const tracks = parsed?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+            if (tracks && Array.isArray(tracks)) {
+              captionTracks = tracks;
+              console.log(`[Custom Scraper] Found captionTracks in ytInitialPlayerResponse.`);
+            }
+          } catch (err) {
+            // silent
+          }
+        }
+      }
+
+      if (!captionTracks || !Array.isArray(captionTracks) || captionTracks.length === 0) {
+        console.warn(`[Custom Scraper] No captionTracks found inside video HTML page.`);
+        return null;
+      }
+
+      // Priority: (1) manual English (no "a."), (2) speech-to-text / auto-generated English ("a.en"), (3) first English, (4) first track
+      let selectedTrack = captionTracks.find((t: any) => t.languageCode === "en" && !t.vssId?.startsWith("a."));
+      if (!selectedTrack) selectedTrack = captionTracks.find((t: any) => t.languageCode === "en" || t.vssId === "en");
+      if (!selectedTrack) selectedTrack = captionTracks.find((t: any) => t.vssId?.includes("en") || t.languageCode?.includes("en"));
+      if (!selectedTrack) selectedTrack = captionTracks[0];
+
+      const baseUrl = selectedTrack.baseUrl;
+      if (!baseUrl) {
+        console.warn(`[Custom Scraper] Base caption track URL is undefined.`);
+        return null;
+      }
+
+      console.log(`[Custom Scraper] Chosen track: ${selectedTrack.languageCode} (${selectedTrack.vssId || "unknown ID"}). Fetching raw subtitles...`);
+
+      const xmlResponse = await fetch(baseUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9'
+        }
+      });
+      if (!xmlResponse.ok) {
+        console.warn(`[Custom Scraper] XML caption fetch failed: ${xmlResponse.status}`);
+        return null;
+      }
+
+      const xmlText = await xmlResponse.text();
+
+      // Simple regex to pull start, dur, and inner texts of <text start="1.2" dur="3.4">text here</text>
+      const regex = /<text\s+start="([\d.]+)"\s+dur="([\d.]+)"[^>]*>([\s\S]*?)<\/text>/gi;
+      let matchText;
+      const segments = [];
+
+      function decodeHtmlEntities(str: string) {
+        return str
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&apos;/g, "'")
+          .replace(/&#x2F;/g, "/")
+          .replace(/\n/g, " ");
+      }
+
+      while ((matchText = regex.exec(xmlText)) !== null) {
+        const start = parseFloat(matchText[1]);
+        const duration = parseFloat(matchText[2]);
+        const text = decodeHtmlEntities(matchText[3]);
+        segments.push({
+          text,
+          offset: Math.round(start * 1000),
+          duration: Math.round(duration * 1000)
+        });
+      }
+
+      console.log(`[Custom Scraper] Custom scraper parsed ${segments.length} segments successfully!`);
+      return segments.length > 0 ? segments : null;
+    } catch (e: any) {
+      console.warn(`[Custom Scraper] Exception in custom scraper: ${e.message}`);
+      return null;
+    }
+  }
+
   // API route for fetching YouTube Transcript
   app.get("/api/transcript", async (req, res) => {
     const videoId = req.query.videoId as string;
@@ -64,6 +197,18 @@ async function startServer() {
 
     let transcriptData: any = null;
     let lastError = "";
+
+    // Method 0: Custom High-Reliability Scraper
+    try {
+      console.log(`[Transcript] Method 0: Custom high-reliability browser-mimicking scraper for ${videoId}`);
+      transcriptData = await fetchCaptionsCustom(videoId);
+      if (transcriptData && transcriptData.length > 0) {
+        console.log(`[Transcript] Custom Scraper SUCCESS: fetched ${transcriptData.length} segments`);
+      }
+    } catch (e: any) {
+      lastError = e.message;
+      console.warn(`[Transcript] Custom Scraper Failed: ${e.message}`);
+    }
 
     // Method 1: YouTubei.js
     if (yt) {
