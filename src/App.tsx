@@ -16,8 +16,9 @@ import { SpeechGame } from "./components/SpeechGame";
 import { TranslationPractice } from "./components/TranslationPractice";
 import { ReflexPractice } from "./components/ReflexPractice";
 import Flashcards from "./components/Flashcards";
+import { HabitTracker } from "./components/HabitTracker";
 import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
-import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target, Sparkles } from "lucide-react";
+import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target, Sparkles, Flame } from "lucide-react";
 
 function AppContent() {
   const {
@@ -39,7 +40,7 @@ function AppContent() {
 
   const [activeTab, setActiveTab] = useState<Tab>("English Hub");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation" | "Speech" | "SRS" | "Translation" | "Reflex">("Academy");
-  const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Places" | "Content" | "Assets">("Lists");
+  const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Habits" | "Places" | "Content" | "Assets">("Lists");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
 
@@ -174,17 +175,18 @@ function AppContent() {
         {activeTab === "Collections" && (
           <div className="flex flex-col gap-4">
             <div className="bg-paper py-2 flex justify-center flex-wrap gap-1.5 md:gap-4 mb-2 px-1 md:px-4 text-ink/60 max-w-full">
-              {(["Lists", "Places", "Content", "Assets"] as const).map(tab => (
+              {(["Lists", "Habits", "Places", "Content", "Assets"] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveCollectionSubTab(tab)}
                   className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeCollectionSubTab === tab ? "bg-ink text-paper border-ink scale-105 shadow-md" : "border-ink/20 hover:border-ink/50"}`}
                 >
                   {tab === "Lists" && <ClipboardList className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
+                  {tab === "Habits" && <Flame className="w-4 h-4 text-orange-500" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Places" && <MapPin className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Content" && <Lightbulb className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Assets" && <Wallet className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
-                  {tab === "Content" ? "TREND / CONTENT" : tab === "Assets" ? "TÀI SẢN" : tab}
+                  {tab === "Content" ? "TREND / CONTENT" : tab === "Assets" ? "TÀI SẢN" : tab === "Habits" ? "THÓI QUEN / LỊCH TRÌNH" : tab}
                 </button>
               ))}
             </div>
@@ -205,6 +207,7 @@ function AppContent() {
                   </div>
                 </div>
               )}
+              {activeCollectionSubTab === "Habits" && <HabitTracker />}
               {activeCollectionSubTab === "Places" && <Places places={foodPlaces} setPlaces={setFoodPlaces} />}
               {activeCollectionSubTab === "Content" && <ContentManager ideas={contentIdeas} setIdeas={setContentIdeas} />}
               {activeCollectionSubTab === "Assets" && <AssetsManager assets={assets} setAssets={setAssets} categories={assetCategories} setCategories={setAssetCategories} />}

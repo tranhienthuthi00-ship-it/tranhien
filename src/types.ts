@@ -165,3 +165,28 @@ export interface Achievement {
   icon?: string;
   goalId?: string;
 }
+
+export interface Habit {
+  id: string;
+  name: string;
+  icon: string;
+  category: string;
+  reminderTimes: string[];
+  daysOfWeek: number[];
+  streak: number;
+  maxStreak: number;
+  createdAt: number;
+  isActive: boolean;
+  lastCompletedDate?: string;
+  history: { [date: string]: { [time: string]: boolean } };
+}
+
+export interface TodayTask {
+  id: string;
+  title: string;
+  time: string;
+  isCompleted: boolean;
+  habitId?: string;
+  snoozedCount?: number;
+  notified?: boolean;
+}
