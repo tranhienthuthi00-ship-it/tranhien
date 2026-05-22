@@ -302,12 +302,27 @@ async function startServer() {
     // Method 4: Gemini Search Grounding and Dialogue Synthesis (Ultimate Failsafe)
     if (!transcriptData) {
       try {
-        console.log(`[Transcript] Method 4: Gemini Search Grounding - Video ID: ${videoId}`);
-        const response = await ai.models.generateContent({
+        console.log(`[Transcript] Method 4: Gemini Search Grounding (Step A - Search) - Video ID: ${videoId}`);
+        const searchResponse = await ai.models.generateContent({
           model: "gemini-3.5-flash",
-          contents: `Search Google for the YouTube video ID "${videoId}". Find its topic, title, description, or transcript.
-If you can find actual transcript or subtitle sentences from the video, please fetch them.
-If not, generate a sequence of 10-15 highly natural English conversational sentences matching the title, topic, and context of this video (with ID "${videoId}") so the user can study it as an English learning dialogue.
+          contents: `Search Google for the YouTube video with ID "${videoId}". Retrieve its title, description, and any available transcript, subtitles, or captions. Write down all details you can find or can confidently infer about the dialogue or topic/content of this video.`,
+          config: {
+            tools: [{ googleSearch: {} }]
+          }
+        });
+
+        const searchResultText = searchResponse.text?.trim() || "";
+        console.log(`[Transcript] Step A Search complete. Length: ${searchResultText.length}. Proceeding to Step B (Structuring JSON)...`);
+
+        const structureResponse = await ai.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: `Below is some retrieved web-search information for a YouTube video of ID "${videoId}":
+---
+${searchResultText}
+---
+
+Your task is to extract or reconstruct a list of English sentences (representing the actual dialogue, narrated captions, or a highly natural verbal conversation matching the title, topic, and context of this video).
+If you have found some transcript/subtitles in the search results, use them. If not, generate a sequence of 10-15 highly natural English conversational sentences that perfectly match the topic, level, and context of this video so the user can study it as an English learning dialogue.
 
 You MUST format your output strictly as a JSON array of objects, with each object having the following keys:
 - text: string (the English subtitle sentence)
@@ -320,12 +335,11 @@ Example output format:
   {"text": "Today, we are discussing daily English conversations.", "offset": 6000, "duration": 5000}
 ]`,
           config: {
-            tools: [{ googleSearch: {} }],
             responseMimeType: "application/json"
           }
         });
 
-        const text = response.text?.trim() || "";
+        const text = structureResponse.text?.trim() || "";
         const cleanJson = text.replace(/^```json\n?|```$/g, "").trim();
         const parsed = JSON.parse(cleanJson);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -334,11 +348,11 @@ Example output format:
             offset: parseInt(item.offset || "0"),
             duration: parseInt(item.duration || "4000")
           }));
-          console.log(`[Transcript] Gemini Search Grounding Success: Generated ${transcriptData.length} lines`);
+          console.log(`[Transcript] Gemini Search Grounding 2-Step SUCCESS: Reconstructed ${transcriptData.length} lines`);
         }
       } catch (e: any) {
         lastError = e.message;
-        console.warn(`[Transcript] Gemini Search Grounding Fallback Failed: ${e.message}`);
+        console.warn(`[Transcript] Gemini 2-Step Search Grounding Failed: ${e.message}`);
         
         // Try pure Gemini generation as a safe fallback
         try {
