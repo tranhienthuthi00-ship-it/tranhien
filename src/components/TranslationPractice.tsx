@@ -63,6 +63,9 @@ export function TranslationPractice({
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [score, setScore] = useState<number | null>(null);
+  
+  const [showManualTranscript, setShowManualTranscript] = useState(false);
+  const [manualTranscript, setManualTranscript] = useState("");
 
   // Scroll ref for subtitles auto scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -131,12 +134,23 @@ export function TranslationPractice({
     setLearningPackage(null);
 
     try {
-      // 1. Fetch transcript segments from server API
-      const transcriptRes = await fetch(getAbsoluteUrl(`/api/transcript?videoId=${id}`));
-      const transcriptData = await transcriptRes.json();
-      
-      if (!transcriptRes.ok || transcriptData.error) {
-        throw new Error(transcriptData.error || "Cannot load YouTube transcript.");
+      let finalTranscriptArray = [];
+      if (manualTranscript.trim()) {
+        const sentences = manualTranscript.match(/[^.!?;\n]+[.!?;]*/g)?.map(s => s.trim()).filter(Boolean) || [];
+        if (sentences.length === 0) {
+            finalTranscriptArray = [{ text: manualTranscript.trim(), offset: 0, duration: 5000 }];
+        } else {
+            finalTranscriptArray = sentences.map((s, i) => ({ text: s, offset: i * 5000, duration: 5000 }));
+        }
+      } else {
+        // 1. Fetch transcript segments from server API
+        const transcriptRes = await fetch(getAbsoluteUrl(`/api/transcript?videoId=${id}`));
+        const transcriptData = await transcriptRes.json();
+        
+        if (!transcriptRes.ok || transcriptData.error) {
+          throw new Error(transcriptData.error || "Cannot load YouTube transcript.");
+        }
+        finalTranscriptArray = transcriptData.transcript;
       }
 
       setAnalyzingStep("Gemini 3.5 đang biên soạn bộ tư liệu 4YOU (Phụ đề, Luyện nói, Luyện nghe, Từ vựng, Trắc nghiệm)...");
@@ -147,7 +161,7 @@ export function TranslationPractice({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           videoId: id,
-          transcript: transcriptData.transcript,
+          transcript: finalTranscriptArray,
           title: customTitle || "YouTube Lesson"
         })
       });
@@ -423,28 +437,52 @@ export function TranslationPractice({
                 <form 
                   onSubmit={(e) => {
                     e.preventDefault();
+                    // Just a random ID check or fallback if they only paste text but no video id
                     const id = extractYoutubeId(youtubeUrl);
-                    if (!id) {
-                      alert("Đường dẫn YouTube không hợp lệ. Vui lòng thử lại!");
+                    if (!id && !manualTranscript.trim()) {
+                      alert("Vui lòng nhập đường dẫn YouTube hoặc dán nội dung chữ.");
                       return;
                     }
-                    handleStartAnalysis(id);
+                    handleStartAnalysis(id || "manual_video_" + Date.now());
                   }}
-                  className="w-full max-w-2xl flex flex-col sm:flex-row gap-2"
+                  className="w-full max-w-2xl flex flex-col gap-3"
                 >
-                  <input
-                    type="text"
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                    placeholder="Dán liên kết YouTube (e.g. https://www.youtube.com/watch?v=sY7L5Y_yUPg)..."
-                    className="flex-1 bg-white sketch-border-sm px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-ink"
-                  />
-                  <button
-                    type="submit"
-                    className="bg-ink hover:bg-neutral-800 text-paper font-sans font-black uppercase text-xs tracking-wider px-6 py-3 sketch-border-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
-                  >
-                    Phân tích Video <ArrowRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      placeholder="Dán liên kết YouTube (e.g. https://www.youtube.com/watch?v=sY7L5Y_yUPg)..."
+                      className="flex-1 bg-white sketch-border-sm px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-ink"
+                    />
+                    <button
+                      type="submit"
+                      className="bg-ink hover:bg-neutral-800 text-paper font-sans font-black uppercase text-xs tracking-wider px-6 py-3 sketch-border-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+                    >
+                      Phân tích Video <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="text-left w-full mt-2">
+                    <button type="button" onClick={() => setShowManualTranscript(!showManualTranscript)} className="text-xs font-bold font-mono text-ink/60 hover:text-ink underline">
+                      {showManualTranscript ? "Ẩn khung dán phụ đề thủ công" : "⚠️ Video không có phụ đề API? Tự dán phụ đề vào đây"}
+                    </button>
+                    {showManualTranscript && (
+                      <div className="mt-2 w-full animate-in fade-in slide-in-from-top-2">
+                          <div className="bg-amber-50 border-l-2 border-amber-500 p-2 mb-2 rounded shrink-0">
+                              <p className="text-[10px] text-amber-800 font-mono italic leading-relaxed">
+                                Nếu API phụ đề bị lỗi hoặc video không có chữ, bạn có thể TỰ DÁN chữ Tiếng Anh vào đây. <strong>Hãy ngăn cách mỗi câu bằng một dấu chấm phẩy (;).</strong>
+                              </p>
+                          </div>
+                          <textarea
+                            value={manualTranscript}
+                            onChange={(e) => setManualTranscript(e.target.value)}
+                            placeholder="Dán transcript vào đây... VD: Hello, how are you?; I am fine;"
+                            className="w-full h-32 bg-white sketch-border-sm px-4 py-3 text-xs md:text-sm font-sans focus:outline-none focus:ring-1 focus:ring-ink resize-y custom-scrollbar"
+                          />
+                      </div>
+                    )}
+                  </div>
                 </form>
               )}
 

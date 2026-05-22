@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import type { LogEntry, WishlistItem, Habit, Asset, Word, FoodPlace, ContentIdea } from "../types";
+import type { LogEntry, WishlistItem, Habit, Asset, Word, FoodPlace, ContentIdea, Task, Achievement, StudyGoal } from "../types";
 import { BookOpen, Calendar as CalendarIcon, DollarSign, MapPin, Feather, CheckSquare, Award } from "lucide-react";
 
 interface DigitalJournalProps {
@@ -10,6 +10,9 @@ interface DigitalJournalProps {
   words: Word[];
   places: FoodPlace[];
   ideas: ContentIdea[];
+  tasks?: Task[];
+  achievements?: Achievement[];
+  goals?: StudyGoal[];
 }
 
 interface DailySummary {
@@ -21,9 +24,11 @@ interface DailySummary {
   wordsReviewed: Word[];
   placesVisited: FoodPlace[];
   contentDone: ContentIdea[];
+  tasksDone: Task[];
+  achievementsEarned: Achievement[];
 }
 
-export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }: DigitalJournalProps) {
+export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, tasks = [], achievements = [], goals = [] }: DigitalJournalProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
 
   const habits: Habit[] = useMemo(() => {
@@ -60,7 +65,8 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
         dateMap.set(dateInfo, {
           date: dateInfo,
           displayDate: new Date(dateInfo).toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-          logs: [], purchased: [], habitCompletions: [], wordsReviewed: [], placesVisited: [], contentDone: []
+          logs: [], purchased: [], habitCompletions: [], wordsReviewed: [], placesVisited: [], contentDone: [],
+          tasksDone: [], achievementsEarned: []
         });
       }
       return dateMap.get(dateInfo)!;
@@ -72,12 +78,10 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
       if (d) ensureDate(d).logs.push(log);
     });
 
-    // 2. Wishlist Purchases (those toggled to isPurchased - fallback to addedDate if we don't have purchase history.. wait, wishlist has history)
+    // 2. Wishlist Purchases (those toggled to isPurchased - fallback to addedDate)
     wishlist.forEach(w => {
-      if (w.isPurchased && w.history && w.history.length > 0) {
-        // Last history might be the purchase date. Let's just use addedDate for simplicity if no explicit purchase date. 
-        // Actually history has date string.
-        const histString = w.history[w.history.length - 1]?.date;
+      if (w.isPurchased) {
+        const histString = (w.history && w.history.length > 0) ? w.history[w.history.length - 1]?.date : null;
         const d = getDay(histString || w.addedDate);
         if (d) ensureDate(d).purchased.push(w);
       }
@@ -123,10 +127,26 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
       }
     });
 
+    // 7. Tasks
+    tasks.forEach(t => {
+      if (t.completed) {
+        const d = getDay(t.completedAt || t.createdAt);
+        if (d) ensureDate(d).tasksDone.push(t);
+      }
+    });
+
+    // 8. Achievements
+    achievements.forEach(a => {
+      if (a.dateEarned) {
+        const d = getDay(a.dateEarned);
+        if (d) ensureDate(d).achievementsEarned.push(a);
+      }
+    });
+
     // Sort dates descending
     const sortedDates = Array.from(dateMap.keys()).sort((a, b) => b.localeCompare(a));
     return sortedDates.map(d => dateMap.get(d)!);
-  }, [logs, wishlist, habits, words, places, ideas]);
+  }, [logs, wishlist, habits, words, places, ideas, tasks, achievements]);
 
   const nextPage = () => {
     if (currentPageIndex < pages.length - 1) {
@@ -142,11 +162,18 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
 
   if (pages.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="sketch-border bg-paper p-12 text-center rounded-xl shadow-lg">
-          <BookOpen className="w-16 h-16 text-ink/20 mx-auto mb-4" />
-          <h2 className="text-xl font-bold font-logo uppercase tracking-widest text-ink/50">Digital Journal chưa có dữ liệu</h2>
-          <p className="mt-2 font-hand text-ink/70">Hãy ghi chép nhật ký, thêm thói quen, hoặc đánh dấu hoàn thành để bắt đầu cuốn sổ này.</p>
+      <div className="max-w-4xl mx-auto px-4 py-8 font-sans">
+        <div className="sketch-border bg-[#e8f0fe] p-12 text-center select-none shadow-md border-b-4 border-r-4 border-ink relative overflow-hidden">
+           <div className="absolute left-4 top-2 opacity-15 -rotate-12">
+             <BookOpen className="w-24 h-24 text-ink" />
+           </div>
+          <BookOpen className="w-16 h-16 text-ink/60 mx-auto mb-4 relative z-10" />
+          <div className="flex justify-center relative z-10">
+            <h2 className="text-2xl font-black font-logo uppercase tracking-widest text-ink bg-[#fbcfe8] px-4 py-2 rotate-1 border-2 border-ink rounded-md shadow-sm">
+              Digital Journal trống
+            </h2>
+          </div>
+          <p className="mt-6 font-hand text-ink text-xl relative z-10 font-medium">Hãy ghi chép nhật ký, thêm thói quen, hoặc đánh dấu hoàn thành để bắt đầu cuốn sổ này.</p>
         </div>
       </div>
     );
@@ -155,12 +182,21 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
   const currentPage = pages[currentPageIndex];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      <div className="text-center mb-6">
-        <h1 className="text-3xl font-black font-logo uppercase tracking-[0.2em] text-ink flex justify-center items-center gap-3">
-          <BookOpen className="w-8 h-8" /> DIGITAL JOURNAL
-        </h1>
-        <p className="text-sm font-bold uppercase tracking-widest text-ink/50 mt-1">Hành trình kí ức</p>
+    <div className="max-w-6xl mx-auto px-4 py-6 font-sans">
+      <div className="sketch-border bg-[#e8f0fe] p-6 text-center select-none shadow-md border-b-4 border-r-4 border-ink relative overflow-hidden mb-10 mx-auto max-w-4xl">
+        <div className="absolute right-4 top-2 opacity-15 rotate-12">
+          <BookOpen className="w-24 h-24 text-ink" />
+        </div>
+        <div className="flex justify-center">
+          <div className="bg-[#fbcfe8] -rotate-1 px-6 py-2 border-2 border-ink shadow-sm rounded-md tracking-wider relative">
+            <h1 className="text-3xl md:text-4xl font-logo font-black uppercase text-ink flex items-center justify-center gap-3">
+              <BookOpen className="w-6 h-6 md:w-8 md:h-8" /> DIGITAL JOURNAL
+            </h1>
+          </div>
+        </div>
+        <p className="mt-4 text-sm md:text-base font-semibold italic text-ink/70 relative z-10 transition-colors">
+          Hành trình kí ức và học tập
+        </p>
       </div>
 
       <div className="relative w-full max-w-4xl mx-auto min-h-[650px] sm:min-h-[700px] flex items-center justify-center perspective-[2000px]">
@@ -168,7 +204,7 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
         <button
           onClick={prevPage}
           disabled={currentPageIndex === 0}
-          className="absolute left-0 md:-left-12 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white border-2 border-ink rounded-full flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-ink hover:text-white transition-all shadow-[4px_4px_0_var(--color-ink)]"
+          className="absolute left-0 md:-left-12 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-[#e8f0fe] border-2 border-ink rounded-full flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#fbcfe8] text-ink transition-all shadow-[4px_4px_0_var(--color-ink)]"
         >
           <span className="text-2xl font-black relative -left-0.5">←</span>
         </button>
@@ -176,7 +212,7 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
         <button
           onClick={nextPage}
           disabled={currentPageIndex === pages.length - 1}
-          className="absolute right-0 md:-right-12 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white border-2 border-ink rounded-full flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-ink hover:text-white transition-all shadow-[4px_4px_0_var(--color-ink)]"
+          className="absolute right-0 md:-right-12 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-[#e8f0fe] border-2 border-ink rounded-full flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#fbcfe8] text-ink transition-all shadow-[4px_4px_0_var(--color-ink)]"
         >
            <span className="text-2xl font-black relative -right-0.5">→</span>
         </button>
@@ -200,8 +236,8 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
               }}
             >
                {/* Header Ribbon */}
-               <div className="absolute top-0 right-8 bg-crimson text-white px-3 py-4 shadow-md z-10 clip-ribbon">
-                  <span className="font-mono font-bold text-lg rotate-90 block tracking-widest">{currentPage.date.split('-')[1]}/{currentPage.date.split('-')[0]}</span>
+               <div className="absolute top-0 right-8 bg-[#fbcfe8] text-ink border-l-2 border-r-2 border-b-2 border-ink px-3 py-4 shadow-sm z-10 clip-ribbon">
+                  <span className="font-mono font-black text-lg rotate-90 block tracking-widest leading-none drop-shadow-sm">{currentPage.date.split('-')[1]}/{currentPage.date.split('-')[0]}</span>
                </div>
 
                <div className="flex-1 overflow-y-auto pr-4 scrollbar-hide py-2 pb-12">
@@ -216,8 +252,8 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
                      {currentPage.logs.length > 0 && (
                         <section>
                           <div className="flex items-center gap-2 mb-3">
-                             <Feather className="w-5 h-5 text-ink/70" />
-                             <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-ink/5 px-2 rounded">Nhật ký & Sự kiện</h3>
+                             <Feather className="w-5 h-5 text-ink" />
+                             <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-[#fbcfe8] border-2 border-ink px-2 rounded-md shadow-sm">Nhật ký & Sự kiện</h3>
                           </div>
                           <div className="space-y-3 pl-2 sm:pl-4 border-l-2 border-dashed border-ink/20">
                             {currentPage.logs.map((log, idx) => (
@@ -239,8 +275,8 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
                      {currentPage.habitCompletions.length > 0 && (
                        <section>
                          <div className="flex items-center gap-2 mb-3">
-                            <CheckSquare className="w-5 h-5 text-emerald-600" />
-                            <h3 className="font-bold text-lg uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 rounded">Thói quen hoàn thành</h3>
+                            <CheckSquare className="w-5 h-5 text-ink" />
+                            <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-[#e8f0fe] border-2 border-ink px-2 rounded-md shadow-sm">Thói quen hoàn thành</h3>
                          </div>
                          <div className="flex flex-wrap gap-2">
                            {currentPage.habitCompletions.map(({ habit, streak }, idx) => (
@@ -262,8 +298,8 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
                      {currentPage.purchased.length > 0 && (
                        <section>
                          <div className="flex items-center gap-2 mb-3">
-                            <DollarSign className="w-5 h-5 text-amber-600" />
-                            <h3 className="font-bold text-lg uppercase tracking-wider text-amber-700 bg-amber-50 px-2 rounded">Mua sắm & Tài sản</h3>
+                            <DollarSign className="w-5 h-5 text-ink" />
+                            <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-[#fbcfe8] border-2 border-ink px-2 rounded-md shadow-sm">Mua sắm & Tài sản</h3>
                          </div>
                          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                            {currentPage.purchased.map((item, idx) => (
@@ -281,19 +317,49 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
                        </section>
                      )}
 
-                     {/* Projects / Content Done */}
-                     {currentPage.contentDone.length > 0 && (
+                     {/* Projects / Content Done & Achievements */}
+                     {(currentPage.contentDone.length > 0 || currentPage.achievementsEarned.length > 0) && (
                        <section>
                          <div className="flex items-center gap-2 mb-3">
-                            <Award className="w-5 h-5 text-indigo-600" />
-                            <h3 className="font-bold text-lg uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 rounded">Thành tựu & Dự án</h3>
+                            <Award className="w-5 h-5 text-ink" />
+                            <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-[#e8f0fe] border-2 border-ink px-2 rounded-md shadow-sm">Thành tựu & Dự án</h3>
                          </div>
-                         <ul className="space-y-2">
+                         <ul className="space-y-4">
                            {currentPage.contentDone.map((item, idx) => (
-                             <li key={idx} className="flex gap-2 items-start border-l-2 border-indigo-200 pl-3">
+                             <li key={`content-${idx}`} className="flex gap-2 items-start border-l-2 border-indigo-200 pl-3">
                                 <span className="font-bold text-sm">{item.title}</span>
                                 {item.platform && <span className="text-[9px] uppercase tracking-wider bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded mr-1">{item.platform}</span>}
-                                <span className="text-xs text-ink/60">Hoàn thành</span>
+                                <span className="text-xs text-ink/60">Hoàn thành ({item.type})</span>
+                             </li>
+                           ))}
+                           {currentPage.achievementsEarned.map((item, idx) => (
+                             <li key={`ach-${idx}`} className="flex flex-col border-l-2 border-amber-300 pl-3">
+                                <div className="flex items-center gap-1.5">
+                                 <Award className="w-3.5 h-3.5 text-amber-500" />
+                                 <span className="font-bold text-sm text-ink">{item.title}</span>
+                                </div>
+                                <span className="text-xs text-ink/60 italic">{item.description}</span>
+                             </li>
+                           ))}
+                         </ul>
+                       </section>
+                     )}
+                     
+                     {/* Tasks Done / Routine */}
+                     {currentPage.tasksDone.length > 0 && (
+                       <section>
+                         <div className="flex items-center gap-2 mb-3">
+                            <CheckSquare className="w-5 h-5 text-ink" />
+                            <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-green-100 border-2 border-ink px-2 rounded-md shadow-sm">Nhiệm vụ & Quá trình</h3>
+                         </div>
+                         <ul className="space-y-1.5">
+                           {currentPage.tasksDone.map((item, idx) => (
+                             <li key={`task-${idx}`} className="flex items-start gap-2 line-through text-ink/60 decoration-ink/30 decoration-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2 shrink-0" />
+                                <div>
+                                  <span className="text-sm">{item.title}</span>
+                                  {item.priority && <span className="ml-2 text-[9px] uppercase tracking-widest px-1 py-0.5 bg-green-50 text-green-700 bg-opacity-50">ưu tiên: {item.priority}</span>}
+                                </div>
                              </li>
                            ))}
                          </ul>
@@ -304,8 +370,8 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
                      {currentPage.wordsReviewed.length > 0 && (
                        <section>
                          <div className="flex items-center gap-2 mb-3">
-                            <BookOpen className="w-5 h-5 text-sky-600" />
-                            <h3 className="font-bold text-lg uppercase tracking-wider text-sky-700 bg-sky-50 px-2 rounded">Từ vựng đã ôn ({currentPage.wordsReviewed.length})</h3>
+                            <BookOpen className="w-5 h-5 text-ink" />
+                            <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-[#fbcfe8] border-2 border-ink px-2 rounded-md shadow-sm">Từ vựng đã ôn ({currentPage.wordsReviewed.length})</h3>
                          </div>
                          <div className="flex flex-wrap gap-1.5">
                            {currentPage.wordsReviewed.map((w, idx) => (
@@ -321,8 +387,8 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
                      {currentPage.placesVisited.length > 0 && (
                        <section>
                          <div className="flex items-center gap-2 mb-3">
-                            <MapPin className="w-5 h-5 text-rose-600" />
-                            <h3 className="font-bold text-lg uppercase tracking-wider text-rose-700 bg-rose-50 px-2 rounded">Địa điểm đã ghé trang</h3>
+                            <MapPin className="w-5 h-5 text-ink" />
+                            <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-[#e8f0fe] border-2 border-ink px-2 rounded-md shadow-sm">Địa điểm</h3>
                          </div>
                          <ul className="space-y-2">
                            {currentPage.placesVisited.map((p, idx) => (
@@ -343,8 +409,8 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }:
                </div>
 
                {/* Page Numbers */}
-               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 font-mono font-black text-ink/30 text-sm">
-                  - {currentPageIndex + 1} - 
+               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 font-mono font-black text-ink bg-[#fbcfe8] px-3 py-1 rounded-full border-2 border-ink text-sm shadow-[2px_2px_0_0_rgba(0,0,0,0.8)]">
+                  PAGE 0{currentPageIndex + 1}
                </div>
             </motion.div>
           </AnimatePresence>

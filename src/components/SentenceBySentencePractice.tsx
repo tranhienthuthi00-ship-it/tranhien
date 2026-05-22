@@ -405,11 +405,13 @@ export function SentenceBySentencePractice({
 
     // Simple split by punctuation
     const rawSentences = inputText
-      .split(/(?<=[.!?])\s+/)
-      .filter((s) => s.trim().length > 0);
+      .match(/[^.!?;\n]+[.!?;]*/g)
+      ?.map((s) => s.trim())
+      .filter((s) => s.length > 0) || [];
     const rawRefs = referenceText
-      .split(/(?<=[.!?])\s+/)
-      .filter((s) => s.trim().length > 0);
+      .match(/[^.!?;\n]+[.!?;]*/g)
+      ?.map((s) => s.trim())
+      .filter((s) => s.length > 0) || [];
 
     const newSentences: Sentence[] = rawSentences.map((s, i) => ({
       vi: s.trim(),
@@ -453,10 +455,11 @@ export function SentenceBySentencePractice({
         const vi = p.vietnamese;
         const en = p.english;
         const rawSentences = vi
-          .split(/(?<=[.!?])\s+/)
-          .filter((s) => s.trim().length > 0);
+          .match(/[^.!?;\n]+[.!?;]*/g)
+          ?.map((s) => s.trim())
+          .filter((s) => s.length > 0) || [];
         const rawRefs = en
-          ? en.split(/(?<=[.!?])\s+/).filter((s) => s.trim().length > 0)
+          ? (en.match(/[^.!?;\n]+[.!?;]*/g)?.map((s) => s.trim()).filter((s) => s.length > 0) || [])
           : [];
         initialSentences = rawSentences.map((s, i) => ({
           vi: s.trim(),
@@ -540,16 +543,18 @@ export function SentenceBySentencePractice({
       sentences:
         sentences.length > 0
           ? sentences.map(({ vi, en, hint }) => ({ vi, en: en || "", hint }))
-          : inputText
-              .split(/(?<=[.!?])\s+/)
-              .filter((s) => s.trim().length > 0)
-              .map((s, i) => ({
-                vi: s.trim(),
+          : (inputText
+              .match(/[^.!?;\n]+[.!?;]*/g)
+              ?.map((s) => s.trim())
+              .filter((s) => s.length > 0) || []
+            ).map((s, i) => ({
+                vi: s,
                 en:
-                  referenceText
-                    .split(/(?<=[.!?])\s+/)
-                    .filter((r) => r.trim().length > 0)
-                    [i]?.trim() || "",
+                  (referenceText
+                    .match(/[^.!?;\n]+[.!?;]*/g)
+                    ?.map((r) => r.trim())
+                    .filter((r) => r.length > 0) || [])
+                    [i] || "",
                 hint: "",
               })),
       createdAt: Date.now(),
@@ -1028,8 +1033,9 @@ export function SentenceBySentencePractice({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest ml-1">
+                    <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest ml-1 block">
                       Đoạn văn Tiếng Việt (Gốc)
+                      <span className="block text-[8px] text-ink/40 normal-case mt-0.5">*(Gợi ý: Hệ thống cắt câu tự động theo dấu . ! ? hoặc dấu chấm phẩy ;)*</span>
                     </label>
                     <textarea
                       value={inputText}
@@ -1039,8 +1045,9 @@ export function SentenceBySentencePractice({
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest ml-1">
+                    <label className="text-[10px] font-black uppercase text-ink/60 tracking-widest ml-1 block">
                       Bản dịch Tiếng Anh (Mẫu - Bắt buộc)
+                      <span className="block text-[8px] text-ink/40 normal-case mt-0.5">*(Bản dịch tiếng Anh tương ứng)*</span>
                     </label>
                     <textarea
                       value={referenceText}
