@@ -16,7 +16,12 @@ import {
   CartesianGrid, 
   Tooltip as RechartsTooltip, 
   ResponsiveContainer,
-  Cell 
+  Cell,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  Legend
 } from "recharts";
 
 
@@ -480,6 +485,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
   const [newHabitRepeatType, setNewHabitRepeatType] = useState<'day' | 'week' | 'month'>('day');
   const [newHabitFrequency, setNewHabitFrequency] = useState<number>(1);
   const [tempTime, setTempTime] = useState("");
+  const [trendHabitId, setTrendHabitId] = useState<string>("all");
 
   // Form state for today's quick todo task / calendar event
   const [quickTaskTitle, setQuickTaskTitle] = useState("");
@@ -758,6 +764,141 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
       };
     });
   }, [habits]);
+
+  // Calculation of habit performance and streak history over the last 30 days
+  const chartData30Days = useMemo(() => {
+    const data = [];
+    const now = new Date();
+    
+    // Generate chronologically sorted historical data from 29 days ago until today (index 0)
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const ds = d.toISOString().split('T')[0];
+      const dayOfWeek = d.getDay();
+      
+      let completions = 0;
+      let scheduled = 0;
+      let streakSum = 0;
+      let activeHabitsCount = 0;
+      
+      habits.forEach(habit => {
+        if (!habit.isActive) return;
+        if (trendHabitId !== "all" && habit.id !== trendHabitId) return;
+        
+        activeHabitsCount++;
+        
+        // Count completions for this habit on this day
+        const c = getDailyCompletionsForHabit(habit, ds);
+        completions += c;
+        
+        const repType = habit.repeatType || 'day';
+        if (repType === 'day') {
+          const isScheduled = habit.daysOfWeek.length === 0 || habit.daysOfWeek.includes(dayOfWeek);
+          if (isScheduled) {
+            scheduled += habit.frequency || habit.reminderTimes.length || 1;
+          }
+        } else {
+          // Approximate target weight for non-daily types per day
+          if (c > 0) {
+            scheduled += Math.max(c, habit.frequency || 1);
+          } else {
+            scheduled += 1;
+          }
+        }
+        
+        // Calculate backward historical streak up to date ds
+        let hStreak = 0;
+        const tempD = new Date(d);
+        let consecutiveNotScheduled = 0;
+        
+        if (repType === 'day') {
+          for (let j = 0; j < 60; j++) {
+            const checkDs = tempD.toISOString().split('T')[0];
+            const checkDayOfWeek = tempD.getDay();
+            const habitSched = habit.daysOfWeek.length === 0 || habit.daysOfWeek.includes(checkDayOfWeek);
+            
+            if (habitSched) {
+              consecutiveNotScheduled = 0;
+              const checkC = getDailyCompletionsForHabit(habit, checkDs);
+              const targetF = habit.frequency || habit.reminderTimes.length || 1;
+              if (checkC >= targetF) {
+                hStreak++;
+              } else {
+                break;
+              }
+            } else {
+              consecutiveNotScheduled++;
+              if (consecutiveNotScheduled > 14) break;
+            }
+            tempD.setDate(tempD.getDate() - 1);
+          }
+        } else if (repType === 'week') {
+          const target = habit.frequency || 1;
+          const weekTemp = new Date(tempD);
+          const currentDay = weekTemp.getDay();
+          const diff = weekTemp.getDate() - (currentDay === 0 ? 6 : currentDay - 1);
+          weekTemp.setDate(diff);
+          
+          for (let w = 0; w < 10; w++) {
+            let weekC = 0;
+            const wMondayStr = weekTemp.toISOString().split('T')[0];
+            const wDates = getWeekDates(wMondayStr);
+            wDates.forEach(ws => {
+              if (ws <= ds) {
+                weekC += getDailyCompletionsForHabit(habit, ws);
+              }
+            });
+            if (weekC >= target) {
+              hStreak++;
+            } else {
+              break;
+            }
+            weekTemp.setDate(weekTemp.getDate() - 7);
+          }
+        } else {
+          const target = habit.frequency || 1;
+          let mYear = tempD.getFullYear();
+          let mMonth = tempD.getMonth();
+          
+          for (let m = 0; m < 6; m++) {
+            const prefix = `${mYear}-${String(mMonth + 1).padStart(2, '0')}`;
+            let monthC = 0;
+            Object.keys(habit.history).forEach(hDate => {
+              if (hDate.startsWith(prefix) && hDate <= ds) {
+                monthC += getDailyCompletionsForHabit(habit, hDate);
+              }
+            });
+            if (monthC >= target) {
+              hStreak++;
+            } else {
+              break;
+            }
+            mMonth--;
+            if (mMonth < 0) {
+              mMonth = 11;
+              mYear--;
+            }
+          }
+        }
+        
+        streakSum += hStreak;
+      });
+      
+      const completionRate = scheduled > 0 ? Math.round((completions / scheduled) * 100) : 0;
+      const displayLabel = `${d.getDate()}/${d.getMonth() + 1}`;
+      
+      data.push({
+        date: ds,
+        label: displayLabel,
+        completions: completions,
+        scheduled: scheduled,
+        rate: trendHabitId === "all" ? (activeHabitsCount > 0 ? Math.round(completionRate) : 0) : completionRate,
+        streak: trendHabitId === "all" ? (activeHabitsCount > 0 ? Math.round(streakSum / activeHabitsCount) : 0) : streakSum
+      });
+    }
+    
+    return data;
+  }, [habits, trendHabitId]);
 
 
   // --- Reminder loop checker (runs every 5 seconds) ---
@@ -1956,6 +2097,193 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* SECTION: 30-DAY STREAK & COMPLETION TRENDS */}
+      <div className="mt-8 sketch-border bg-white p-5 md:p-6 shadow-md border-b-4 border-r-4 border-ink">
+        <div className="border-b-2 border-dashed border-ink/10 pb-3 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+              <Award className="w-5 h-5 text-indigo-600 animate-[pulse_2s_infinite]" />
+              XU HƯỚNG HOÀN THÀNH & CHUỖI 30 NGÀY
+            </h2>
+            <p className="hand-text text-sm opacity-60">Theo dõi sự biến động của chuỗi kỷ luật và tiến trình 30 ngày vừa qua</p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-ink/60 uppercase tracking-wider whitespace-nowrap">Lọc theo:</span>
+            <select 
+              value={trendHabitId}
+              onChange={(e) => setTrendHabitId(e.target.value)}
+              className="sketch-input py-1 px-3 bg-paper text-xs font-semibold focus:ring-0 focus:outline-none"
+              id="trend-habit-select"
+            >
+              <option value="all">🚀 Toàn bộ thói quen</option>
+              {habits.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.icon} {h.name} ({h.repeatType === 'day' ? 'Hàng ngày' : h.repeatType === 'week' ? 'Hàng tuần' : 'Hàng tháng'})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {habits.length === 0 ? (
+          <div className="text-center py-12 text-ink/40">
+            <Flame className="w-12 h-12 text-ink/20 mx-auto mb-3" />
+            <p className="text-sm font-semibold">Chưa có dữ liệu thói quen để tính toán.</p>
+            <p className="text-xs mt-1">Hãy tạo ít nhất một thói quen và duy trì để xây dựng biểu đồ xu hướng 30 ngày!</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Super Summary Cards inside the Trend component */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3 bg-indigo-50/60 rounded border-2 border-dashed border-indigo-200 text-left">
+                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">Kỷ lục chuỗi (30 Ngày)</span>
+                <span className="text-2xl font-black font-mono text-indigo-950 flex items-baseline gap-1 mt-1">
+                  {Math.max(...chartData30Days.map(d => d.streak), 0)}
+                  <span className="text-xs font-bold text-indigo-600 font-sans">ngày</span>
+                </span>
+                <span className="text-[9px] text-indigo-700/60 font-medium block mt-1 leading-none">Chuỗi dài nhất được duy trì liên tục</span>
+              </div>
+
+              <div className="p-3 bg-emerald-50/60 rounded border-2 border-dashed border-emerald-200 text-left">
+                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">Hoàn thành trọn vẹn</span>
+                <span className="text-2xl font-black font-mono text-emerald-950 flex items-baseline gap-1 mt-1">
+                  {chartData30Days.filter(d => d.rate === 100).length}
+                  <span className="text-xs font-bold text-emerald-600 font-sans">ngày</span>
+                </span>
+                <span className="text-[9px] text-emerald-700/60 font-medium block mt-1 leading-none">Số ngày đạt tỉ lệ hoàn thành 100%</span>
+              </div>
+
+              <div className="p-3 bg-rose-50/60 rounded border-2 border-dashed border-rose-200 text-left">
+                <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">Tổng số lần bấm kiểm duyệt</span>
+                <span className="text-2xl font-black font-mono text-rose-950 flex items-baseline gap-1 mt-1">
+                  {chartData30Days.reduce((sum, d) => sum + d.completions, 0)}
+                  <span className="text-xs font-bold text-rose-600 font-sans">lần</span>
+                </span>
+                <span className="text-[9px] text-rose-700/60 font-medium block mt-1 leading-none">Số lần nhấn kiểm thói quen tích lũy</span>
+              </div>
+            </div>
+
+            {/* Interactive Trend Chart Graph */}
+            <div className="h-[300px] xs:h-[340px] sm:h-[400px] w-full pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={chartData30Days}
+                  margin={{ top: 20, right: -5, left: -25, bottom: 20 }}
+                >
+                  <defs>
+                    <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0}/>
+                    </linearGradient>
+                  </defs>
+                  
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                  
+                  <XAxis 
+                    dataKey="label" 
+                    tick={{ fill: "#1a1a1a", fontSize: 10, fontWeight: "bold" }}
+                    axisLine={{ stroke: "#1a1a1a", strokeWidth: 2 }}
+                    tickLine={{ stroke: "#1a1a1a" }}
+                  />
+                  
+                  {/* Left YAxis for Rate (%) */}
+                  <YAxis 
+                    yAxisId="left"
+                    domain={[0, 100]}
+                    tickFormatter={(val) => `${val}%`}
+                    tick={{ fill: "#2563eb", fontSize: 10, fontWeight: "bold" }}
+                    axisLine={{ stroke: "#2563eb", strokeWidth: 2 }}
+                    tickLine={{ stroke: "#2563eb" }}
+                  />
+
+                  {/* Right YAxis for Streak */}
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    domain={[0, 'auto']}
+                    tick={{ fill: "#b91c1c", fontSize: 10, fontWeight: "bold" }}
+                    axisLine={{ stroke: "#b91c1c", strokeWidth: 2 }}
+                    tickLine={{ stroke: "#b91c1c" }}
+                  />
+
+                  <RechartsTooltip 
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        const rateData = payload.find(p => p.dataKey === "rate");
+                        const streakData = payload.find(p => p.dataKey === "streak");
+                        const compData = payload.find(p => p.dataKey === "completions");
+                        
+                        return (
+                          <div className="bg-[#faf8f5] border-2 border-ink p-3 rounded-md shadow-[3px_3px_0px_#1a1a1a] text-xs space-y-1">
+                            <p className="font-bold border-b border-dashed border-ink/10 pb-1 mb-1 text-ink flex items-center justify-between">
+                              <span>Ngày {label}</span>
+                              <span className="font-mono text-[9px] text-ink/40 font-normal">({payload[0]?.payload?.date})</span>
+                            </p>
+                            
+                            {rateData && (
+                              <p className="flex justify-between gap-6 font-semibold">
+                                <span className="text-indigo-600 flex items-center gap-1">📊 Tỉ lệ đạt:</span>
+                                <span className="font-mono font-black text-indigo-700">{rateData.value}%</span>
+                              </p>
+                            )}
+
+                            {compData && (
+                              <p className="flex justify-between gap-6 font-semibold">
+                                <span className="text-slate-600 flex items-center gap-1">✅ Hoàn thành:</span>
+                                <span className="font-mono font-bold text-slate-800">{compData.value} lần nhấp</span>
+                              </p>
+                            )}
+                            
+                            {streakData && (
+                              <p className="flex justify-between gap-6 font-semibold border-t border-ink/5 pt-1 mt-1">
+                                <span className="text-crimson flex items-center gap-1">🔥 Số ngày chuỗi:</span>
+                                <span className="font-mono font-black text-rose-700">{streakData.value} ngày</span>
+                              </p>
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  
+                  <Legend 
+                    verticalAlign="top"
+                    height={36}
+                    wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }}
+                  />
+
+                  {/* Area for completion rate */}
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="rate" 
+                    stroke="#2563eb" 
+                    strokeWidth={2}
+                    fillOpacity={1} 
+                    fill="url(#colorRate)" 
+                    name="Tỉ lệ hoàn thành (%)"
+                  />
+
+                  {/* Line for Streak history */}
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="streak" 
+                    stroke="#b91c1c" 
+                    strokeWidth={3} 
+                    dot={{ stroke: '#b91c1c', strokeWidth: 2, r: 3, fill: '#fef2f2' }}
+                    activeDot={{ r: 6, stroke: '#b91c1c', strokeWidth: 1, fill: '#b91c1c' }}
+                    name="Độ dài chuỗi thói quen (Ngày)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
         )}
