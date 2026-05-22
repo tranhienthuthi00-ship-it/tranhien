@@ -181,3 +181,7 @@ svg.lucide, .hand-drawn-svg {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
 }
+
+.clip-ribbon {
+  clip-path: polygon(100% 0, 100% 100%, 50% 88%, 0 100%, 0 0);
+}

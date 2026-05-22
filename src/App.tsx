@@ -17,6 +17,7 @@ import { TranslationPractice } from "./components/TranslationPractice";
 import { ReflexPractice } from "./components/ReflexPractice";
 import Flashcards from "./components/Flashcards";
 import { HabitTracker } from "./components/HabitTracker";
+import { DigitalJournal } from "./components/DigitalJournal";
 import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
 import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target, Sparkles, Flame } from "lucide-react";
 
@@ -217,6 +218,7 @@ function AppContent() {
         <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
           {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
           {activeTab === "Dashboard" && <Progress words={words} tasks={tasks} logs={logs} wishlist={wishlist} goals={studyGoals} assets={assets} />}
+          {activeTab === "Journal" && <DigitalJournal logs={logs} wishlist={wishlist} habits={habits} assets={assets} words={words} places={foodPlaces} ideas={contentIdeas} />}
         </div>
       </div>
     </main>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Plus, Trash2, Edit2, Wallet, Settings, Landmark, Car, MonitorSmartphone, Gem, PiggyBank, Briefcase, Bitcoin, Building, Home, Coins, CreditCard, TrendingUp, Smartphone, Laptop, Handshake, Users } from "lucide-react";
+import { Plus, Trash2, Edit2, Wallet, Settings, Landmark, Car, MonitorSmartphone, Gem, PiggyBank, Briefcase, Bitcoin, Building, Home, Coins, CreditCard, TrendingUp, Smartphone, Laptop, Handshake, Users, Receipt } from "lucide-react";
 import type { FormEvent } from "react";
 import { cn } from "@/lib/utils";
 import type { Asset, AssetCategory } from "@/types";
@@ -59,6 +59,34 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const [isLoan, setIsLoan] = useState(false);
   const [isNewMoney, setIsNewMoney] = useState(false);
   const [excludeFromNetWorth, setExcludeFromNetWorth] = useState(false);
+
+  // Bulk Debt & Weekly Revenue State
+  const [bulkDebts, setBulkDebts] = useState<{id: number, name: string, amount: string, isWeeklyRev: boolean, notes: string}[]>([
+     { id: Date.now(), name: "", amount: "", isWeeklyRev: false, notes: "" }
+  ]);
+  const handleResetBulkDebts = () => {
+    setBulkDebts([{ id: Date.now(), name: "", amount: "", isWeeklyRev: false, notes: "" }]);
+  };
+  const handleSaveBulkDebts = () => {
+     const now = Date.now();
+     const validDebts = bulkDebts.filter(d => d.name.trim() && d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
+     if (validDebts.length === 0) return;
+
+     const newDebtAssets: Asset[] = validDebts.map(d => ({
+        id: `debt-${now}-${d.id}`,
+        name: d.name,
+        category: categories.find(c => c.name.toLowerCase().includes("nợ"))?.id || defaultCatID,
+        value: parseFloat(d.amount.replace(/,/g, '')),
+        currency: "VND",
+        notes: d.notes,
+        acquiredAt: now,
+        isDebt: true,
+        excludeFromNetWorth: false
+     }));
+
+     setAssets([...newDebtAssets, ...assets]);
+     handleResetBulkDebts();
+  };
 
   const [bulkCash, setBulkCash] = useState<Record<number, number>>({});
   const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000];
@@ -996,6 +1024,148 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         </div>
       </div>
       
+      {/* Bảng Kê Công Nợ & Doanh Thu Tuần - Specialized Section */}
+      <div className="mt-16 animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b-4 border-crimson/80 pb-2 gap-4">
+           <div className="flex items-center gap-3">
+              <button className="p-2 bg-crimson/80 text-white rounded-xl shadow-lg">
+                <Receipt size={24} />
+              </button>
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-crimson">Bảng Kê Công Nợ & Doanh Thu Tuần</h2>
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Ghi nhận các khoản phải trả (Nợ) hoặc Doanh thu tuần</p>
+              </div>
+           </div>
+        </div>
+
+        <div className="bg-white/50 sketch-border p-4 rounded-xl overflow-hidden mb-6">
+          <div className="overflow-x-auto max-w-full">
+            <table className="min-w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-crimson/10 text-[9px] font-black uppercase tracking-widest text-crimson border-b-2 border-crimson/50">
+                  <th className="px-4 py-3 font-black">Tên Khoản Nợ / Doanh thu</th>
+                  <th className="px-4 py-3 text-right font-black w-44">Số Tiền (VND)</th>
+                  <th className="px-4 py-3 text-center font-black w-24">Phân loại</th>
+                  <th className="px-4 py-3 font-black">Ghi Chú</th>
+                  <th className="px-4 py-3 text-center font-black w-16">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="font-sans divide-y divide-crimson/10">
+                {bulkDebts.map((item, idx) => (
+                  <tr key={item.id} className="transition-colors hover:bg-crimson/5">
+                    <td className="px-4 py-3">
+                      <input 
+                        type="text" 
+                        value={item.name} 
+                        onChange={e => {
+                          const newDebts = [...bulkDebts];
+                          newDebts[idx].name = e.target.value;
+                          setBulkDebts(newDebts);
+                        }} 
+                        placeholder="Ví dụ: Nợ nhà cung cấp / Doanh thu tuần..."
+                        className="w-full bg-white border border-ink/15 rounded-lg px-2 py-1.5 outline-none focus:border-crimson text-xs shadow-inner"
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <input 
+                        type="text" 
+                        value={item.amount} 
+                        onChange={e => {
+                          const valStr = e.target.value.replace(/,/g, '');
+                          if (!/^\d*$/.test(valStr)) return;
+                          const formatted = valStr ? parseInt(valStr, 10).toLocaleString('en-US') : "";
+                          const newDebts = [...bulkDebts];
+                          newDebts[idx].amount = formatted;
+                          setBulkDebts(newDebts);
+                        }} 
+                        placeholder="0"
+                        className="w-full text-right font-bold text-crimson bg-white border border-ink/15 rounded-lg px-2 py-1.5 outline-none focus:border-crimson text-xs shadow-inner"
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => {
+                           const newDebts = [...bulkDebts];
+                           newDebts[idx].isWeeklyRev = !newDebts[idx].isWeeklyRev;
+                           if (newDebts[idx].isWeeklyRev && !newDebts[idx].name.includes("Doanh thu tuần")) {
+                              newDebts[idx].name = "Doanh thu tuần " + new Date().toLocaleDateString('vi-VN');
+                           }
+                           setBulkDebts(newDebts);
+                        }}
+                        className={cn("px-2 py-1 text-[10px] font-bold uppercase rounded border transition-colors", item.isWeeklyRev ? "bg-blue-50 text-blue-600 border-blue-200" : "bg-crimson/5 text-crimson border-crimson/20")}
+                      >
+                         {item.isWeeklyRev ? "Doanh Thu" : "Ghi Nợ"}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <input 
+                        type="text" 
+                        value={item.notes} 
+                        onChange={e => {
+                          const newDebts = [...bulkDebts];
+                          newDebts[idx].notes = e.target.value;
+                          setBulkDebts(newDebts);
+                        }} 
+                        placeholder="Ghi chú thêm..."
+                        className="w-full bg-white border border-ink/15 rounded-lg px-2 py-1.5 outline-none focus:border-crimson/50 text-xs shadow-inner"
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button 
+                         onClick={() => {
+                            if (bulkDebts.length > 1) {
+                               const newDebts = bulkDebts.filter((_, i) => i !== idx);
+                               setBulkDebts(newDebts);
+                            } else {
+                               handleResetBulkDebts();
+                            }
+                         }}
+                         className="p-1 text-ink/40 hover:text-crimson transition-colors"
+                         title="Xóa dòng"
+                      >
+                        Xóa
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="mt-3 flex mx-4 mb-2">
+            <button
+               onClick={() => setBulkDebts([...bulkDebts, { id: Date.now(), name: "", amount: "", isWeeklyRev: false, notes: "" }])}
+               className="text-xs font-bold text-crimson/80 hover:text-crimson flex items-center gap-1 bg-crimson/5 hover:bg-crimson/10 px-3 py-1.5 rounded-lg transition-all"
+            >
+               + Thêm dòng mới
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-crimson/5 sketch-border border-dashed border-crimson/20 rounded-xl mb-10">
+          <div className="text-center sm:text-left">
+            <p className="text-xs text-ink/70 leading-relaxed">
+              💡 Bảng này lưu trực tiếp vào CÔNG NỢ, tiện lợi cho việc tính toán nghĩa vụ trả tiền hoặc lưu Doanh thu báo nợ shop.
+            </p>
+          </div>
+          
+          <div className="flex gap-2 shrink-0">
+             <button 
+               onClick={handleResetBulkDebts}
+               className="sketch-button text-xs py-2 px-4 font-bold uppercase tracking-widest text-ink hover:bg-white cursor-pointer transition-all"
+             >
+               Reset Bảng
+             </button>
+             <button 
+               onClick={handleSaveBulkDebts}
+               className="sketch-button sketch-button-primary py-2 px-6 flex items-center gap-2 text-xs transition-all bg-crimson/90 text-white hover:bg-crimson hover:shadow-lg active:scale-95 cursor-pointer"
+             >
+               <Receipt size={14} /> Lưu Vào Sổ Nợ
+             </button>
+          </div>
+        </div>
+      </div>
+
       {filteredAssets.length === 0 && (
         <div className="text-center py-20 opacity-30">
           <Wallet size={48} className="mx-auto mb-4" />
