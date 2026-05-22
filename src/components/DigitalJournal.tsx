@@ -6,7 +6,6 @@ import { BookOpen, Calendar as CalendarIcon, DollarSign, MapPin, Feather, CheckS
 interface DigitalJournalProps {
   logs: LogEntry[];
   wishlist: WishlistItem[];
-  habits: Habit[];
   assets: Asset[];
   words: Word[];
   places: FoodPlace[];
@@ -24,8 +23,17 @@ interface DailySummary {
   contentDone: ContentIdea[];
 }
 
-export function DigitalJournal({ logs, wishlist, habits, assets, words, places, ideas }: DigitalJournalProps) {
+export function DigitalJournal({ logs, wishlist, assets, words, places, ideas }: DigitalJournalProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
+
+  const habits: Habit[] = useMemo(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_habits");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  }, []);
 
   const pages = useMemo(() => {
     // Collect all unique dates with some activity

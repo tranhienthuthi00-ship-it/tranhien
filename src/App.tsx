@@ -218,7 +218,7 @@ function AppContent() {
         <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
           {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
           {activeTab === "Dashboard" && <Progress words={words} tasks={tasks} logs={logs} wishlist={wishlist} goals={studyGoals} assets={assets} />}
-          {activeTab === "Journal" && <DigitalJournal logs={logs} wishlist={wishlist} habits={habits} assets={assets} words={words} places={foodPlaces} ideas={contentIdeas} />}
+          {activeTab === "Journal" && <DigitalJournal logs={logs} wishlist={wishlist} assets={assets} words={words} places={foodPlaces} ideas={contentIdeas} />}
         </div>
       </div>
     </main>
