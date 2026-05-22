@@ -8,6 +8,17 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import type { Habit, TodayTask, LogEntry } from "../types";
 import { cn } from "../lib/utils";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  ResponsiveContainer,
+  Cell 
+} from "recharts";
+
 
 // Web Audio API synthesized sound cues
 const playSound = (type: 'complete' | 'reminder') => {
@@ -302,6 +313,43 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
     const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { total, completed, rate };
   }, [todayTasksList]);
+
+  // Calculation of habit performance over the last 7 days for the Recharts BarChart
+  const chartData = useMemo(() => {
+    return habits.map(habit => {
+      let totalScheduled = 0;
+      let totalCompleted = 0;
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const ds = d.toISOString().split('T')[0];
+        const dayOfWeek = d.getDay();
+
+        const isScheduled = habit.daysOfWeek.length === 0 || habit.daysOfWeek.includes(dayOfWeek);
+        if (isScheduled) {
+          totalScheduled += habit.reminderTimes.length;
+          habit.reminderTimes.forEach(t => {
+            if (habit.history[ds]?.[t]) {
+              totalCompleted += 1;
+            }
+          });
+        }
+      }
+
+      const pct = totalScheduled > 0 ? Math.round((totalCompleted / totalScheduled) * 100) : 0;
+
+      return {
+        id: habit.id,
+        name: `${habit.icon} ${habit.name}`,
+        habitName: habit.name,
+        pct,
+        completed: totalCompleted,
+        scheduled: totalScheduled
+      };
+    });
+  }, [habits]);
+
 
   // --- Reminder loop checker (runs every 5 seconds) ---
   useEffect(() => {
@@ -1276,6 +1324,95 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
           </div>
         </div>
 
+      </div>
+
+      {/* SECTION: 7-DAY COMPLETION STATISTICS CHART */}
+      <div className="mt-8 sketch-border bg-white p-5 md:p-6 shadow-md border-b-4 border-r-4 border-ink">
+        <div className="border-b-2 border-dashed border-ink/10 pb-3 mb-6">
+          <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+            <Flame className="w-5 h-5 text-amber-500 animate-[bounce_2s_infinite]" />
+            HIỆU SUẤT THÓI QUEN 7 NGÀY QUA
+          </h2>
+          <p className="hand-text text-sm opacity-60">Tỷ lệ hoàn thành thói quen dựa trên lịch trình 7 ngày gần đây</p>
+        </div>
+
+        {habits.length === 0 ? (
+          <div className="text-center py-12 text-ink/40">
+            <Award className="w-12 h-12 text-ink/20 mx-auto mb-3" />
+            <p className="text-sm font-semibold">Chưa có dữ liệu thói quen để tính toán.</p>
+            <p className="text-xs mt-1">Hãy tạo lập thói quen và hoàn thành hàng ngày để xem biểu đồ hiệu suất!</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="h-[280px] xs:h-[320px] sm:h-[360px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 20, right: 20, left: -20, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fill: "#1a1a1a", fontSize: 11, fontWeight: "bold" }}
+                    axisLine={{ stroke: "#1a1a1a", strokeWidth: 2 }}
+                    tickLine={{ stroke: "#1a1a1a" }}
+                  />
+                  <YAxis 
+                    domain={[0, 100]}
+                    tickFormatter={(val) => `${val}%`}
+                    tick={{ fill: "#1a1a1a", fontSize: 11, fontWeight: "bold" }}
+                    axisLine={{ stroke: "#1a1a1a", strokeWidth: 2 }}
+                    tickLine={{ stroke: "#1a1a1a" }}
+                  />
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      backgroundColor: "#faf8f5", 
+                      border: "2px solid #1a1a1a", 
+                      borderRadius: "6px",
+                      boxShadow: "3px 3px 0px #1a1a1a",
+                      color: "#1a1a1a"
+                    }}
+                    labelStyle={{ fontWeight: "bold" }}
+                  />
+                  <Bar 
+                    dataKey="pct" 
+                    radius={[4, 4, 0, 0]} 
+                    stroke="#1a1a1a" 
+                    strokeWidth={2}
+                    name="Tỷ lệ hoàn thành (%)"
+                  >
+                    {chartData.map((entry, index) => {
+                      const colors = [
+                        "#fbcfe8", // Pink
+                        "#d2e3fc", // Blue
+                        "#e6f4ea", // Green
+                        "#fef7e0", // Yellow
+                        "#fce8e6"  // Coral
+                      ];
+                      const color = colors[index % colors.length];
+                      return <Cell key={`cell-${index}`} fill={color} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Quick Summary Section list */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {chartData.map((item, idx) => (
+                <div key={idx} className="p-3 rounded border-2 border-dashed border-ink/20 bg-[#faf8f5] flex justify-between items-center">
+                  <div className="min-w-0">
+                    <div className="font-black text-sm text-ink truncate">{item.name}</div>
+                    <span className="text-[10px] text-ink/50 font-mono">Hoàn thành {item.completed}/{item.scheduled} nhắc nhở</span>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="font-black text-lg text-crimson font-mono">{item.pct}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* FLOATING AND ABSOLUTE CHANGER ALARM REMINDER OVERLAY POPUP */}
