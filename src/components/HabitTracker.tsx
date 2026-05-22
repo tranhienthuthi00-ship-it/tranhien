@@ -346,6 +346,97 @@ export const getMotivationalQuote = (habitName: string, streak: number, repeatTy
   return quotes[streak % quotes.length];
 };
 
+export interface DisciplineLevel {
+  level: string;
+  color: string;
+  borderColor: string;
+  bgColor: string;
+  badgeBg: string;
+  icon: string;
+  nextMilestone: string;
+  badgeColor: string;
+  description: string;
+}
+
+export const getDisciplineLevel = (streak: number): DisciplineLevel => {
+  if (streak === 0) {
+    return {
+      level: "Tân Binh Thử Thách",
+      color: "text-slate-600",
+      borderColor: "border-slate-300",
+      bgColor: "bg-slate-50/60",
+      badgeBg: "bg-slate-100",
+      badgeColor: "text-slate-800 border-slate-300",
+      icon: "🌱",
+      description: "Hành trình vạn dặm bắt đầu từ một bước chân lẻ loi.",
+      nextMilestone: "Duy trì bất kỳ 1 chuỗi thói quen nào để kích hoạt mức kỷ luật đầu tiên!"
+    };
+  }
+  if (streak < 7) {
+    return {
+      level: "Người Gieo Mầm Thói Quen",
+      color: "text-emerald-700",
+      borderColor: "border-emerald-300",
+      bgColor: "bg-emerald-50/60",
+      badgeBg: "bg-emerald-100",
+      badgeColor: "text-emerald-800 border-emerald-300",
+      icon: "🪴",
+      description: "Có công mài sắt có ngày nên kim, hạt mầm kỷ luật đang nảy nở.",
+      nextMilestone: "Tích lũy tổng chuỗi đạt 7 thói quen để thăng cấp lên 'Thợ Xây Kỷ Luật'."
+    };
+  }
+  if (streak < 21) {
+    return {
+      level: "Thợ Xây Kỷ Luật",
+      color: "text-blue-700",
+      borderColor: "border-blue-300",
+      bgColor: "bg-blue-50/60",
+      badgeBg: "bg-blue-100",
+      badgeColor: "text-blue-800 border-blue-300",
+      icon: "🧱",
+      description: "Kỷ luật đã trở thành một phần quen thuộc của nhịp sống mỗi ngày.",
+      nextMilestone: "Tích lũy tổng chuỗi đạt 21 thói quen để thăng cấp lên 'Chiến Binh Bền Bỉ'."
+    };
+  }
+  if (streak < 50) {
+    return {
+      level: "Chiến Binh Bền Bỉ",
+      color: "text-rose-700",
+      borderColor: "border-rose-300",
+      bgColor: "bg-rose-50/60",
+      badgeBg: "bg-rose-100",
+      badgeColor: "text-rose-800 border-rose-300",
+      icon: "⚔️",
+      description: "Bản lĩnh vững vàng, vượt qua mọi trì hoãn để tiến bộ không ngừng.",
+      nextMilestone: "Tích lũy tổng chuỗi đạt 50 thói quen để thăng cấp lên 'Anh Hùng Tự Chủ'."
+    };
+  }
+  if (streak < 100) {
+    return {
+      level: "Anh Hùng Tự Chủ",
+      color: "text-purple-700",
+      borderColor: "border-purple-300",
+      bgColor: "bg-purple-50/60",
+      badgeBg: "bg-purple-100",
+      badgeColor: "text-purple-800 border-purple-300",
+      icon: "🛡️",
+      description: "Làm chủ bản thân hoàn toàn, kiểm soát tâm trí và hành động dễ dàng.",
+      nextMilestone: "Tích lũy tổng chuỗi đạt 100 thói quen để thăng cấp lên 'Huyền Thoại Kỷ Luật'!"
+    };
+  }
+  return {
+    level: "Huyền Thoại Kỷ Luật",
+    color: "text-amber-700",
+    borderColor: "border-amber-400",
+    bgColor: "bg-amber-50/60",
+    badgeBg: "bg-amber-100",
+    badgeColor: "text-amber-800 border-amber-300",
+    icon: "👑",
+    description: "Kỷ luật tối thượng tựa như dòng chảy tự nhiên. Bạn là nguồn cảm hứng vô song!",
+    nextMilestone: "Bạn đã đứng trên đỉnh cao rực rỡ nhất của thói quen sống lành mạnh!"
+  };
+};
+
 interface HabitTrackerProps {
   logs?: LogEntry[];
   setLogs?: React.Dispatch<React.SetStateAction<LogEntry[]>>;
@@ -621,6 +712,16 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
     const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { total, completed, rate };
   }, [todayTasksList]);
+
+  // Global aggregate streak count of all active habits
+  const globalStreak = useMemo(() => {
+    return habits.filter(h => h.isActive).reduce((sum, h) => sum + (h.streak || 0), 0);
+  }, [habits]);
+
+  // Dynamic Discipline Level determined by global active streak
+  const discipline = useMemo(() => {
+    return getDisciplineLevel(globalStreak);
+  }, [globalStreak]);
 
   // Calculation of habit performance over the last 7 days for the Recharts BarChart
   const chartData = useMemo(() => {
@@ -1098,6 +1199,49 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
             <span className="text-[10px] uppercase font-black text-ink/75 mt-1 font-mono text-center">
               HOÀN THÀNH {stats.rate}%
             </span>
+          </div>
+        </div>
+
+        {/* GLOBAL STREAK & DISCIPLINE LEVEL INDICATOR */}
+        <div className="mt-4 p-4 bg-[#fffbeb] border-2 border-ink rounded-lg text-left shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
+          {/* Subtle graphic accent */}
+          <div className="absolute right-3 -bottom-1 text-ink/5 pointer-events-none">
+            <Award className="w-16 h-16 rotate-12" />
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full border-2 border-ink bg-[#fef7e0] flex items-center justify-center text-2xl shadow-sm shrink-0">
+                {discipline.icon}
+              </div>
+              <div>
+                <div className="text-[10px] uppercase font-black tracking-wider text-crimson flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-crimson animate-ping" />
+                  Mức Độ Kỷ Luật Toàn Diện
+                </div>
+                <h3 className="text-lg md:text-xl font-black text-ink flex items-center gap-2 uppercase tracking-tight">
+                  {discipline.level}
+                </h3>
+                <p className="text-[11px] font-medium text-ink/75 leading-tight italic max-w-sm sm:max-w-md">
+                  "{discipline.description}"
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 sm:border-l-2 border-dashed border-ink/15 sm:pl-4">
+              <div className="text-center sm:text-right shrink-0 flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2">
+                <span className="text-[10px] uppercase font-bold text-ink/50 tracking-wider">Tổng tích lũy:</span>
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-ink/15 rounded font-black font-mono text-crimson text-sm shadow-sm">
+                  <Flame className="w-4 h-4 fill-crimson text-crimson animate-[bounce_1s_infinite]" />
+                  {globalStreak} chuỗi
+                </span>
+              </div>
+              
+              <div className="text-center sm:text-left max-w-xs text-[10px] font-semibold text-ink/65 bg-white/60 py-1.5 px-3 rounded border border-ink/10 leading-relaxed font-mono">
+                <span className="font-bold text-ink/80 block leading-none mb-1 text-[9px] uppercase tracking-wide">Mục tiêu tiếp:</span>
+                {discipline.nextMilestone}
+              </div>
+            </div>
           </div>
         </div>
       </div>
