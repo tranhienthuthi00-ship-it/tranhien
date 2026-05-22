@@ -53,6 +53,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const [newCurrency, setNewCurrency] = useState("VND");
   const [newNotes, setNewNotes] = useState("");
   const [newQuantity, setNewQuantity] = useState("");
+  const [newExchangeRate, setNewExchangeRate] = useState("");
   const [newDenomination, setNewDenomination] = useState("");
   const [isDebt, setIsDebt] = useState(false);
   const [isLoan, setIsLoan] = useState(false);
@@ -71,18 +72,25 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setEditingId(asset.id);
     setNewName(asset.name);
     setNewCategory(asset.category);
-    setNewValue(asset.value.toString());
     setNewCurrency(asset.currency);
     setNewNotes(asset.notes || "");
-    setNewQuantity(asset.quantity?.toString() || "");
-    setNewDenomination(asset.denomination?.toString() || "");
     setIsDebt(!!asset.isDebt);
     setIsLoan(!!asset.isLoan);
     setIsNewMoney(!!asset.isNewMoney);
     setExcludeFromNetWorth(!!asset.excludeFromNetWorth);
+
+    if (asset.currency === "GOLD" || asset.currency === "USD") {
+      setNewQuantity(asset.quantity?.toString() || asset.value.toString());
+      setNewExchangeRate(asset.exchangeRate?.toString() || "");
+      setNewValue("");
+      setNewDenomination("");
+    } else {
+      setNewValue(asset.value.toString());
+      setNewQuantity(asset.quantity?.toString() || "");
+      setNewExchangeRate("");
+      setNewDenomination(asset.denomination?.toString() || "");
+    }
     
-    // If it's a new money entry, we might want to sync the bulk cash state if we're doing it that way
-    // For now we'll keep the bulk entry separate or as a generator
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -94,6 +102,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setNewCurrency("VND");
     setNewNotes("");
     setNewQuantity("");
+    setNewExchangeRate("");
     setNewDenomination("");
     setIsDebt(false);
     setIsLoan(false);
@@ -102,7 +111,14 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   };
 
   const formatCurrency = (val: number, cur: string) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: cur }).format(val);
+    if (cur === 'GOLD') {
+      return `${new Intl.NumberFormat('vi-VN').format(val)} chỉ vàng`;
+    }
+    try {
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: cur }).format(val);
+    } catch (e) {
+      return `${new Intl.NumberFormat('vi-VN').format(val)} ${cur}`;
+    }
   };
 
   const addAsset = (e: FormEvent) => {
@@ -113,29 +129,42 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
 
     let val = parseFloat(newValue.replace(/,/g, ''));
     const qty = parseFloat(newQuantity.replace(/,/g, ''));
+    const rate = parseFloat(newExchangeRate.replace(/,/g, ''));
     const den = parseFloat(newDenomination.replace(/,/g, ''));
 
     if (isNewMoney && !isNaN(qty) && !isNaN(den)) {
       val = qty * den;
     }
 
-    if (!isNewMoney && (isNaN(val) || !newName.trim())) return;
-    if (isNewMoney && (isNaN(qty) || isNaN(den) || !newName.trim())) return;
+    const isGoldOrUsd = !isNewMoney && (newCurrency === "GOLD" || newCurrency === "USD");
+
+    if (isGoldOrUsd) {
+      if (isNaN(qty) || isNaN(rate) || !newName.trim()) return;
+    } else if (!isNewMoney) {
+      if (isNaN(val) || !newName.trim()) return;
+    } else {
+      if (isNaN(qty) || isNaN(den) || !newName.trim()) return;
+    }
+
+    const finalValue = isGoldOrUsd ? qty : val;
+    const finalQty = isGoldOrUsd ? qty : (isNewMoney ? qty : undefined);
+    const finalRate = isGoldOrUsd ? rate : undefined;
 
     if (editingId) {
       setAssets(assets.map(a => a.id === editingId ? {
         ...a,
         name: newName,
         category: catToUse,
-        value: val,
+        value: finalValue,
         currency: newCurrency,
         notes: newNotes || undefined,
         isDebt: isDebt,
         isLoan: isLoan,
         isNewMoney: isNewMoney,
         excludeFromNetWorth: excludeFromNetWorth,
-        quantity: isNewMoney ? qty : undefined,
-        denomination: isNewMoney ? den : undefined
+        quantity: finalQty,
+        denomination: isNewMoney ? den : undefined,
+        exchangeRate: finalRate
       } : a));
       setEditingId(null);
     } else {
@@ -143,7 +172,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         id: Date.now().toString(),
         name: newName,
         category: catToUse,
-        value: val,
+        value: finalValue,
         currency: newCurrency,
         notes: newNotes || undefined,
         acquiredAt: Date.now(),
@@ -151,8 +180,9 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         isLoan: isLoan,
         isNewMoney: isNewMoney,
         excludeFromNetWorth: excludeFromNetWorth,
-        quantity: isNewMoney ? qty : undefined,
-        denomination: isNewMoney ? den : undefined
+        quantity: finalQty,
+        denomination: isNewMoney ? den : undefined,
+        exchangeRate: finalRate
       }, ...assets]);
     }
 
@@ -160,6 +190,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setNewValue("");
     setNewNotes("");
     setNewQuantity("");
+    setNewExchangeRate("");
     setNewDenomination("");
     setIsDebt(false);
     setIsLoan(false);
@@ -210,9 +241,12 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     return categories.find(c => c.id === catId) || { id: catId || 'unknown', name: catId || 'Khác', icon: '❓' };
   };
 
-  const getValueInVND = (value: number, currency: string) => {
+  const getValueInVND = (value: number, currency: string, exchangeRate?: number) => {
     if (currency === 'VND') return value;
-    if (currency === 'USD') return value * 25000;
+    if (exchangeRate && exchangeRate > 0) {
+      return value * exchangeRate;
+    }
+    if (currency === 'USD') return value * 25400;
     if (currency === 'EUR') return value * 27000;
     if (currency === 'GOLD') return value * 8000000; // estimation
     return value;
@@ -221,22 +255,22 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const totalVND = useMemo(() => {
     return assets.reduce((acc, curr) => {
       if (curr.excludeFromNetWorth) return acc;
-      const val = getValueInVND(curr.value, curr.currency);
+      const val = getValueInVND(curr.value, curr.currency, curr.exchangeRate);
       return curr.isDebt ? acc - val : acc + val;
     }, 0);
   }, [assets]);
 
   const totalAssetsVND = useMemo(() => {
     // Assets that are not debt, not loan, and NOT new money (the user wants to separate new money)
-    return assets.filter(a => !a.isDebt && !a.isLoan && !a.isNewMoney).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
+    return assets.filter(a => !a.isDebt && !a.isLoan && !a.isNewMoney).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
   }, [assets]);
 
   const totalLoansVND = useMemo(() => {
-    return assets.filter(a => a.isLoan).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
+    return assets.filter(a => a.isLoan).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
   }, [assets]);
 
   const totalNewMoneyVND = useMemo(() => {
-    return assets.filter(a => a.isNewMoney).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
+    return assets.filter(a => a.isNewMoney).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
   }, [assets]);
 
   const liveNewMoneyVND = useMemo(() => {
@@ -252,7 +286,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   }, [bulkCash]);
 
   const totalDebtsVND = useMemo(() => {
-    return assets.filter(a => a.isDebt).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency), 0);
+    return assets.filter(a => a.isDebt).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
   }, [assets]);
 
   const saveBulkCash = () => {
@@ -317,7 +351,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
       .map(a => ({
         id: a.id,
         name: a.name,
-        value: getValueInVND(a.value, a.currency),
+        value: getValueInVND(a.value, a.currency, a.exchangeRate),
         fill: getCategoryColor(a.category)
       }))
       .filter(d => d.value > 0)
@@ -330,7 +364,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     if (sortBy === "name") {
       result.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortBy === "value") {
-      result.sort((a, b) => getValueInVND(b.value, b.currency) - getValueInVND(a.value, a.currency));
+      result.sort((a, b) => getValueInVND(b.value, b.currency, b.exchangeRate) - getValueInVND(a.value, a.currency, a.exchangeRate));
     } else {
       result.sort((a, b) => (b.acquiredAt || 0) - (a.acquiredAt || 0));
     }
@@ -542,18 +576,45 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">
-                  {isNewMoney ? "Tên (Ví dụ: Tiền VNĐ)" : "Giá Trị"}
+                  {isNewMoney 
+                    ? "Tên (Ví dụ: Tiền VNĐ)" 
+                    : (newCurrency === "GOLD" || newCurrency === "USD")
+                      ? "Số lượng & Tỷ giá / Đơn giá"
+                      : "Giá Trị"}
                 </label>
                 <div className="flex gap-2">
                   {!isNewMoney ? (
-                    <input
-                      value={newValue}
-                      onChange={(e) => setNewValue(e.target.value)}
-                      placeholder="0"
-                      type="number"
-                      className="sketch-input bg-white/50 py-2 min-w-0 flex-1 px-2"
-                      required
-                    />
+                    (newCurrency === "GOLD" || newCurrency === "USD") ? (
+                      <div className="flex gap-2 flex-1">
+                        <input
+                          value={newQuantity}
+                          onChange={(e) => setNewQuantity(e.target.value)}
+                          placeholder={newCurrency === "GOLD" ? "Số chỉ (vd: 5)" : "Số lượng (vd: 100)"}
+                          type="number"
+                          step="any"
+                          className="sketch-input bg-white/50 py-2 min-w-0 w-1/2 px-2"
+                          required
+                        />
+                        <input
+                          value={newExchangeRate}
+                          onChange={(e) => setNewExchangeRate(e.target.value)}
+                          placeholder={newCurrency === "GOLD" ? "Giá 1 chỉ (VND)" : "Tỷ giá (VND/USD)"}
+                          type="number"
+                          step="any"
+                          className="sketch-input bg-white/50 py-2 min-w-0 w-1/2 px-2"
+                          required
+                        />
+                      </div>
+                    ) : (
+                      <input
+                        value={newValue}
+                        onChange={(e) => setNewValue(e.target.value)}
+                        placeholder="0"
+                        type="number"
+                        className="sketch-input bg-white/50 py-2 min-w-0 flex-1 px-2"
+                        required
+                      />
+                    )
                   ) : (
                     <div className="flex gap-2 flex-1">
                        <input
@@ -574,7 +635,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                       />
                     </div>
                   )}
-                  <select value={newCurrency} onChange={(e) => setNewCurrency(e.target.value)} className="sketch-input bg-white/50 py-2 w-[72px] shrink-0 px-1 text-center">
+                  <select value={newCurrency} onChange={(e) => setNewCurrency(e.target.value)} className="sketch-input bg-[#efefef] font-bold py-2 w-[82px] shrink-0 px-1 text-center">
                     <option value="VND">VND</option>
                     <option value="USD">USD</option>
                     <option value="EUR">EUR</option>
@@ -684,7 +745,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         {(Object.entries(regularAssetsByCategory) as [string, Asset[]][]).map(([catId, items]) => {
           const cat = getCategory(catId);
           const catTotal = items.reduce((acc, curr) => {
-            const val = getValueInVND(curr.value, curr.currency);
+            const val = getValueInVND(curr.value, curr.currency, curr.exchangeRate);
             return curr.isDebt ? acc - val : acc + val;
           }, 0);
           
@@ -744,6 +805,14 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                       {asset.isNewMoney && <span className="text-[10px] uppercase font-bold text-amber-500 bg-amber-500/5 px-1 rounded font-sans">Tiền mới</span>}
                       {asset.excludeFromNetWorth && !asset.isNewMoney && <span className="text-[10px] uppercase font-bold text-ink/40 bg-ink/5 px-1 rounded font-sans">Loại trừ</span>}
                     </div>
+
+                    {asset.exchangeRate && asset.exchangeRate > 0 && (
+                      <div className="text-[11px] text-ink/60 font-semibold bg-amber-50/40 p-1.5 rounded border border-dashed border-amber-200 mt-1 max-w-fit">
+                        Giá/Tỷ giá: <span className="font-mono text-ink">{formatCurrency(asset.exchangeRate, 'VND')}</span> / {asset.currency === 'GOLD' ? 'chỉ' : asset.currency} 
+                        <span className="mx-2 text-ink/20">|</span> 
+                        Quy đổi: <span className="font-bold text-emerald-700 font-mono">{formatCurrency(asset.value * asset.exchangeRate, 'VND')}</span>
+                      </div>
+                    )}
                     
                     {asset.notes && <div className="text-xs text-ink/60 mt-2 bg-ink/5 p-2 rounded italic font-hand">{asset.notes}</div>}
                   </div>

@@ -1051,20 +1051,6 @@ export function PersonalGoals({
                   </div>
                 );
               })()}
-
-              {/* Modal Actions */}
-              <div className="pt-4 border-t-2 border-dashed border-ink/10 flex justify-end gap-3 font-sans relative z-10 shrink-0">
-                <button
-                  onClick={() => {
-                    setSelectedAchievement(null);
-                    setIsCelebration(false);
-                  }}
-                  className="sketch-button py-2 px-6 text-xs font-black uppercase tracking-widest bg-ink text-white hover:bg-crimson transition-all"
-                  id="close-achievement-modal-btn"
-                >
-                  Đóng (Close)
-                </button>
-              </div>
             </motion.div>
           </div>
         )}

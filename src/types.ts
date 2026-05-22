@@ -96,6 +96,7 @@ export interface Asset {
   excludeFromNetWorth?: boolean;
   quantity?: number;
   denomination?: number;
+  exchangeRate?: number;
 }
 
 export interface VideoDictation {
