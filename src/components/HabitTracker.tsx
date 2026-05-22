@@ -21,7 +21,7 @@ import {
 
 
 // Web Audio API synthesized sound cues
-const playSound = (type: 'complete' | 'reminder') => {
+const playSound = (type: 'complete' | 'reminder' | 'celebration') => {
   try {
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContext) return;
@@ -43,6 +43,19 @@ const playSound = (type: 'complete' | 'reminder') => {
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.60);
+    } else if (type === 'celebration') {
+      // Glorious ascending harmonic sweep for milestone achievements
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(392.00, ctx.currentTime); // G4
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime + 0.10); // C5
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.20); // E5
+      osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.30); // G5
+      osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.40); // C6
+      osc.frequency.setValueAtTime(1318.51, ctx.currentTime + 0.50); // E6
+      gain.gain.setValueAtTime(0.20, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.95);
     } else {
       // Pleasant "ding-dong" reminder bell chime
       osc.type = 'triangle';
@@ -110,6 +123,229 @@ const CATEGORIES = [
   { name: "Cá nhân", color: "bg-pink-50 border-pink-400 text-pink-800 accent bg-[#fce8e6]" }
 ];
 
+// --- Helpers for Customizable Repeat Cycles ---
+
+export const getWeekDates = (dateStr: string): string[] => {
+  const date = new Date(dateStr);
+  const day = date.getDay(); // Sunday is 0, Monday is 1...
+  
+  // Adjust to Monday
+  const diff = date.getDate() - (day === 0 ? 6 : day - 1);
+  const monday = new Date(date.setDate(diff));
+  
+  const dates: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return dates;
+};
+
+export const getMonthPrefix = (dateStr: string): string => {
+  return dateStr.substring(0, 7);
+};
+
+export const getDailyCompletionsForHabit = (habit: Habit, dateStr: string): number => {
+  const dayHistory = habit.history[dateStr];
+  if (!dayHistory) return 0;
+  return Object.values(dayHistory).filter(v => v === true).length;
+};
+
+export const getWeeklyCompletionsForHabit = (habit: Habit, dateStr: string): number => {
+  const dates = getWeekDates(dateStr);
+  let count = 0;
+  dates.forEach(d => {
+    count += getDailyCompletionsForHabit(habit, d);
+  });
+  return count;
+};
+
+export const getMonthlyCompletionsForHabit = (habit: Habit, dateStr: string): number => {
+  const prefix = getMonthPrefix(dateStr);
+  let count = 0;
+  Object.keys(habit.history).forEach(d => {
+    if (d.startsWith(prefix)) {
+      count += getDailyCompletionsForHabit(habit, d);
+    }
+  });
+  return count;
+};
+
+// Calculate streak based on repeat types
+export const calculateDailyStreak = (habit: Habit, todayStr: string): { streak: number; maxStreak: number } => {
+  let streak = 0;
+  const maxStreak = habit.maxStreak || 0;
+  const daysOfWeek = habit.daysOfWeek || [];
+  const freq = habit.frequency || habit.reminderTimes.length || 1;
+  const tempDate = new Date();
+  let consecutiveNotScheduled = 0;
+  
+  for (let i = 0; i < 365; i++) {
+    const dStr = tempDate.toISOString().split('T')[0];
+    const dayOfWeek = tempDate.getDay();
+    const isScheduled = daysOfWeek.length === 0 || daysOfWeek.includes(dayOfWeek);
+    
+    if (isScheduled) {
+      consecutiveNotScheduled = 0;
+      const completedCount = getDailyCompletionsForHabit(habit, dStr);
+      const isCompleted = completedCount >= freq;
+      
+      if (isCompleted) {
+        streak++;
+      } else {
+        if (dStr === todayStr) {
+          continue;
+        } else {
+          break;
+        }
+      }
+    } else {
+      consecutiveNotScheduled++;
+      if (consecutiveNotScheduled > 14) {
+        break;
+      }
+    }
+    tempDate.setDate(tempDate.getDate() - 1);
+  }
+  return { streak, maxStreak: Math.max(maxStreak, streak) };
+};
+
+export const calculateWeeklyStreak = (habit: Habit, todayStr: string): { streak: number; maxStreak: number } => {
+  let streak = 0;
+  const maxStreak = habit.maxStreak || 0;
+  const target = habit.frequency || 1;
+  
+  const tempDate = new Date();
+  const day = tempDate.getDay();
+  const diff = tempDate.getDate() - (day === 0 ? 6 : day - 1);
+  tempDate.setDate(diff);
+  
+  for (let w = 0; w < 52; w++) {
+    let weekCompletions = 0;
+    const isCurrentWeek = w === 0;
+    const currentWeekMondayStr = tempDate.toISOString().split('T')[0];
+    
+    const dates = getWeekDates(currentWeekMondayStr);
+    dates.forEach(ds => {
+      const dayHistory = habit.history[ds];
+      if (dayHistory) {
+        weekCompletions += Object.values(dayHistory).filter(v => v === true).length;
+      }
+    });
+    
+    const isCompleted = weekCompletions >= target;
+    if (isCompleted) {
+      streak++;
+    } else {
+      if (isCurrentWeek) {
+        // user still has time
+      } else {
+        break;
+      }
+    }
+    tempDate.setDate(tempDate.getDate() - 7);
+  }
+  return { streak, maxStreak: Math.max(maxStreak, streak) };
+};
+
+export const calculateMonthlyStreak = (habit: Habit, todayStr: string): { streak: number; maxStreak: number } => {
+  let streak = 0;
+  const maxStreak = habit.maxStreak || 0;
+  const target = habit.frequency || 1;
+  
+  const now = new Date();
+  let currentYear = now.getFullYear();
+  let currentMonth = now.getMonth();
+  
+  for (let m = 0; m < 12; m++) {
+    const prefix = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+    let monthCompletions = 0;
+    
+    Object.keys(habit.history).forEach(d => {
+      if (d.startsWith(prefix)) {
+        const dayHistory = habit.history[d];
+        if (dayHistory) {
+          monthCompletions += Object.values(dayHistory).filter(v => v === true).length;
+        }
+      }
+    });
+    
+    const isCompleted = monthCompletions >= target;
+    const isCurrentMonth = m === 0;
+    
+    if (isCompleted) {
+      streak++;
+    } else {
+      if (isCurrentMonth) {
+        // user still has time
+      } else {
+        break;
+      }
+    }
+    
+    currentMonth--;
+    if (currentMonth < 0) {
+      currentMonth = 11;
+      currentYear--;
+    }
+  }
+  return { streak, maxStreak: Math.max(maxStreak, streak) };
+};
+
+export const recalculateHabitStreak = (habit: Habit, todayStr: string): { streak: number; maxStreak: number } => {
+  const type = habit.repeatType || 'day';
+  if (type === 'day') {
+    return calculateDailyStreak(habit, todayStr);
+  } else if (type === 'week') {
+    return calculateWeeklyStreak(habit, todayStr);
+  } else {
+    return calculateMonthlyStreak(habit, todayStr);
+  }
+};
+
+export const getHabitSlots = (habit: Habit) => {
+  const freq = habit.frequency || 1;
+  const times = habit.reminderTimes || ["08:00"];
+  const slots: { id: string; time: string; label: string }[] = [];
+  
+  for (let i = 0; i < freq; i++) {
+    if (i < times.length) {
+      slots.push({ id: times[i], time: times[i], label: times[i] });
+    } else {
+      const padHour = 8 + i * 2;
+      const padTime = `${String(padHour % 24).padStart(2, '0')}:00`;
+      slots.push({ id: `slot-${i}`, time: padTime, label: `Lần ${i + 1}` });
+    }
+  }
+  return slots;
+};
+
+export const isMilestone = (streakValue: number, repType: 'day' | 'week' | 'month'): boolean => {
+  if (streakValue <= 0) return false;
+  if (repType === 'day') {
+    const DAY_MILESTONES = [3, 7, 10, 14, 21, 30, 50, 100, 150, 200, 300, 365];
+    return DAY_MILESTONES.includes(streakValue) || streakValue % 50 === 0;
+  } else if (repType === 'week') {
+    const WEEK_MILESTONES = [2, 4, 8, 12, 16, 20, 24, 30, 52];
+    return WEEK_MILESTONES.includes(streakValue) || streakValue % 10 === 0;
+  } else {
+    const MONTH_MILESTONES = [2, 3, 4, 6, 8, 12];
+    return MONTH_MILESTONES.includes(streakValue) || streakValue % 6 === 0;
+  }
+};
+
+export const getMotivationalQuote = (habitName: string, streak: number, repeatType: 'day' | 'week' | 'month'): string => {
+  const unit = repeatType === 'day' ? 'ngày' : repeatType === 'week' ? 'tuần' : 'tháng';
+  const quotes = [
+    `Quá tuyệt vời! Bạn đã kiên cường duy trì thói quen "${habitName}" liên tục suốt ${streak} ${unit}. Hãy giữ vững phong thái đáng tự hào này nhé!`,
+    `Một hành trình xứng đáng! ${streak} ${unit} tràn ngập nghị lực cùng "${habitName}". Bản lĩnh vững vàng chiến thắng tất cả!`,
+    `Tự hào vô cùng về bạn! Chuỗi ${streak} ${unit} nỗ lực phi thường đã chứng minh sự kỷ luật sắt đá của bạn với "${habitName}".`,
+    `Sự kiên trì thầm lặng đang nở hoa rực rỡ! Hãy tận hưởng niềm hạnh phúc từ cột mốc ${streak} ${unit} tuyệt đẹp này.`
+  ];
+  return quotes[streak % quotes.length];
+};
+
 interface HabitTrackerProps {
   logs?: LogEntry[];
   setLogs?: React.Dispatch<React.SetStateAction<LogEntry[]>>;
@@ -150,6 +386,8 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
   const [newHabitCategory, setNewHabitCategory] = useState("Sức khỏe");
   const [newHabitDays, setNewHabitDays] = useState<number[]>([]); // Empty = Daily
   const [newHabitReminders, setNewHabitReminders] = useState<string[]>(["08:00"]);
+  const [newHabitRepeatType, setNewHabitRepeatType] = useState<'day' | 'week' | 'month'>('day');
+  const [newHabitFrequency, setNewHabitFrequency] = useState<number>(1);
   const [tempTime, setTempTime] = useState("");
 
   // Form state for today's quick todo task / calendar event
@@ -167,6 +405,14 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
     title: string;
     time: string;
     isHabit: boolean;
+  } | null>(null);
+
+  // System State for habit streak celebration overlay
+  const [activeCelebration, setActiveCelebration] = useState<{
+    habitName: string;
+    habitIcon: string;
+    repeatType: 'day' | 'week' | 'month';
+    streak: number;
   } | null>(null);
 
   // Keep track of which tasks have been notified in the current runtime to avoid multiple alerts per minute
@@ -206,21 +452,51 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
     habits.forEach(habit => {
       if (!habit.isActive) return;
       
-      const isScheduledToday = habit.daysOfWeek.length === 0 || habit.daysOfWeek.includes(todayDayIndex);
+      const repType = habit.repeatType || 'day';
+      const firstReminder = habit.reminderTimes[0] || "08:00";
       
-      if (isScheduledToday) {
-        habit.reminderTimes.forEach((time) => {
-          const instanceId = `habit-${habit.id}-${time}`;
-          const isDone = !!(habit.history[todayStr]?.[time]);
-          
-          list.push({
-            id: instanceId,
-            title: `${habit.icon} ${habit.name}`,
-            time: time,
-            isCompleted: isDone,
-            habitId: habit.id,
-            date: todayStr
+      if (repType === 'day') {
+        const isScheduledToday = habit.daysOfWeek.length === 0 || habit.daysOfWeek.includes(todayDayIndex);
+        if (isScheduledToday) {
+          const slots = getHabitSlots(habit);
+          slots.forEach((slot) => {
+            const instanceId = `habit-${habit.id}-${slot.id}`;
+            const isDone = !!(habit.history[todayStr]?.[slot.id]);
+            list.push({
+              id: instanceId,
+              title: `${habit.icon} ${habit.name}${slot.label !== slot.time ? ` (${slot.label})` : ""}`,
+              time: slot.time,
+              isCompleted: isDone,
+              habitId: habit.id,
+              date: todayStr
+            });
           });
+        }
+      } else if (repType === 'week') {
+        const completedCount = getWeeklyCompletionsForHabit(habit, todayStr);
+        const target = habit.frequency || 1;
+        const isDoneToday = !!(habit.history[todayStr]?.[firstReminder]);
+        
+        list.push({
+          id: `habit-${habit.id}-${firstReminder}`,
+          title: `${habit.icon} ${habit.name} (Tuần này: ${completedCount}/${target} lần)`,
+          time: firstReminder,
+          isCompleted: isDoneToday,
+          habitId: habit.id,
+          date: todayStr
+        });
+      } else if (repType === 'month') {
+        const completedCount = getMonthlyCompletionsForHabit(habit, todayStr);
+        const target = habit.frequency || 1;
+        const isDoneToday = !!(habit.history[todayStr]?.[firstReminder]);
+        
+        list.push({
+          id: `habit-${habit.id}-${firstReminder}`,
+          title: `${habit.icon} ${habit.name} (Tháng này: ${completedCount}/${target} lần)`,
+          time: firstReminder,
+          isCompleted: isDoneToday,
+          habitId: habit.id,
+          date: todayStr
         });
       }
     });
@@ -255,21 +531,53 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
     habits.forEach(habit => {
       if (!habit.isActive) return;
       
-      const isScheduled = habit.daysOfWeek.length === 0 || habit.daysOfWeek.includes(selectedDayIndex);
+      const repType = habit.repeatType || 'day';
+      const firstReminder = habit.reminderTimes[0] || "08:00";
       
-      if (isScheduled) {
-        habit.reminderTimes.forEach((time) => {
-          const instanceId = `habit-${habit.id}-${time}`;
-          const isDone = !!(habit.history[selectedDate]?.[time]);
-          
-          list.push({
-            id: instanceId,
-            title: `${habit.icon} ${habit.name}`,
-            time: time,
-            isCompleted: isDone,
-            habitId: habit.id,
-            date: selectedDate
+      if (repType === 'day') {
+        const isScheduled = habit.daysOfWeek.length === 0 || habit.daysOfWeek.includes(selectedDayIndex);
+        if (isScheduled) {
+          const slots = getHabitSlots(habit);
+          slots.forEach((slot) => {
+            const instanceId = `habit-${habit.id}-${slot.id}`;
+            const isDone = !!(habit.history[selectedDate]?.[slot.id]);
+            list.push({
+              id: instanceId,
+              title: `${habit.icon} ${habit.name}${slot.label !== slot.time ? ` (${slot.label})` : ""}`,
+              time: slot.time,
+              isCompleted: isDone,
+              habitId: habit.id,
+              date: selectedDate
+            });
           });
+        }
+      } else if (repType === 'week') {
+        // Show weekly habit for all days of that week
+        const completedCount = getWeeklyCompletionsForHabit(habit, selectedDate);
+        const target = habit.frequency || 1;
+        const isDoneToday = !!(habit.history[selectedDate]?.[firstReminder]);
+        
+        list.push({
+          id: `habit-${habit.id}-${firstReminder}`,
+          title: `${habit.icon} ${habit.name} (Tuần này: ${completedCount}/${target} lần)`,
+          time: firstReminder,
+          isCompleted: isDoneToday,
+          habitId: habit.id,
+          date: selectedDate
+        });
+      } else if (repType === 'month') {
+        // Show monthly habit for all days of that month
+        const completedCount = getMonthlyCompletionsForHabit(habit, selectedDate);
+        const target = habit.frequency || 1;
+        const isDoneToday = !!(habit.history[selectedDate]?.[firstReminder]);
+        
+        list.push({
+          id: `habit-${habit.id}-${firstReminder}`,
+          title: `${habit.icon} ${habit.name} (Tháng này: ${completedCount}/${target} lần)`,
+          time: firstReminder,
+          isCompleted: isDoneToday,
+          habitId: habit.id,
+          date: selectedDate
         });
       }
     });
@@ -386,6 +694,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
   // Toggle status of a scheduled item
   const handleToggleTask = (task: any) => {
     const targetStatus = !task.isCompleted;
+    let triggeredCelebration = false;
     
     if (task.habitId) {
       // Toggle a Habit Instance
@@ -399,42 +708,38 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
             [selectedDate]: dailyHistory
           };
  
-          // Re-calculate streak if toggling on today live
-          let currentStreak = h.streak;
-          let lastCompleted = h.lastCompletedDate;
+          // Create temp habit to compute streak
+          const tempHabit: Habit = {
+            ...h,
+            history: updatedHistory
+          };
  
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yesterdayStr = yesterday.toISOString().split('T')[0];
+          const streakResult = recalculateHabitStreak(tempHabit, todayStr);
  
-          // Check if today is completed (all times for today are completed)
-          const todayTimes = h.reminderTimes;
-          const isTodayAllCompleted = todayTimes.every(t => dailyHistory[t] === true);
- 
-          if (isTodayAllCompleted && targetStatus && selectedDate === todayStr) {
-            // Habit fully done today
-            if (lastCompleted === yesterdayStr) {
-              currentStreak += 1;
-            } else if (lastCompleted !== todayStr) {
-              currentStreak = 1; // reset streak if broken but started today
-            }
-            lastCompleted = todayStr;
-          } else if (!isTodayAllCompleted && selectedDate === todayStr) {
-            // Broken today or was completed but now unchecked
-            if (lastCompleted === todayStr) {
-              // Unmarked a complete today task, restore streak to previous
-              currentStreak = Math.max(0, currentStreak - 1);
-              lastCompleted = undefined; // reset last completed date
-            }
+          const targetFreq = h.frequency || h.reminderTimes.length || 1;
+          const todayCompletions = getDailyCompletionsForHabit(tempHabit, todayStr);
+          const isCompletedToday = todayCompletions >= targetFreq;
+          const lastCompleted = isCompletedToday ? todayStr : h.lastCompletedDate;
+
+          const oldStreak = h.streak;
+          const newStreak = streakResult.streak;
+          const repType = h.repeatType || 'day';
+
+          if (targetStatus && newStreak > oldStreak && isMilestone(newStreak, repType)) {
+            triggeredCelebration = true;
+            setActiveCelebration({
+              habitName: h.name,
+              habitIcon: h.icon,
+              repeatType: repType,
+              streak: newStreak
+            });
           }
- 
-          const maxStreak = Math.max(h.maxStreak, currentStreak);
  
           return {
             ...h,
             history: updatedHistory,
-            streak: currentStreak,
-            maxStreak: maxStreak,
+            streak: streakResult.streak,
+            maxStreak: streakResult.maxStreak,
             lastCompletedDate: lastCompleted
           };
         }
@@ -444,12 +749,16 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
     } else if (task.oneOffTaskId) {
       // Toggle a one-off task
       setOneOffTasks(oneOffTasks.map(t => 
-        t.id === task.oneOffTaskId ? { ...t, isCompleted: targetStatus } : t
+         t.id === task.oneOffTaskId ? { ...t, isCompleted: targetStatus } : t
       ));
     }
  
     if (targetStatus) {
-      playSound('complete');
+      if (triggeredCelebration) {
+        playSound('celebration');
+      } else {
+        playSound('complete');
+      }
     }
   };
  
@@ -467,7 +776,9 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
           icon: newHabitIcon,
           category: newHabitCategory,
           reminderTimes: [...newHabitReminders].sort(),
-          daysOfWeek: newHabitDays
+          daysOfWeek: newHabitDays,
+          repeatType: newHabitRepeatType,
+          frequency: newHabitFrequency
         } : h
       ));
       setEditingHabitId(null);
@@ -480,6 +791,8 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
         category: newHabitCategory,
         reminderTimes: [...newHabitReminders].sort(),
         daysOfWeek: newHabitDays,
+        repeatType: newHabitRepeatType,
+        frequency: newHabitFrequency,
         streak: 0,
         maxStreak: 0,
         createdAt: Date.now(),
@@ -495,6 +808,8 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
     setNewHabitCategory("Sức khỏe");
     setNewHabitDays([]);
     setNewHabitReminders(["08:00"]);
+    setNewHabitRepeatType("day");
+    setNewHabitFrequency(1);
     setShowAddForm(false);
   };
 
@@ -506,6 +821,8 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
     setNewHabitCategory(habit.category);
     setNewHabitDays(habit.daysOfWeek);
     setNewHabitReminders(habit.reminderTimes);
+    setNewHabitRepeatType(habit.repeatType || 'day');
+    setNewHabitFrequency(habit.frequency || habit.reminderTimes.length || 1);
     setShowAddForm(true);
   };
 
@@ -517,6 +834,8 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
     setNewHabitCategory("Sức khỏe");
     setNewHabitDays([]);
     setNewHabitReminders(["08:00"]);
+    setNewHabitRepeatType('day');
+    setNewHabitFrequency(1);
     setShowAddForm(false);
   };
  
@@ -709,6 +1028,35 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
       return `T${d + 1}`;
     });
     return mapped.join(", ");
+  };
+
+  // Helper to format frequency for view catalog
+  const formatHabitFrequency = (habit: Habit) => {
+    const repType = habit.repeatType || 'day';
+    const freq = habit.frequency || habit.reminderTimes.length || 1;
+    if (repType === 'day') {
+      return `Mỗi ngày: ${freq} lần/ngày ${habit.daysOfWeek.length > 0 ? `(${formatDays(habit.daysOfWeek)})` : ''}`;
+    } else if (repType === 'week') {
+      return `Mục tiêu: ${freq} lần/tuần`;
+    } else {
+      return `Mục tiêu: ${freq} lần/tháng`;
+    }
+  };
+
+  const formatStreak = (habit: Habit) => {
+    const repType = habit.repeatType || 'day';
+    const streak = habit.streak;
+    if (repType === 'day') return `${streak} ngày`;
+    if (repType === 'week') return `${streak} tuần`;
+    return `${streak} tháng`;
+  };
+
+  const formatMaxStreak = (habit: Habit) => {
+    const repType = habit.repeatType || 'day';
+    const maxStreak = habit.maxStreak;
+    if (repType === 'day') return `${maxStreak} ngày`;
+    if (repType === 'week') return `${maxStreak} tuần`;
+    return `${maxStreak} tháng`;
   };
 
   return (
@@ -1110,32 +1458,75 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                     </div>
                   </div>
 
-                  {/* Days of week selection */}
-                  <div className="space-y-1">
-                    <label className="block font-bold tracking-wide uppercase text-ink/65">Tần suất xuất hiện</label>
-                    <div className="flex justify-between gap-1 mt-1">
-                      {[1, 2, 3, 4, 5, 6, 0].map((d) => {
-                        const isSel = newHabitDays.includes(d);
-                        const label = d === 0 ? "CN" : `T${d + 1}`;
-                        return (
-                          <button
-                            type="button"
-                            key={d}
-                            onClick={() => handleToggleDay(d)}
-                            className={cn(
-                              "flex-1 py-1 px-0.5 text-[10px] font-bold text-center border-2 border-ink rounded transition-all",
-                              isSel ? "bg-ink text-white font-black" : "bg-white text-ink hover:bg-ink/5"
-                            )}
-                          >
-                            {label}
-                          </button>
-                        );
-                      })}
+                  {/* Repeat Cycle and Target count */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="block font-bold tracking-wide uppercase text-ink/65 font-black">Chu kỳ lặp lại</label>
+                      <select 
+                        className="sketch-input w-full bg-white py-1 text-xs"
+                        value={newHabitRepeatType}
+                        onChange={(e) => setNewHabitRepeatType(e.target.value as any)}
+                      >
+                        <option value="day">Hàng ngày</option>
+                        <option value="week">Hàng tuần</option>
+                        <option value="month">Hàng tháng</option>
+                      </select>
                     </div>
-                    <p className="text-[10px] text-ink/50 italic mt-1 font-mono">
-                      * Bỏ trống tất cả để tự động hiển thị mốc giờ "Mỗi ngày".
-                    </p>
+
+                    <div className="space-y-1">
+                      <label className="block font-bold tracking-wide uppercase text-ink/65 font-black">Số lần lặp (mục tiêu)</label>
+                      <select 
+                        className="sketch-input w-full bg-white py-1 text-xs"
+                        value={newHabitFrequency}
+                        onChange={(e) => setNewHabitFrequency(parseInt(e.target.value))}
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 30].map(v => (
+                          <option key={v} value={v}>
+                            {v} lần / {newHabitRepeatType === 'day' ? 'ngày' : newHabitRepeatType === 'week' ? 'tuần' : 'tháng'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
+
+                  {/* Days of week selection (Only shown for daily cycle) */}
+                  {newHabitRepeatType === 'day' ? (
+                    <div className="space-y-1">
+                      <label className="block font-bold tracking-wide uppercase text-ink/65">Thứ xuất hiện trong tuần</label>
+                      <div className="flex justify-between gap-1 mt-1">
+                        {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+                          const isSel = newHabitDays.includes(d);
+                          const label = d === 0 ? "CN" : `T${d + 1}`;
+                          return (
+                            <button
+                              type="button"
+                              key={d}
+                              onClick={() => handleToggleDay(d)}
+                              className={cn(
+                                "flex-1 py-1 px-0.5 text-[10px] font-bold text-center border-2 border-ink rounded transition-all",
+                                isSel ? "bg-ink text-white font-black" : "bg-white text-ink hover:bg-ink/5"
+                              )}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[10px] text-ink/50 italic mt-1 font-mono">
+                        * Bỏ trống tất cả để tự động hiển thị "Mỗi ngày".
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-[#eff6ff] p-2 rounded border border-blue-200 text-blue-800 text-[10px] font-semibold flex items-start gap-1.5 leading-relaxed">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+                      <div>
+                        {newHabitRepeatType === 'week' 
+                          ? `Thói quen hàng tuần sẽ xuất hiện trong danh sách tất cả các ngày của tuần. Đánh dấu hoàn thành trên ngày bất kỳ để cộng dồn tiến độ tuần (${newHabitFrequency} lần).`
+                          : `Thói quen hàng tháng sẽ xuất hiện trong danh sách tất cả các ngày của tháng. Đánh dấu hoàn thành trên ngày bất kỳ để cộng dồn tiến độ tháng (${newHabitFrequency} lần).`
+                        }
+                      </div>
+                    </div>
+                  )}
 
                   {/* Reminder schedules - multiple times support */}
                   <div className="space-y-2">
@@ -1264,24 +1655,24 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                         ))}
                       </div>
 
-                      {/* Frequency and dynamic streak counter display */}
-                      <div className="flex justify-between items-center bg-[#f7f6f1] p-1.5 rounded border-2 border-dashed border-ink/10 text-xs">
-                        <div className="text-[10px] font-semibold text-ink/50 flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {formatDays(habit.daysOfWeek)}
+                       {/* Frequency and dynamic streak counter display */}
+                      <div className="flex justify-between items-center bg-[#f7f6f1] p-1.5 rounded border-2 border-dashed border-ink/10 text-xs text-ink/80">
+                        <div className="text-[10px] font-semibold text-ink/65 flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-ink/60" />
+                          {formatHabitFrequency(habit)}
                         </div>
-
-                        <div className="flex gap-3">
-                          <span className="inline-flex items-center gap-0.5 font-bold font-mono text-crimson text-xs">
+ 
+                        <div className="flex gap-3 shrink-0">
+                          <span className="inline-flex items-center gap-0.5 font-bold font-mono text-crimson text-xs" title="Chuỗi hoàn thành liên tiếp">
                             <Flame className="w-4 h-4 fill-crimson" />
-                            {habit.streak} ngày
+                            {formatStreak(habit)}
                           </span>
                           <span className="text-[10px] text-ink/40 font-mono self-center">
-                            Kỷ lục: <strong className="font-bold">{habit.maxStreak}</strong>
+                            Kỷ lục: <strong className="font-bold">{formatMaxStreak(habit)}</strong>
                           </span>
                         </div>
                       </div>
-
+ 
                       {/* Last completed history mini check bubbles (last 7 days illustration) */}
                       <div className="flex justify-between items-center text-[9px] pt-1 border-t border-ink/5">
                         <span className="font-semibold text-ink/45 uppercase tracking-wide">Thống kê 7 ngày gần nhất</span>
@@ -1292,11 +1683,22 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                             const ds = d.toISOString().split('T')[0];
                             const label = d.getDate();
                             
-                            // Check if this habit is fully checked for that date (all times active on that day)
-                            const isFullyDone = habit.daysOfWeek.length > 0 && !habit.daysOfWeek.includes(d.getDay())
-                              ? 'not-scheduled'
-                              : (habit.reminderTimes.length > 0 && habit.history[ds] && habit.reminderTimes.every(t => habit.history[ds][t] === true));
-
+                            const repType = habit.repeatType || 'day';
+                            let isFullyDone: boolean | 'not-scheduled' = false;
+                            
+                            if (repType === 'day') {
+                              const target = habit.frequency || habit.reminderTimes.length || 1;
+                              const isScheduledDay = habit.daysOfWeek.length === 0 || habit.daysOfWeek.includes(d.getDay());
+                              if (!isScheduledDay) {
+                                isFullyDone = 'not-scheduled';
+                              } else {
+                                isFullyDone = getDailyCompletionsForHabit(habit, ds) >= target;
+                              }
+                            } else {
+                              // Weekly/monthly is completed if they checked it off on this day as a log entry
+                              isFullyDone = getDailyCompletionsForHabit(habit, ds) > 0;
+                            }
+ 
                             return (
                               <div 
                                 key={daysAgo} 
@@ -1522,7 +1924,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                 </button>
               </div>
 
-              <form onSubmit={handleSaveEditTask} className="space-y-4 text-xs">
+              <form onSubmit={handleSaveEditTask} className="space-y-4 text-xs font-sans">
                 {/* Title */}
                 <div className="space-y-1">
                   <label className="block font-bold uppercase text-ink/65">Tiêu đề ghi nhớ</label>
@@ -1576,6 +1978,129 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* HABIT STREAK MILESTONE CELEBRATION OVERLAY */}
+      <AnimatePresence>
+        {activeCelebration && (
+          <div className="fixed inset-0 bg-[#1a1a1a]/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            
+            {/* Confetti particles */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden h-full w-full">
+              {Array.from({ length: 45 }).map((_, i) => {
+                const left = Math.random() * 100; // 0% to 100%
+                const delay = Math.random() * 1.5; // delay up to 1.5s
+                const duration = 2.5 + Math.random() * 2.5; // duration 2.5s to 5s
+                const size = 6 + Math.random() * 10; // size 6px to 16px
+                const colors = ['#AF1E2D', '#D97706', '#2563EB', '#059669', '#7C3AED', '#EC4899', '#3B82F6', '#F59E0B'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const shapes = ['circle', 'square', 'triangle'];
+                const shape = shapes[Math.floor(Math.random() * shapes.length)];
+                
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ y: -30, x: `${left}%`, rotate: 0, opacity: 1 }}
+                    animate={{ 
+                      y: '105vh', 
+                      x: `${left + (Math.random() * 14 - 7)}%`, 
+                      rotate: Math.random() * 720 - 360,
+                      opacity: [1, 1, 0.8, 0] 
+                    }}
+                    transition={{
+                      duration: duration,
+                      delay: delay,
+                      repeat: Infinity,
+                      ease: "easeOut"
+                    }}
+                    className="absolute"
+                    style={{
+                      width: size,
+                      height: shape === 'triangle' ? 0 : size,
+                      backgroundColor: shape === 'triangle' ? 'transparent' : color,
+                      borderRadius: shape === 'circle' ? '50%' : '2px',
+                      borderLeft: shape === 'triangle' ? `${size/2}px solid transparent` : undefined,
+                      borderRight: shape === 'triangle' ? `${size/2}px solid transparent` : undefined,
+                      borderBottom: shape === 'triangle' ? `${size}px solid ${color}` : undefined,
+                      zIndex: 40
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            <motion.div 
+              initial={{ scale: 0.8, y: 50, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.8, y: -50, opacity: 0 }}
+              transition={{ type: "spring", bounce: 0.45, duration: 0.6 }}
+              className="bg-paper sketch-border p-6 md:p-8 max-w-sm w-full relative select-none shadow-2xl border-b-8 border-r-8 border-ink text-center"
+            >
+              <div className="absolute right-4 top-4">
+                <button 
+                  onClick={() => setActiveCelebration(null)}
+                  className="rounded-full bg-ink/5 hover:bg-ink/10 p-1.5 transition-colors text-ink cursor-pointer"
+                  aria-label="Đóng"
+                  id="celebration-close-btn"
+                >
+                  <X size={18} className="stroke-[2.5]" />
+                </button>
+              </div>
+
+              {/* Floating Hand-sketched Sparkle Badges */}
+              <div className="absolute left-6 top-6 text-amber-500 animate-bounce">
+                <Sparkles size={24} className="fill-amber-200" />
+              </div>
+              <div className="absolute right-12 bottom-20 text-indigo-500 animate-bounce delay-300">
+                <Award size={28} className="fill-indigo-100" />
+              </div>
+
+              {/* Central Trophy Visual Section */}
+              <div className="space-y-5">
+                <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-full bg-amber-50 border-4 border-ink shadow-md mx-auto">
+                  <motion.div
+                    animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
+                    transition={{ repeat: Infinity, duration: 2.5, repeatType: "mirror" }}
+                  >
+                    <span className="text-5xl select-none" role="img" aria-label="trophy">🏆</span>
+                  </motion.div>
+                  <span className="absolute -bottom-1 -right-1 flex h-7 w-7 rounded-full bg-crimson text-white font-bold text-xs items-center justify-center border-2 border-ink shadow font-mono">
+                    {activeCelebration.streak}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="font-mono text-[10px] font-black uppercase text-crimson bg-red-50 border border-crimson/20 py-1 px-3 rounded-full tracking-wider">
+                    🎉 Cột mốc kiên trì tuyệt vời!
+                  </span>
+
+                  <h3 className="text-2xl font-black text-ink leading-tight pt-1 font-sans">
+                    {activeCelebration.streak} {activeCelebration.repeatType === 'day' ? 'NGÀY' : activeCelebration.repeatType === 'week' ? 'TUẦN' : 'THÁNG'} LIÊN TIẾP!
+                  </h3>
+
+                  <div className="flex items-center justify-center gap-2 text-md font-bold text-ink/80 pt-1">
+                    <span className="text-xl">{activeCelebration.habitIcon}</span>
+                    <span className="underline decoration-wavy decoration-crimson">{activeCelebration.habitName}</span>
+                  </div>
+
+                  <p className="font-hand text-md text-crimson italic leading-relaxed max-w-xs mx-auto px-1 pt-3">
+                    "{getMotivationalQuote(activeCelebration.habitName, activeCelebration.streak, activeCelebration.repeatType)}"
+                  </p>
+                </div>
+
+                <div className="pt-5 border-t-2 border-dashed border-ink/10">
+                  <button
+                    onClick={() => setActiveCelebration(null)}
+                    className="sketch-button sketch-button-primary w-full py-2.5 text-xs font-black tracking-wider flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                    id="celebration-confirm-btn"
+                  >
+                    <Flame className="w-5 h-5 fill-paper text-paper animate-[ping_1.5s_ease-in-out_infinite]" /> TIẾP TỤC DUY TRÌ CHUỖI!
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

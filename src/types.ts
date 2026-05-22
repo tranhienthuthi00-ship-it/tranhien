@@ -179,6 +179,8 @@ export interface Habit {
   isActive: boolean;
   lastCompletedDate?: string;
   history: { [date: string]: { [time: string]: boolean } };
+  repeatType?: 'day' | 'week' | 'month';
+  frequency?: number;
 }
 
 export interface TodayTask {
