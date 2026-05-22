@@ -14,8 +14,12 @@ import {
   generateDynamicFallbackPackage 
 } from "./server-transcripts";
 
-const require = createRequire(import.meta.url);
-const { getSubtitles } = require('youtube-captions-scraper');
+const requireUrl = (typeof import.meta !== "undefined" && import.meta.url) 
+  ? import.meta.url 
+  : path.resolve("./package.json");
+
+const customRequire = createRequire(requireUrl);
+const { getSubtitles } = customRequire('youtube-captions-scraper');
 
 // Gemini Lazy Initialization via ES6 getter to prevent startup crashes and ensure correct User-Agent
 let aiClient: any = null;
