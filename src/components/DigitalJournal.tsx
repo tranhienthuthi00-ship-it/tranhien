@@ -1,7 +1,29 @@
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { LogEntry, WishlistItem, Habit, Asset, Word, FoodPlace, ContentIdea, Task, Achievement, StudyGoal } from "../types";
-import { BookOpen, Calendar as CalendarIcon, DollarSign, MapPin, Feather, CheckSquare, Award, Sparkles, Smile, Send, RefreshCw, Plus, Quote } from "lucide-react";
+import { 
+  BookOpen, 
+  Calendar, 
+  DollarSign, 
+  MapPin, 
+  Feather, 
+  CheckSquare, 
+  Award, 
+  Sparkles, 
+  Smile, 
+  Send, 
+  RefreshCw, 
+  Plus, 
+  Quote, 
+  X, 
+  Compass, 
+  ChevronLeft, 
+  ChevronRight, 
+  ChevronDown, 
+  ChevronUp, 
+  Trash2,
+  Heart
+} from "lucide-react";
 
 interface DigitalJournalProps {
   logs: LogEntry[];
@@ -29,9 +51,21 @@ interface DailySummary {
   achievementsEarned: Achievement[];
 }
 
-export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, tasks = [], achievements = [], goals = [], setLogs }: DigitalJournalProps) {
+export function DigitalJournal({ 
+  logs, 
+  wishlist, 
+  assets, 
+  words, 
+  places, 
+  ideas, 
+  tasks = [], 
+  achievements = [], 
+  goals = [], 
+  setLogs 
+}: DigitalJournalProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [paperStyle, setPaperStyle] = useState<'lined' | 'grid' | 'dotted' | 'blank'>('lined');
+  
   const [pageStickers, setPageStickers] = useState<{ [date: string]: string[] }>(() => {
     try {
       const saved = localStorage.getItem("journal_stickers");
@@ -98,6 +132,13 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
     setLogs(prev => [...prev, newLog]);
     setNewEntryContent("");
     setShowQuickEntry(false);
+  };
+
+  const handleDeleteQuickEntry = (logId: string) => {
+    if (!setLogs) return;
+    if (confirm("Bạn có chắc muốn xóa dòng nhật ký này không?")) {
+      setLogs(prev => prev.filter(item => item.id !== logId));
+    }
   };
 
   const fetchAIInsight = async (summary: DailySummary) => {
@@ -171,7 +212,6 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
   }, []);
 
   const pages = useMemo(() => {
-    // Collect all unique dates with some activity
     const dateMap = new Map<string, DailySummary>();
 
     const getDay = (isoStr?: string) => {
@@ -208,7 +248,7 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
       if (d) ensureDate(d).logs.push(log);
     });
 
-    // 2. Wishlist Purchases (those toggled to isPurchased - fallback to addedDate)
+    // 2. Wishlist Purchases
     wishlist.forEach(w => {
       if (w.isPurchased) {
         const histString = (w.history && w.history.length > 0) ? w.history[w.history.length - 1]?.date : null;
@@ -219,13 +259,15 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
 
     // 3. Habits
     habits.forEach(h => {
-      Object.keys(h.history).forEach(dateStr => {
-        const hasTrue = Object.values(h.history[dateStr]).some(v => v === true);
-        if (hasTrue) {
-          const d = getDay(dateStr);
-          if (d) ensureDate(d).habitCompletions.push({ habit: h, streak: h.streak }); // Note: Using current streak, historical streak is complex, but ok for visual.
-        }
-      });
+      if (h.history) {
+        Object.keys(h.history).forEach(dateStr => {
+          const hasTrue = Object.values(h.history[dateStr]).some(v => v === true);
+          if (hasTrue) {
+            const d = getDay(dateStr);
+            if (d) ensureDate(d).habitCompletions.push({ habit: h, streak: h.streak });
+          }
+        });
+      }
     });
 
     // 4. Content done
@@ -238,7 +280,6 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
 
     // 5. Words Reviewed
     words.forEach(w => {
-      // Assuming lastReviewed is an ISO string date or valid date
       if (w.lastReviewed) {
         const d = getDay(w.lastReviewed);
         if (d) ensureDate(d).wordsReviewed.push(w);
@@ -257,7 +298,6 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
                const d = getDayFromTs(ts);
                if (d) ensureDate(d).placesVisited.push(p);
             } else {
-               // Fallback: use today
                const d = getDayFromTs(Date.now());
                ensureDate(d).placesVisited.push(p);
             }
@@ -286,32 +326,22 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
     return sortedDates.map(d => dateMap.get(d)!);
   }, [logs, wishlist, habits, words, places, ideas, tasks, achievements]);
 
-  const nextPage = () => {
-    if (currentPageIndex < pages.length - 1) {
-      setCurrentPageIndex(p => p + 1);
-    }
-  };
-
-  const prevPage = () => {
-    if (currentPageIndex > 0) {
-      setCurrentPageIndex(p => p - 1);
-    }
-  };
-
   if (pages.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 font-sans">
         <div className="sketch-border bg-[#e8f0fe] p-12 text-center select-none shadow-md border-b-4 border-r-4 border-ink relative overflow-hidden">
-           <div className="absolute left-4 top-2 opacity-15 -rotate-12">
-             <BookOpen className="w-24 h-24 text-ink" />
-           </div>
+          <div className="absolute left-4 top-2 opacity-15 -rotate-12">
+            <BookOpen className="w-24 h-24 text-ink" />
+          </div>
           <BookOpen className="w-16 h-16 text-ink/60 mx-auto mb-4 relative z-10" />
           <div className="flex justify-center relative z-10">
             <h2 className="text-2xl font-black font-logo uppercase tracking-widest text-ink bg-[#fbcfe8] px-4 py-2 rotate-1 border-2 border-ink rounded-md shadow-sm">
               Digital Journal trống
             </h2>
           </div>
-          <p className="mt-6 font-hand text-ink text-xl relative z-10 font-medium">Hãy ghi chép nhật ký, thêm thói quen, hoặc đánh dấu hoàn thành để bắt đầu cuốn sổ này.</p>
+          <p className="mt-6 font-hand text-ink text-xl relative z-10 font-medium">
+            Hãy bắt đầu viết nhật ký bằng cách cập nhật ghi chú hoạt động trong ngày của bạn trong các mục học tiếng Anh, thói quen, chi tiêu,...
+          </p>
         </div>
       </div>
     );
@@ -320,601 +350,585 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
   const currentPage = pages[currentPageIndex];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 font-sans">
-      <div className="sketch-border bg-[#e8f0fe] p-6 text-center select-none shadow-md border-b-4 border-r-4 border-ink relative overflow-hidden mb-10 mx-auto max-w-4xl">
-        <div className="absolute right-4 top-2 opacity-15 rotate-12">
-          <BookOpen className="w-24 h-24 text-ink" />
+    <div className="max-w-7xl mx-auto px-4 py-6 font-sans">
+      
+      {/* HEADER BAR */}
+      <div className="sketch-border bg-[#e8f0fe] p-4 md:p-6 text-center select-none shadow-md border-b-4 border-r-4 border-ink relative overflow-hidden mb-8 max-w-5xl mx-auto">
+        <div className="absolute right-4 top-2 opacity-10 rotate-12">
+          <BookOpen className="w-20 h-20 text-ink" />
         </div>
         <div className="flex justify-center">
-          <div className="bg-[#fbcfe8] -rotate-1 px-6 py-2 border-2 border-ink shadow-sm rounded-md tracking-wider relative">
-            <h1 className="text-3xl md:text-4xl font-logo font-black uppercase text-ink flex items-center justify-center gap-3">
-              <BookOpen className="w-6 h-6 md:w-8 md:h-8" /> DIGITAL JOURNAL
+          <div className="bg-[#fbcfe8] -rotate-1 px-5 py-2 border-2 border-ink shadow-sm rounded-md tracking-wider relative">
+            <h1 className="text-2xl md:text-3xl font-logo font-black uppercase text-ink flex items-center justify-center gap-3">
+              <BookOpen className="w-6 h-6 md:w-7 md:h-7" /> DIGITAL JOURNAL
             </h1>
           </div>
         </div>
-        <p className="mt-4 text-sm md:text-base font-semibold italic text-ink/70 relative z-10 transition-colors">
-          Hành trình kí ức và học tập
+        <p className="mt-3 text-xs md:text-sm font-semibold italic text-ink/70 relative z-10">
+          Kết nối thói quen, học tập, sắm sửa và tâm tư mỗi ngày của bạn thành trang kí ức tự động
         </p>
       </div>
 
-      {/* Jump to Date Selector & Paper Design Panel */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full max-w-4xl mx-auto mb-6 bg-white/40 p-3 rounded-2xl sketch-border-sm border-dashed">
-        <div className="flex items-center gap-2">
-          <span className="text-xs uppercase font-black tracking-widest text-ink/70">📅 Chọn ngày:</span>
-          <select 
-            value={currentPage.date}
-            onChange={(e) => {
-              const idx = pages.findIndex(p => p.date === e.target.value);
-              if (idx !== -1) setCurrentPageIndex(idx);
-            }}
-            className="sketch-input bg-white text-[11px] font-black py-1 px-2.5 cursor-pointer shrink-0"
-          >
-            {pages.map((p) => (
-              <option key={p.date} value={p.date}>
-                {p.date} ({p.logs.length} nhật ký, {p.placesVisited.length} địa điểm)
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* STREAMLINED TWO-COLUMN SPLIT PANEL */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto items-start">
+        
+        {/* LEFT PANEL: TIMELINE & DAY PICKER */}
+        <div className="lg:col-span-4 space-y-4">
+          <div className="bg-white/70 backdrop-blur-md p-4 rounded-2xl sketch-border border-ink shadow-sm space-y-3">
+            <div className="flex items-center justify-between border-b pb-2 border-ink/10">
+              <span className="text-xs uppercase font-black tracking-widest text-[#1a1a1a] flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-crimson" /> Lịch sử ngày ghi nhật ký ({pages.length})
+              </span>
+            </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs uppercase font-black tracking-widest text-ink/70">🎨 Chất liệu giấy:</span>
-          <div className="flex gap-1 bg-paper/60 p-0.5 rounded-lg border border-dashed border-ink/20">
-            {(['lined', 'grid', 'dotted', 'blank'] as const).map((style) => (
-              <button
-                key={style}
-                onClick={() => setPaperStyle(style)}
-                className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded transition-all ${
-                  paperStyle === style ? "bg-ink text-paper" : "text-ink/65 hover:text-ink hover:bg-ink/5"
-                }`}
-              >
-                {style === 'lined' ? "Kẻ ngang" : style === 'grid' ? "Ca-rô" : style === 'dotted' ? "Chấm bi" : "Trắng"}
-              </button>
-            ))}
+            <div className="max-h-[380px] overflow-y-auto pr-1 space-y-2 scrollbar-thin">
+              {pages.map((p, idx) => {
+                const isSelected = currentPageIndex === idx;
+                const moodData = dailyMoods[p.date];
+                const countOfTotalRecords = p.logs.length + p.habitCompletions.length + p.wordsReviewed.length + p.placesVisited.length + p.purchased.length;
+                
+                return (
+                  <button
+                    key={p.date}
+                    onClick={() => setCurrentPageIndex(idx)}
+                    className={`w-full text-left p-3 rounded-xl border-2 transition-all duration-200 flex items-center justify-between gap-2 group ${
+                      isSelected 
+                        ? "bg-[#fffbeb] border-ink text-ink shadow-[3px_3px_0_var(--color-ink)] translate-x-1" 
+                        : "bg-white/40 border-ink/10 hover:border-ink/40 hover:bg-white text-ink/80"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-xl flex-shrink-0 filter drop-shadow">
+                        {moodData?.emoji || "📝"}
+                      </span>
+                      <div className="min-w-0">
+                        <span className="font-mono text-xs font-black block group-hover:text-crimson transition-colors">
+                          {p.date}
+                        </span>
+                        <span className="text-[10px] text-ink/50 font-bold truncate block">
+                          {moodData?.name || "Bình thường"} • {countOfTotalRecords} hoạt động
+                        </span>
+                      </div>
+                    </div>
+                    {p.logs.length > 0 && (
+                      <span className="bg-[#fbcfe8] text-ink border border-ink text-[9px] px-1.5 py-0.5 rounded-full font-black flex-shrink-0">
+                        {p.logs.length} Log
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <div className="border-t border-ink/10 pt-3 flex flex-wrap gap-2 justify-between items-center bg-paper/30 p-2.5 rounded-xl border border-dashed border-ink/10 text-[10px] font-sans">
+              <span className="font-bold text-ink/55 text-[9px] uppercase tracking-wider">Chất liệu trang:</span>
+              <div className="flex gap-1.5">
+                {(['lined', 'grid', 'dotted', 'blank'] as const).map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => setPaperStyle(style)}
+                    className={`px-2 py-0.5 text-[8px] font-black uppercase rounded border transition-all ${
+                      paperStyle === style ? "bg-ink text-paper border-ink" : "bg-white/50 border-ink/10 text-ink/65 hover:bg-ink/5"
+                    }`}
+                  >
+                    {style === 'lined' ? "Lined" : style === 'grid' ? "Grid" : style === 'dotted' ? "Dot" : "Blank"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* QUICK CHỌN STICKERS */}
+          <div className="bg-white/70 backdrop-blur-md p-4 rounded-2xl sketch-border-sm border-dashed text-center space-y-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-ink/65 block">
+              ✨ Dán nhãn Sticker lên trang viết ({currentPage.date})
+            </span>
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
+              {['🌸', '🎯', '🔥', '☕', '⭐', '🎉', '🚀', '🧸', '💡', '📖', '❤️'].map((st) => {
+                const active = (pageStickers[currentPage.date] || []).includes(st);
+                return (
+                  <button
+                    key={st}
+                    onClick={() => addSticker(st, currentPage.date)}
+                    className={`w-8 h-8 flex items-center justify-center text-lg rounded-xl transition-all hover:scale-110 active:scale-95 border ${
+                      active 
+                        ? "bg-[#fffbeb] border-ink rotate-3 scale-105 shadow-[2px_2px_0_var(--color-ink)]" 
+                        : "bg-white/40 border-dashed border-ink/10 hover:border-ink hover:opacity-100 opacity-60"
+                    }`}
+                    title={active ? "Gỡ nhãn" : "Dán nhãn"}
+                  >
+                    {st}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="relative w-full max-w-4xl mx-auto min-h-[650px] sm:min-h-[700px] flex items-center justify-center perspective-[2000px]">
-        {/* Navigation Buttons Outside Book */}
-        <button
-          onClick={prevPage}
-          disabled={currentPageIndex === 0}
-          className="absolute left-0 md:-left-12 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-[#e8f0fe] border-2 border-ink rounded-full flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#fbcfe8] text-ink transition-all shadow-[4px_4px_0_var(--color-ink)]"
-        >
-          <span className="text-2xl font-black relative -left-0.5">←</span>
-        </button>
-
-        <button
-          onClick={nextPage}
-          disabled={currentPageIndex === pages.length - 1}
-          className="absolute right-0 md:-right-12 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-[#e8f0fe] border-2 border-ink rounded-full flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#fbcfe8] text-ink transition-all shadow-[4px_4px_0_var(--color-ink)]"
-        >
-           <span className="text-2xl font-black relative -right-0.5">→</span>
-        </button>
-
-        {/* The Book */}
-        <div className="relative w-full h-full max-w-3xl transform-style-3d bg-[#e5dfd3] p-1.5 md:p-3 rounded-r-3xl rounded-l-md shadow-2xl">
-          {/* Binding shadow left */}
-          <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-ink/20 to-transparent z-10 pointer-events-none rounded-l-md" />
+        {/* RIGHT PANEL: DETAILS OF THE JOURNAL PAGE */}
+        <div className="lg:col-span-8 space-y-5">
           
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentPage.date}
-              initial={{ rotateY: 90, opacity: 0, originX: 0 }}
-              animate={{ rotateY: 0, opacity: 1 }}
-              exit={{ rotateY: -90, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 60, damping: 15 }}
-              className="bg-paper w-full h-[600px] sm:h-[650px] rounded-r-2xl rounded-l flex flex-col p-6 sm:p-10 shadow-inner relative overflow-hidden"
+          <div className="bg-white/80 backdrop-blur shadow-sm p-5 md:p-8 rounded-2xl sketch-border border-ink relative overflow-hidden">
+            
+            {/* Visual Paper Styling Sheet Wrapper */}
+            <div 
+              className="absolute inset-0 pointer-events-none opacity-[0.22] z-0"
               style={
                 paperStyle === 'lined' ? {
-                  backgroundImage: "linear-gradient(transparent 95%, rgba(0,0,0,0.05) 100%)",
+                  backgroundImage: "linear-gradient(transparent 95%, rgba(0,0,0,0.18) 100%)",
                   backgroundSize: "100% 28px"
                 } : paperStyle === 'grid' ? {
-                  backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px)",
+                  backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.12) 1px, transparent 1px)",
                   backgroundSize: "24px 24px"
                 } : paperStyle === 'dotted' ? {
-                  backgroundImage: "radial-gradient(rgba(0,0,0,0.08) 1.5px, transparent 1.5px)",
+                  backgroundImage: "radial-gradient(rgba(0,0,0,0.25) 1.5px, transparent 1.5px)",
                   backgroundSize: "20px 20px"
                 } : {
                   backgroundImage: "none"
                 }
               }
-            >
-               {/* Applied Stickers on the Notebook Page (Overlap top-left) */}
-               <div className="absolute top-4 left-4 flex gap-1.5 z-20 select-none pointer-events-none">
-                 {(pageStickers[currentPage.date] || []).map((st, idx) => {
-                   const rotations = ["rotate-6", "-rotate-12", "rotate-12", "-rotate-6", "rotate-3", "-rotate-3", "rotate-12", "-rotate-[10deg]"];
-                   const rot = rotations[idx % rotations.length];
-                   return (
-                     <span 
-                       key={idx} 
-                       className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-lg md:text-2xl bg-[#fffbeb] rounded-full border border-ink shadow-md ${rot} transform duration-300 animate-in zoom-in`}
-                     >
-                       {st}
-                     </span>
-                   );
-                 })}
-               </div>
+            />
 
-               {/* Header Ribbon */}
-               <div className="absolute top-0 right-8 bg-[#fbcfe8] text-ink border-l-2 border-r-2 border-b-2 border-ink px-3 py-4 shadow-sm z-10 clip-ribbon">
-                  <span className="font-mono font-black text-lg rotate-90 block tracking-widest leading-none drop-shadow-sm">{currentPage.date.split('-')[1]}/{currentPage.date.split('-')[0]}</span>
-               </div>
+            {/* Sticker overlay visual layout */}
+            <div className="absolute top-4 right-4 flex gap-1 z-10 pointer-events-none select-none">
+              {(pageStickers[currentPage.date] || []).map((st, idx) => (
+                <span 
+                  key={idx} 
+                  className="w-8 h-8 flex items-center justify-center text-xl bg-[#fffbeb] border border-ink shadow-sm rounded-full rotate-6 animate-pulse"
+                >
+                  {st}
+                </span>
+              ))}
+            </div>
 
-               <div className="flex-1 overflow-y-auto pr-4 scrollbar-hide py-2 pb-12 animate-in fade-in duration-300">
-                  <div className="border-b-2 border-ink mb-4 pb-2">
-                    <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-ink uppercase mb-1 mr-16">
-                      {currentPage.displayDate}
-                    </h2>
+            {/* MAIN CONTENT SECTION */}
+            <div className="relative z-10 space-y-6">
+              
+              {/* Daily Title details */}
+              <div className="border-b-2 border-ink pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-ink uppercase tracking-tight">
+                    {currentPage.displayDate}
+                  </h2>
+                  <span className="text-[10px] font-mono font-bold text-ink/40">
+                    ID Ngày: {currentPage.date}
+                  </span>
+                </div>
 
-                    {/* MOOD PICKER INTERACTIVE DISPLAY */}
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <span className="text-[10px] font-black uppercase text-ink/65 mr-1 select-none">Cảm xúc:</span>
-                      {[
-                        { emoji: "😌", name: "Bình yên" },
-                        { emoji: "😊", name: "Vui vẻ" },
-                        { emoji: "🌟", name: "Hào hứng" },
-                        { emoji: "🥱", name: "Mệt mỏi" },
-                        { emoji: "😔", name: "Tâm trạng" },
-                        { emoji: "☕", name: "Tập trung" }
-                      ].map(m => {
-                        const isSelected = dailyMoods[currentPage.date]?.emoji === m.emoji;
-                        return (
-                          <button
-                            key={m.emoji}
-                            onClick={() => changeMood(currentPage.date, m.emoji, m.name)}
-                            className={`px-2 py-0.5 rounded-full border text-[10px] sm:text-xs font-bold transition-all flex items-center gap-1 hover:scale-105 active:scale-95 ${
-                              isSelected
-                                ? "bg-[#fffbeb] border-ink text-ink shadow-[2px_2px_0_var(--color-ink)]"
-                                : "bg-white/40 border-ink/20 opacity-70 hover:opacity-100 text-ink/80"
-                            }`}
-                          >
-                            <span>{m.emoji}</span>
-                            <span className="text-[9px] sm:text-[10px]">{m.name}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                {/* Simplified Single Header Mood Picker Row */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase text-ink/60 select-none mr-1">Cảm nhận:</span>
+                  {[
+                    { emoji: "😌", name: "Bình yên" },
+                    { emoji: "😊", name: "Vui vẻ" },
+                    { emoji: "🌟", name: "Hào hứng" },
+                    { emoji: "🥱", name: "Mệt mỏi" },
+                    { emoji: "😔", name: "Tâm trạng" },
+                    { emoji: "☕", name: "Tập trung" }
+                  ].map(m => {
+                    const isSelected = dailyMoods[currentPage.date]?.emoji === m.emoji;
+                    return (
+                      <button
+                        key={m.emoji}
+                        onClick={() => changeMood(currentPage.date, m.emoji, m.name)}
+                        className={`text-xs px-2.5 py-1 rounded-full border-2 font-bold transition-all flex items-center gap-1 active:scale-95 duration-100 ${
+                          isSelected
+                            ? "bg-[#fffbeb] border-ink text-ink shadow-[2.5px_2.5px_0_var(--color-ink)]"
+                            : "bg-white/50 border-ink/10 opacity-70 hover:opacity-100 text-ink/80"
+                        }`}
+                      >
+                        <span>{m.emoji}</span>
+                        <span className="text-[10px]">{m.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-                  {/* QUICK WRITE COLLAPSIBLE INTERACTIVE WRITER */}
-                  <div className="my-4">
-                    <div className="flex justify-between items-center bg-amber-50/70 px-4 py-2.5 rounded-xl border border-dashed border-ink/25 shadow-sm">
-                      <span className="text-xs font-black text-ink/80 flex items-center gap-1.5 leading-none select-none">
-                        <Feather className="w-3.5 h-3.5 text-ink/70 animate-bounce" />
-                        {currentPage.logs.length === 0 ? "Chưa viết nhật ký hôm nay. Bạn muốn viết gì?" : `Đã lưu ${currentPage.logs.length} sự kiện & suy ngẫm`}
-                      </span>
-                      {setLogs && (
+              {/* JOURNAL LOGS AND REFLECTIONS LIST (THE ACTUAL DIARY CORES) */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase font-black text-ink/75 flex items-center gap-1.5 bg-[#fbcfe8] border-2 border-ink px-2.5 py-1 rounded-lg">
+                    <Feather className="w-3.5 h-3.5" /> Ghi chép & Tâm sự ({currentPage.logs.length})
+                  </span>
+                  
+                  {setLogs && (
+                    <button
+                      onClick={() => setShowQuickEntry(!showQuickEntry)}
+                      className="sketch-btn-sm text-[10px] py-1 px-3 bg-ink text-paper hover:bg-ink/80 uppercase font-bold tracking-wider flex items-center gap-1.5"
+                    >
+                      {showQuickEntry ? <X size={11} /> : <Plus size={11} />} {showQuickEntry ? "Đóng form" : "Thêm dòng tâm sự"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick write expanded form if active */}
+                {showQuickEntry && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-[#fffbeb] p-4 rounded-xl border-2 border-ink shadow-[4px_4px_0_rgba(0,0,0,1)] space-y-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink/15 pb-2">
+                      <div className="flex gap-1.5">
                         <button
-                          onClick={() => setShowQuickEntry(!showQuickEntry)}
-                          className="px-2.5 py-1 text-[10px] font-black uppercase tracking-widest bg-ink text-paper rounded hover:bg-ink/80 transition-all flex items-center gap-1"
+                          type="button"
+                          onClick={() => setNewEntryType('Reflection')}
+                          className={`px-2 py-0.5 text-[9px] font-black uppercase rounded ${newEntryType === 'Reflection' ? "bg-ink text-white" : "bg-ink/10 text-ink"}`}
                         >
-                          <Plus className="w-3 h-3" /> {showQuickEntry ? "Đóng lại" : "Viết nhanh"}
+                          Suy ngẫm
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => setNewEntryType('Event')}
+                          className={`px-2 py-0.5 text-[9px] font-black uppercase rounded ${newEntryType === 'Event' ? "bg-ink text-white" : "bg-ink/10 text-ink"}`}
+                        >
+                          Sự kiện nhật trình
+                        </button>
+                      </div>
+
+                      {/* Icon selector with simple tooltips */}
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] uppercase font-bold text-ink/50 mr-1">Icon:</span>
+                        <div className="flex gap-1">
+                          {['📝', '💡', '🌟', '☕', '🔥', '🎉', '💻', '💪', '❤️', '🎓'].map((em) => (
+                            <button
+                              key={em}
+                              type="button"
+                              onClick={() => setNewEntryEmoji(em)}
+                              className={`text-xs p-1 rounded-md transition-transform ${newEntryEmoji === em ? "bg-[#fbcfe8] border border-ink scale-110" : "opacity-50 hover:opacity-100"}`}
+                            >
+                              {em}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
 
-                    {showQuickEntry && (
-                      <div className="mt-3 bg-[#fffbeb] p-4 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_rgba(0,0,0,1)] animate-in slide-in-from-top-3 duration-200">
-                        <div className="flex flex-col gap-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-black uppercase text-ink select-none">Danh mục:</span>
-                            <div className="flex gap-2">
-                              {(['Reflection', 'Event'] as const).map(type => (
-                                <button
-                                  key={type}
-                                  type="button"
-                                  onClick={() => setNewEntryType(type)}
-                                  className={`px-2 py-0.5 text-[9px] font-black uppercase rounded ${
-                                    newEntryType === type ? "bg-ink text-paper" : "bg-ink/10 text-ink/75"
-                                  }`}
-                                >
-                                  {type === 'Reflection' ? "Suy ngẫm" : "Sự kiện"}
-                                </button>
-                              ))}
-                            </div>
+                    <textarea
+                      value={newEntryContent}
+                      onChange={(e) => setNewEntryContent(e.target.value)}
+                      placeholder="Hôm nay có điều gì ý nghĩa hay bài học gì đáng nhớ mà bạn muốn lưu giữ?..."
+                      className="w-full min-h-[90px] p-2.5 bg-white rounded border border-ink/30 text-sm focus:outline-none focus:border-ink resize-none font-hand text-lg placeholder:font-sans placeholder:text-xs text-ink placeholder:text-ink/40"
+                    />
+
+                    <div className="flex justify-end gap-2.5">
+                      <button
+                        onClick={() => setShowQuickEntry(false)}
+                        className="px-2.5 py-1 bg-white text-ink border border-ink/20 text-xs font-bold rounded hover:bg-ink/5"
+                      >
+                        Bỏ qua
+                      </button>
+                      <button
+                        onClick={() => handleAddQuickEntry(currentPage.date)}
+                        disabled={!newEntryContent.trim()}
+                        className="px-3.5 py-1 bg-ink text-paper text-xs font-black rounded hover:bg-ink/90 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+                      >
+                        <Send size={11} /> Lưu bút tích
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Logs Listing container */}
+                {currentPage.logs.length === 0 ? (
+                  <div className="text-center py-7 px-4 border border-dashed border-ink/15 rounded-xl bg-ink/5 italic font-hand text-ink/50 text-base">
+                    Trang kí ức ngày hôm nay chưa có dòng ghi chú tâm tư nào. Hãy bấm "Thêm dòng tâm sự" để lưu giữ suy nghĩ của bạn!
+                  </div>
+                ) : (
+                  <div className="space-y-4 pl-3.5 border-l-2 border-dashed border-ink/20 py-1">
+                    {currentPage.logs.map((log, idx) => (
+                      <div key={log.id || idx} className="relative group/log">
+                        <span className="absolute -left-[27px] bg-paper text-sm p-0.5 rounded-full ring-4 ring-white border border-ink/10 flex items-center justify-center w-6 h-6 shadow-[1.5px_1.5px_0_rgba(0,0,0,0.1)]">
+                          {log.emoji || log.icon || "📝"}
+                        </span>
+                        
+                        <div className="flex items-start justify-between gap-4 ml-3">
+                          <div className="space-y-0.5 min-w-0 flex-1">
+                            <p className="font-hand text-lg md:text-xl leading-relaxed text-ink/95 whitespace-pre-wrap">
+                              {log.type === "Event" && (
+                                <span className="font-sans font-black uppercase text-[9px] tracking-wider mr-2 bg-ink/10 px-1.5 py-0.5 rounded inline-block translate-y-[-2px] text-ink/75">
+                                  {log.time || "Sự kiện"}
+                                </span>
+                              )}
+                              {log.content}
+                            </p>
                           </div>
-
-                          {/* ✨ QUICK-PICK DAILY MOOD SELECTOR */}
-                          <div className="flex flex-col gap-1.5 border-t border-b border-dashed border-ink/10 py-2.5">
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] font-black uppercase text-ink select-none">Cảm xúc ngày hôm nay (Daily Mood):</span>
-                              <span className="text-[9px] font-bold text-ink/40 tracking-wide">(Ghi nhận trạng thái)</span>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 p-1 bg-white/45 rounded-xl border border-ink/5 justify-start font-sans">
-                              {[
-                                { emoji: "😌", name: "Bình yên" },
-                                { emoji: "😊", name: "Vui vẻ" },
-                                { emoji: "🌟", name: "Hào hứng" },
-                                { emoji: "🥱", name: "Mệt mỏi" },
-                                { emoji: "😔", name: "Tâm trạng" },
-                                { emoji: "☕", name: "Tập trung" },
-                                { emoji: "🥳", name: "Tuyệt vời" },
-                                { emoji: "🤯", name: "Áp lực" }
-                              ].map(m => {
-                                const isSelected = dailyMoods[currentPage.date]?.emoji === m.emoji;
-                                return (
-                                  <button
-                                    key={m.emoji}
-                                    type="button"
-                                    onClick={() => {
-                                      changeMood(currentPage.date, m.emoji, m.name);
-                                      // Suggest setting log entry emoji to this emotion if still default
-                                      if (newEntryEmoji === "📝") {
-                                        setNewEntryEmoji(m.emoji);
-                                      }
-                                    }}
-                                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all flex items-center gap-1 active:scale-95 duration-150 ${
-                                      isSelected
-                                        ? "bg-[#fbcfe8] border-ink text-ink shadow-[2px_2px_0_var(--color-ink)]"
-                                        : "bg-white border-ink/10 text-ink/70 opacity-75 hover:opacity-100 hover:bg-ink/5"
-                                    }`}
-                                  >
-                                    <span className="text-xs">{m.emoji}</span>
-                                    <span className="text-[9px] uppercase tracking-wider font-black">{m.name}</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          {/* ✨ ENHANCE ENTRY ICON OPTIONS WITH TOOLTIPS */}
-                          <div className="flex items-start gap-1.5 flex-col">
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] font-black uppercase text-ink select-none">Chọn biểu tượng dòng viết:</span>
-                              <span className="text-[9px] font-bold text-ink/40 tracking-wide">(Nhãn đại diện sự kiện)</span>
-                            </div>
-                            <div className="flex flex-wrap gap-1 bg-white/40 p-1.5 rounded-xl border border-ink/10 w-full justify-start font-sans">
-                              {[
-                                { emoji: '📝', label: 'Viết lách' },
-                                { emoji: '💡', label: 'Ý tưởng' },
-                                { emoji: '🌟', label: 'Tỏa sáng' },
-                                { emoji: '🍀', label: 'May mắn' },
-                                { emoji: '☕', label: 'Thư giãn' },
-                                { emoji: '🔥', label: 'Nhiệt huyết' },
-                                { emoji: '🎉', label: 'Niềm vui' },
-                                { emoji: '💻', label: 'Công việc' },
-                                { emoji: '💪', label: 'Nỗ lực' },
-                                { emoji: '❤️', label: 'Yêu thương' },
-                                { emoji: '🎓', label: 'Học tập' },
-                                { emoji: '🌸', label: 'Bình yên' },
-                                { emoji: '🏃', label: 'Thể chất' },
-                                { emoji: '📚', label: 'Sách đọc' }
-                              ].map(item => (
-                                <button
-                                  key={item.emoji}
-                                  type="button"
-                                  title={item.label}
-                                  onClick={() => setNewEntryEmoji(item.emoji)}
-                                  className={`text-sm p-1.5 rounded-lg hover:bg-ink/5 transition-all flex items-center justify-center relative group ${
-                                    newEntryEmoji === item.emoji ? "bg-[#fbcfe8] border border-ink scale-110 shadow-sm" : "opacity-60"
-                                  }`}
-                                >
-                                  <span>{item.emoji}</span>
-                                  <span className="absolute pointer-events-none bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-40 bg-ink text-[#fffbeb] text-[9px] px-1.5 py-0.5 rounded shadow-md whitespace-nowrap font-bold">
-                                    {item.label}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <textarea
-                            value={newEntryContent}
-                            onChange={(e) => setNewEntryContent(e.target.value)}
-                            placeholder="Ghi lại suy ngẫm, sự kiện ý nghĩa hay từ học tập hôm nay..."
-                            className="w-full min-h-[90px] p-2.5 bg-paper rounded border border-ink/30 text-sm focus:outline-none focus:border-ink resize-none font-hand text-lg placeholder:font-sans placeholder:text-xs text-ink placeholder:text-ink/40"
-                          />
-
-                          <div className="flex justify-end gap-2">
+                          
+                          {setLogs && (
                             <button
-                              onClick={() => setShowQuickEntry(false)}
-                              className="px-3 py-1 bg-white text-ink border border-ink/40 text-xs font-black rounded hover:bg-ink/5"
+                              onClick={() => handleDeleteQuickEntry(log.id)}
+                              className="opacity-0 group-hover/log:opacity-100 hover:text-crimson text-ink/40 p-1 rounded hover:bg-ink/5 transition-all outline-none shrink-0"
+                              title="Xóa dòng này"
                             >
-                              Hủy
+                              <Trash2 size={13} />
                             </button>
-                            <button
-                              onClick={() => handleAddQuickEntry(currentPage.date)}
-                              disabled={!newEntryContent.trim()}
-                              className="px-3 py-1 bg-ink text-paper text-xs font-black rounded hover:bg-ink/80 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5"
-                            >
-                              <Send className="w-3.5 h-3.5" /> Lưu bút tích
-                            </button>
-                          </div>
+                          )}
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* BENTO-STYLE INTEGRATED TRACKERS (HABITS, REVIEW, WORK) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-dashed border-ink/15 pt-5">
+                
+                {/* 1. Completed Habits Capsule */}
+                <div className="bg-[#e8f0fe]/45 p-4 rounded-2xl border border-ink/10 space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-black uppercase text-indigo-900 border-b border-indigo-900/10 pb-1.5">
+                    <CheckSquare size={14} className="text-indigo-600" />
+                    Thói quen hoàn thành ({currentPage.habitCompletions.length})
+                  </div>
+                  {currentPage.habitCompletions.length === 0 ? (
+                    <span className="text-[11px] text-ink/50 italic block pt-1">Không có thói quen nào của ngày này</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {currentPage.habitCompletions.map(({ habit, streak }, idx) => (
+                        <span 
+                          key={idx} 
+                          className="inline-flex items-center gap-1 bg-white border border-indigo-200 px-2 py-0.5 rounded-lg text-xs font-bold text-indigo-950 shadow-sm"
+                        >
+                          <span className="drop-shadow-sm">{habit.icon}</span>
+                          <span>{habit.name}</span>
+                          {streak > 1 && (
+                            <span className="text-[9px] font-black uppercase text-amber-700 bg-amber-50 border border-amber-200 px-1 rounded">
+                              {streak}d Flame
+                            </span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Vocabulary Reviewed Capsule */}
+                <div className="bg-[#fbcfe8]/25 p-4 rounded-2xl border border-ink/10 space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-black uppercase text-crimson border-b border-crimson/10 pb-1.5">
+                    <BookOpen size={14} className="text-crimson" />
+                    Từ vựng đã ôn ({currentPage.wordsReviewed.length})
+                  </div>
+                  {currentPage.wordsReviewed.length === 0 ? (
+                    <span className="text-[11px] text-ink/50 italic block pt-1">Chưa có hoạt động từ vựng</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {currentPage.wordsReviewed.map((w, idx) => (
+                        <span 
+                          key={idx} 
+                          className="bg-white border border-rose-200 text-rose-900 text-[11px] font-bold px-2 py-0.5 rounded-md hover:scale-105 transition-transform cursor-pointer"
+                        >
+                          {w.vocabulary}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Asset & Finances Purchases */}
+                <div className="bg-amber-50/40 p-4 rounded-2xl border border-ink/10 space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-black uppercase text-amber-800 border-b border-amber-800/10 pb-1.5">
+                    <DollarSign size={14} className="text-amber-600" />
+                    Chi tiêu & Sắm sửa ({currentPage.purchased.length})
+                  </div>
+                  {currentPage.purchased.length === 0 ? (
+                    <span className="text-[11px] text-ink/50 italic block pt-1">Không phát sinh chi tiêu mua sắm</span>
+                  ) : (
+                    <div className="space-y-1.5 pt-1">
+                      {currentPage.purchased.map((item, idx) => (
+                        <div key={idx} className="bg-white/80 p-2 rounded-xl border border-dashed border-amber-200 text-xs flex justify-between items-center">
+                          <span className="font-bold text-ink/80 truncate max-w-[130px]">{item.content}</span>
+                          {item.price ? (
+                            <span className="font-mono font-black text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded text-[10px]">
+                              {item.price.toLocaleString('vi-VN')} đ
+                            </span>
+                          ) : (
+                            <span className="text-ink/40 text-[10px]">Đã mua</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Geography Visited Places */}
+                <div className="bg-rose-50/30 p-4 rounded-2xl border border-ink/10 space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-black uppercase text-rose-800 border-b border-rose-800/10 pb-1.5">
+                    <MapPin size={14} className="text-rose-600" />
+                    Khám phá địa điểm ({currentPage.placesVisited.length})
+                  </div>
+                  {currentPage.placesVisited.length === 0 ? (
+                    <span className="text-[11px] text-ink/50 italic block pt-1">Chưa lưu địa danh nào</span>
+                  ) : (
+                    <div className="space-y-1.5 pt-1">
+                      {currentPage.placesVisited.map((p, idx) => (
+                        <div key={idx} className="bg-white/80 p-2 rounded-xl border border-rose-100 text-xs">
+                          <div className="font-bold text-rose-950 flex items-center gap-1">
+                            <span>📍</span>
+                            <span className="truncate">{p.name}</span>
+                          </div>
+                          {p.review && <p className="font-hand italic text-xs text-ink/75 mt-0.5 leading-snug">"{p.review}"</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* STOIC PROUD & TASK DONE ACHIEVEMENTS */}
+              {(currentPage.tasksDone.length > 0 || currentPage.contentDone.length > 0 || currentPage.achievementsEarned.length > 0) && (
+                <div className="border-t border-dashed border-ink/15 pt-4 space-y-3 bg-[#e8f0fe]/20 p-4 rounded-2xl border border-indigo-100">
+                  <span className="text-[10px] uppercase font-black tracking-widest text-indigo-950 block">🎉 Thành tựu & Nhiệm vụ hôm nay</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {currentPage.tasksDone.length > 0 && (
+                      <div className="space-y-1">
+                        <span className="text-[9px] uppercase font-bold text-indigo-505 block">Nhiệm vụ hoàn tất:</span>
+                        <ul className="space-y-1 max-h-[140px] overflow-y-auto">
+                          {currentPage.tasksDone.map((t, idx) => (
+                            <li key={idx} className="flex items-center gap-1.5 text-xs text-ink/70">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              <span className="line-through decoration-ink/20 truncate">{t.title}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {currentPage.achievementsEarned.length > 0 && (
+                      <div className="space-y-1.5">
+                        <span className="text-[9px] uppercase font-bold text-amber-600 block">Danh hiệu mở khóa:</span>
+                        {currentPage.achievementsEarned.map((ach, idx) => (
+                          <div key={idx} className="bg-amber-100/50 p-2 rounded-xl border border-amber-200 text-xs flex items-start gap-1.5">
+                            <span className="text-sm">🏆</span>
+                            <div>
+                              <div className="font-bold text-amber-900 leading-tight">{ach.title}</div>
+                              <p className="text-[10px] text-amber-800 leading-normal">{ach.description}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
+                </div>
+              )}
 
-                  <div className="space-y-8">
-                     {/* Logs & Events */}
-                     {currentPage.logs.length > 0 && (
-                        <section>
-                          <div className="flex items-center gap-2 mb-3">
-                             <Feather className="w-5 h-5 text-ink" />
-                             <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-[#fbcfe8] border-2 border-ink px-2 rounded-md shadow-sm">Nhật ký & Sự kiện</h3>
-                          </div>
-                          <div className="space-y-3 pl-2 sm:pl-4 border-l-2 border-dashed border-ink/20">
-                            {currentPage.logs.map((log, idx) => (
-                              <div key={idx} className="relative">
-                                <span className="absolute -left-[23px] sm:-left-[31px] bg-paper text-ink p-0.5 rounded-full ring-2 ring-paper text-sm">
-                                  {log.emoji || log.icon || "📝"}
-                                </span>
-                                <p className="font-hand text-lg md:text-xl leading-relaxed text-ink/90 whitespace-pre-wrap ml-2">
-                                  {log.type === "Event" && <span className="font-bold uppercase text-[10px] tracking-widest mr-2 bg-ink/10 px-1 rounded inline-block translate-y-[-2px]">{log.time || "Sự kiện"}</span>}
-                                  {log.content}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                     )}
+              {/* COZY AI TRI KI (COMPANION LETTER CARD) */}
+              <div className="bg-[#fffdf9] rounded-2xl border-2 border-ink p-5 shadow-[4px_4px_0_var(--color-ink)] relative overflow-hidden group hover:bg-[#fffff4] transition-all duration-300">
+                <div className="absolute right-0 top-0 bg-amber-400 text-ink border-l-2 border-b-2 border-ink px-3 py-1 text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5" /> AI Companion
+                </div>
 
-                     {/* Habits Completed */}
-                     {currentPage.habitCompletions.length > 0 && (
-                       <section>
-                         <div className="flex items-center gap-2 mb-3">
-                            <CheckSquare className="w-5 h-5 text-ink" />
-                            <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-[#e8f0fe] border-2 border-ink px-2 rounded-md shadow-sm">Thói quen hoàn thành</h3>
-                         </div>
-                         <div className="flex flex-wrap gap-2">
-                           {currentPage.habitCompletions.map(({ habit, streak }, idx) => (
-                             <div key={idx} className="flex items-center gap-2 bg-emerald-50/50 border border-emerald-200 px-3 py-1.5 rounded-xl">
-                               <span className="text-xl drop-shadow-sm">{habit.icon}</span>
-                               <span className="font-bold text-sm text-emerald-800">{habit.name}</span>
-                               {streak > 1 && (
-                                  <span className="text-[10px] bg-white border border-emerald-200 text-emerald-600 px-1.5 py-0.5 rounded font-black shadow-sm shrink-0 flex items-center gap-1">
-                                    <Award className="w-3 h-3 text-emerald-500" /> {streak} Ngày
-                                  </span>
-                               )}
-                             </div>
-                           ))}
-                         </div>
-                       </section>
-                     )}
+                <div className="flex items-center gap-2 mb-3 border-b border-ink/10 pb-2">
+                  <Sparkles className="w-4 h-4 text-ink animate-pulse" />
+                  <h3 className="font-logo font-black text-sm text-ink uppercase tracking-wider">
+                    Góc Tri Kỷ Chiêm Nghiệm
+                  </h3>
+                </div>
 
-                     {/* Purchases */}
-                     {currentPage.purchased.length > 0 && (
-                       <section>
-                         <div className="flex items-center gap-2 mb-3">
-                            <DollarSign className="w-5 h-5 text-ink" />
-                            <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-[#fbcfe8] border-2 border-ink px-2 rounded-md shadow-sm">Mua sắm & Tài sản</h3>
-                         </div>
-                         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                           {currentPage.purchased.map((item, idx) => (
-                             <li key={idx} className="bg-white border-2 border-dashed border-amber-200 p-3 rounded-lg shadow-sm">
-                               <div className="font-bold text-ink mb-1">{item.content}</div>
-                               <div className="flex items-center gap-2 text-xs">
-                                 {item.price ? (
-                                    <span className="font-mono font-black text-amber-700 bg-amber-100 px-1 rounded">{item.price.toLocaleString('vi-VN')} ₫</span>
-                                 ) : null}
-                                 <span className="text-ink/50 italic">Đã mua sắm</span>
-                               </div>
-                             </li>
-                           ))}
-                         </ul>
-                       </section>
-                     )}
+                {aiInsights[currentPage.date] ? (
+                  <div className="space-y-3.5 text-ink">
+                    <div className="bg-[#fffbeb] p-3 rounded-xl border border-dashed border-amber-300">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-[#b45309] block">🎭 Chủ đề ngày:</span>
+                      <p className="font-hand text-xl font-bold italic text-ink/90 leading-snug">
+                        "{aiInsights[currentPage.date].title}"
+                      </p>
+                      <span className="text-[9px] bg-white border border-amber-200 text-amber-800 px-2 py-0.5 rounded-full mt-1.5 inline-block font-sans font-bold">
+                        🌌 Cảm xúc: {aiInsights[currentPage.date].moodAnalysis}
+                      </span>
+                    </div>
 
-                     {/* Projects / Content Done & Achievements */}
-                     {(currentPage.contentDone.length > 0 || currentPage.achievementsEarned.length > 0) && (
-                       <section>
-                         <div className="flex items-center gap-2 mb-3">
-                            <Award className="w-5 h-5 text-ink" />
-                            <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-[#e8f0fe] border-2 border-ink px-2 rounded-md shadow-sm">Thành tựu & Dự án</h3>
-                         </div>
-                         <ul className="space-y-4">
-                           {currentPage.contentDone.map((item, idx) => (
-                             <li key={`content-${idx}`} className="flex gap-2 items-start border-l-2 border-indigo-200 pl-3">
-                                <span className="font-bold text-sm">{item.title}</span>
-                                {item.platform && <span className="text-[9px] uppercase tracking-wider bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded mr-1">{item.platform}</span>}
-                                <span className="text-xs text-ink/60">Hoàn thành ({item.type})</span>
-                             </li>
-                           ))}
-                           {currentPage.achievementsEarned.map((item, idx) => (
-                             <li key={`ach-${idx}`} className="flex flex-col border-l-2 border-amber-300 pl-3">
-                                <div className="flex items-center gap-1.5">
-                                 <Award className="w-3.5 h-3.5 text-amber-500" />
-                                 <span className="font-bold text-sm text-ink">{item.title}</span>
-                                </div>
-                                <span className="text-xs text-ink/60 italic">{item.description}</span>
-                             </li>
-                           ))}
-                         </ul>
-                       </section>
-                     )}
-                     
-                     {/* Tasks Done / Routine */}
-                     {currentPage.tasksDone.length > 0 && (
-                       <section>
-                         <div className="flex items-center gap-2 mb-3">
-                            <CheckSquare className="w-5 h-5 text-ink" />
-                            <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-green-100 border-2 border-ink px-2 rounded-md shadow-sm">Nhiệm vụ & Quá trình</h3>
-                         </div>
-                         <ul className="space-y-1.5">
-                           {currentPage.tasksDone.map((item, idx) => (
-                             <li key={`task-${idx}`} className="flex items-start gap-2 line-through text-ink/60 decoration-ink/30 decoration-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2 shrink-0" />
-                                <div>
-                                  <span className="text-sm">{item.title}</span>
-                                  {item.priority && <span className="ml-2 text-[9px] uppercase tracking-widest px-1 py-0.5 bg-green-50 text-green-700 bg-opacity-50">ưu tiên: {item.priority}</span>}
-                                </div>
-                             </li>
-                           ))}
-                         </ul>
-                       </section>
-                     )}
-                     
-                     {/* Words Learned/Reviewed */}
-                     {currentPage.wordsReviewed.length > 0 && (
-                       <section>
-                         <div className="flex items-center gap-2 mb-3">
-                            <BookOpen className="w-5 h-5 text-ink" />
-                            <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-[#fbcfe8] border-2 border-ink px-2 rounded-md shadow-sm">Từ vựng đã ôn ({currentPage.wordsReviewed.length})</h3>
-                         </div>
-                         <div className="flex flex-wrap gap-1.5">
-                           {currentPage.wordsReviewed.map((w, idx) => (
-                             <span key={idx} className="bg-white border border-sky-200 text-sky-900 px-2 py-0.5 rounded text-sm shadow-sm opacity-80 hover:opacity-100 transition-opacity">
-                               {w.vocabulary}
-                             </span>
-                           ))}
-                         </div>
-                       </section>
-                     )}
+                    <div className="relative pl-6 py-0.5">
+                      <Quote className="w-4 h-4 text-ink/15 absolute left-0 top-0 rotate-180" />
+                      <p className="font-hand text-lg leading-relaxed text-ink/80 italic whitespace-pre-line">
+                        {aiInsights[currentPage.date].summary}
+                      </p>
+                    </div>
 
-                     {/* Places Visited */}
-                     {currentPage.placesVisited.length > 0 && (
-                       <section>
-                         <div className="flex items-center gap-2 mb-3">
-                            <MapPin className="w-5 h-5 text-ink" />
-                            <h3 className="font-bold text-lg uppercase tracking-wider text-ink bg-[#e8f0fe] border-2 border-ink px-2 rounded-md shadow-sm">Địa điểm</h3>
-                         </div>
-                         <ul className="space-y-2">
-                           {currentPage.placesVisited.map((p, idx) => (
-                             <li key={idx} className="flex flex-col border-l-2 border-rose-200 pl-3 relative">
-                                <span className="absolute -left-[5px] top-1.5 w-2 h-2 bg-rose-400 rounded-full" />
-                                <span className="font-bold text-base text-ink">{p.name}</span>
-                                {p.city && <span className="text-xs text-ink/50 uppercase tracking-widest">{p.city}</span>}
-                                {p.review && <span className="text-sm font-hand italic text-ink/80 mt-0.5">"{p.review}"</span>}
-                             </li>
-                           ))}
-                         </ul>
-                       </section>
-                     )}
+                    {aiInsights[currentPage.date].quote && (
+                      <div className="bg-ink/5 p-2.5 rounded-xl border border-ink/10 italic text-[11px] text-ink/75 leading-relaxed">
+                        💡 "{aiInsights[currentPage.date].quote}"
+                      </div>
+                    )}
 
-                     {/* ✨ GÓC TRI KỈ AI (AI COMPANION REFLECTION) */}
-                     <section className="bg-[#fffdf9] rounded-2xl border-2 border-ink p-5 shadow-[4px_4px_0_0_rgba(0,0,0,1)] relative overflow-hidden transition-all duration-300 hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)] hover:bg-[#fffff4] mt-10">
-                       <div className="absolute right-0 top-0 bg-amber-400 text-ink border-l-2 border-b-2 border-ink px-3.5 py-1 text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm font-sans">
-                         <Sparkles className="w-2.5 h-2.5" /> companion
-                       </div>
+                    {aiInsights[currentPage.date].suggestions && aiInsights[currentPage.date].suggestions.length > 0 && (
+                      <div className="border-t border-dashed border-ink/10 pt-3">
+                        <span className="text-[10px] font-black uppercase text-ink block mb-1.5">🌱 Ngày mai chắp bút rèn luyện:</span>
+                        <ul className="space-y-1">
+                          {aiInsights[currentPage.date].suggestions.map((s, idx) => (
+                            <li key={idx} className="flex items-start gap-1.5 text-xs text-ink/80 leading-relaxed font-medium">
+                              <span className="text-emerald-600 font-bold">✓</span>
+                              <span>{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
-                       <div className="flex items-center gap-2.5 mb-4 border-b-2 border-ink/10 pb-2">
-                         <div className="p-1.5 bg-[#fbcfe8] rounded-lg border border-ink">
-                           <Sparkles className="w-5 h-5 text-ink animate-pulse" />
-                         </div>
-                         <div>
-                           <h3 className="font-logo font-black text-base text-ink leading-tight uppercase tracking-wider">Góc Tri Kỷ Chiêm Nghiệm</h3>
-                           <p className="text-[10px] text-ink/65 uppercase tracking-wider font-bold">AI Companion Insights</p>
-                         </div>
-                       </div>
-
-                       {aiInsights[currentPage.date] ? (
-                         <div className="space-y-4 font-sans text-ink">
-                           <div className="bg-[#fffbeb] p-3 rounded-lg border border-dashed border-amber-300">
-                             <span className="text-[9px] font-black uppercase tracking-widest text-[#b45309] block mb-1">🎭 Chủ đề ngày:</span>
-                             <div className="font-hand text-2xl font-bold tracking-normal italic text-ink/90 leading-snug">
-                               "{aiInsights[currentPage.date].title}"
-                             </div>
-                             <div className="text-[10px] bg-white border border-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full mt-1.5 inline-flex items-center gap-1 font-bold font-sans">
-                               <span>🌌 Sắc thái cảm xúc:</span>
-                               <span>{aiInsights[currentPage.date].moodAnalysis}</span>
-                             </div>
-                           </div>
-
-                           <div className="relative pl-7 py-0.5">
-                             <Quote className="w-5 h-5 text-ink/20 absolute left-0 top-0 rotate-180" />
-                             <p className="font-hand text-xl leading-relaxed text-ink/85 italic whitespace-pre-line bg-transparent">
-                               {aiInsights[currentPage.date].summary}
-                             </p>
-                           </div>
-
-                           {aiInsights[currentPage.date].quote && (
-                             <div className="bg-ink/5 p-3 rounded-xl border border-ink/10 italic text-xs text-ink/75 leading-relaxed relative flex items-start gap-2.5 font-sans">
-                               <span className="text-xl">💡</span>
-                               <div className="flex-1">
-                                 "{aiInsights[currentPage.date].quote}"
-                               </div>
-                             </div>
-                           )}
-
-                           {aiInsights[currentPage.date].suggestions && aiInsights[currentPage.date].suggestions.length > 0 && (
-                             <div className="border-t border-dashed border-ink/15 pt-3 font-sans">
-                               <span className="text-[10px] font-black uppercase tracking-widest text-[#0f172a] block mb-2">🌱 Ý tưởng rèn luyện cho ngày mai:</span>
-                               <ul className="space-y-1.5 pl-1 font-sans">
-                                 {aiInsights[currentPage.date].suggestions.map((s, idx) => (
-                                   <li key={idx} className="flex items-start gap-2 text-xs font-semibold text-ink/80 leading-relaxed">
-                                     <span className="w-4 h-4 rounded-full border border-ink flex items-center justify-center bg-white text-[9px] font-mono shrink-0 font-black mt-0.5 shadow-[1px_1px_0_0_rgba(0,0,0,1)]">✓</span>
-                                     <span className="flex-1">{s}</span>
-                                   </li>
-                                 ))}
-                               </ul>
-                             </div>
-                           )}
-
-                           <div className="flex justify-end pt-2 border-t border-dashed border-ink/10 mt-3 font-sans">
-                             <button
-                               onClick={() => fetchAIInsight(currentPage)}
-                               disabled={loadingInsight}
-                               className="text-[10px] font-black uppercase text-ink/60 hover:text-ink transition-colors flex items-center gap-1 focus:outline-none disabled:opacity-40"
-                             >
-                               <RefreshCw className={`w-3 h-3 ${loadingInsight ? "animate-spin" : ""}`} /> Tái tạo suy ngẫm
-                             </button>
-                           </div>
-                         </div>
-                       ) : (
-                         <div className="text-center py-6 px-4 bg-white/50 rounded-xl border border-dashed border-ink/20 animate-in fade-in duration-300">
-                           <span className="text-3xl block mb-2 drop-shadow-sm leading-none">✨</span>
-                           <h4 className="font-black text-sm text-ink uppercase tracking-wide mb-1 font-sans">Lắng nghe chia sẻ của tri kỉ</h4>
-                           <p className="text-xs text-ink/60 max-w-sm mx-auto mb-4 leading-relaxed font-sans">
-                             Khiến ngày hôm nay sâu sắc hơn. AI sẽ kết nối mọi thói quen, từ vựng và dòng viết tâm sự của bạn để dành tặng một góc đúc kết bình yên.
-                           </p>
-                           <button
-                             onClick={() => fetchAIInsight(currentPage)}
-                             disabled={loadingInsight}
-                             className="sketch-btn-sm inline-flex items-center gap-2 bg-[#fbcfe8] text-ink py-1.5 px-4 font-black text-xs uppercase shadow-[3px_3px_0_var(--color-ink)] font-sans"
-                           >
-                             {loadingInsight ? (
-                               <>
-                                 <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Tri kỉ đang chắp bút...
-                               </>
-                             ) : (
-                               <>
-                                 <Sparkles className="w-3.5 h-3.5" /> Chiêm nghiệm ngày hôm nay
-                               </>
-                             )}
-                           </button>
-                         </div>
-                       )}
-                     </section>
-
-                     {/* Empty state padding to look like a full page */}
-                     <div className="h-10" />
+                    <div className="flex justify-end pt-2 border-t border-dashed border-ink/10 mt-2">
+                      <button
+                        onClick={() => fetchAIInsight(currentPage)}
+                        disabled={loadingInsight}
+                        className="text-[9px] font-black uppercase text-ink/65 hover:text-ink transition-colors flex items-center gap-1"
+                      >
+                        <RefreshCw className={`w-2.5 h-2.5 ${loadingInsight ? "animate-spin" : ""}`} /> Viết lại chiêm nghiệm
+                      </button>
+                    </div>
                   </div>
-               </div>
+                ) : (
+                  <div className="text-center py-5 px-3 bg-white/50 rounded-xl border border-dashed border-ink/15">
+                    <span className="text-2xl block mb-1">✨</span>
+                    <h4 className="font-black text-xs text-ink uppercase tracking-wide">Trò chuyện tri kỷ chiêm nghiệm</h4>
+                    <p className="text-[10px] text-ink/60 max-w-sm mx-auto mb-3.5 leading-relaxed">
+                      AI sẽ lắng nghe thói quen, từ vựng và tâm tư của ngày này để đồng hành trải lòng bình lặng.
+                    </p>
+                    <button
+                      onClick={() => fetchAIInsight(currentPage)}
+                      disabled={loadingInsight}
+                      className="sketch-button py-1 px-4 text-[10px] uppercase font-black bg-[#fbcfe8] hover:bg-white text-ink transition-all inline-flex items-center gap-1.5 shadow-sm"
+                    >
+                      {loadingInsight ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 animate-spin" /> Tri kỉ đang chắp bút...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3 h-3" /> Chiêm nghiệm ngay
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
 
-               {/* Page Numbers */}
-               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 font-mono font-black text-ink bg-[#fbcfe8] px-3 py-1 rounded-full border-2 border-ink text-sm shadow-[2px_2px_0_0_rgba(0,0,0,0.8)]">
-                  PAGE 0{currentPageIndex + 1}
-               </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
+            </div>
 
-      {/* Decorative Emojis Sticker Bar */}
-      <div className="w-full max-w-xl mx-auto mt-8 bg-white/50 p-3 rounded-2xl sketch-border-sm border-dashed flex flex-col items-center gap-1.5">
-        <span className="text-[9px] font-black uppercase tracking-widest text-ink/65 flex items-center gap-1">✨ Chạm dán sticker thủ công lên trang nhật ký ({currentPage.date})</span>
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {['🌸', '🎯', '🔥', '☕', '🍕', '⭐', '🎉', '🚀', '🧸', '💡', '📖'].map((st) => {
-            const active = (pageStickers[currentPage.date] || []).includes(st);
-            return (
+            {/* Pagination helper badge */}
+            <div className="flex justify-between items-center mt-6 pt-4 border-t border-ink/10 relative z-10 text-[10px] font-mono select-none font-bold text-ink/40">
               <button
-                key={st}
-                onClick={() => addSticker(st, currentPage.date)}
-                className={`w-8 h-8 flex items-center justify-center text-lg rounded-xl transition-all hover:scale-110 active:scale-95 border ${
-                  active ? "bg-[#fffbeb] border-ink rotate-3 scale-105 shadow-[2px_2px_0_0_rgba(0,0,0,1)]" : "bg-white/40 border-dashed border-ink/20 hover:border-ink hover:opacity-100 opacity-70"
-                }`}
-                title={active ? "Gỡ nhãn dán" : "Dán nhãn dán"}
+                onClick={() => currentPageIndex > 0 && setCurrentPageIndex(p => p - 1)}
+                disabled={currentPageIndex === 0}
+                className="hover:text-ink transition-colors disabled:opacity-30 disabled:pointer-events-none uppercase flex items-center gap-1"
               >
-                {st}
+                <ChevronLeft size={12} /> Trang trước
               </button>
-            );
-          })}
+              
+              <span>TRANG 0{currentPageIndex + 1} / 0{pages.length}</span>
+
+              <button
+                onClick={() => currentPageIndex < pages.length - 1 && setCurrentPageIndex(p => p + 1)}
+                disabled={currentPageIndex === pages.length - 1}
+                className="hover:text-ink transition-colors disabled:opacity-30 disabled:pointer-events-none uppercase flex items-center gap-1"
+              >
+                Trang sau <ChevronRight size={12} />
+              </button>
+            </div>
+
+          </div>
+
         </div>
+
       </div>
+
     </div>
   );
 }
-
-// Add simple CSS for clip-ribbon to index.css if possible, but here we can just use inline styles if needed, or rely on normal css.
