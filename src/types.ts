@@ -18,6 +18,8 @@ export interface Task {
   content: string;
   completed: boolean;
   priority: 'Low' | 'Medium' | 'High';
+  createdAt?: number;
+  completedAt?: number;
 }
 
 export interface FoodPlace {
@@ -165,6 +167,7 @@ export interface Achievement {
   unlockedAt: number;
   icon?: string;
   goalId?: string;
+  dateEarned?: number;
 }
 
 export interface Habit {

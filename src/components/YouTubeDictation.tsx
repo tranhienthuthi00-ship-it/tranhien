@@ -653,7 +653,18 @@ export function YouTubeDictation({
                     const state = await playerRef.current.getPlayerState();
                     // state 1 is playing
                     if (state === 1 && t >= endTimeOut) {
-            // Time tracking effect for Subtitle highlighting and auto-pausing
+                       playerRef.current.pauseVideo();
+                    }
+                  } catch (e) {}
+               }
+            }, 200);
+         }
+      }
+    }
+    return () => clearInterval(interval);
+  }, [activeSession?.progress, activeSession?.id, mode, activeSession?.transcriptItems, activeSession?.content, isPlayerReady]);
+
+  // Time tracking effect for Subtitle highlighting and auto-pausing
   useEffect(() => {
     let interval: any;
     if (activeSession && mode === 'subtitles' && isPlayerReady) {
@@ -689,14 +700,7 @@ export function YouTubeDictation({
       }, 250);
     }
     return () => clearInterval(interval);
-  }, [activeSession, mode, isPlayerReady, activeSubtitleIndex, dictationAutoPauseEnabled, isDictationPausedByAuto]);           }
-            }
-          } catch (e) {}
-        }
-      }, 250);
-    }
-    return () => clearInterval(interval);
-  }, [activeSession, mode, isPlayerReady]);
+  }, [activeSession, mode, isPlayerReady, activeSubtitleIndex, dictationAutoPauseEnabled, isDictationPausedByAuto]);
 
   // Auto scroll effect to center the highlighted subtitle
   useEffect(() => {
