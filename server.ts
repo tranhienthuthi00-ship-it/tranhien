@@ -839,6 +839,103 @@ CRITICAL: Return ONLY a raw JSON object. Do NOT wrap it in any formatting, expla
     }
   });
 
+  app.post("/api/journal/insight", async (req, res) => {
+    try {
+      const {
+        date,
+        logs = [],
+        habits = [],
+        tasks = [],
+        places = [],
+        words = [],
+        ideas = [],
+        achievements = [],
+        userMood = ""
+      } = req.body;
+
+      // Only attempt Gemini if a key is provided and looks valid, otherwise go straight to fallback
+      if (!process.env.GEMINI_API_KEY) {
+        console.warn("GEMINI_API_KEY is not defined. Using local fallback for Journal insight.");
+        const fallback = getFallbackInsight({ date, logs, habits, tasks, places, words, ideas, achievements });
+        return res.json(fallback);
+      }
+
+      const prompt = `Bạn là một người bạn tri kỉ đồng cảm, người hỗ trợ học tập và phát triển bản thân của người dùng (trong ứng dụng "Study Hub"). Hãy đọc thông tin các hoạt động và suy nghĩ trong ngày hôm nay của người dùng để viết một phản hồi đồng cảm, truyền động lực, mang phong cách "sổ tay kí ức" ấm áp.
+
+Thông tin ngày hôm nay (${date}):
+- Cảm xúc người dùng tự chọn: ${userMood || "Chưa chọn cảm xúc"}
+- Nhật ký / Suy ngẫm:
+${logs.length > 0 ? logs.map((l: string) => `- ${l}`).join('\n') : "(Chưa ghi nhật ký)"}
+- Thói quen đã hoàn thành:
+${habits.length > 0 ? habits.map((h: string) => `- ${h}`).join('\n') : "(Không có thói quen nào hoàn thành)"}
+- Nhiệm vụ đã làm:
+${tasks.length > 0 ? tasks.map((t: string) => `- ${t}`).join('\n') : "(Không có nhiệm vụ nào xong)"}
+- Địa điểm đã đi:
+${places.length > 0 ? places.map((p: string) => `- ${p}`).join('\n') : "(Không có địa điểm nào)"}
+- Từ vựng tiếng Anh đã ôn:
+${words.length > 0 ? words.map((w: string) => `- ${w}`).join('\n') : "(Không có từ vựng nào)"}
+- Ý tưởng sáng tạo nội dung đã làm:
+${ideas.length > 0 ? ideas.map((i: string) => `- ${i}`).join('\n') : "(Không có ý tưởng mới)"}
+- Thành tựu đạt được:
+${achievements.length > 0 ? achievements.map((a: string) => `- ${a}`).join('\n') : "(Không có thành tựu mới)"}
+
+Hãy phân tích và trả về một đối tượng JSON thuần túy chứa các trường sau (bằng tiếng Việt):
+1. "title": Một tiêu đề ngắn gọn, thú vị, đầy chất thơ cho ngày hôm nay (tối đa 6-7 từ) ví dụ "Một ngày bình yên bên tách cà phê", "Từng bước nhỏ tạo sóng lớn".
+2. "moodAnalysis": Phân tích cảm xúc ngắn (tối đa 15 từ) từ tổng thể hoạt động hôm nay.
+3. "summary": Phản hồi chính (tầm 2-3 câu ngắn gọn, ấm áp, đậm tình tri kỉ). Nhận xét chân thành về những nỗ lực hôm nay của họ (học từ vựng, thói quen), cổ vũ họ bất kể họ có một ngày bận rộn hay nhàn hạ, nhắc nhở họ trân trọng bản thân. Hãy xưng hô thân mật là "bạn" và gọi bằng góc nhìn của người tri kỉ.
+4. "quote": Một câu trích dẫn tích cực hoặc danh ngôn truyền cảm hứng phù hợp với tinh thần của ngày hôm nay.
+5. "suggestions": Một mảng chứa đúng 1 hoặc 2 gợi ý nhỏ, thiết thực cho ngày mai để họ tiếp tục học tập và phát triển bản thân (ví dụ: "Dành ra 5 phút thiền định trước lúc ngủ để đầu óc thanh thản", "Ôn tập lại các từ vựng đã ghi chép hôm nay").
+
+Hãy trả về duy nhất chuỗi JSON thô, không nằm trong các khối mã markdown, không giải thích gì thêm ngoài cấu trúc JSON hợp lệ.`;
+
+      const result = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const responseText = result.text.trim();
+      const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
+      const payload = JSON.parse(cleanJson);
+      res.json(payload);
+    } catch (error: any) {
+      console.error("Gemini Error (Journal Insight):", error);
+      const fallback = getFallbackInsight(req.body);
+      res.json(fallback);
+    }
+  });
+
+  function getFallbackInsight(payload: any) {
+    const { logs = [], habits = [], tasks = [], places = [], words = [], ideas = [], achievements = [] } = payload;
+    const habitCount = habits.length;
+    const wordCount = words.length;
+    const taskCount = tasks.length;
+    
+    let summary = "Hôm nay là một ngày ý nghĩa trong cuộc hành trình của bạn. Từng hoạt động nhỏ, từng dòng nhật ký đều là mảnh ghép hoàn mỹ tạo nên bản thân bạn.";
+    if (habitCount > 0 && wordCount > 0) {
+      summary = `Một ngày thật tuyệt vời khi bạn vừa duy trì được ${habitCount} thói quen tốt, vừa tích lũy thêm ${wordCount} hạt giống từ vựng mới. Bạn đang đi rất đúng hướng đấy!`;
+    } else if (habitCount > 0) {
+      summary = `Thật kiên trì! Bạn đã hoàn thành được ${habitCount} thói quen tốt trong ngày hôm nay. Kỳ tích được tạo dựng từ những điều nhỏ bé lặp đi lặp lại hàng ngày.`;
+    } else if (wordCount > 0) {
+      summary = `Hành trình vạn dặm bắt đầu từ bước đi đầu tiên. Việc bạn ôn tập ${wordCount} từ vựng hôm nay chính là cầu nối dẫn bạn đến sự lưu loát tương lai.`;
+    } else if (logs.length > 0) {
+      summary = "Ghi chép lại suy nghĩ là cách tuyệt vời để kết nối với chính mình. Cảm ơn bạn đã can đảm lưu giữ lại những suy nghĩ chân thật nhất của ngày hôm nay.";
+    }
+    
+    return {
+      title: "Mảnh ghép ngày thường",
+      moodAnalysis: "Bình yên và tích lũy",
+      summary: summary,
+      quote: "Hành trình vạn dặm khởi đầu từ một bước chân. - Lão Tử",
+      suggestions: [
+        "Dành 5 phút nhìn lại những gì đã thực hiện trước khi ngủ.",
+        "Tiếp tục đặt mục tiêu nhỏ cho ngày mai."
+      ]
+    };
+  }
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
