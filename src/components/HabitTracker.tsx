@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import confetti from "canvas-confetti";
 import { 
   Plus, Trash2, Check, Clock, Bell, Flame, Award, 
   Sparkles, X, Coffee, Droplet, Dumbbell, BookOpen, 
@@ -996,6 +997,18 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
     }
  
     if (targetStatus) {
+      if (task.habitId) {
+        try {
+          confetti({
+            particleCount: 140,
+            spread: 80,
+            origin: { y: 0.65 },
+            colors: ["#34d35c", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6"]
+          });
+        } catch (e) {
+          console.error("Confetti trigger failed", e);
+        }
+      }
       if (triggeredCelebration) {
         playSound('celebration');
       } else {

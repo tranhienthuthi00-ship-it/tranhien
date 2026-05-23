@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import type { Word, Task, LogEntry, WishlistItem, StudyGoal, Asset } from "@/types";
+import type { Word, Task, LogEntry, WishlistItem, StudyGoal, Asset, Habit } from "@/types";
 import { 
   BookA, 
   CheckSquare, 
@@ -14,8 +14,23 @@ import {
   ArrowRightLeft,
   ChevronDown,
   ChevronUp,
-  Filter
+  Filter,
+  Flame,
+  Activity,
+  Award,
+  Sparkles
 } from "lucide-react";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  ResponsiveContainer,
+  Cell,
+  Legend
+} from "recharts";
 
 export function Progress({
   words,
@@ -41,6 +56,81 @@ export function Progress({
   const masteredWords = words.filter(w => w.difficulty === 1).length;
   const completedTasks = tasks.filter(t => t.completed).length;
   const completedGoals = goals.filter(g => g.isCompleted).length;
+
+  // Load habits from localStorage
+  const habits = useMemo((): Habit[] => {
+    try {
+      const saved = localStorage.getItem("studyHub_habits");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  // Generate list of the past 30 days
+  const past30Days = useMemo(() => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      dates.push(d.toISOString().split("T")[0]);
+    }
+    return dates;
+  }, []);
+
+  // Calculate completion stats for each habit
+  const habitStats = useMemo(() => {
+    if (!habits || habits.length === 0) return [];
+
+    return habits.map((h) => {
+      let completedCount = 0;
+      const dailyCompletion = past30Days.map(dateStr => {
+        const historyDay = h.history?.[dateStr];
+        const isCompleted = historyDay ? Object.values(historyDay).some(v => v === true) : false;
+        if (isCompleted) {
+          completedCount++;
+        }
+        return {
+          date: dateStr,
+          isCompleted
+        };
+      });
+
+      const rate = Math.round((completedCount / 30) * 100);
+
+      return {
+        id: h.id,
+        name: h.name,
+        icon: h.icon || "🔥",
+        category: h.category || "Cá nhân",
+        completedCount,
+        rate,
+        dailyCompletion,
+        streak: h.streak || 0,
+        maxStreak: h.maxStreak || 0
+      };
+    });
+  }, [habits, past30Days]);
+
+  // Take top 5 habits based on completion rate
+  const top5Habits = useMemo(() => {
+    return habitStats
+      .slice()
+      .sort((a, b) => b.completedCount - a.completedCount || b.streak - a.streak)
+      .slice(0, 5);
+  }, [habitStats]);
+
+  // Recharts specific data
+  const rechartsData = useMemo(() => {
+    return top5Habits.map(h => ({
+      name: `${h.icon} ${h.name.length > 15 ? h.name.slice(0, 15) + '...' : h.name}`,
+      fullName: h.name,
+      Tỉ_lệ_hoàn_thành: h.rate,
+      Số_ngày_làm: h.completedCount,
+      Số_ngày_bỏ: 30 - h.completedCount
+    })).reverse(); // reverse for horizontal bars to show top at top
+  }, [top5Habits]);
 
   // Purchased items analysis
   const purchasedItemsList = useMemo(() => wishlist.filter(item => item.isPurchased), [wishlist]);
@@ -191,6 +281,214 @@ export function Progress({
             {formatCurrency(totalPurchasedValueAllTime)}
           </div>
         </div>
+      </div>
+
+      {/* SECTION: HABIT TRENDS VISUALIZATION */}
+      <div className="sketch-border p-5 md:p-6 bg-white/40 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-ink/10">
+          <div className="flex items-center gap-2">
+            <Flame className="text-orange-500 w-5 h-5 animate-pulse" />
+            <h3 className="text-base font-black font-sans uppercase tracking-wider text-ink">
+              TIẾN TRÌNH THÓI QUEN & XU HƯỚNG (30 NGÀY QUA)
+            </h3>
+          </div>
+          {habits.length > 0 && (
+            <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2 py-0.5 rounded uppercase font-sans">
+              Top 5 Thói Quen Hàng Đầu
+            </span>
+          )}
+        </div>
+
+        {habits.length === 0 ? (
+          <div className="text-center py-10 px-4 border border-dashed border-ink/15 rounded bg-ink/5 flex flex-col items-center justify-center gap-3">
+            <Activity className="w-10 h-10 text-ink/30 animate-pulse" />
+            <span className="font-sans font-black text-sm uppercase text-ink/70">Chưa tìm thấy dữ liệu thói quen</span>
+            <p className="text-xs text-ink/65 max-w-md leading-relaxed text-center">
+              Vui lòng truy cập tab <strong className="text-crimson">THÓI QUEN / LỊCH TRÌNH</strong> tại mục Bộ sưu tập để thiết lập thói quen hằng ngày và tích lũy lịch sử hoàn thành để xem phân tích xu hướng chi tiết tại đây!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Box: Progress Stats & Recharts bar chart */}
+            <div className="lg:col-span-6 space-y-4 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase text-ink/55 block tracking-wider mb-2 font-sans">
+                  SƠ ĐỒ TỈ LỆ HOÀN THÀNH (%)
+                </span>
+                
+                <div className="h-[240px] w-full font-sans text-xs">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={rechartsData}
+                      layout="vertical"
+                      margin={{ top: 10, right: 15, left: 10, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(26,26,26,0.06)" />
+                      <XAxis 
+                        type="number" 
+                        domain={[0, 100]} 
+                        tickFormatter={(value) => `${value}%`}
+                        stroke="rgba(26,26,26,0.6)"
+                        tick={{ style: { fontSize: '10px', fontWeight: 'bold' } }}
+                      />
+                      <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        stroke="rgba(26,26,26,0.6)"
+                        width={90}
+                        tick={{ style: { fontSize: '11px', fontWeight: 'bold' } }}
+                      />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: "#fdfbf7",
+                          border: "2px solid #1a1a1a",
+                          borderRadius: "8px",
+                          boxShadow: "4px 4px 0px 0px rgba(0,0,0,0.15)",
+                          fontFamily: "var(--font-sans)",
+                          fontSize: "11px",
+                          fontWeight: "bold",
+                        }}
+                        formatter={(value: any, name: any, props: any) => [
+                          `${value}% (${props.payload.Số_ngày_làm}/30 ngày)`,
+                          "Độ kiên trì"
+                        ]}
+                        labelFormatter={(label, items) => {
+                          if (items && items[0]) {
+                            return items[0].payload.fullName;
+                          }
+                          return label;
+                        }}
+                      />
+                      <Bar dataKey="Tỉ_lệ_hoàn_thành" radius={[0, 4, 4, 0]}>
+                        {rechartsData.map((entry, index) => {
+                          const originalItem = top5Habits[top5Habits.length - 1 - index];
+                          // category colors match
+                          let valColor = "#34d399"; // default emerald
+                          if (originalItem?.category === "Sức khỏe") valColor = "#10b981";
+                          else if (originalItem?.category === "Học tập") valColor = "#3b82f6";
+                          else if (originalItem?.category === "Công việc") valColor = "#f59e0b";
+                          else if (originalItem?.category === "Cá nhân") valColor = "#ec4899";
+                          return <Cell key={`cell-${index}`} fill={valColor} stroke="#1A1A1A" strokeWidth={1} />;
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Mini cards for overall habits overview */}
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                <div className="bg-amber-50/40 p-3 border border-dashed border-ink/15 rounded-xl flex flex-col justify-between">
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-ink/45 block font-sans">Kiên trì nhất:</span>
+                    <span className="text-xs font-black text-ink font-sans tracking-wide truncate block">
+                      {top5Habits[0] ? `${top5Habits[0].icon} ${top5Habits[0].name}` : "N/A"}
+                    </span>
+                  </div>
+                  <span className="text-sm font-mono font-black text-emerald-800 mt-1">
+                    {top5Habits[0] ? `${top5Habits[0].rate}% hoàn thành` : "0%"}
+                  </span>
+                </div>
+
+                <div className="bg-pink-50/30 p-3 border border-dashed border-ink/15 rounded-xl flex flex-col justify-between">
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-ink/45 block font-sans">Chuỗi Streak hiện tại:</span>
+                    <span className="text-xs font-black text-ink font-sans tracking-wide truncate block">
+                      {top5Habits[0] ? `${top5Habits[0].icon} ${top5Habits[0].name}` : "N/A"}
+                    </span>
+                  </div>
+                  <span className="text-sm font-black text-crimson mt-1 flex items-center gap-1 font-sans">
+                    <Flame size={12} className="text-orange-500 inline fill-orange-500 animate-bounce" /> 
+                    {top5Habits[0] ? `${top5Habits[0].streak} ngày (Kỷ lục: ${top5Habits[0].maxStreak}d)` : "0 ngày"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Box: Heatmap Grid consistency */}
+            <div className="lg:col-span-6 space-y-4">
+              <div>
+                <span className="text-[10px] font-black uppercase text-ink/55 block tracking-wider mb-2 font-sans">
+                  MA TRẬN KIÊN TRÌ (30 NGÀY QUA)
+                </span>
+                <p className="text-[11px] text-ink/65 italic leading-relaxed mb-4 font-sans bg-amber-50/15 p-2 rounded-lg border border-ink/5 border-dashed">
+                  Lịch sử tích lũy thói quen của Top 5 thói quen hàng đầu. Di chuột lên các ô vuông nhỏ đại diện cho mỗi ngày để kiểm tra lịch sử chi tiết!
+                </p>
+              </div>
+
+              <div className="space-y-3.5 bg-white/70 p-4 rounded-xl border border-ink/10 shadow-inner">
+                {top5Habits.map((h, hIdx) => {
+                  return (
+                    <div key={h.id} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs font-bold text-ink">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className="text-sm">{h.icon}</span>
+                          <span className="truncate max-w-[200px] sm:max-w-xs">{h.name}</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-ink/50 font-bold shrink-0">
+                          {h.completedCount}/30 ngày ({h.rate}%)
+                        </span>
+                      </div>
+
+                      {/* Flex wrapper representing 30 small days blocks */}
+                      <div className="flex flex-wrap gap-1 bg-paper/50 p-1.5 rounded-lg border border-ink/5 relative">
+                        {h.dailyCompletion.map((day, idx) => {
+                          const dateObj = new Date(day.date);
+                          const formattedDate = dateObj.toLocaleDateString('vi-VN', { month: 'numeric', day: 'numeric' });
+                          return (
+                            <div
+                              key={idx}
+                              title={`${h.name}\nNgày ${formattedDate}: ${day.isCompleted ? "✓ Hoàn thành" : "✗ Chưa làm"}`}
+                              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded border transition-all duration-150 relative group ${
+                                day.isCompleted
+                                  ? `${
+                                      h.category === "Sức khỏe" ? "bg-emerald-500 border-emerald-700" :
+                                      h.category === "Học tập" ? "bg-blue-500 border-blue-700" :
+                                      h.category === "Công việc" ? "bg-amber-400 border-amber-600" :
+                                      "bg-pink-500 border-pink-700"
+                                    } shadow-[1px_1px_0px_rgba(0,0,0,0.15)] hover:scale-115 cursor-pointer`
+                                  : "bg-[#eae6df]/35 border-ink/10 hover:border-ink/35 hover:bg-[#eae6df]/50 cursor-crosshair"
+                              }`}
+                            >
+                              <div className="absolute pointer-events-none bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-50 bg-ink text-[#fffbeb] text-[9px] px-1.5 py-0.5 rounded shadow-md whitespace-nowrap leading-none font-sans font-bold">
+                                {formattedDate}: {day.isCompleted ? "✓ Xong" : "✗ Chưa"}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Legend helper indicator */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 border-t border-dashed border-ink/10 text-[9px] font-black uppercase text-ink/55 font-sans">
+                  <span className="select-none text-ink/40">Chú thích:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 bg-emerald-500 border border-emerald-700 rounded-sm" />
+                    <span className="text-ink/75">Sức khỏe</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 bg-blue-500 border border-blue-700 rounded-sm" />
+                    <span className="text-ink/75">Học tập</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 bg-amber-400 border border-amber-600 rounded-sm" />
+                    <span className="text-ink/75">Công việc</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 bg-pink-500 border border-pink-700 rounded-sm" />
+                    <span className="text-ink/75">Cá nhân</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 bg-[#eae6df]/35 border border-ink/10 rounded-sm" />
+                    <span className="text-ink/75">Chưa làm</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* SECTION 2: Asset & Shopping Analysis Dashboard */}
