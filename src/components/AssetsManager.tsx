@@ -60,16 +60,24 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const [isNewMoney, setIsNewMoney] = useState(false);
   const [excludeFromNetWorth, setExcludeFromNetWorth] = useState(false);
 
+  // Generate last 7 dates in YYYY-MM-DD
+  const getLast7Dates = () => {
+    const dates = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dates.push(d.toISOString().split("T")[0]);
+    }
+    return dates;
+  };
+
   // Bulk Debt State with exactly 7 rows for days of the week
-  const DEFAULT_WEEK_DEBTS = [
-    { id: 1, name: "Thứ Hai", amount: "", notes: "Giữ hộ" },
-    { id: 2, name: "Thứ Ba", amount: "", notes: "Giữ hộ" },
-    { id: 3, name: "Thứ Tư", amount: "", notes: "Giữ hộ" },
-    { id: 4, name: "Thứ Năm", amount: "", notes: "Giữ hộ" },
-    { id: 5, name: "Thứ Sáu", amount: "", notes: "Giữ hộ" },
-    { id: 6, name: "Thứ Bảy", amount: "", notes: "Giữ hộ" },
-    { id: 7, name: "Chủ Nhật", amount: "", notes: "Giữ hộ" }
-  ];
+  const DEFAULT_WEEK_DEBTS = getLast7Dates().map((dateStr, idx) => ({
+    id: idx + 1,
+    name: dateStr,
+    amount: "",
+    notes: ""
+  }));
 
   const [bulkDebts, setBulkDebts] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => 
     DEFAULT_WEEK_DEBTS.map(item => ({ ...item }))
@@ -1071,16 +1079,24 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
             <table className="min-w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-crimson/10 text-[9px] font-black uppercase tracking-widest text-crimson border-b-2 border-crimson/50">
-                  <th className="px-4 py-3 font-black">Cột A: Ngày (Thứ trong tuần)</th>
-                  <th className="px-4 py-3 text-right font-black w-60">Cột B: Số Tiền Giữ Hộ (VND)</th>
-                  <th className="px-4 py-3 font-black pl-8">Ghi Chú Chi Tiết</th>
+                  <th className="px-4 py-3 font-black">Cột A: Ngày</th>
+                  <th className="px-4 py-3 text-right font-black-60">Cột B: Số Tiền Giữ Hộ (VND)</th>
                 </tr>
               </thead>
               <tbody className="font-sans divide-y divide-crimson/10">
                 {bulkDebts.map((item, idx) => (
                   <tr key={item.id} className="transition-colors hover:bg-crimson/5">
-                    <td className="px-4 py-3 font-bold text-ink/80 bg-crimson/5 w-44">
-                      {item.name}
+                    <td className="px-4 py-3 bg-crimson/5 w-48">
+                      <input 
+                        type="date" 
+                        value={item.name} 
+                        onChange={e => {
+                          const newDebts = [...bulkDebts];
+                          newDebts[idx].name = e.target.value;
+                          setBulkDebts(newDebts);
+                        }} 
+                        className="w-full font-bold text-ink bg-white border border-ink/15 rounded-lg px-2.5 py-1.5 outline-none focus:border-crimson text-xs shadow-inner"
+                      />
                     </td>
                     <td className="px-4 py-3 text-right">
                       <input 
@@ -1096,19 +1112,6 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                         }} 
                         placeholder="0"
                         className="w-full text-right font-mono font-bold text-crimson bg-white border border-ink/15 rounded-lg px-3 py-1.5 outline-none focus:border-crimson text-sm shadow-inner"
-                      />
-                    </td>
-                    <td className="px-4 py-3 pl-8">
-                      <input 
-                        type="text" 
-                        value={item.notes} 
-                        onChange={e => {
-                          const newDebts = [...bulkDebts];
-                          newDebts[idx].notes = e.target.value;
-                          setBulkDebts(newDebts);
-                        }} 
-                        placeholder="Ví dụ: Giữ hộ đại lý / Tiền thu hộ..."
-                        className="w-full bg-white border border-ink/15 rounded-lg px-2 py-1.5 outline-none focus:border-crimson/50 text-xs shadow-inner"
                       />
                     </td>
                   </tr>
