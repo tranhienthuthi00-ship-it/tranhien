@@ -516,19 +516,85 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
                             </div>
                           </div>
 
-                          <div className="flex items-start gap-1 flex-col">
-                            <span className="text-[10px] font-black uppercase text-ink select-none">Chọn biểu tượng:</span>
-                            <div className="flex flex-wrap gap-1 bg-white/40 p-1 rounded-lg border border-ink/10 w-full justify-between sm:justify-start font-sans">
-                              {['📝', '💡', '🌟', '🍀', '☕', '🔥', '🎉', '💻', '💪', '❤️', '🎓'].map(em => (
+                          {/* ✨ QUICK-PICK DAILY MOOD SELECTOR */}
+                          <div className="flex flex-col gap-1.5 border-t border-b border-dashed border-ink/10 py-2.5">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] font-black uppercase text-ink select-none">Cảm xúc ngày hôm nay (Daily Mood):</span>
+                              <span className="text-[9px] font-bold text-ink/40 tracking-wide">(Ghi nhận trạng thái)</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 p-1 bg-white/45 rounded-xl border border-ink/5 justify-start font-sans">
+                              {[
+                                { emoji: "😌", name: "Bình yên" },
+                                { emoji: "😊", name: "Vui vẻ" },
+                                { emoji: "🌟", name: "Hào hứng" },
+                                { emoji: "🥱", name: "Mệt mỏi" },
+                                { emoji: "😔", name: "Tâm trạng" },
+                                { emoji: "☕", name: "Tập trung" },
+                                { emoji: "🥳", name: "Tuyệt vời" },
+                                { emoji: "🤯", name: "Áp lực" }
+                              ].map(m => {
+                                const isSelected = dailyMoods[currentPage.date]?.emoji === m.emoji;
+                                return (
+                                  <button
+                                    key={m.emoji}
+                                    type="button"
+                                    onClick={() => {
+                                      changeMood(currentPage.date, m.emoji, m.name);
+                                      // Suggest setting log entry emoji to this emotion if still default
+                                      if (newEntryEmoji === "📝") {
+                                        setNewEntryEmoji(m.emoji);
+                                      }
+                                    }}
+                                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all flex items-center gap-1 active:scale-95 duration-150 ${
+                                      isSelected
+                                        ? "bg-[#fbcfe8] border-ink text-ink shadow-[2px_2px_0_var(--color-ink)]"
+                                        : "bg-white border-ink/10 text-ink/70 opacity-75 hover:opacity-100 hover:bg-ink/5"
+                                    }`}
+                                  >
+                                    <span className="text-xs">{m.emoji}</span>
+                                    <span className="text-[9px] uppercase tracking-wider font-black">{m.name}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* ✨ ENHANCE ENTRY ICON OPTIONS WITH TOOLTIPS */}
+                          <div className="flex items-start gap-1.5 flex-col">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] font-black uppercase text-ink select-none">Chọn biểu tượng dòng viết:</span>
+                              <span className="text-[9px] font-bold text-ink/40 tracking-wide">(Nhãn đại diện sự kiện)</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1 bg-white/40 p-1.5 rounded-xl border border-ink/10 w-full justify-start font-sans">
+                              {[
+                                { emoji: '📝', label: 'Viết lách' },
+                                { emoji: '💡', label: 'Ý tưởng' },
+                                { emoji: '🌟', label: 'Tỏa sáng' },
+                                { emoji: '🍀', label: 'May mắn' },
+                                { emoji: '☕', label: 'Thư giãn' },
+                                { emoji: '🔥', label: 'Nhiệt huyết' },
+                                { emoji: '🎉', label: 'Niềm vui' },
+                                { emoji: '💻', label: 'Công việc' },
+                                { emoji: '💪', label: 'Nỗ lực' },
+                                { emoji: '❤️', label: 'Yêu thương' },
+                                { emoji: '🎓', label: 'Học tập' },
+                                { emoji: '🌸', label: 'Bình yên' },
+                                { emoji: '🏃', label: 'Thể chất' },
+                                { emoji: '📚', label: 'Sách đọc' }
+                              ].map(item => (
                                 <button
-                                  key={em}
+                                  key={item.emoji}
                                   type="button"
-                                  onClick={() => setNewEntryEmoji(em)}
-                                  className={`text-sm p-1.5 rounded hover:bg-ink/5 transition-all ${
-                                    newEntryEmoji === em ? "bg-[#fbcfe8] border border-ink scale-110" : "opacity-60"
+                                  title={item.label}
+                                  onClick={() => setNewEntryEmoji(item.emoji)}
+                                  className={`text-sm p-1.5 rounded-lg hover:bg-ink/5 transition-all flex items-center justify-center relative group ${
+                                    newEntryEmoji === item.emoji ? "bg-[#fbcfe8] border border-ink scale-110 shadow-sm" : "opacity-60"
                                   }`}
                                 >
-                                  {em}
+                                  <span>{item.emoji}</span>
+                                  <span className="absolute pointer-events-none bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-40 bg-ink text-[#fffbeb] text-[9px] px-1.5 py-0.5 rounded shadow-md whitespace-nowrap font-bold">
+                                    {item.label}
+                                  </span>
                                 </button>
                               ))}
                             </div>
