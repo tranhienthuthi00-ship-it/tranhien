@@ -30,6 +30,29 @@ interface DailySummary {
 
 export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, tasks = [], achievements = [], goals = [] }: DigitalJournalProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [paperStyle, setPaperStyle] = useState<'lined' | 'grid' | 'dotted' | 'blank'>('lined');
+  const [pageStickers, setPageStickers] = useState<{ [date: string]: string[] }>(() => {
+    try {
+      const saved = localStorage.getItem("journal_stickers");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const addSticker = (sticker: string, date: string) => {
+    const current = pageStickers[date] || [];
+    let updated: string[];
+    if (current.includes(sticker)) {
+      updated = current.filter(s => s !== sticker);
+    } else {
+      if (current.length >= 8) return; // limit to 8 stickers
+      updated = [...current, sticker];
+    }
+    const newStickers = { ...pageStickers, [date]: updated };
+    setPageStickers(newStickers);
+    localStorage.setItem("journal_stickers", JSON.stringify(newStickers));
+  };
 
   const habits: Habit[] = useMemo(() => {
     try {
@@ -118,11 +141,19 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
     // 6. Places Visited
     places.forEach(p => {
       if (p.status === 'Visited') {
-         // id is Date.now().toString().
-         const ts = parseInt(p.id, 10);
-         if (!isNaN(ts)) {
-            const d = getDayFromTs(ts);
+         if (p.dateVisited) {
+            const d = getDay(p.dateVisited);
             if (d) ensureDate(d).placesVisited.push(p);
+         } else {
+            const ts = parseInt(p.id, 10);
+            if (!isNaN(ts)) {
+               const d = getDayFromTs(ts);
+               if (d) ensureDate(d).placesVisited.push(p);
+            } else {
+               // Fallback: use today
+               const d = getDayFromTs(Date.now());
+               ensureDate(d).placesVisited.push(p);
+            }
          }
       }
     });
@@ -199,6 +230,44 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
         </p>
       </div>
 
+      {/* Jump to Date Selector & Paper Design Panel */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full max-w-4xl mx-auto mb-6 bg-white/40 p-3 rounded-2xl sketch-border-sm border-dashed">
+        <div className="flex items-center gap-2">
+          <span className="text-xs uppercase font-black tracking-widest text-ink/70">📅 Chọn ngày:</span>
+          <select 
+            value={currentPage.date}
+            onChange={(e) => {
+              const idx = pages.findIndex(p => p.date === e.target.value);
+              if (idx !== -1) setCurrentPageIndex(idx);
+            }}
+            className="sketch-input bg-white text-[11px] font-black py-1 px-2.5 cursor-pointer shrink-0"
+          >
+            {pages.map((p) => (
+              <option key={p.date} value={p.date}>
+                {p.date} ({p.logs.length} nhật ký, {p.placesVisited.length} địa điểm)
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs uppercase font-black tracking-widest text-ink/70">🎨 Chất liệu giấy:</span>
+          <div className="flex gap-1 bg-paper/60 p-0.5 rounded-lg border border-dashed border-ink/20">
+            {(['lined', 'grid', 'dotted', 'blank'] as const).map((style) => (
+              <button
+                key={style}
+                onClick={() => setPaperStyle(style)}
+                className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded transition-all ${
+                  paperStyle === style ? "bg-ink text-paper" : "text-ink/65 hover:text-ink hover:bg-ink/5"
+                }`}
+              >
+                {style === 'lined' ? "Kẻ ngang" : style === 'grid' ? "Ca-rô" : style === 'dotted' ? "Chấm bi" : "Trắng"}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="relative w-full max-w-4xl mx-auto min-h-[650px] sm:min-h-[700px] flex items-center justify-center perspective-[2000px]">
         {/* Navigation Buttons Outside Book */}
         <button
@@ -230,11 +299,37 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
               exit={{ rotateY: -90, opacity: 0 }}
               transition={{ type: "spring", stiffness: 60, damping: 15 }}
               className="bg-paper w-full h-[600px] sm:h-[650px] rounded-r-2xl rounded-l flex flex-col p-6 sm:p-10 shadow-inner relative overflow-hidden"
-              style={{
-                 backgroundImage: "linear-gradient(transparent 95%, rgba(0,0,0,0.05) 100%)",
-                 backgroundSize: "100% 28px"
-              }}
+              style={
+                paperStyle === 'lined' ? {
+                  backgroundImage: "linear-gradient(transparent 95%, rgba(0,0,0,0.05) 100%)",
+                  backgroundSize: "100% 28px"
+                } : paperStyle === 'grid' ? {
+                  backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px)",
+                  backgroundSize: "24px 24px"
+                } : paperStyle === 'dotted' ? {
+                  backgroundImage: "radial-gradient(rgba(0,0,0,0.08) 1.5px, transparent 1.5px)",
+                  backgroundSize: "20px 20px"
+                } : {
+                  backgroundImage: "none"
+                }
+              }
             >
+               {/* Applied Stickers on the Notebook Page (Overlap top-left) */}
+               <div className="absolute top-4 left-4 flex gap-1.5 z-20 select-none pointer-events-none">
+                 {(pageStickers[currentPage.date] || []).map((st, idx) => {
+                   const rotations = ["rotate-6", "-rotate-12", "rotate-12", "-rotate-6", "rotate-3", "-rotate-3", "rotate-12", "-rotate-[10deg]"];
+                   const rot = rotations[idx % rotations.length];
+                   return (
+                     <span 
+                       key={idx} 
+                       className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-lg md:text-2xl bg-[#fffbeb] rounded-full border border-ink shadow-md ${rot} transform duration-300 animate-in zoom-in`}
+                     >
+                       {st}
+                     </span>
+                   );
+                 })}
+               </div>
+
                {/* Header Ribbon */}
                <div className="absolute top-0 right-8 bg-[#fbcfe8] text-ink border-l-2 border-r-2 border-b-2 border-ink px-3 py-4 shadow-sm z-10 clip-ribbon">
                   <span className="font-mono font-black text-lg rotate-90 block tracking-widest leading-none drop-shadow-sm">{currentPage.date.split('-')[1]}/{currentPage.date.split('-')[0]}</span>
@@ -414,6 +509,28 @@ export function DigitalJournal({ logs, wishlist, assets, words, places, ideas, t
                </div>
             </motion.div>
           </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Decorative Emojis Sticker Bar */}
+      <div className="w-full max-w-xl mx-auto mt-8 bg-white/50 p-3 rounded-2xl sketch-border-sm border-dashed flex flex-col items-center gap-1.5">
+        <span className="text-[9px] font-black uppercase tracking-widest text-ink/65 flex items-center gap-1">✨ Chạm dán sticker thủ công lên trang nhật ký ({currentPage.date})</span>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {['🌸', '🎯', '🔥', '☕', '🍕', '⭐', '🎉', '🚀', '🧸', '💡', '📖'].map((st) => {
+            const active = (pageStickers[currentPage.date] || []).includes(st);
+            return (
+              <button
+                key={st}
+                onClick={() => addSticker(st, currentPage.date)}
+                className={`w-8 h-8 flex items-center justify-center text-lg rounded-xl transition-all hover:scale-110 active:scale-95 border ${
+                  active ? "bg-[#fffbeb] border-ink rotate-3 scale-105 shadow-[2px_2px_0_0_rgba(0,0,0,1)]" : "bg-white/40 border-dashed border-ink/20 hover:border-ink hover:opacity-100 opacity-70"
+                }`}
+                title={active ? "Gỡ nhãn dán" : "Dán nhãn dán"}
+              >
+                {st}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

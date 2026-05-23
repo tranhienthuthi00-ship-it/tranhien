@@ -197,6 +197,8 @@ export function YouTubeDictation({
   const playerRef = useRef<any>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [dictationAutoPauseEnabled, setDictationAutoPauseEnabled] = useState(true);
+  const [isDictationPausedByAuto, setIsDictationPausedByAuto] = useState(false);
   const recognitionRef = useRef<any>(null);
   const [showLibrary, setShowLibrary] = useState(false);
   const [speechScore, setSpeechScore] = useState<number | null>(null);
@@ -494,9 +496,54 @@ export function YouTubeDictation({
   };
 
   const updateSession = (id: string, field: keyof VideoDictation, value: any) => {
-    setDictations(prev => prev.map(d => 
-      d.id === id ? { ...d, [field]: value, lastModified: Date.now() } : d
-    ));
+    setDictations(prev => prev.map(d => {
+      if (d.id === id) {
+        let updated = { ...d, [field]: value, lastModified: Date.now() };
+        
+        // If content is modified, parse timestamps immediately into transcriptItems
+        if (field === 'content') {
+          const text = value || "";
+          const lines = text.split('\n').map((l: string) => l.trim()).filter(Boolean);
+          const timestampRegex = /^(?:\[)?(?:(\d+):)?(\d+)(?:\.(\d+))?(?:\])?[\s-:]*/;
+          let lastOffset = 0;
+          
+          const parsedItems = lines.map((line: string) => {
+            const match = line.match(timestampRegex);
+            let offset = lastOffset;
+            let textClean = line;
+            
+            if (match) {
+              const minutes = match[1] ? parseInt(match[1], 10) : 0;
+              const seconds = parseInt(match[2], 10);
+              const ms = match[3] ? parseInt(match[3].padEnd(3, '0').slice(0, 3), 10) : 0;
+              offset = ((minutes * 60) + seconds) * 1000 + ms;
+              textClean = line.replace(timestampRegex, '').trim();
+              lastOffset = offset + 5000;
+            } else {
+              offset = lastOffset;
+              lastOffset += 5000;
+            }
+            return {
+              text: textClean,
+              offset,
+              duration: 5000
+            };
+          });
+          
+          for (let i = 0; i < parsedItems.length - 1; i++) {
+            const diff = parsedItems[i+1].offset - parsedItems[i].offset;
+            if (diff > 0) {
+              parsedItems[i].duration = diff;
+            }
+          }
+          
+          updated.transcriptItems = parsedItems;
+        }
+        
+        return updated;
+      }
+      return d;
+    }));
   };
   
   const removeSession = (id: string, e: React.MouseEvent) => {
@@ -508,7 +555,9 @@ export function YouTubeDictation({
   };
 
   const getSentences = (text: string) => {
-    return text.match(/[^.!?;\n]+[.!?;]*/g)?.map(s => s.trim()).filter(Boolean) || [];
+    const rawSentences = text.match(/[^.!?;\n]+[.!?;]*/g)?.map(s => s.trim()).filter(Boolean) || [];
+    const timestampRegex = /^(?:\[)?(?:(\d+):)?(\d+)(?:\.(\d+))?(?:\])?[\s-:]*/;
+    return rawSentences.map(s => s.replace(timestampRegex, '').trim()).filter(Boolean);
   };
 
   const normalizeString = (str: string) => {
@@ -604,18 +653,7 @@ export function YouTubeDictation({
                     const state = await playerRef.current.getPlayerState();
                     // state 1 is playing
                     if (state === 1 && t >= endTimeOut) {
-                       playerRef.current.pauseVideo();
-                    }
-                  } catch (e) {}
-               }
-            }, 200);
-         }
-      }
-    }
-    return () => clearInterval(interval);
-  }, [activeSession?.progress, activeSession?.id, mode, activeSession?.transcriptItems, activeSession?.content, isPlayerReady]);
-
-  // Time tracking effect for Subtitle highlighting
+            // Time tracking effect for Subtitle highlighting and auto-pausing
   useEffect(() => {
     let interval: any;
     if (activeSession && mode === 'subtitles' && isPlayerReady) {
@@ -634,8 +672,24 @@ export function YouTubeDictation({
               });
               
               if (activeIndex !== -1) {
+                const oldIndex = activeSubtitleIndex;
                 setActiveSubtitleIndex(activeIndex);
+                
+                // If dictationAutoPauseEnabled is active and we moved to a new sentence segment
+                if (dictationAutoPauseEnabled && activeIndex > 0 && activeIndex > oldIndex && !isDictationPausedByAuto) {
+                  playerRef.current.pauseVideo();
+                  setIsDictationPausedByAuto(true);
+                }
+              } else {
+                setIsDictationPausedByAuto(false);
               }
+            }
+          } catch (e) {}
+        }
+      }, 250);
+    }
+    return () => clearInterval(interval);
+  }, [activeSession, mode, isPlayerReady, activeSubtitleIndex, dictationAutoPauseEnabled, isDictationPausedByAuto]);           }
             }
           } catch (e) {}
         }

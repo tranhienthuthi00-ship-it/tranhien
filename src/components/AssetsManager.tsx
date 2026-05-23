@@ -60,31 +60,50 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const [isNewMoney, setIsNewMoney] = useState(false);
   const [excludeFromNetWorth, setExcludeFromNetWorth] = useState(false);
 
-  // Bulk Debt & Weekly Revenue State
-  const [bulkDebts, setBulkDebts] = useState<{id: number, name: string, amount: string, isWeeklyRev: boolean, notes: string}[]>([
-     { id: Date.now(), name: "", amount: "", isWeeklyRev: false, notes: "" }
-  ]);
+  // Bulk Debt State with exactly 7 rows for days of the week
+  const DEFAULT_WEEK_DEBTS = [
+    { id: 1, name: "Thứ Hai", amount: "", notes: "Giữ hộ" },
+    { id: 2, name: "Thứ Ba", amount: "", notes: "Giữ hộ" },
+    { id: 3, name: "Thứ Tư", amount: "", notes: "Giữ hộ" },
+    { id: 4, name: "Thứ Năm", amount: "", notes: "Giữ hộ" },
+    { id: 5, name: "Thứ Sáu", amount: "", notes: "Giữ hộ" },
+    { id: 6, name: "Thứ Bảy", amount: "", notes: "Giữ hộ" },
+    { id: 7, name: "Chủ Nhật", amount: "", notes: "Giữ hộ" }
+  ];
+
+  const [bulkDebts, setBulkDebts] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => 
+    DEFAULT_WEEK_DEBTS.map(item => ({ ...item }))
+  );
+
   const handleResetBulkDebts = () => {
-    setBulkDebts([{ id: Date.now(), name: "", amount: "", isWeeklyRev: false, notes: "" }]);
+    setBulkDebts(DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "" })));
   };
+
   const handleSaveBulkDebts = () => {
      const now = Date.now();
-     const validDebts = bulkDebts.filter(d => d.name.trim() && d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
-     if (validDebts.length === 0) return;
+     const validDebts = bulkDebts.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
+     if (validDebts.length === 0) {
+       alert("Hãy nhập số tiền nợ giữ hộ cho ít nhất một ngày!");
+       return;
+     }
 
-     const newDebtAssets: Asset[] = validDebts.map(d => ({
-        id: `debt-${now}-${d.id}`,
-        name: d.name,
-        category: categories.find(c => c.name.toLowerCase().includes("nợ"))?.id || defaultCatID,
-        value: parseFloat(d.amount.replace(/,/g, '')),
+     const totalSum = validDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
+     const catId = categories.find(c => c.name.toLowerCase().includes("nợ"))?.id || defaultCatID;
+
+     const aggregatedDebt: Asset = {
+        id: `debt-held-${now}`,
+        name: `Nợ giữ hộ tuần (${validDebts.length} ngày)`,
+        category: catId,
+        value: totalSum,
         currency: "VND",
-        notes: d.notes,
+        notes: `Giữ hộ chi tiết: ` + validDebts.map(d => `${d.name}: ${parseFloat(d.amount.replace(/,/g, '')).toLocaleString('vi-VN')}đ`).join(", "),
         acquiredAt: now,
         isDebt: true,
         excludeFromNetWorth: false
-     }));
+     };
 
-     setAssets([...newDebtAssets, ...assets]);
+     setAssets([aggregatedDebt, ...assets]);
+     alert(`Đã lưu tổng nợ giữ hộ tuần trị giá ${totalSum.toLocaleString('vi-VN')}đ vào Sổ Nợ thành công!`);
      handleResetBulkDebts();
   };
 
@@ -552,8 +571,9 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.fill }} />
                     <span className="text-[10px] font-bold uppercase tracking-tight text-ink/70 truncate">{d.name}</span>
                   </div>
-                  <span className="text-xs font-bold pl-4">
-                    {totalAssetsVND > 0 ? Math.round((d.value / totalAssetsVND) * 100) : 0}%
+                  <span className="text-xs font-bold pl-4 text-ink flex flex-col sm:flex-row sm:items-center gap-1">
+                    <span>{totalAssetsVND > 0 ? Math.round((d.value / totalAssetsVND) * 100) : 0}%</span>
+                    <span className="text-[10px] font-semibold text-ink/65">({formatCurrency(d.value, 'VND')})</span>
                   </span>
                </div>
              ))}
@@ -1014,7 +1034,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                className={cn(
                  "sketch-button sketch-button-primary py-2 px-6 flex items-center gap-2 text-xs transition-all",
                  !hasUnsavedNewMoneyChanges 
-                   ? "bg-amber-600/30 text-white/50 cursor-not-allowed border-none" 
+                   ? "bg-amber-600/30 text-white/50 cursor-not-allowed border-none shadow-none" 
                    : "bg-amber-600 text-white hover:bg-amber-700 hover:shadow-lg active:scale-95 cursor-pointer"
                )}
              >
@@ -1032,39 +1052,35 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                 <Receipt size={24} />
               </button>
               <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-crimson">Bảng Kê Công Nợ & Doanh Thu Tuần</h2>
-                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Ghi nhận các khoản phải trả (Nợ) hoặc Doanh thu tuần</p>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-crimson">Bảng Kê Công Nợ Giữ Hộ Tuần</h2>
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Ghi nhận các khoản nợ tiền giữ hộ đại lý/khách hàng theo từng ngày</p>
               </div>
+           </div>
+           
+           {/* Sum displayed above */}
+           <div className="bg-crimson/10 border-2 border-crimson/30 px-4 py-2 rounded-xl text-right">
+              <p className="text-[10px] font-bold text-crimson/80 uppercase tracking-wider">TỔNG CỘNG NỢ TUẦN (7 NGÀY)</p>
+              <p className="text-xl font-black text-crimson font-mono">
+                {bulkDebts.reduce((sum, item) => sum + (parseFloat(item.amount.replace(/,/g, '')) || 0), 0).toLocaleString('vi-VN')} đ
+              </p>
            </div>
         </div>
 
-        <div className="bg-white/50 sketch-border p-4 rounded-xl overflow-hidden mb-6">
+        <div className="bg-[#fffbeb] sketch-border p-4 rounded-xl overflow-hidden mb-6">
           <div className="overflow-x-auto max-w-full">
             <table className="min-w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-crimson/10 text-[9px] font-black uppercase tracking-widest text-crimson border-b-2 border-crimson/50">
-                  <th className="px-4 py-3 font-black">Tên Khoản Nợ / Doanh thu</th>
-                  <th className="px-4 py-3 text-right font-black w-44">Số Tiền (VND)</th>
-                  <th className="px-4 py-3 text-center font-black w-24">Phân loại</th>
-                  <th className="px-4 py-3 font-black">Ghi Chú</th>
-                  <th className="px-4 py-3 text-center font-black w-16">Thao tác</th>
+                  <th className="px-4 py-3 font-black">Cột A: Ngày (Thứ trong tuần)</th>
+                  <th className="px-4 py-3 text-right font-black w-60">Cột B: Số Tiền Giữ Hộ (VND)</th>
+                  <th className="px-4 py-3 font-black pl-8">Ghi Chú Chi Tiết</th>
                 </tr>
               </thead>
               <tbody className="font-sans divide-y divide-crimson/10">
                 {bulkDebts.map((item, idx) => (
                   <tr key={item.id} className="transition-colors hover:bg-crimson/5">
-                    <td className="px-4 py-3">
-                      <input 
-                        type="text" 
-                        value={item.name} 
-                        onChange={e => {
-                          const newDebts = [...bulkDebts];
-                          newDebts[idx].name = e.target.value;
-                          setBulkDebts(newDebts);
-                        }} 
-                        placeholder="Ví dụ: Nợ nhà cung cấp / Doanh thu tuần..."
-                        className="w-full bg-white border border-ink/15 rounded-lg px-2 py-1.5 outline-none focus:border-crimson text-xs shadow-inner"
-                      />
+                    <td className="px-4 py-3 font-bold text-ink/80 bg-crimson/5 w-44">
+                      {item.name}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <input 
@@ -1079,25 +1095,10 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                           setBulkDebts(newDebts);
                         }} 
                         placeholder="0"
-                        className="w-full text-right font-bold text-crimson bg-white border border-ink/15 rounded-lg px-2 py-1.5 outline-none focus:border-crimson text-xs shadow-inner"
+                        className="w-full text-right font-mono font-bold text-crimson bg-white border border-ink/15 rounded-lg px-3 py-1.5 outline-none focus:border-crimson text-sm shadow-inner"
                       />
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => {
-                           const newDebts = [...bulkDebts];
-                           newDebts[idx].isWeeklyRev = !newDebts[idx].isWeeklyRev;
-                           if (newDebts[idx].isWeeklyRev && !newDebts[idx].name.includes("Doanh thu tuần")) {
-                              newDebts[idx].name = "Doanh thu tuần " + new Date().toLocaleDateString('vi-VN');
-                           }
-                           setBulkDebts(newDebts);
-                        }}
-                        className={cn("px-2 py-1 text-[10px] font-bold uppercase rounded border transition-colors", item.isWeeklyRev ? "bg-blue-50 text-blue-600 border-blue-200" : "bg-crimson/5 text-crimson border-crimson/20")}
-                      >
-                         {item.isWeeklyRev ? "Doanh Thu" : "Ghi Nợ"}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 pl-8">
                       <input 
                         type="text" 
                         value={item.notes} 
@@ -1106,46 +1107,22 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                           newDebts[idx].notes = e.target.value;
                           setBulkDebts(newDebts);
                         }} 
-                        placeholder="Ghi chú thêm..."
+                        placeholder="Ví dụ: Giữ hộ đại lý / Tiền thu hộ..."
                         className="w-full bg-white border border-ink/15 rounded-lg px-2 py-1.5 outline-none focus:border-crimson/50 text-xs shadow-inner"
                       />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button 
-                         onClick={() => {
-                            if (bulkDebts.length > 1) {
-                               const newDebts = bulkDebts.filter((_, i) => i !== idx);
-                               setBulkDebts(newDebts);
-                            } else {
-                               handleResetBulkDebts();
-                            }
-                         }}
-                         className="p-1 text-ink/40 hover:text-crimson transition-colors"
-                         title="Xóa dòng"
-                      >
-                        Xóa
-                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          
-          <div className="mt-3 flex mx-4 mb-2">
-            <button
-               onClick={() => setBulkDebts([...bulkDebts, { id: Date.now(), name: "", amount: "", isWeeklyRev: false, notes: "" }])}
-               className="text-xs font-bold text-crimson/80 hover:text-crimson flex items-center gap-1 bg-crimson/5 hover:bg-crimson/10 px-3 py-1.5 rounded-lg transition-all"
-            >
-               + Thêm dòng mới
-            </button>
-          </div>
         </div>
 
+        {/* Sum displayed below as well */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-crimson/5 sketch-border border-dashed border-crimson/20 rounded-xl mb-10">
           <div className="text-center sm:text-left">
-            <p className="text-xs text-ink/70 leading-relaxed">
-              💡 Bảng này lưu trực tiếp vào CÔNG NỢ, tiện lợi cho việc tính toán nghĩa vụ trả tiền hoặc lưu Doanh thu báo nợ shop.
+            <p className="text-xs text-ink/75 leading-relaxed">
+              ⚠️ <strong>Đây là nợ vì tôi giữ hộ thôi:</strong> Hệ thống tự động gom cả 7 ngày thành một khoản nợ duy nhất trong sổ tài sản, tiện lợi cho việc theo dõi số vốn thực tế.
             </p>
           </div>
           
@@ -1158,7 +1135,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
              </button>
              <button 
                onClick={handleSaveBulkDebts}
-               className="sketch-button sketch-button-primary py-2 px-6 flex items-center gap-2 text-xs transition-all bg-crimson/90 text-white hover:bg-crimson hover:shadow-lg active:scale-95 cursor-pointer"
+               className="sketch-button sketch-button-primary py-2 px-6 flex items-center gap-2 text-xs transition-all bg-crimson/90 text-white hover:bg-crimson hover:shadow-lg active:scale-95 cursor-pointer font-black"
              >
                <Receipt size={14} /> Lưu Vào Sổ Nợ
              </button>

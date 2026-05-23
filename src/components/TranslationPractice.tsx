@@ -65,7 +65,12 @@ export function TranslationPractice({
   const [score, setScore] = useState<number | null>(null);
   
   const [showManualTranscript, setShowManualTranscript] = useState(false);
-  const [manualTranscript, setManualTranscript] = useState("");
+  const [manualTranscript, setManualTranscript] = useState(() => {
+    return localStorage.getItem("manual_translation_transcript") || "";
+  });
+
+  const [autoPauseEnabled, setAutoPauseEnabled] = useState(true);
+  const [isPausedByAuto, setIsPausedByAuto] = useState(false);
 
   // Scroll ref for subtitles auto scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -95,6 +100,7 @@ export function TranslationPractice({
               t >= sub.startSec && t <= (sub.startSec + sub.durationSec)
             );
             if (idx !== -1 && idx !== activeSubIndex) {
+              const oldIndex = activeSubIndex;
               setActiveSubIndex(idx);
               if (autoScoll && scrollContainerRef.current) {
                 const activeEl = scrollContainerRef.current.querySelector(`[data-sub-idx="${idx}"]`);
@@ -102,13 +108,28 @@ export function TranslationPractice({
                   activeEl.scrollIntoView({ behavior: "smooth", block: "center" });
                 }
               }
+
+              // Automatic Pausing behavior based on user manual input check
+              if (autoPauseEnabled && idx > 0 && idx > oldIndex && !isPausedByAuto) {
+                player.pauseVideo();
+                setIsPausedByAuto(true);
+              }
+            } else if (idx === -1) {
+              // Video played past last subtitle or between gap
+              setIsPausedByAuto(false);
             }
           }
         } catch (e) {}
       }, 350);
     }
     return () => clearInterval(timer);
-  }, [player, learningPackage, activeSubIndex, autoScoll, activeTab]);
+  }, [player, learningPackage, activeSubIndex, autoScoll, activeTab, autoPauseEnabled, isPausedByAuto]);
+
+  // Handle manual input text changes & save immediately
+  const handleManualTranscriptChange = (val: string) => {
+    setManualTranscript(val);
+    localStorage.setItem("manual_translation_transcript", val);
+  };
 
   // Extract video ID from any YouTube URL format
   const extractYoutubeId = (url: string) => {
@@ -136,11 +157,40 @@ export function TranslationPractice({
     try {
       let finalTranscriptArray = [];
       if (manualTranscript.trim()) {
-        const sentences = manualTranscript.match(/[^.!?;\n]+[.!?;]*/g)?.map(s => s.trim()).filter(Boolean) || [];
-        if (sentences.length === 0) {
-            finalTranscriptArray = [{ text: manualTranscript.trim(), offset: 0, duration: 5000 }];
-        } else {
-            finalTranscriptArray = sentences.map((s, i) => ({ text: s, offset: i * 5000, duration: 5000 }));
+        const lines = manualTranscript.split('\n').map(l => l.trim()).filter(Boolean);
+        const timestampRegex = /^(?:\[)?(?:(\d+):)?(\d+)(?:\.(\d+))?(?:\])?[\s-:]*/;
+        let lastOffset = 0;
+        
+        finalTranscriptArray = lines.map((line, i) => {
+          const match = line.match(timestampRegex);
+          let offset = lastOffset;
+          let text = line;
+          
+          if (match) {
+            const minutes = match[1] ? parseInt(match[1], 10) : 0;
+            const seconds = parseInt(match[2], 10);
+            const ms = match[3] ? parseInt(match[3].padEnd(3, '0').slice(0, 3), 10) : 0;
+            offset = ((minutes * 60) + seconds) * 1000 + ms;
+            text = line.replace(timestampRegex, '').trim();
+            lastOffset = offset + 5000;
+          } else {
+            offset = lastOffset;
+            lastOffset += 5000;
+          }
+          
+          return {
+            text,
+            offset,
+            duration: 5000
+          };
+        });
+        
+        // Post-process to adjust durations based on subsequent offsets
+        for (let i = 0; i < finalTranscriptArray.length - 1; i++) {
+          const diff = finalTranscriptArray[i+1].offset - finalTranscriptArray[i].offset;
+          if (diff > 0) {
+            finalTranscriptArray[i].duration = diff;
+          }
         }
       } else {
         // 1. Fetch transcript segments from server API
@@ -468,18 +518,40 @@ export function TranslationPractice({
                       {showManualTranscript ? "Ẩn khung dán phụ đề thủ công" : "⚠️ Video không có phụ đề API? Tự dán phụ đề vào đây"}
                     </button>
                     {showManualTranscript && (
-                      <div className="mt-2 w-full animate-in fade-in slide-in-from-top-2">
-                          <div className="bg-amber-50 border-l-2 border-amber-500 p-2 mb-2 rounded shrink-0">
-                              <p className="text-[10px] text-amber-800 font-mono italic leading-relaxed">
-                                Nếu API phụ đề bị lỗi hoặc video không có chữ, bạn có thể TỰ DÁN chữ Tiếng Anh vào đây. <strong>Hãy ngăn cách mỗi câu bằng một dấu chấm phẩy (;).</strong>
+                      <div className="mt-2 text-left w-full animate-in fade-in slide-in-from-top-2">
+                          <div className="bg-amber-50 border-l-2 border-amber-500 p-3 mb-2 rounded shrink-0 space-y-1.5">
+                              <p className="text-xs text-amber-900 font-sans font-bold leading-relaxed">
+                                ✨ Hướng dẫn dán phụ đề tự do có khớp thời gian:
+                              </p>
+                              <p className="text-[11px] text-amber-800 font-sans leading-relaxed">
+                                Bạn có thể gõ hoặc dán chữ Tiếng Anh. Để <strong>video tự động khớp và tự dừng đúng câu</strong>, hãy gõ mốc thời gian <code className="bg-amber-100 px-1 rounded font-mono text-xs">[phút:giây]</code> hoặc <code className="bg-amber-100 px-1 rounded font-mono text-xs">[giây]</code> ở đầu mỗi dòng:
+                              </p>
+                              <p className="text-[10px] text-amber-700 font-mono italic leading-relaxed whitespace-pre bg-white/60 p-2 rounded border border-amber-100">
+{`[0:05] Welcome to today's English lesson.
+[0:12] We are going to learn how to express ourselves.
+[0:20] Do not worry about making mistakes!`}
                               </p>
                           </div>
                           <textarea
                             value={manualTranscript}
-                            onChange={(e) => setManualTranscript(e.target.value)}
-                            placeholder="Dán transcript vào đây... VD: Hello, how are you?; I am fine;"
-                            className="w-full h-32 bg-white sketch-border-sm px-4 py-3 text-xs md:text-sm font-sans focus:outline-none focus:ring-1 focus:ring-ink resize-y custom-scrollbar"
+                            onChange={(e) => handleManualTranscriptChange(e.target.value)}
+                            placeholder="Dán hoặc gõ transcript vào đây, mỗi câu trên một dòng với mốc thời gian [phút:giây]..."
+                            className="w-full h-40 bg-white sketch-border-sm px-4 py-3 text-xs md:text-sm font-semibold font-sans focus:outline-none focus:ring-1 focus:ring-ink resize-y custom-scrollbar"
                           />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!manualTranscript.trim()) {
+                                alert("Vui lòng nhập nội dung phụ đề trước khi tiếp tục!");
+                                return;
+                              }
+                              const id = extractYoutubeId(youtubeUrl) || "manual_video_" + Date.now();
+                              handleStartAnalysis(id);
+                            }}
+                            className="mt-2.5 w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-sans font-black uppercase text-xs tracking-wider rounded-xl sketch-border-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                          >
+                            <Sparkles className="w-4 h-4" /> Xác nhận & học học trình phụ đề này ngay
+                          </button>
                       </div>
                     )}
                   </div>
@@ -591,18 +663,62 @@ export function TranslationPractice({
                   {/* TAB 1: SUBTITLES (Bilingual Scrolling Player) */}
                   {activeTab === "subtitles" && (
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between border-b pb-2">
-                        <span className="text-xs font-mono text-ink/50 uppercase tracking-widest">Bilingual Playback Subtitles</span>
-                        <label className="flex items-center gap-2 text-xs text-ink/75 cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            checked={autoScoll}
-                            onChange={(e) => setAutoScroll(e.target.checked)}
-                            className="rounded accent-ink cursor-pointer"
-                          />
-                          Tự động cuộn theo video
-                        </label>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-ink/70 bg-[#eae5d8] px-2.5 py-1 rounded-full sketch-border-sm uppercase tracking-wider font-bold">🎬 PHỤ ĐỀ SONG NGỮ</span>
+                          {autoPauseEnabled && (
+                            <span className="text-[10px] font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full animate-pulse border border-amber-200">
+                              ⏱️ TỰ ĐỘNG DỪNG BẬT
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4">
+                          <label className="flex items-center gap-1.5 text-xs text-ink/75 cursor-pointer font-sans font-bold">
+                            <input 
+                              type="checkbox" 
+                              checked={autoPauseEnabled}
+                              onChange={(e) => setAutoPauseEnabled(e.target.checked)}
+                              className="rounded accent-ink cursor-pointer"
+                            />
+                            Tự động dừng sau mỗi câu
+                          </label>
+
+                          <label className="flex items-center gap-1.5 text-xs text-ink/75 cursor-pointer font-sans font-bold">
+                            <input 
+                              type="checkbox" 
+                              checked={autoScoll}
+                              onChange={(e) => setAutoScroll(e.target.checked)}
+                              className="rounded accent-ink cursor-pointer"
+                            />
+                            Tự động cuộn
+                          </label>
+                        </div>
                       </div>
+
+                      {/* Display a dynamic alert if video is paused by auto-pause feature */}
+                      {isPausedByAuto && (
+                        <div className="bg-amber-50 border-2 border-dashed border-amber-300 p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-pulse">
+                          <div className="flex items-center gap-2">
+                            <HelpCircle className="w-5 h-5 text-amber-700 shrink-0" />
+                            <div className="text-left">
+                              <p className="text-xs font-sans font-black text-amber-900 leading-snug">Video đã tự động dừng ở cuối câu</p>
+                              <p className="text-[11px] text-amber-800 leading-normal font-sans">Bạn hãy đọc to tiếng Anh, dịch nghĩa, sau đó bấm nút bên cạnh để chạy tiếp!</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (player) {
+                                player.playVideo();
+                                setIsPausedByAuto(false);
+                              }
+                            }}
+                            className="bg-amber-600 hover:bg-amber-700 text-white font-sans font-black uppercase text-[10px] tracking-wider px-3.5 py-1.5 rounded-xl sketch-border-sm cursor-pointer transition-all active:scale-95 shrink-0 flex items-center gap-1.5"
+                          >
+                            <Play className="w-3" /> Chạy Tiếp
+                          </button>
+                        </div>
+                      )}
 
                       <div 
                         ref={scrollContainerRef}

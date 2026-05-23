@@ -32,6 +32,7 @@ export function Places({
   const [tagInput, setTagInput] = useState("");
   const [newTags, setNewTags] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [newDateVisited, setNewDateVisited] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const startEdit = (place: FoodPlace) => {
     setEditingId(place.id);
@@ -46,6 +47,7 @@ export function Places({
     setNewPrice(place.price?.toString() || "");
     setNewCity(place.city || "");
     setNewTags(place.tags || []);
+    setNewDateVisited(place.dateVisited || new Date().toISOString().split('T')[0]);
     setTagInput("");
     
     // Scroll to top
@@ -64,6 +66,7 @@ export function Places({
     setNewRating(5);
     setNewStatus('Want to visit');
     setNewTags([]);
+    setNewDateVisited(new Date().toISOString().split('T')[0]);
   };
 
   const addTag = () => {
@@ -95,7 +98,8 @@ export function Places({
         notes: newNotes || undefined,
         price: newPrice ? Number(newPrice) : undefined,
         city: newCity || undefined,
-        tags: newTags.length > 0 ? newTags.map(t => t.toLowerCase()) : undefined
+        tags: newTags.length > 0 ? newTags.map(t => t.toLowerCase()) : undefined,
+        dateVisited: newStatus === 'Visited' ? newDateVisited : undefined
       } : p));
       setEditingId(null);
     } else {
@@ -111,7 +115,8 @@ export function Places({
         notes: newNotes || undefined,
         price: newPrice ? Number(newPrice) : undefined,
         city: newCity || undefined,
-        tags: newTags.length > 0 ? newTags.map(t => t.toLowerCase()) : undefined
+        tags: newTags.length > 0 ? newTags.map(t => t.toLowerCase()) : undefined,
+        dateVisited: newStatus === 'Visited' ? newDateVisited : undefined
       }, ...places]);
     }
     
@@ -125,6 +130,7 @@ export function Places({
     setNewRating(5);
     setNewStatus('Want to visit');
     setNewTags([]);
+    setNewDateVisited(new Date().toISOString().split('T')[0]);
   };
 
   const removePlace = (id: string) => {
@@ -224,7 +230,13 @@ export function Places({
                 <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Trạng thái</label>
                 <select 
                   value={newStatus} 
-                  onChange={(e) => setNewStatus(e.target.value as any)}
+                  onChange={(e) => {
+                    const val = e.target.value as any;
+                    setNewStatus(val);
+                    if (val === 'Visited' && !newDateVisited) {
+                      setNewDateVisited(new Date().toISOString().split('T')[0]);
+                    }
+                  }}
                   className="sketch-input bg-white/50 cursor-pointer py-2 text-xs"
                 >
                   <option value="Want to visit">Muốn đi ✨</option>
@@ -232,6 +244,19 @@ export function Places({
                 </select>
               </div>
             </div>
+
+            {newStatus === 'Visited' && (
+              <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-1 duration-200">
+                <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Ngày đã đi (Mốc nhật ký)</label>
+                <input
+                  type="date"
+                  value={newDateVisited}
+                  onChange={(e) => setNewDateVisited(e.target.value)}
+                  className="sketch-input bg-white/50 py-2 text-sm"
+                  required
+                />
+              </div>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[9px] font-bold uppercase tracking-widest text-ink/50 ml-1">Địa chỉ (nếu có)</label>

@@ -34,6 +34,7 @@ export interface FoodPlace {
   notes?: string;
   tags?: string[];
   isFavorite?: boolean;
+  dateVisited?: string;
 }
 
 export interface ContentIdea {
