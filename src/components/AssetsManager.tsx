@@ -91,7 +91,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
      const now = Date.now();
      const validDebts = bulkDebts.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
      if (validDebts.length === 0) {
-       alert("Hãy nhập số tiền nợ giữ hộ cho ít nhất một ngày!");
+       alert("Hãy nhập số tiền nợ cho ít nhất một ngày!");
        return;
      }
 
@@ -100,18 +100,18 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
 
      const aggregatedDebt: Asset = {
         id: `debt-held-${now}`,
-        name: `Nợ giữ hộ tuần (${validDebts.length} ngày)`,
+        name: `Khoản nợ tuần (${validDebts.length} ngày)`,
         category: catId,
         value: totalSum,
         currency: "VND",
-        notes: `Giữ hộ chi tiết: ` + validDebts.map(d => `${d.name}: ${parseFloat(d.amount.replace(/,/g, '')).toLocaleString('vi-VN')}đ`).join(", "),
+        notes: `Chi tiết: ` + validDebts.map(d => `${d.name}: -${parseFloat(d.amount.replace(/,/g, '')).toLocaleString('vi-VN')}đ`).join(", "),
         acquiredAt: now,
         isDebt: true,
         excludeFromNetWorth: false
      };
 
      setAssets([aggregatedDebt, ...assets]);
-     alert(`Đã lưu tổng nợ giữ hộ tuần trị giá ${totalSum.toLocaleString('vi-VN')}đ vào Sổ Nợ thành công!`);
+     alert(`Đã lưu tổng nợ tuần trị giá -${totalSum.toLocaleString('vi-VN')}đ vào Sổ Nợ thành công!`);
      handleResetBulkDebts();
   };
 
