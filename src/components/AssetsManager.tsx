@@ -102,6 +102,30 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     }
   }, [bulkDebts]);
 
+  const dateRangeText = useMemo(() => {
+    const activeDates = bulkDebts
+      .map(d => d.name)
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+    if (activeDates.length === 0) {
+      return "Doanh thu (Từ ngày … đến ngày …)";
+    }
+    const formatDateStr = (ymd: string) => {
+      try {
+        const portions = ymd.split("-");
+        if (portions.length === 3) {
+          return `${portions[2]}/${portions[1]}/${portions[0]}`; // DD/MM/YYYY
+        }
+        return ymd;
+      } catch {
+        return ymd;
+      }
+    };
+    const minDate = formatDateStr(activeDates[0]);
+    const maxDate = formatDateStr(activeDates[activeDates.length - 1]);
+    return `Doanh thu (Từ ngày ${minDate} đến ngày ${maxDate})`;
+  }, [bulkDebts]);
+
   const handleResetBulkDebts = () => {
     setBulkDebts(DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "" })));
   };
@@ -110,32 +134,32 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
      const now = Date.now();
      const validDebts = bulkDebts.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
      if (validDebts.length === 0) {
-       alert("Hãy nhập số tiền nợ cho ít nhất một ngày!");
+       alert("Hãy nhập số tiền doanh thu cho ít nhất một ngày!");
        return;
      }
 
      const calculatedSum = validDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
      const totalSum = Math.abs(calculatedSum);
-     const catId = categories.find(c => c.name.toLowerCase().includes("nợ"))?.id || defaultCatID;
+     const catId = categories.find(c => c.name.toLowerCase().includes("doanh thu") || c.name.toLowerCase().includes("thu") || c.name.toLowerCase().includes("tiền mặt"))?.id || defaultCatID;
 
-     const aggregatedDebt: Asset = {
-        id: `debt-held-${now}`,
-        name: `Khoản nợ tuần (${validDebts.length} ngày)`,
+     const aggregatedRevenue: Asset = {
+        id: `rev-held-${now}`,
+        name: `Doanh thu tuần (${validDebts.length} ngày)`,
         category: catId,
         value: totalSum,
         currency: "VND",
-        notes: `Chi tiết: ` + validDebts.map(d => {
+        notes: `Chi tiết doanh thu: ` + validDebts.map(d => {
           const val = parseFloat(d.amount.replace(/,/g, ''));
-          const prefix = val < 0 ? "" : "-"; // if they typed minus, keep it, otherwise show minus
-          return `${d.name}: ${prefix}${val.toLocaleString('vi-VN')}đ`;
+          return `${d.name}: +${val.toLocaleString('vi-VN')}đ`;
         }).join(", "),
         acquiredAt: now,
-        isDebt: true,
+        isDebt: false,
+        isNewMoney: true,
         excludeFromNetWorth: false
      };
 
-     setAssets([aggregatedDebt, ...assets]);
-     alert(`Đã lưu tổng nợ tuần trị giá -${totalSum.toLocaleString('vi-VN')}đ vào Sổ Nợ thành công!`);
+     setAssets([aggregatedRevenue, ...assets]);
+     alert(`Đã lưu tổng doanh thu tuần trị giá +${totalSum.toLocaleString('vi-VN')}đ vào Sổ Tài Sản thành công!`);
      handleResetBulkDebts();
   };
 
@@ -1076,7 +1100,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         </div>
       </div>
       
-      {/* Bảng Kê Công Nợ & Doanh Thu Tuần - Specialized Section */}
+      {/* Bảng Kê Doanh Thu Tuần - Specialized Section */}
       <div className="mt-16 animate-in fade-in slide-in-from-bottom-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b-4 border-crimson/80 pb-2 gap-4">
            <div className="flex items-center gap-3">
@@ -1084,20 +1108,19 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                 <Receipt size={24} />
               </button>
               <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-crimson">Bảng Kê Công Nợ Tuần</h2>
-                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Ghi nhận các khoản nợ theo từng ngày</p>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-crimson">{dateRangeText}</h2>
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Ghi nhận doanh thu chi tiết theo từng ngày</p>
               </div>
            </div>
            
            {/* Sum displayed above */}
            <div className="bg-crimson/10 border-2 border-crimson/30 px-4 py-2 rounded-xl text-right">
-              <p className="text-[10px] font-bold text-crimson/80 uppercase tracking-wider">TỔNG CỘNG NỢ TUẦN (7 NGÀY)</p>
+              <p className="text-[10px] font-bold text-crimson/80 uppercase tracking-wider">TỔNG DOANH THU TUẦN (7 NGÀY)</p>
               <p className="text-xl font-black text-crimson font-mono">
                 {(() => {
                   const rawSum = bulkDebts.reduce((sum, item) => sum + (parseFloat(item.amount.replace(/,/g, '')) || 0), 0);
                   const formatted = Math.abs(rawSum).toLocaleString('vi-VN');
-                  // Display clearly with a negative sign (-) in all cases for liability table
-                  return `-${formatted} đ`;
+                  return `+${formatted} đ`;
                 })()}
               </p>
            </div>
@@ -1108,8 +1131,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
             <table className="min-w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-crimson/10 text-[9px] font-black uppercase tracking-widest text-crimson border-b-2 border-crimson/50">
-                  <th className="px-4 py-3 font-black">Cột A: Ngày</th>
-                  <th className="px-4 py-3 text-right font-black-60">Cột B: Số Tiền (VND)</th>
+                  <th className="px-4 py-3 font-black">Ngày</th>
+                  <th className="px-4 py-3 text-right font-black-60">Số tiền (VND)</th>
                 </tr>
               </thead>
               <tbody className="font-sans divide-y divide-crimson/10">
@@ -1167,7 +1190,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-crimson/5 sketch-border border-dashed border-crimson/20 rounded-xl mb-10">
           <div className="text-center sm:text-left">
             <p className="text-xs text-ink/75 leading-relaxed">
-              ⚠️ <strong>Quy tắc cộng nợ:</strong> Hệ thống tự động gom cả 7 ngày thành một khoản nợ duy nhất trong sổ tài sản, tiện lợi cho việc theo dõi số vốn thực tế.
+              ⚠️ <strong>Quy tắc cộng doanh thu:</strong> Hệ thống tự động gom cả 7 ngày thành một khoản doanh thu tuần tích lũy trong danh mục tài sản, giúp bạn theo dõi tổng tiến trình tích lũy đơn giản hơn.
             </p>
           </div>
           
@@ -1182,7 +1205,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                onClick={handleSaveBulkDebts}
                className="sketch-button sketch-button-primary py-2 px-6 flex items-center gap-2 text-xs transition-all bg-crimson/90 text-white hover:bg-crimson hover:shadow-lg active:scale-95 cursor-pointer font-black"
              >
-               <Receipt size={14} /> Lưu Vào Sổ Nợ
+               <Receipt size={14} /> Lưu Doanh Thu
              </button>
           </div>
         </div>

@@ -51,6 +51,20 @@ interface DailySummary {
   achievementsEarned: Achievement[];
 }
 
+const formatToVNShortDate = (dateStr: string) => {
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const weekdays = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
+    const w = weekdays[d.getDay()];
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${w}, ${day}/${month}`;
+  } catch {
+    return dateStr;
+  }
+};
+
 export function DigitalJournal({ 
   logs, 
   wishlist, 
@@ -65,6 +79,7 @@ export function DigitalJournal({
 }: DigitalJournalProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [paperStyle, setPaperStyle] = useState<'lined' | 'grid' | 'dotted' | 'blank'>('lined');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
   const [pageStickers, setPageStickers] = useState<{ [date: string]: string[] }>(() => {
     try {
@@ -375,120 +390,153 @@ export function DigitalJournal({
         </p>
       </div>
 
+      {/* Sidebar Focus Toggle and Layout Configuration */}
+      <div className="flex justify-between items-center mb-4 select-none z-10 relative max-w-5xl mx-auto gap-4 flex-wrap">
+        <button
+          type="button"
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="text-xs bg-white text-ink border-2 border-ink px-4 py-2 rounded-xl hover:bg-ink hover:text-white transition-all duration-200 uppercase font-black tracking-wider flex items-center gap-2 shadow-sm"
+        >
+          {isSidebarCollapsed ? "📖 Hiện danh sách ngày" : "📂 Ẩn bớt lịch sử (Đọc sách)"}
+        </button>
+
+        {isSidebarCollapsed && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black text-ink/50 uppercase select-none">Nhật ký trang ngày:</span>
+            <select
+              value={currentPageIndex}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val)) setCurrentPageIndex(val);
+              }}
+              className="text-xs font-black bg-[#fffbeb] border-2 border-ink rounded-xl px-3 py-1.5 outline-none text-ink shadow-[2px_2px_0_var(--color-ink)] cursor-pointer"
+            >
+              {pages.map((p, idx) => (
+                <option key={p.date} value={idx}>
+                  {formatToVNShortDate(p.date)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
       {/* STREAMLINED TWO-COLUMN SPLIT PANEL */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto items-start">
         
         {/* LEFT PANEL: TIMELINE & DAY PICKER */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white/70 backdrop-blur-md p-4 rounded-2xl sketch-border border-ink shadow-sm space-y-3">
-            <div className="flex items-center justify-between border-b pb-2 border-ink/10">
-              <span className="text-xs uppercase font-black tracking-widest text-[#1a1a1a] flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-crimson" /> Nhật ký ngày ({pages.length})
-              </span>
-            </div>
+        {!isSidebarCollapsed && (
+          <div className="lg:col-span-4 space-y-4">
+            <div className="bg-white/70 backdrop-blur-md p-4 rounded-2xl sketch-border border-ink shadow-sm space-y-3">
+              <div className="flex items-center justify-between border-b pb-2 border-ink/10">
+                <span className="text-xs uppercase font-black tracking-widest text-[#1a1a1a] flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-crimson" /> Nhật ký ngày ({pages.length})
+                </span>
+              </div>
 
-            <div className="max-h-[340px] overflow-y-auto pr-1 space-y-2 scrollbar-thin">
-              {pages.map((p, idx) => {
-                const isSelected = currentPageIndex === idx;
-                const moodData = dailyMoods[p.date];
-                const dayActivityCount = p.logs.length + p.habitCompletions.length + p.wordsReviewed.length + p.placesVisited.length + p.purchased.length;
+              <div className="max-h-[340px] overflow-y-auto pr-1 space-y-2 scrollbar-thin">
+                {pages.map((p, idx) => {
+                  const isSelected = currentPageIndex === idx;
+                  const moodData = dailyMoods[p.date];
+                  const dayActivityCount = p.logs.length + p.habitCompletions.length + p.wordsReviewed.length + p.placesVisited.length + p.purchased.length;
+                  
+                  return (
+                    <button
+                      key={p.date}
+                      onClick={() => {
+                        setCurrentPageIndex(idx);
+                        // Collapse expand tracker on day change so it's clean
+                        setShowAutomaticRecap(false);
+                      }}
+                      className={`w-full text-left p-2.5 rounded-xl border-2 transition-all duration-200 flex items-center justify-between gap-2 group ${
+                        isSelected 
+                          ? "bg-[#fffbeb] border-ink text-ink shadow-[3px_3px_0_var(--color-ink)]" 
+                          : "bg-white/40 border-ink/10 hover:border-ink/40 hover:bg-white text-ink/80"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-lg flex-shrink-0">
+                          {moodData?.emoji || "📝"}
+                        </span>
+                        <div className="min-w-0">
+                          <span className="font-sans text-xs font-black block group-hover:text-crimson transition-colors">
+                            {formatToVNShortDate(p.date)}
+                          </span>
+                          <span className="text-[10px] text-ink/50 font-bold truncate block">
+                            {moodData?.name || "Bình thường"} • {dayActivityCount} hoạt động
+                          </span>
+                        </div>
+                      </div>
+                      {p.logs.length > 0 && (
+                        <span className="bg-[#fbcfe8] text-ink border border-ink text-[9px] px-1.5 py-0.5 rounded-full font-black flex-shrink-0">
+                          {p.logs.length} chép
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* COLLAPSABLE CUSTOMIZER FOR CLEANER LOOK */}
+              <div className="border-t border-ink/10 pt-3 space-y-2">
+                <button 
+                  onClick={() => setShowPageCustomizer(!showPageCustomizer)}
+                  className="w-full flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-ink/70 hover:text-ink transition-colors"
+                >
+                  <span className="flex items-center gap-1.5">🎨 Trang trí & Nhãn dán</span>
+                  <span>{showPageCustomizer ? "Thu gọn ▲" : "Mở rộng ▼"}</span>
+                </button>
                 
-                return (
-                  <button
-                    key={p.date}
-                    onClick={() => {
-                      setCurrentPageIndex(idx);
-                      // Collapse expand tracker on day change so it's clean
-                      setShowAutomaticRecap(false);
-                    }}
-                    className={`w-full text-left p-2.5 rounded-xl border-2 transition-all duration-200 flex items-center justify-between gap-2 group ${
-                      isSelected 
-                        ? "bg-[#fffbeb] border-ink text-ink shadow-[3px_3px_0_var(--color-ink)]" 
-                        : "bg-white/40 border-ink/10 hover:border-ink/40 hover:bg-white text-ink/80"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-lg flex-shrink-0">
-                        {moodData?.emoji || "📝"}
-                      </span>
-                      <div className="min-w-0">
-                        <span className="font-mono text-xs font-black block group-hover:text-crimson transition-colors">
-                          {p.date}
-                        </span>
-                        <span className="text-[10px] text-ink/50 font-bold truncate block">
-                          {moodData?.name || "Bình thường"} • {dayActivityCount} nhật trình
-                        </span>
+                {showPageCustomizer && (
+                  <div className="space-y-3 pt-2 text-left border-t border-ink/5">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] uppercase font-bold text-ink/40">Loại giấy tập:</span>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {(['lined', 'grid', 'dotted', 'blank'] as const).map((style) => (
+                          <button
+                            key={style}
+                            onClick={() => setPaperStyle(style)}
+                            className={`px-2 py-0.5 text-[8px] font-black uppercase rounded border transition-all ${
+                              paperStyle === style ? "bg-ink text-paper border-ink" : "bg-white border-ink/10 text-ink/65 hover:bg-ink/5"
+                            }`}
+                          >
+                            {style === 'lined' ? "Kẻ ngang" : style === 'grid' ? "Ô ly" : style === 'dotted' ? "Chấm mờ" : "Trắng trơn"}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    {p.logs.length > 0 && (
-                      <span className="bg-[#fbcfe8] text-ink border border-ink text-[9px] px-1.5 py-0.5 rounded-full font-black flex-shrink-0">
-                        {p.logs.length} bút tích
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            
-            {/* COLLAPSABLE CUSTOMIZER FOR CLEANER LOOK */}
-            <div className="border-t border-ink/10 pt-3 space-y-2">
-              <button 
-                onClick={() => setShowPageCustomizer(!showPageCustomizer)}
-                className="w-full flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-ink/70 hover:text-ink transition-colors"
-              >
-                <span className="flex items-center gap-1.5">🎨 Trang trí & Nhãn dán</span>
-                <span>{showPageCustomizer ? "Thu gọn ▲" : "Mở rộng ▼"}</span>
-              </button>
-              
-              {showPageCustomizer && (
-                <div className="space-y-3 pt-2 text-left border-t border-ink/5">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] uppercase font-bold text-ink/40">Loại giấy tập:</span>
-                    <div className="flex gap-1.5 flex-wrap">
-                      {(['lined', 'grid', 'dotted', 'blank'] as const).map((style) => (
-                        <button
-                          key={style}
-                          onClick={() => setPaperStyle(style)}
-                          className={`px-2 py-0.5 text-[8px] font-black uppercase rounded border transition-all ${
-                            paperStyle === style ? "bg-ink text-paper border-ink" : "bg-white border-ink/10 text-ink/65 hover:bg-ink/5"
-                          }`}
-                        >
-                          {style === 'lined' ? "Kẻ ngang" : style === 'grid' ? "Ô ly" : style === 'dotted' ? "Chấm mờ" : "Trắng trơn"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] uppercase font-bold text-ink/40">Nhãn dán nhanh lên trang:</span>
-                    <div className="flex flex-wrap gap-1">
-                      {['🌸', '🎯', '🔥', '☕', '⭐', '🎉', '🚀', '🧸', '💡', '📖', '❤️'].map((st) => {
-                        const active = (pageStickers[currentPage.date] || []).includes(st);
-                        return (
-                          <button
-                            key={st}
-                            onClick={() => addSticker(st, currentPage.date)}
-                            className={`w-7 h-7 flex items-center justify-center text-sm rounded-lg transition-all hover:scale-110 active:scale-95 border ${
-                              active 
-                                ? "bg-[#fffbeb] border-ink rotate-3 scale-105 shadow-[2px_2px_0_var(--color-ink)]" 
-                                : "bg-white border border-ink/10 hover:border-ink opacity-60"
-                            }`}
-                            title={active ? "Gỡ sticker" : "Dán sticker"}
-                          >
-                            {st}
-                          </button>
-                        );
-                      })}
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] uppercase font-bold text-ink/40">Nhãn dán nhanh lên trang:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {['🌸', '🎯', '🔥', '☕', '⭐', '🎉', '🚀', '🧸', '💡', '📖', '❤️'].map((st) => {
+                          const active = (pageStickers[currentPage.date] || []).includes(st);
+                          return (
+                            <button
+                              key={st}
+                              onClick={() => addSticker(st, currentPage.date)}
+                              className={`w-7 h-7 flex items-center justify-center text-sm rounded-lg transition-all hover:scale-110 active:scale-95 border ${
+                                active 
+                                  ? "bg-[#fffbeb] border-ink rotate-3 scale-105 shadow-[2px_2px_0_var(--color-ink)]" 
+                                  : "bg-white border border-ink/10 hover:border-ink opacity-60"
+                              }`}
+                              title={active ? "Gỡ sticker" : "Dán sticker"}
+                            >
+                              {st}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* RIGHT PANEL: DETAILS OF THE JOURNAL PAGE */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className={isSidebarCollapsed ? "lg:col-span-12 max-w-4xl mx-auto w-full space-y-4" : "lg:col-span-8 space-y-4"}>
           
           <div className="bg-white/80 backdrop-blur shadow-sm p-5 md:p-8 rounded-2xl sketch-border border-ink relative overflow-hidden min-h-[480px]">
             
@@ -670,7 +718,7 @@ export function DigitalJournal({
                         
                         <div className="flex items-start justify-between gap-4 ml-3">
                           <div className="min-w-0 flex-1">
-                            <p className="font-hand text-lg md:text-xl leading-relaxed text-ink/90 whitespace-pre-wrap">
+                            <p className="font-hand text-[17px] md:text-[19px] leading-7 text-ink/90 whitespace-pre-wrap">
                               {log.type === "Event" && (
                                 <span className="font-sans font-black uppercase text-[8px] tracking-wider mr-2 bg-ink/10 px-1 py-0.5 rounded text-ink/70">
                                   {log.time || "Sự kiện"}
