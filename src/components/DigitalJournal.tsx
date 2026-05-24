@@ -378,15 +378,16 @@ export function DigitalJournal({
     <div className="max-w-7xl mx-auto px-4 py-6 font-sans">
       
       {/* HEADER BAR */}
-      <div className="sketch-border bg-[#e8f0fe] py-4 px-6 text-center select-none shadow-md border-b-4 border-r-4 border-ink relative overflow-hidden mb-6 max-w-5xl mx-auto">
-        <div className="flex items-center justify-center gap-3">
-          <BookOpen className="w-6 h-6 text-ink" />
-          <h1 className="text-xl md:text-2xl font-logo font-black uppercase text-ink">
-            Sổ Tay Nhật Ký Tự Động
+      <div className="sketch-border bg-[#fffbeb] py-5 px-6 text-center select-none shadow-sm border-b-4 border-r-4 border-ink relative overflow-hidden mb-8 max-w-4xl mx-auto rotate-[-0.5deg]">
+        <div className="absolute top-0 right-0 left-0 h-1.5 bg-crimson" />
+        <div className="flex items-center justify-center gap-3 mt-1">
+          <BookOpen className="w-6 h-6 text-crimson" />
+          <h1 className="text-2xl font-logo font-black uppercase text-ink tracking-wide">
+            Cuốn Sổ Tay Kỷ Niệm
           </h1>
         </div>
-        <p className="mt-1 text-[11px] font-semibold italic text-ink/70">
-          Tích hợp thói quen, học tập, sắm sửa và tâm tư hoàn toàn tự động mỗi ngày
+        <p className="mt-1.5 text-xs text-ink/65 font-bold uppercase tracking-wider">
+          Chiêm nghiệm & lưu giữ từng dấu chân rèn luyện mỗi ngày
         </p>
       </div>
 
@@ -578,14 +579,14 @@ export function DigitalJournal({
             <div className="relative z-10 space-y-5 pl-4 md:pl-6">
               
               {/* Daily Title & Mood bar */}
-              <div className="border-b border-ink/15 pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="border-b border-rose-300/40 pb-3.5 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-black text-ink uppercase tracking-tight font-sans">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#af1e2d] block mb-0.5">
+                    Trang ngày {currentPage.date.split("-").reverse().join("/")}
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-logo font-black text-ink tracking-tight uppercase leading-none">
                     {currentPage.displayDate}
                   </h2>
-                  <span className="text-[9px] font-mono font-bold text-ink/35">
-                    ID: {currentPage.date}
-                  </span>
                 </div>
 
                 {/* Highly compact horizontal Mood Strip */}
@@ -744,119 +745,97 @@ export function DigitalJournal({
                 )}
               </div>
 
-              {/* INTEGRATED COLLAPSABLE COMPONENT FOR CLEANER LOOK */}
-              <div className="border-t border-dashed border-ink/15 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAutomaticRecap(!showAutomaticRecap)}
-                  className="w-full flex items-center justify-between p-2.5 rounded-xl border border-dashed border-ink/20 bg-ink/[0.02] hover:bg-ink/5 transition-all font-sans text-xs font-bold text-ink"
-                >
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-ink/60" />
-                    <span>HỆ THỐNG TỰ ĐỘNG CHUỖI ({countOfTotalRecords} hoạt động)</span>
+              {/* COMPACT & POLISHED SCRAPBOOK FOOTPRINTS FOOTER */}
+              {countOfTotalRecords > 0 && (
+                <div className="border-t-2 border-dashed border-ink/10 pt-5 mt-8 relative">
+                  <div className="absolute top-[-11px] left-6 bg-[#fffbeb] px-3 py-0.5 border border-ink/15 rounded-full text-[9px] uppercase font-black text-ink/50 tracking-wider">
+                     🌱 Dấu chân tích lũy ({countOfTotalRecords} hoạt động)
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-ink/50 font-bold uppercase">
-                    <span>{showAutomaticRecap ? "Thu nhỏ ▲" : "Chi tiết ▼"}</span>
-                  </div>
-                </button>
-
-                {showAutomaticRecap && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="mt-3 bg-white/60 p-4 rounded-xl border border-ink/10 grid grid-cols-1 md:grid-cols-2 gap-4"
-                  >
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
                     {/* Thói quen hoàn thành */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] uppercase font-black tracking-widest text-[#4f46e5] flex items-center gap-1">
-                        <CheckSquare size={11} /> Thói quen tốt ({currentPage.habitCompletions.length})
-                      </span>
-                      {currentPage.habitCompletions.length === 0 ? (
-                        <p className="text-[10px] text-ink/40 italic">Chưa ghi nhận rèn luyện</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-1">
+                    {currentPage.habitCompletions.length > 0 && (
+                      <div className="bg-[#eef2ff]/40 p-3 rounded-xl border border-indigo-100/50 space-y-1.5 hover:bg-[#eef2ff]/70 transition-all">
+                        <span className="text-[10px] uppercase font-black tracking-widest text-[#4f46e5] flex items-center gap-1.5">
+                          <CheckSquare size={11} className="text-indigo-600" /> Thói quen tốt ({currentPage.habitCompletions.length})
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
                           {currentPage.habitCompletions.map(({ habit, streak }, idx) => (
-                            <span key={idx} className="inline-flex items-center gap-1 bg-white border border-indigo-100 px-2 py-0.5 rounded text-xs text-indigo-900 shadow-xs">
+                            <span key={idx} className="inline-flex items-center gap-1 bg-white border border-indigo-100/40 px-2 py-0.5 rounded text-[11px] text-indigo-900 shadow-xs font-semibold">
                               <span>{habit.icon || "⏳"}</span>
-                              <span className="font-semibold">{habit.name}</span>
+                              <span>{habit.name}</span>
                               {streak > 1 && (
-                                <span className="text-[8px] text-amber-700 bg-amber-50 px-1 rounded font-bold">{streak} ngày</span>
+                                <span className="text-[8px] text-indigo-700 bg-indigo-50 px-1 rounded font-black">{streak} ngày</span>
                               )}
                             </span>
                           ))}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     {/* Từ vựng */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] uppercase font-black tracking-widest text-emerald-800 flex items-center gap-1">
-                        <BookOpen size={11} /> Đã ôn tập ({currentPage.wordsReviewed.length})
-                      </span>
-                      {currentPage.wordsReviewed.length === 0 ? (
-                        <p className="text-[10px] text-ink/40 italic">Chưa tích lũy vốn từ học tập</p>
-                      ) : (
+                    {currentPage.wordsReviewed.length > 0 && (
+                      <div className="bg-[#ecfdf5]/40 p-3 rounded-xl border border-emerald-100/50 space-y-1.5 hover:bg-[#ecfdf5]/70 transition-all">
+                        <span className="text-[10px] uppercase font-black tracking-widest text-emerald-800 flex items-center gap-1.5">
+                          <BookOpen size={11} className="text-emerald-700" /> Vốn từ học tập ({currentPage.wordsReviewed.length})
+                        </span>
                         <div className="flex flex-wrap gap-1">
                           {currentPage.wordsReviewed.map((w, idx) => (
-                            <span key={idx} className="bg-emerald-50 text-emerald-800 text-[10px] px-2 py-0.5 rounded border border-emerald-100 font-medium">
+                            <span key={idx} className="bg-white text-emerald-800 text-[10px] px-2 py-0.5 rounded border border-emerald-100/40 font-bold shadow-xs">
                               {w.vocabulary}
                             </span>
                           ))}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     {/* Chi tiêu */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] uppercase font-black tracking-widest text-amber-800 flex items-center gap-1">
-                        <DollarSign size={11} /> Chi tiêu sắm sửa ({currentPage.purchased.length})
-                      </span>
-                      {currentPage.purchased.length === 0 ? (
-                        <p className="text-[10px] text-ink/40 italic">Không có chi tiêu phát sinh</p>
-                      ) : (
+                    {currentPage.purchased.length > 0 && (
+                      <div className="bg-[#fffbeb]/50 p-3 rounded-xl border border-amber-500/50 space-y-1.5 hover:bg-[#fffbeb]/80 transition-all">
+                        <span className="text-[10px] uppercase font-black tracking-widest text-amber-800 flex items-center gap-1.5">
+                          <DollarSign size={11} className="text-amber-700" /> Chi tiêu phát sinh ({currentPage.purchased.length})
+                        </span>
                         <ul className="space-y-1">
                           {currentPage.purchased.map((item, idx) => (
-                            <li key={idx} className="text-xs text-ink/80 flex justify-between gap-2 bg-amber-50/50 px-2 py-1 rounded">
-                              <span className="truncate max-w-[150px] font-medium">{item.content}</span>
+                            <li key={idx} className="text-[11px] text-ink/80 flex justify-between gap-2 bg-white/80 border border-amber-200/20 px-2 py-1 rounded shadow-xs font-medium">
+                              <span className="truncate max-w-[150px]">{item.content}</span>
                               <span className="font-mono text-[9px] bg-amber-100 px-1.5 rounded font-black text-amber-950">
                                 {item.price ? `${item.price.toLocaleString('vi-VN')} đ` : "Đã sắm"}
                               </span>
                             </li>
                           ))}
                         </ul>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     {/* Địa điểm */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] uppercase font-black tracking-widest text-[#be123c] flex items-center gap-1">
-                        <MapPin size={11} /> Địa điểm khám phá ({currentPage.placesVisited.length})
-                      </span>
-                      {currentPage.placesVisited.length === 0 ? (
-                        <p className="text-[10px] text-ink/40 italic">Chưa đến nơi thăm thú nào</p>
-                      ) : (
-                        <ul className="space-y-1">
+                    {currentPage.placesVisited.length > 0 && (
+                      <div className="bg-[#fff1f2]/40 p-3 rounded-xl border border-rose-100/50 space-y-1.5 hover:bg-[#fff1f2]/70 transition-all">
+                        <span className="text-[10px] uppercase font-black tracking-widest text-[#be123c] flex items-center gap-1.5">
+                          <MapPin size={11} className="text-rose-600" /> Thăm thú ghé qua ({currentPage.placesVisited.length})
+                        </span>
+                        <div className="space-y-1">
                           {currentPage.placesVisited.map((p, idx) => (
-                            <li key={idx} className="text-xs text-rose-950 flex flex-col bg-rose-50/50 p-1.5 rounded border border-rose-100/50">
+                            <div key={idx} className="text-[11px] text-rose-950 bg-white/80 p-1.5 rounded border border-rose-100/35 shadow-xs">
                               <span className="font-bold">📍 {p.name}</span>
-                              {p.review && <span className="text-[10px] text-ink/60 font-hand italic block">"{p.review}"</span>}
-                            </li>
+                              {p.review && <span className="text-[10px] text-ink/65 font-hand italic block mt-0.5">"{p.review}"</span>}
+                            </div>
                           ))}
-                        </ul>
-                      )}
-                    </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Hoạt động phụ / Nhiệm vụ thành tựu */}
                     {(currentPage.tasksDone.length > 0 || currentPage.achievementsEarned.length > 0) && (
-                      <div className="md:col-span-2 border-t border-dashed border-ink/10 pt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2 border-t border-dashed border-ink/10 pt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                         {currentPage.tasksDone.length > 0 && (
-                          <div className="space-y-1">
-                            <span className="text-[9px] uppercase font-black text-ink/50 block">Mục tiêu việc làm hoàn tất:</span>
+                          <div className="space-y-1 bg-sky-50/20 p-2.5 rounded-xl border border-sky-100/30">
+                            <span className="text-[9px] uppercase font-black text-sky-800 tracking-wider block mb-1">Mục tiêu ngày hoàn tất:</span>
                             <ul className="space-y-0.5">
                               {currentPage.tasksDone.map((t, idx) => (
-                                <li key={idx} className="text-xs text-ink/75 truncate flex items-center gap-1">
-                                  <span className="w-1 h-1 rounded-full bg-emerald-500 shrink-0" />
-                                  <span className="line-through decoration-ink/15">{t.title}</span>
+                                <li key={idx} className="text-[11px] text-sky-950 truncate flex items-center gap-1.5 font-medium">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                  <span className="line-through decoration-emerald-300">{t.title}</span>
                                 </li>
                               ))}
                             </ul>
@@ -864,14 +843,13 @@ export function DigitalJournal({
                         )}
 
                         {currentPage.achievementsEarned.length > 0 && (
-                          <div className="space-y-1">
-                            <span className="text-[9px] uppercase font-black text-[#b45309] block">Danh hiệu học sùng:</span>
+                          <div className="space-y-1 bg-amber-50/20 p-2.5 rounded-xl border border-amber-100/30">
+                            <span className="text-[9px] uppercase font-black text-[#b45309] tracking-wider block mb-1">Danh hiệu đạt được:</span>
                             {currentPage.achievementsEarned.map((ach, idx) => (
-                              <div key={idx} className="bg-amber-50 p-1.5 rounded text-[10px] border border-amber-100 flex gap-1.5 items-start">
+                              <div key={idx} className="bg-white/80 p-1 rounded text-[10px] border border-amber-100/40 flex gap-1.5 items-center shadow-xs">
                                 <span>🏅</span>
                                 <div className="min-w-0">
-                                  <strong className="text-amber-900 leading-tight block truncate">{ach.title}</strong>
-                                  <p className="text-[9px] text-amber-800 leading-snug">{ach.description}</p>
+                                  <strong className="text-amber-900 leading-tight block truncate font-black">{ach.title}</strong>
                                 </div>
                               </div>
                             ))}
@@ -879,9 +857,9 @@ export function DigitalJournal({
                         )}
                       </div>
                     )}
-                  </motion.div>
-                )}
-              </div>
+                  </div>
+                </div>
+              )}
 
               {/* COZY AI COMPANION (COORDINATED WITH THE DAY) */}
               <div className="bg-[#fffdf8] rounded-xl border border-ink/15 p-4 mt-2 hover:bg-[#fffff4] transition-all shadow-xs">
