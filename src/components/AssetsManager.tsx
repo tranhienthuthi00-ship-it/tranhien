@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Plus, Trash2, Edit2, Wallet, Settings, Landmark, Car, MonitorSmartphone, Gem, PiggyBank, Briefcase, Bitcoin, Building, Home, Coins, CreditCard, TrendingUp, Smartphone, Laptop, Handshake, Users, Receipt } from "lucide-react";
 import type { FormEvent } from "react";
 import { cn } from "@/lib/utils";
@@ -79,9 +79,28 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     notes: ""
   }));
 
-  const [bulkDebts, setBulkDebts] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => 
-    DEFAULT_WEEK_DEBTS.map(item => ({ ...item }))
-  );
+  const [bulkDebts, setBulkDebts] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_bulkDebts");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === 7) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_WEEK_DEBTS.map(item => ({ ...item }));
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("studyHub_bulkDebts", JSON.stringify(bulkDebts));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [bulkDebts]);
 
   const handleResetBulkDebts = () => {
     setBulkDebts(DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "" })));
@@ -95,7 +114,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
        return;
      }
 
-     const totalSum = validDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
+     const calculatedSum = validDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
+     const totalSum = Math.abs(calculatedSum);
      const catId = categories.find(c => c.name.toLowerCase().includes("nợ"))?.id || defaultCatID;
 
      const aggregatedDebt: Asset = {
@@ -104,7 +124,11 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         category: catId,
         value: totalSum,
         currency: "VND",
-        notes: `Chi tiết: ` + validDebts.map(d => `${d.name}: -${parseFloat(d.amount.replace(/,/g, '')).toLocaleString('vi-VN')}đ`).join(", "),
+        notes: `Chi tiết: ` + validDebts.map(d => {
+          const val = parseFloat(d.amount.replace(/,/g, ''));
+          const prefix = val < 0 ? "" : "-"; // if they typed minus, keep it, otherwise show minus
+          return `${d.name}: ${prefix}${val.toLocaleString('vi-VN')}đ`;
+        }).join(", "),
         acquiredAt: now,
         isDebt: true,
         excludeFromNetWorth: false
@@ -1060,8 +1084,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                 <Receipt size={24} />
               </button>
               <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-crimson">Bảng Kê Công Nợ Giữ Hộ Tuần</h2>
-                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Ghi nhận các khoản nợ tiền giữ hộ đại lý/khách hàng theo từng ngày</p>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-crimson">Bảng Kê Công Nợ Tuần</h2>
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Ghi nhận các khoản nợ theo từng ngày</p>
               </div>
            </div>
            
@@ -1069,7 +1093,12 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
            <div className="bg-crimson/10 border-2 border-crimson/30 px-4 py-2 rounded-xl text-right">
               <p className="text-[10px] font-bold text-crimson/80 uppercase tracking-wider">TỔNG CỘNG NỢ TUẦN (7 NGÀY)</p>
               <p className="text-xl font-black text-crimson font-mono">
-                {bulkDebts.reduce((sum, item) => sum + (parseFloat(item.amount.replace(/,/g, '')) || 0), 0).toLocaleString('vi-VN')} đ
+                {(() => {
+                  const rawSum = bulkDebts.reduce((sum, item) => sum + (parseFloat(item.amount.replace(/,/g, '')) || 0), 0);
+                  const formatted = Math.abs(rawSum).toLocaleString('vi-VN');
+                  // Display clearly with a negative sign (-) in all cases for liability table
+                  return `-${formatted} đ`;
+                })()}
               </p>
            </div>
         </div>
@@ -1080,7 +1109,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
               <thead>
                 <tr className="bg-crimson/10 text-[9px] font-black uppercase tracking-widest text-crimson border-b-2 border-crimson/50">
                   <th className="px-4 py-3 font-black">Cột A: Ngày</th>
-                  <th className="px-4 py-3 text-right font-black-60">Cột B: Số Tiền Giữ Hộ (VND)</th>
+                  <th className="px-4 py-3 text-right font-black-60">Cột B: Số Tiền (VND)</th>
                 </tr>
               </thead>
               <tbody className="font-sans divide-y divide-crimson/10">
@@ -1104,8 +1133,21 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                         value={item.amount} 
                         onChange={e => {
                           const valStr = e.target.value.replace(/,/g, '');
-                          if (!/^\d*$/.test(valStr)) return;
-                          const formatted = valStr ? parseInt(valStr, 10).toLocaleString('en-US') : "";
+                          if (!/^-?\d*$/.test(valStr)) return;
+                          
+                          let formatted = "";
+                          if (valStr === "-") {
+                            formatted = "-";
+                          } else if (valStr) {
+                            const isNeg = valStr.startsWith("-");
+                            const cleanDigits = valStr.replace('-', '');
+                            if (cleanDigits) {
+                              const parsedVal = parseInt(cleanDigits, 10);
+                              if (!isNaN(parsedVal)) {
+                                formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                              }
+                            }
+                          }
                           const newDebts = [...bulkDebts];
                           newDebts[idx].amount = formatted;
                           setBulkDebts(newDebts);
@@ -1125,7 +1167,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-crimson/5 sketch-border border-dashed border-crimson/20 rounded-xl mb-10">
           <div className="text-center sm:text-left">
             <p className="text-xs text-ink/75 leading-relaxed">
-              ⚠️ <strong>Đây là nợ vì tôi giữ hộ thôi:</strong> Hệ thống tự động gom cả 7 ngày thành một khoản nợ duy nhất trong sổ tài sản, tiện lợi cho việc theo dõi số vốn thực tế.
+              ⚠️ <strong>Quy tắc cộng nợ:</strong> Hệ thống tự động gom cả 7 ngày thành một khoản nợ duy nhất trong sổ tài sản, tiện lợi cho việc theo dõi số vốn thực tế.
             </p>
           </div>
           
