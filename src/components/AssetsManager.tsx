@@ -99,7 +99,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
       const saved = localStorage.getItem("studyHub_bulkCardSpends");
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === 7) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
       }
@@ -1362,7 +1362,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         </div>
       </div>
 
-      {/* Bảng Kê Chi Tiêu Thẻ Tín Dụng Tuần - Specialized Section */}
+      {/* Bảng Kê Chi Tiêu Thẻ Tín Dụng - Specialized Section */}
       <div className="mt-12 animate-in fade-in slide-in-from-bottom-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b-4 border-indigo-600/80 pb-2 gap-4">
            <div className="flex items-center gap-3">
@@ -1384,6 +1384,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                   <th className="px-4 py-3 font-black w-44">Ngày</th>
                   <th className="px-4 py-3 text-right font-black w-48">Số Tiền (VND)</th>
                   <th className="px-4 py-3 font-black">Ghi Chú Chi Tiết</th>
+                  <th className="px-4 py-3 text-center font-black w-14">Xóa</th>
                 </tr>
               </thead>
               <tbody className="font-sans divide-y divide-indigo-100">
@@ -1400,7 +1401,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                             try {
                               const baseDate = new Date(e.target.value + "T12:00:00");
                               if (!isNaN(baseDate.getTime())) {
-                                for (let i = 1; i < 7; i++) {
+                                for (let i = 1; i < newSpends.length; i++) {
                                   const nextDate = new Date(baseDate.getTime());
                                   nextDate.setDate(baseDate.getDate() + i);
                                   newSpends[i].name = nextDate.toISOString().split("T")[0];
@@ -1457,6 +1458,18 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                         className="w-full text-left font-bold text-indigo-800 bg-white border border-ink/15 rounded-lg px-3 py-1 outline-none focus:border-indigo-600 text-xs shadow-inner"
                       />
                     </td>
+                    <td className="px-4 py-2 text-center">
+                      <button
+                        onClick={() => {
+                          const newSpends = bulkCardSpends.filter(s => s.id !== item.id);
+                          setBulkCardSpends(newSpends);
+                        }}
+                        className="p-1 text-[#e11d48] hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                        title="Xóa ngày chi tiêu này"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1472,10 +1485,10 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                       return `+${formatted} đ`;
                     })()}
                   </td>
-                  <td className="px-4 py-3 text-indigo-950/50 text-[10px] font-medium italic text-right">
+                  <td colSpan={2} className="px-4 py-3 text-indigo-950/50 text-[10px] font-medium italic text-right">
                     {(() => {
                       const count = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, '')))).length;
-                      return `* Tổng hợp từ ${count}/7 ngày chi tiêu thẻ`;
+                      return `* Tổng hợp từ ${count}/${bulkCardSpends.length} ngày ghi chi tiêu`;
                     })()}
                   </td>
                 </tr>
@@ -1493,6 +1506,36 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
           </div>
           
           <div className="flex gap-2 shrink-0">
+             <button 
+               onClick={() => {
+                 let nextDateStr = "";
+                 if (bulkCardSpends.length > 0) {
+                   const lastDateStr = bulkCardSpends[bulkCardSpends.length - 1].name;
+                   try {
+                     const d = new Date(lastDateStr + "T12:00:00");
+                     if (!isNaN(d.getTime())) {
+                       d.setDate(d.getDate() + 1);
+                       nextDateStr = d.toISOString().split("T")[0];
+                     }
+                   } catch {}
+                 }
+                 if (!nextDateStr) {
+                   nextDateStr = new Date().toISOString().split("T")[0];
+                 }
+                 setBulkCardSpends([
+                   ...bulkCardSpends,
+                   {
+                     id: Date.now() + Math.random(),
+                     name: nextDateStr,
+                     amount: "",
+                     notes: ""
+                   }
+                 ]);
+               }}
+               className="sketch-button py-2 px-4 text-xs font-bold bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-200 cursor-pointer transition-all flex items-center gap-1"
+             >
+               <Plus size={14} /> Thêm Hàng
+             </button>
              <button 
                onClick={handleResetBulkCardSpends}
                className="sketch-button text-xs py-2 px-4 font-bold uppercase tracking-widest text-[#1a2530] hover:bg-white cursor-pointer transition-all border border-ink/10"

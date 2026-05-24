@@ -866,7 +866,7 @@ export function DigitalJournal({
                 <div className="flex items-center justify-between border-b border-ink/10 pb-2 mb-3">
                   <div className="flex items-center gap-1.5 text-xs font-black text-ink/60">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                    <span>Góc Nhìn Số Chủ Đạo — Trần Thị Thu Hiền 24/08/2000</span>
+                    <span>Góc Nhìn Số Chủ Đạo, Venus & Cung Mọc</span>
                   </div>
                   
                   {aiInsights[currentPage.date] && (
@@ -887,7 +887,7 @@ export function DigitalJournal({
 
                     {aiInsights[currentPage.date].suggestions && aiInsights[currentPage.date].suggestions.length > 0 && (
                       <div className="text-[10px] text-ink/60 space-y-1 border-t border-dashed border-ink/5 pt-2">
-                        <span className="font-bold text-ink/70 uppercase text-[9px] block">💡 Điểm gợi mở góc nhìn cho Số 7:</span>
+                        <span className="font-bold text-ink/70 uppercase text-[9px] block">💡 Điểm gợi mở góc nhìn hôm nay:</span>
                         {aiInsights[currentPage.date].suggestions.map((s, idx) => (
                           <div key={idx} className="flex items-start gap-1">
                             <span className="text-emerald-600 font-bold">✓</span>
@@ -910,7 +910,7 @@ export function DigitalJournal({
                 ) : (
                   <div className="text-center py-3 px-3 bg-white/40 rounded-lg border border-dashed border-ink/10">
                     <p className="text-[10px] text-ink/50 max-w-sm mx-auto mb-2 leading-relaxed">
-                      Phân tích Thần số học cho Số Chủ Đạo 7 (Trần Thị Thu Hiền - 24/08/2000) sẽ tổng hợp thói quen, công việc và nhật ký tâm bút để phản chiếu những bài học sâu sắc từ trải nghiệm thực tế hôm nay.
+                      Phân tích tổng hòa Nhân số học &amp; Chiêm tinh học (Hài hòa Số Chủ Đạo 7 kết hợp với Sao Kim &amp; Cung Mọc hộ mệnh) sẽ xâu chuỗi thói quen học tập, năng lực và tâm bút của hôm nay để phản chiếu những bài học thấu suốt.
                     </p>
                     <button
                       onClick={() => fetchAIInsight(currentPage)}

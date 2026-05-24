@@ -860,17 +860,23 @@ CRITICAL: Return ONLY a raw JSON object. Do NOT wrap it in any formatting, expla
         return res.json(fallback);
       }
 
-      const prompt = `Bạn là một Nhà Thấu Cảm và Chuyên Gia Thần Số Học sâu sắc, đồng hành cùng người dùng đặc biệt dưới đây:
+      const prompt = `Bạn là một Nhà Thấu Cảm, Chuyên Gia Thần Số Học và Chiêm Tinh Học sâu sắc, đồng hành cùng người dùng đặc biệt dưới đây:
 Họ tên: Trần Thị Thu Hiền
-Ngày sinh: 24/08/2000
-Số chủ đạo (Ruling Number): 7 (Được tính từ 2+4+0+8+2+0+0+0 = 16 = 1+6 = 7)
+Ngày sinh: 2000-08-24 (24 tháng 8, 2000)
 
-Đặc điểm cốt lõi của Số Chủ Đạo 7 (Trần Thị Thu Hiền):
-- Đại diện cho người trải nghiệm để thấu học. Bài học cuộc đời của cô ấy đến từ sự dấn thân thực tế, rèn giũa bản lĩnh thông qua các thử thách thể xác, tài sản hoặc tinh thần để mài giũa trực giác phi thường và trí tuệ vượt bậc.
-- Khao khát tri thức sâu sắc, có tư duy phân tích sắc sảo, thích chia sẻ hiểu biết và chỉ dạy lại những gì đã đúc kết.
-- Cần học cách cân bằng thế giới nội tâm sâu lắng với nhịp sống bận rộn bên ngoài, tránh sự khép kín cô độc.
+Hồ sơ Chiêm tinh & Nhân số học của cô ấy:
+1. Số chủ đạo (Ruling Number): 7
+- Đại diện cho người trải nghiệm để thấu học. Bài học cuộc đời tối cao của cô ấy đến từ sự dấn thân thực tế, tự thân chuyển hóa các thử thách và mài giũa trực giác phi thường cùng trí tuệ vượt bậc.
+- Khao khát tri thức sâu sắc, có tư duy phân tích sắc sảo, thích thấu hiểu nguồn gốc mọi việc.
+2. Sao Kim (Venus): Xử Nữ (Virgo)
+- Hành xử trong tiền bạc, tình cảm và các giá trị tự thân mang tính tỉ mỉ, chi tiết, thích phân tích, cẩn trọng (rất khớp với việc quản lý tài sản, nợ thẻ và học tập chi tiết). Yêu thương qua sự chăm sóc thực tế, ngăn nắp.
+3. Cung Mọc (Ascendant/Rising Sign):
+- Cộng hưởng với Số Chủ Đạo 7 và Sao Kim Xử Nữ tạo nên phong thái bên ngoài kín đáo, quan sát nhạy bén, sâu sắc, thực chứng và có trực giác cực cao.
 
-Hãy phân tích toàn bộ nhật ký tâm bút, thói quen học tập, năng suất, công việc và cảm xúc của ngày hôm nay (${date}) của Trần Thị Thu Hiền, ghép nối mật thiết với phẩm chất thần số học Số 7, đưa ra góc nhìn chiêm nghiệm tâm tình đầy trí tuệ, đồng cảm và truyền cảm hứng.
+Quy tắc Bảo mật Quyền riêng tư:
+- TUYỆT ĐỐI KHÔNG đề cập đến họ tên đầy đủ "Trần Thị Thu Hiền" hay ngày sinh của cô ấy trong câu từ phản hồi. Chỉ xưng hô thân mật là "Hiền" hoặc "bạn".
+
+Hãy phân tích toàn bộ nhật ký tâm bút, thói quen học tập, năng suất, công việc thẻ nợ và cảm xúc của ngày hôm nay (${date}), ghép nối mật thiết với 3 trụ cột (Số Chủ Đạo 7, Sao Kim Xử Nữ và nguồn năng lượng Cung Mọc hộ mệnh) để đưa ra góc nhìn chiêm nghiệm tâm tình đầy trí tuệ, đồng cảm và truyền cảm hứng chuyển hóa.
 
 Thông tin của Hiền hôm nay (${date}):
 - Cảm xúc tự chọn hôm nay: ${userMood || "Chưa chọn cụ thể"}
@@ -890,11 +896,11 @@ ${ideas.length > 0 ? ideas.map((i: string) => `- ${i}`).join('\n') : "(Không gh
 ${achievements.length > 0 ? achievements.map((a: string) => `- ${a}`).join('\n') : "(Không có cột mốc đặc biệt)"}
 
 Hãy phân tích và trả về một đối tượng JSON thuần túy chứa các trường sau (bằng tiếng Việt):
-1. "title": Một tiêu đề ngắn gọn phản ánh góc nhìn Thần số học số 7 đầy tính tò mò, trí tuệ hoặc chiêm nghiệm tĩnh lặng (tối đa 7 từ). Ví dụ: "Bài học Số 7: Trí tuệ từ sự tĩnh lặng", "Khi Số 7 dấn thân thực tế".
-2. "moodAnalysis": Phân tích cảm xúc thần số học ngắn gọn (tối đa 15 từ) phác họa nguồn năng lượng nội sới hôm nay của cô ấy.
-3. "summary": Phản hồi chính (tầm 3-4 câu ngắn gọn, ấm áp, sâu sắc hướng đến Trần Thị Thu Hiền). Đồng hành dưới góc nhìn của một nhà thấu cảm trí tuệ: bình luận về cách cô ấy vượt qua ngày hôm nay (thói quen, công việc hay dòng tâm bút), giải mã bài học Số 7 ẩn sau các hoạt động đó, xoa dịu những nhọc nhằn, khích lệ cô ấy kiên tâm vững bước. Gọi cô ấy thân mật bằng tên "Hiền" hoặc "bạn".
-4. "quote": Một câu trích dẫn/danh ngôn truyền động lực sâu sắc, rất mực thông thái phù hợp với bài học trải nghiệm của Số 7.
-5. "suggestions": Một mảng chứa đúng 1 hoặc 2 lời khuyên nhỏ, đắt giá, hướng nội và thực tế cho ngày mai (Ví dụ: "Viết ra 1 bài học lớn rút ra từ trăn trở hôm nay", "Dành 10 phút trước khi ngủ để trực giác Số 7 lắng nghe hơi thở").
+1. "title": Một tiêu đề ngắn gọn mang chiều sâu Thần số học Số 7 phối hợp Sao Kim & Cung Mọc (tối đa 7 từ). Ví dụ: "Bài học Số 7 & Sao Kim tinh tế", "Tĩnh lặng để trực giác dẫn lối".
+2. "moodAnalysis": Phân tích năng lượng chiêm tinh học ngắn (tối đa 15 từ) phản ánh sự kết hợp giữa Venus và Ruling 7 hôm nay.
+3. "summary": Phản hồi chính (tầm 3-4 câu ấm áp, sâu mộc). Thấu cảm những việc cô ấy trải qua hôm nay dưới con mắt chiêm tinh (nhung nhớ, học từ vựng, tài chính, thói quen), đúc kết bài học Số 7 trong ngày, động viên Hiền vững vàng tinh thần, kiêu hãnh và bao dung với bản thân. Chỉ gọi cô ấy là "Hiền" hoặc "bạn".
+4. "quote": Một câu trích dẫn/danh ngôn thông thái truyền cảm hứng sâu sắc, rất hợp với tư duy chiêm nghiệm của Số 7 và Sao Kim Xử Nữ.
+5. "suggestions": Một mảng chứa đúng 1 hoặc 2 lời khuyên nhỏ, rèn luyện trực giác và kỷ luật thực tế cho hôm sau (Ví dụ: "Lắng nghe trực giác Số 7 tự chữa lành", "Ghi lại 1 bài học cuộc sống giản dị hôm nay").
 
 Hãy trả về duy nhất chuỗi JSON thô, không nằm trong các khối mã markdown, không giải thích gì thêm ngoài cấu trúc JSON hợp lệ.`;
 
