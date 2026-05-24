@@ -117,6 +117,10 @@ export function DigitalJournal({
   const [newEntryType, setNewEntryType] = useState<'Reflection' | 'Event'>('Reflection');
   const [newEntryEmoji, setNewEntryEmoji] = useState("📝");
 
+  // Simplify UX control toggles
+  const [showPageCustomizer, setShowPageCustomizer] = useState(false);
+  const [showAutomaticRecap, setShowAutomaticRecap] = useState(false);
+
   const handleAddQuickEntry = (dateStr: string) => {
     if (!newEntryContent.trim() || !setLogs) return;
 
@@ -336,11 +340,11 @@ export function DigitalJournal({
           <BookOpen className="w-16 h-16 text-ink/60 mx-auto mb-4 relative z-10" />
           <div className="flex justify-center relative z-10">
             <h2 className="text-2xl font-black font-logo uppercase tracking-widest text-ink bg-[#fbcfe8] px-4 py-2 rotate-1 border-2 border-ink rounded-md shadow-sm">
-              Digital Journal trống
+              Mở Trang Sách Trực Quan
             </h2>
           </div>
-          <p className="mt-6 font-hand text-ink text-xl relative z-10 font-medium">
-            Hãy bắt đầu viết nhật ký bằng cách cập nhật ghi chú hoạt động trong ngày của bạn trong các mục học tiếng Anh, thói quen, chi tiêu,...
+          <p className="mt-6 font-hand text-ink text-xl relative z-10 font-medium leading-relaxed">
+            Nhật ký ngày hôm nay chưa có dòng ghi chú nào. Hãy bắt đầu lưu trữ từ vựng, thói quen rèn luyện hoặc chắp bút ghi chép đầu tiên nhé!
           </p>
         </div>
       </div>
@@ -348,24 +352,26 @@ export function DigitalJournal({
   }
 
   const currentPage = pages[currentPageIndex];
+  const countOfTotalRecords = currentPage.habitCompletions.length + 
+                             currentPage.wordsReviewed.length + 
+                             currentPage.placesVisited.length + 
+                             currentPage.purchased.length + 
+                             currentPage.tasksDone.length + 
+                             currentPage.achievementsEarned.length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 font-sans">
       
       {/* HEADER BAR */}
-      <div className="sketch-border bg-[#e8f0fe] p-4 md:p-6 text-center select-none shadow-md border-b-4 border-r-4 border-ink relative overflow-hidden mb-8 max-w-5xl mx-auto">
-        <div className="absolute right-4 top-2 opacity-10 rotate-12">
-          <BookOpen className="w-20 h-20 text-ink" />
+      <div className="sketch-border bg-[#e8f0fe] py-4 px-6 text-center select-none shadow-md border-b-4 border-r-4 border-ink relative overflow-hidden mb-6 max-w-5xl mx-auto">
+        <div className="flex items-center justify-center gap-3">
+          <BookOpen className="w-6 h-6 text-ink" />
+          <h1 className="text-xl md:text-2xl font-logo font-black uppercase text-ink">
+            Sổ Tay Nhật Ký Tự Động
+          </h1>
         </div>
-        <div className="flex justify-center">
-          <div className="bg-[#fbcfe8] -rotate-1 px-5 py-2 border-2 border-ink shadow-sm rounded-md tracking-wider relative">
-            <h1 className="text-2xl md:text-3xl font-logo font-black uppercase text-ink flex items-center justify-center gap-3">
-              <BookOpen className="w-6 h-6 md:w-7 md:h-7" /> DIGITAL JOURNAL
-            </h1>
-          </div>
-        </div>
-        <p className="mt-3 text-xs md:text-sm font-semibold italic text-ink/70 relative z-10">
-          Kết nối thói quen, học tập, sắm sửa và tâm tư mỗi ngày của bạn thành trang kí ức tự động
+        <p className="mt-1 text-[11px] font-semibold italic text-ink/70">
+          Tích hợp thói quen, học tập, sắm sửa và tâm tư hoàn toàn tự động mỗi ngày
         </p>
       </div>
 
@@ -377,28 +383,32 @@ export function DigitalJournal({
           <div className="bg-white/70 backdrop-blur-md p-4 rounded-2xl sketch-border border-ink shadow-sm space-y-3">
             <div className="flex items-center justify-between border-b pb-2 border-ink/10">
               <span className="text-xs uppercase font-black tracking-widest text-[#1a1a1a] flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-crimson" /> Lịch sử ngày ghi nhật ký ({pages.length})
+                <Calendar className="w-4 h-4 text-crimson" /> Nhật ký ngày ({pages.length})
               </span>
             </div>
 
-            <div className="max-h-[380px] overflow-y-auto pr-1 space-y-2 scrollbar-thin">
+            <div className="max-h-[340px] overflow-y-auto pr-1 space-y-2 scrollbar-thin">
               {pages.map((p, idx) => {
                 const isSelected = currentPageIndex === idx;
                 const moodData = dailyMoods[p.date];
-                const countOfTotalRecords = p.logs.length + p.habitCompletions.length + p.wordsReviewed.length + p.placesVisited.length + p.purchased.length;
+                const dayActivityCount = p.logs.length + p.habitCompletions.length + p.wordsReviewed.length + p.placesVisited.length + p.purchased.length;
                 
                 return (
                   <button
                     key={p.date}
-                    onClick={() => setCurrentPageIndex(idx)}
-                    className={`w-full text-left p-3 rounded-xl border-2 transition-all duration-200 flex items-center justify-between gap-2 group ${
+                    onClick={() => {
+                      setCurrentPageIndex(idx);
+                      // Collapse expand tracker on day change so it's clean
+                      setShowAutomaticRecap(false);
+                    }}
+                    className={`w-full text-left p-2.5 rounded-xl border-2 transition-all duration-200 flex items-center justify-between gap-2 group ${
                       isSelected 
-                        ? "bg-[#fffbeb] border-ink text-ink shadow-[3px_3px_0_var(--color-ink)] translate-x-1" 
+                        ? "bg-[#fffbeb] border-ink text-ink shadow-[3px_3px_0_var(--color-ink)]" 
                         : "bg-white/40 border-ink/10 hover:border-ink/40 hover:bg-white text-ink/80"
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-xl flex-shrink-0 filter drop-shadow">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-lg flex-shrink-0">
                         {moodData?.emoji || "📝"}
                       </span>
                       <div className="min-w-0">
@@ -406,13 +416,13 @@ export function DigitalJournal({
                           {p.date}
                         </span>
                         <span className="text-[10px] text-ink/50 font-bold truncate block">
-                          {moodData?.name || "Bình thường"} • {countOfTotalRecords} hoạt động
+                          {moodData?.name || "Bình thường"} • {dayActivityCount} nhật trình
                         </span>
                       </div>
                     </div>
                     {p.logs.length > 0 && (
                       <span className="bg-[#fbcfe8] text-ink border border-ink text-[9px] px-1.5 py-0.5 rounded-full font-black flex-shrink-0">
-                        {p.logs.length} Log
+                        {p.logs.length} bút tích
                       </span>
                     )}
                   </button>
@@ -420,55 +430,67 @@ export function DigitalJournal({
               })}
             </div>
             
-            <div className="border-t border-ink/10 pt-3 flex flex-wrap gap-2 justify-between items-center bg-paper/30 p-2.5 rounded-xl border border-dashed border-ink/10 text-[10px] font-sans">
-              <span className="font-bold text-ink/55 text-[9px] uppercase tracking-wider">Chất liệu trang:</span>
-              <div className="flex gap-1.5">
-                {(['lined', 'grid', 'dotted', 'blank'] as const).map((style) => (
-                  <button
-                    key={style}
-                    onClick={() => setPaperStyle(style)}
-                    className={`px-2 py-0.5 text-[8px] font-black uppercase rounded border transition-all ${
-                      paperStyle === style ? "bg-ink text-paper border-ink" : "bg-white/50 border-ink/10 text-ink/65 hover:bg-ink/5"
-                    }`}
-                  >
-                    {style === 'lined' ? "Lined" : style === 'grid' ? "Grid" : style === 'dotted' ? "Dot" : "Blank"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+            {/* COLLAPSABLE CUSTOMIZER FOR CLEANER LOOK */}
+            <div className="border-t border-ink/10 pt-3 space-y-2">
+              <button 
+                onClick={() => setShowPageCustomizer(!showPageCustomizer)}
+                className="w-full flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-ink/70 hover:text-ink transition-colors"
+              >
+                <span className="flex items-center gap-1.5">🎨 Trang trí & Nhãn dán</span>
+                <span>{showPageCustomizer ? "Thu gọn ▲" : "Mở rộng ▼"}</span>
+              </button>
+              
+              {showPageCustomizer && (
+                <div className="space-y-3 pt-2 text-left border-t border-ink/5">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] uppercase font-bold text-ink/40">Loại giấy tập:</span>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {(['lined', 'grid', 'dotted', 'blank'] as const).map((style) => (
+                        <button
+                          key={style}
+                          onClick={() => setPaperStyle(style)}
+                          className={`px-2 py-0.5 text-[8px] font-black uppercase rounded border transition-all ${
+                            paperStyle === style ? "bg-ink text-paper border-ink" : "bg-white border-ink/10 text-ink/65 hover:bg-ink/5"
+                          }`}
+                        >
+                          {style === 'lined' ? "Kẻ ngang" : style === 'grid' ? "Ô ly" : style === 'dotted' ? "Chấm mờ" : "Trắng trơn"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-          {/* QUICK CHỌN STICKERS */}
-          <div className="bg-white/70 backdrop-blur-md p-4 rounded-2xl sketch-border-sm border-dashed text-center space-y-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-ink/65 block">
-              ✨ Dán nhãn Sticker lên trang viết ({currentPage.date})
-            </span>
-            <div className="flex flex-wrap items-center justify-center gap-1.5">
-              {['🌸', '🎯', '🔥', '☕', '⭐', '🎉', '🚀', '🧸', '💡', '📖', '❤️'].map((st) => {
-                const active = (pageStickers[currentPage.date] || []).includes(st);
-                return (
-                  <button
-                    key={st}
-                    onClick={() => addSticker(st, currentPage.date)}
-                    className={`w-8 h-8 flex items-center justify-center text-lg rounded-xl transition-all hover:scale-110 active:scale-95 border ${
-                      active 
-                        ? "bg-[#fffbeb] border-ink rotate-3 scale-105 shadow-[2px_2px_0_var(--color-ink)]" 
-                        : "bg-white/40 border-dashed border-ink/10 hover:border-ink hover:opacity-100 opacity-60"
-                    }`}
-                    title={active ? "Gỡ nhãn" : "Dán nhãn"}
-                  >
-                    {st}
-                  </button>
-                );
-              })}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] uppercase font-bold text-ink/40">Nhãn dán nhanh lên trang:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {['🌸', '🎯', '🔥', '☕', '⭐', '🎉', '🚀', '🧸', '💡', '📖', '❤️'].map((st) => {
+                        const active = (pageStickers[currentPage.date] || []).includes(st);
+                        return (
+                          <button
+                            key={st}
+                            onClick={() => addSticker(st, currentPage.date)}
+                            className={`w-7 h-7 flex items-center justify-center text-sm rounded-lg transition-all hover:scale-110 active:scale-95 border ${
+                              active 
+                                ? "bg-[#fffbeb] border-ink rotate-3 scale-105 shadow-[2px_2px_0_var(--color-ink)]" 
+                                : "bg-white border border-ink/10 hover:border-ink opacity-60"
+                            }`}
+                            title={active ? "Gỡ sticker" : "Dán sticker"}
+                          >
+                            {st}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* RIGHT PANEL: DETAILS OF THE JOURNAL PAGE */}
-        <div className="lg:col-span-8 space-y-5">
+        <div className="lg:col-span-8 space-y-4">
           
-          <div className="bg-white/80 backdrop-blur shadow-sm p-5 md:p-8 rounded-2xl sketch-border border-ink relative overflow-hidden">
+          <div className="bg-white/80 backdrop-blur shadow-sm p-5 md:p-8 rounded-2xl sketch-border border-ink relative overflow-hidden min-h-[480px]">
             
             {/* Visual Paper Styling Sheet Wrapper */}
             <div 
@@ -489,12 +511,15 @@ export function DigitalJournal({
               }
             />
 
+            {/* Note paper margin line to make it extremely cozy and high craft */}
+            <div className="absolute left-6 md:left-[36px] top-0 bottom-0 w-[1.5px] bg-rose-400/25 pointer-events-none z-10" />
+
             {/* Sticker overlay visual layout */}
             <div className="absolute top-4 right-4 flex gap-1 z-10 pointer-events-none select-none">
               {(pageStickers[currentPage.date] || []).map((st, idx) => (
                 <span 
                   key={idx} 
-                  className="w-8 h-8 flex items-center justify-center text-xl bg-[#fffbeb] border border-ink shadow-sm rounded-full rotate-6 animate-pulse"
+                  className="w-7 h-7 flex items-center justify-center text-lg bg-[#fffbeb] border border-ink shadow-sm rounded-full rotate-6 animate-pulse"
                 >
                   {st}
                 </span>
@@ -502,28 +527,28 @@ export function DigitalJournal({
             </div>
 
             {/* MAIN CONTENT SECTION */}
-            <div className="relative z-10 space-y-6">
+            <div className="relative z-10 space-y-5 pl-4 md:pl-6">
               
-              {/* Daily Title details */}
-              <div className="border-b-2 border-ink pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              {/* Daily Title & Mood bar */}
+              <div className="border-b border-ink/15 pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div>
-                  <h2 className="text-2xl sm:text-3xl font-black text-ink uppercase tracking-tight">
+                  <h2 className="text-xl sm:text-2xl font-black text-ink uppercase tracking-tight font-sans">
                     {currentPage.displayDate}
                   </h2>
-                  <span className="text-[10px] font-mono font-bold text-ink/40">
-                    ID Ngày: {currentPage.date}
+                  <span className="text-[9px] font-mono font-bold text-ink/35">
+                    ID: {currentPage.date}
                   </span>
                 </div>
 
-                {/* Simplified Single Header Mood Picker Row */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase text-ink/60 select-none mr-1">Cảm nhận:</span>
+                {/* Highly compact horizontal Mood Strip */}
+                <div className="flex items-center gap-1.5 bg-ink/5 p-1 rounded-full border border-ink/5 self-start md:self-auto">
+                  <span className="text-[9px] font-black uppercase text-ink/50 px-2 select-none">Tâm trạng</span>
                   {[
                     { emoji: "😌", name: "Bình yên" },
                     { emoji: "😊", name: "Vui vẻ" },
                     { emoji: "🌟", name: "Hào hứng" },
                     { emoji: "🥱", name: "Mệt mỏi" },
-                    { emoji: "😔", name: "Tâm trạng" },
+                    { emoji: "😔", name: "Khó khăn" },
                     { emoji: "☕", name: "Tập trung" }
                   ].map(m => {
                     const isSelected = dailyMoods[currentPage.date]?.emoji === m.emoji;
@@ -531,14 +556,14 @@ export function DigitalJournal({
                       <button
                         key={m.emoji}
                         onClick={() => changeMood(currentPage.date, m.emoji, m.name)}
-                        className={`text-xs px-2.5 py-1 rounded-full border-2 font-bold transition-all flex items-center gap-1 active:scale-95 duration-100 ${
+                        className={`w-7 h-7 flex items-center justify-center text-xs rounded-full transition-all active:scale-95 ${
                           isSelected
-                            ? "bg-[#fffbeb] border-ink text-ink shadow-[2.5px_2.5px_0_var(--color-ink)]"
-                            : "bg-white/50 border-ink/10 opacity-70 hover:opacity-100 text-ink/80"
+                            ? "bg-white border border-ink/20 shadow-xs scale-105"
+                            : "opacity-40 hover:opacity-100 hover:bg-white/40 text-ink/80"
                         }`}
+                        title={m.name}
                       >
-                        <span>{m.emoji}</span>
-                        <span className="text-[10px]">{m.name}</span>
+                        {m.emoji}
                       </button>
                     );
                   })}
@@ -547,17 +572,17 @@ export function DigitalJournal({
 
               {/* JOURNAL LOGS AND REFLECTIONS LIST (THE ACTUAL DIARY CORES) */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase font-black text-ink/75 flex items-center gap-1.5 bg-[#fbcfe8] border-2 border-ink px-2.5 py-1 rounded-lg">
-                    <Feather className="w-3.5 h-3.5" /> Ghi chép & Tâm sự ({currentPage.logs.length})
+                <div className="flex items-center justify-between border-b border-ink/10 pb-2">
+                  <span className="text-xs uppercase font-black text-ink/70 flex items-center gap-1.5">
+                    <Feather className="w-3.5 h-3.5 text-crimson" /> Ghi chép cá nhân ({currentPage.logs.length})
                   </span>
                   
                   {setLogs && (
                     <button
                       onClick={() => setShowQuickEntry(!showQuickEntry)}
-                      className="sketch-btn-sm text-[10px] py-1 px-3 bg-ink text-paper hover:bg-ink/80 uppercase font-bold tracking-wider flex items-center gap-1.5"
+                      className="text-[10px] py-1 px-2.5 bg-ink text-paper hover:bg-ink/90 rounded-md transition-all uppercase font-bold tracking-wider flex items-center gap-1"
                     >
-                      {showQuickEntry ? <X size={11} /> : <Plus size={11} />} {showQuickEntry ? "Đóng form" : "Thêm dòng tâm sự"}
+                      {showQuickEntry ? <X size={10} /> : <Plus size={10} />} {showQuickEntry ? "Ẩn" : "Chắp bút"}
                     </button>
                   )}
                 </div>
@@ -567,10 +592,10 @@ export function DigitalJournal({
                   <motion.div 
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-[#fffbeb] p-4 rounded-xl border-2 border-ink shadow-[4px_4px_0_rgba(0,0,0,1)] space-y-3"
+                    className="bg-[#fffbeb] p-3 rounded-xl border border-ink/20 shadow-xs space-y-3"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink/15 pb-2">
-                      <div className="flex gap-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink/10 pb-1.5">
+                      <div className="flex gap-1">
                         <button
                           type="button"
                           onClick={() => setNewEntryType('Reflection')}
@@ -583,20 +608,20 @@ export function DigitalJournal({
                           onClick={() => setNewEntryType('Event')}
                           className={`px-2 py-0.5 text-[9px] font-black uppercase rounded ${newEntryType === 'Event' ? "bg-ink text-white" : "bg-ink/10 text-ink"}`}
                         >
-                          Sự kiện nhật trình
+                          Sự kiện nhật sự
                         </button>
                       </div>
 
                       {/* Icon selector with simple tooltips */}
                       <div className="flex items-center gap-1">
-                        <span className="text-[9px] uppercase font-bold text-ink/50 mr-1">Icon:</span>
+                        <span className="text-[9px] uppercase font-bold text-ink/40 mr-1">Icon:</span>
                         <div className="flex gap-1">
                           {['📝', '💡', '🌟', '☕', '🔥', '🎉', '💻', '💪', '❤️', '🎓'].map((em) => (
                             <button
                               key={em}
                               type="button"
                               onClick={() => setNewEntryEmoji(em)}
-                              className={`text-xs p-1 rounded-md transition-transform ${newEntryEmoji === em ? "bg-[#fbcfe8] border border-ink scale-110" : "opacity-50 hover:opacity-100"}`}
+                              className={`text-xs p-0.5 rounded-md transition-transform ${newEntryEmoji === em ? "bg-[#fbcfe8] scale-110" : "opacity-40 hover:opacity-100"}`}
                             >
                               {em}
                             </button>
@@ -608,23 +633,23 @@ export function DigitalJournal({
                     <textarea
                       value={newEntryContent}
                       onChange={(e) => setNewEntryContent(e.target.value)}
-                      placeholder="Hôm nay có điều gì ý nghĩa hay bài học gì đáng nhớ mà bạn muốn lưu giữ?..."
-                      className="w-full min-h-[90px] p-2.5 bg-white rounded border border-ink/30 text-sm focus:outline-none focus:border-ink resize-none font-hand text-lg placeholder:font-sans placeholder:text-xs text-ink placeholder:text-ink/40"
+                      placeholder="Ghi lại lưu bút, mục tiêu đạt được hoặc bất kì tâm sự nào về học tập rèn luyện trong ngày..."
+                      className="w-full min-h-[80px] p-2 bg-white rounded border border-ink/15 text-sm focus:outline-none focus:border-ink/50 resize-none font-hand text-lg placeholder:font-sans placeholder:text-xs text-ink placeholder:text-ink/40 leading-relaxed"
                     />
 
-                    <div className="flex justify-end gap-2.5">
+                    <div className="flex justify-end gap-2 text-xs">
                       <button
                         onClick={() => setShowQuickEntry(false)}
-                        className="px-2.5 py-1 bg-white text-ink border border-ink/20 text-xs font-bold rounded hover:bg-ink/5"
+                        className="px-2.5 py-1 bg-white border border-ink/10 rounded hover:bg-ink/5"
                       >
                         Bỏ qua
                       </button>
                       <button
                         onClick={() => handleAddQuickEntry(currentPage.date)}
                         disabled={!newEntryContent.trim()}
-                        className="px-3.5 py-1 bg-ink text-paper text-xs font-black rounded hover:bg-ink/90 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+                        className="px-3.5 py-1 bg-ink text-paper font-black rounded hover:bg-ink/90 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
                       >
-                        <Send size={11} /> Lưu bút tích
+                        <Send size={10} /> Lưu dòng này
                       </button>
                     </div>
                   </motion.div>
@@ -632,22 +657,22 @@ export function DigitalJournal({
 
                 {/* Logs Listing container */}
                 {currentPage.logs.length === 0 ? (
-                  <div className="text-center py-7 px-4 border border-dashed border-ink/15 rounded-xl bg-ink/5 italic font-hand text-ink/50 text-base">
-                    Trang kí ức ngày hôm nay chưa có dòng ghi chú tâm tư nào. Hãy bấm "Thêm dòng tâm sự" để lưu giữ suy nghĩ của bạn!
+                  <div className="text-center py-6 px-4 border border-dashed border-ink/10 rounded-xl bg-ink/5 italic font-hand text-ink/40 text-base leading-relaxed">
+                    Trang ngày hôm nay chưa có dòng ghi chép riêng. Bạn có thể chắp bút nhanh ngay bên trên!
                   </div>
                 ) : (
-                  <div className="space-y-4 pl-3.5 border-l-2 border-dashed border-ink/20 py-1">
+                  <div className="space-y-3.5 pl-3 border-l-2 border-dashed border-ink/15 py-1">
                     {currentPage.logs.map((log, idx) => (
                       <div key={log.id || idx} className="relative group/log">
-                        <span className="absolute -left-[27px] bg-paper text-sm p-0.5 rounded-full ring-4 ring-white border border-ink/10 flex items-center justify-center w-6 h-6 shadow-[1.5px_1.5px_0_rgba(0,0,0,0.1)]">
+                        <span className="absolute -left-[23px] bg-paper text-sm p-0.5 rounded-full ring-4 ring-white border border-ink/10 flex items-center justify-center w-5.5 h-5.5 shadow-xs">
                           {log.emoji || log.icon || "📝"}
                         </span>
                         
                         <div className="flex items-start justify-between gap-4 ml-3">
-                          <div className="space-y-0.5 min-w-0 flex-1">
-                            <p className="font-hand text-lg md:text-xl leading-relaxed text-ink/95 whitespace-pre-wrap">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-hand text-lg md:text-xl leading-relaxed text-ink/90 whitespace-pre-wrap">
                               {log.type === "Event" && (
-                                <span className="font-sans font-black uppercase text-[9px] tracking-wider mr-2 bg-ink/10 px-1.5 py-0.5 rounded inline-block translate-y-[-2px] text-ink/75">
+                                <span className="font-sans font-black uppercase text-[8px] tracking-wider mr-2 bg-ink/10 px-1 py-0.5 rounded text-ink/70">
                                   {log.time || "Sự kiện"}
                                 </span>
                               )}
@@ -658,10 +683,10 @@ export function DigitalJournal({
                           {setLogs && (
                             <button
                               onClick={() => handleDeleteQuickEntry(log.id)}
-                              className="opacity-0 group-hover/log:opacity-100 hover:text-crimson text-ink/40 p-1 rounded hover:bg-ink/5 transition-all outline-none shrink-0"
-                              title="Xóa dòng này"
+                              className="opacity-0 group-hover/log:opacity-100 hover:text-crimson text-ink/30 p-0.5 rounded hover:bg-ink/5 transition-all outline-none shrink-0"
+                              title="Xóa dòng"
                             >
-                              <Trash2 size={13} />
+                              <Trash2 size={12} />
                             </button>
                           )}
                         </div>
@@ -671,228 +696,208 @@ export function DigitalJournal({
                 )}
               </div>
 
-              {/* BENTO-STYLE INTEGRATED TRACKERS (HABITS, REVIEW, WORK) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-dashed border-ink/15 pt-5">
-                
-                {/* 1. Completed Habits Capsule */}
-                <div className="bg-[#e8f0fe]/45 p-4 rounded-2xl border border-ink/10 space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-black uppercase text-indigo-900 border-b border-indigo-900/10 pb-1.5">
-                    <CheckSquare size={14} className="text-indigo-600" />
-                    Thói quen hoàn thành ({currentPage.habitCompletions.length})
+              {/* INTEGRATED COLLAPSABLE COMPONENT FOR CLEANER LOOK */}
+              <div className="border-t border-dashed border-ink/15 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAutomaticRecap(!showAutomaticRecap)}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl border border-dashed border-ink/20 bg-ink/[0.02] hover:bg-ink/5 transition-all font-sans text-xs font-bold text-ink"
+                >
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-ink/60" />
+                    <span>HỆ THỐNG TỰ ĐỘNG CHUỖI ({countOfTotalRecords} hoạt động)</span>
                   </div>
-                  {currentPage.habitCompletions.length === 0 ? (
-                    <span className="text-[11px] text-ink/50 italic block pt-1">Không có thói quen nào của ngày này</span>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {currentPage.habitCompletions.map(({ habit, streak }, idx) => (
-                        <span 
-                          key={idx} 
-                          className="inline-flex items-center gap-1 bg-white border border-indigo-200 px-2 py-0.5 rounded-lg text-xs font-bold text-indigo-950 shadow-sm"
-                        >
-                          <span className="drop-shadow-sm">{habit.icon}</span>
-                          <span>{habit.name}</span>
-                          {streak > 1 && (
-                            <span className="text-[9px] font-black uppercase text-amber-700 bg-amber-50 border border-amber-200 px-1 rounded">
-                              {streak}d Flame
+                  <div className="flex items-center gap-1.5 text-[10px] text-ink/50 font-bold uppercase">
+                    <span>{showAutomaticRecap ? "Thu nhỏ ▲" : "Chi tiết ▼"}</span>
+                  </div>
+                </button>
+
+                {showAutomaticRecap && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="mt-3 bg-white/60 p-4 rounded-xl border border-ink/10 grid grid-cols-1 md:grid-cols-2 gap-4"
+                  >
+                    {/* Thói quen hoàn thành */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] uppercase font-black tracking-widest text-[#4f46e5] flex items-center gap-1">
+                        <CheckSquare size={11} /> Thói quen tốt ({currentPage.habitCompletions.length})
+                      </span>
+                      {currentPage.habitCompletions.length === 0 ? (
+                        <p className="text-[10px] text-ink/40 italic">Chưa ghi nhận rèn luyện</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {currentPage.habitCompletions.map(({ habit, streak }, idx) => (
+                            <span key={idx} className="inline-flex items-center gap-1 bg-white border border-indigo-100 px-2 py-0.5 rounded text-xs text-indigo-900 shadow-xs">
+                              <span>{habit.icon || "⏳"}</span>
+                              <span className="font-semibold">{habit.name}</span>
+                              {streak > 1 && (
+                                <span className="text-[8px] text-amber-700 bg-amber-50 px-1 rounded font-bold">{streak} ngày</span>
+                              )}
                             </span>
-                          )}
-                        </span>
-                      ))}
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* 2. Vocabulary Reviewed Capsule */}
-                <div className="bg-[#fbcfe8]/25 p-4 rounded-2xl border border-ink/10 space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-black uppercase text-crimson border-b border-crimson/10 pb-1.5">
-                    <BookOpen size={14} className="text-crimson" />
-                    Từ vựng đã ôn ({currentPage.wordsReviewed.length})
-                  </div>
-                  {currentPage.wordsReviewed.length === 0 ? (
-                    <span className="text-[11px] text-ink/50 italic block pt-1">Chưa có hoạt động từ vựng</span>
-                  ) : (
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {currentPage.wordsReviewed.map((w, idx) => (
-                        <span 
-                          key={idx} 
-                          className="bg-white border border-rose-200 text-rose-900 text-[11px] font-bold px-2 py-0.5 rounded-md hover:scale-105 transition-transform cursor-pointer"
-                        >
-                          {w.vocabulary}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* 3. Asset & Finances Purchases */}
-                <div className="bg-amber-50/40 p-4 rounded-2xl border border-ink/10 space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-black uppercase text-amber-800 border-b border-amber-800/10 pb-1.5">
-                    <DollarSign size={14} className="text-amber-600" />
-                    Chi tiêu & Sắm sửa ({currentPage.purchased.length})
-                  </div>
-                  {currentPage.purchased.length === 0 ? (
-                    <span className="text-[11px] text-ink/50 italic block pt-1">Không phát sinh chi tiêu mua sắm</span>
-                  ) : (
-                    <div className="space-y-1.5 pt-1">
-                      {currentPage.purchased.map((item, idx) => (
-                        <div key={idx} className="bg-white/80 p-2 rounded-xl border border-dashed border-amber-200 text-xs flex justify-between items-center">
-                          <span className="font-bold text-ink/80 truncate max-w-[130px]">{item.content}</span>
-                          {item.price ? (
-                            <span className="font-mono font-black text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded text-[10px]">
-                              {item.price.toLocaleString('vi-VN')} đ
+                    {/* Từ vựng */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] uppercase font-black tracking-widest text-emerald-800 flex items-center gap-1">
+                        <BookOpen size={11} /> Đã ôn tập ({currentPage.wordsReviewed.length})
+                      </span>
+                      {currentPage.wordsReviewed.length === 0 ? (
+                        <p className="text-[10px] text-ink/40 italic">Chưa tích lũy vốn từ học tập</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {currentPage.wordsReviewed.map((w, idx) => (
+                            <span key={idx} className="bg-emerald-50 text-emerald-800 text-[10px] px-2 py-0.5 rounded border border-emerald-100 font-medium">
+                              {w.vocabulary}
                             </span>
-                          ) : (
-                            <span className="text-ink/40 text-[10px]">Đã mua</span>
-                          )}
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* 4. Geography Visited Places */}
-                <div className="bg-rose-50/30 p-4 rounded-2xl border border-ink/10 space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-black uppercase text-rose-800 border-b border-rose-800/10 pb-1.5">
-                    <MapPin size={14} className="text-rose-600" />
-                    Khám phá địa điểm ({currentPage.placesVisited.length})
-                  </div>
-                  {currentPage.placesVisited.length === 0 ? (
-                    <span className="text-[11px] text-ink/50 italic block pt-1">Chưa lưu địa danh nào</span>
-                  ) : (
-                    <div className="space-y-1.5 pt-1">
-                      {currentPage.placesVisited.map((p, idx) => (
-                        <div key={idx} className="bg-white/80 p-2 rounded-xl border border-rose-100 text-xs">
-                          <div className="font-bold text-rose-950 flex items-center gap-1">
-                            <span>📍</span>
-                            <span className="truncate">{p.name}</span>
-                          </div>
-                          {p.review && <p className="font-hand italic text-xs text-ink/75 mt-0.5 leading-snug">"{p.review}"</p>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-              </div>
-
-              {/* STOIC PROUD & TASK DONE ACHIEVEMENTS */}
-              {(currentPage.tasksDone.length > 0 || currentPage.contentDone.length > 0 || currentPage.achievementsEarned.length > 0) && (
-                <div className="border-t border-dashed border-ink/15 pt-4 space-y-3 bg-[#e8f0fe]/20 p-4 rounded-2xl border border-indigo-100">
-                  <span className="text-[10px] uppercase font-black tracking-widest text-indigo-950 block">🎉 Thành tựu & Nhiệm vụ hôm nay</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {currentPage.tasksDone.length > 0 && (
-                      <div className="space-y-1">
-                        <span className="text-[9px] uppercase font-bold text-indigo-505 block">Nhiệm vụ hoàn tất:</span>
-                        <ul className="space-y-1 max-h-[140px] overflow-y-auto">
-                          {currentPage.tasksDone.map((t, idx) => (
-                            <li key={idx} className="flex items-center gap-1.5 text-xs text-ink/70">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                              <span className="line-through decoration-ink/20 truncate">{t.title}</span>
+                    {/* Chi tiêu */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] uppercase font-black tracking-widest text-amber-800 flex items-center gap-1">
+                        <DollarSign size={11} /> Chi tiêu sắm sửa ({currentPage.purchased.length})
+                      </span>
+                      {currentPage.purchased.length === 0 ? (
+                        <p className="text-[10px] text-ink/40 italic">Không có chi tiêu phát sinh</p>
+                      ) : (
+                        <ul className="space-y-1">
+                          {currentPage.purchased.map((item, idx) => (
+                            <li key={idx} className="text-xs text-ink/80 flex justify-between gap-2 bg-amber-50/50 px-2 py-1 rounded">
+                              <span className="truncate max-w-[150px] font-medium">{item.content}</span>
+                              <span className="font-mono text-[9px] bg-amber-100 px-1.5 rounded font-black text-amber-950">
+                                {item.price ? `${item.price.toLocaleString('vi-VN')} đ` : "Đã sắm"}
+                              </span>
                             </li>
                           ))}
                         </ul>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
-                    {currentPage.achievementsEarned.length > 0 && (
-                      <div className="space-y-1.5">
-                        <span className="text-[9px] uppercase font-bold text-amber-600 block">Danh hiệu mở khóa:</span>
-                        {currentPage.achievementsEarned.map((ach, idx) => (
-                          <div key={idx} className="bg-amber-100/50 p-2 rounded-xl border border-amber-200 text-xs flex items-start gap-1.5">
-                            <span className="text-sm">🏆</span>
-                            <div>
-                              <div className="font-bold text-amber-900 leading-tight">{ach.title}</div>
-                              <p className="text-[10px] text-amber-800 leading-normal">{ach.description}</p>
-                            </div>
+                    {/* Địa điểm */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] uppercase font-black tracking-widest text-[#be123c] flex items-center gap-1">
+                        <MapPin size={11} /> Địa điểm khám phá ({currentPage.placesVisited.length})
+                      </span>
+                      {currentPage.placesVisited.length === 0 ? (
+                        <p className="text-[10px] text-ink/40 italic">Chưa đến nơi thăm thú nào</p>
+                      ) : (
+                        <ul className="space-y-1">
+                          {currentPage.placesVisited.map((p, idx) => (
+                            <li key={idx} className="text-xs text-rose-950 flex flex-col bg-rose-50/50 p-1.5 rounded border border-rose-100/50">
+                              <span className="font-bold">📍 {p.name}</span>
+                              {p.review && <span className="text-[10px] text-ink/60 font-hand italic block">"{p.review}"</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    {/* Hoạt động phụ / Nhiệm vụ thành tựu */}
+                    {(currentPage.tasksDone.length > 0 || currentPage.achievementsEarned.length > 0) && (
+                      <div className="md:col-span-2 border-t border-dashed border-ink/10 pt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {currentPage.tasksDone.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="text-[9px] uppercase font-black text-ink/50 block">Mục tiêu việc làm hoàn tất:</span>
+                            <ul className="space-y-0.5">
+                              {currentPage.tasksDone.map((t, idx) => (
+                                <li key={idx} className="text-xs text-ink/75 truncate flex items-center gap-1">
+                                  <span className="w-1 h-1 rounded-full bg-emerald-500 shrink-0" />
+                                  <span className="line-through decoration-ink/15">{t.title}</span>
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                        ))}
+                        )}
+
+                        {currentPage.achievementsEarned.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="text-[9px] uppercase font-black text-[#b45309] block">Danh hiệu học sùng:</span>
+                            {currentPage.achievementsEarned.map((ach, idx) => (
+                              <div key={idx} className="bg-amber-50 p-1.5 rounded text-[10px] border border-amber-100 flex gap-1.5 items-start">
+                                <span>🏅</span>
+                                <div className="min-w-0">
+                                  <strong className="text-amber-900 leading-tight block truncate">{ach.title}</strong>
+                                  <p className="text-[9px] text-amber-800 leading-snug">{ach.description}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
+                  </motion.div>
+                )}
+              </div>
+
+              {/* COZY AI COMPANION (COORDINATED WITH THE DAY) */}
+              <div className="bg-[#fffdf8] rounded-xl border border-ink/15 p-4 mt-2 hover:bg-[#fffff4] transition-all shadow-xs">
+                <div className="flex items-center justify-between border-b border-ink/10 pb-2 mb-3">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-ink/60">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                    <span>Góc Tri Kỷ Chiêm Nghiệm</span>
                   </div>
-                </div>
-              )}
-
-              {/* COZY AI TRI KI (COMPANION LETTER CARD) */}
-              <div className="bg-[#fffdf9] rounded-2xl border-2 border-ink p-5 shadow-[4px_4px_0_var(--color-ink)] relative overflow-hidden group hover:bg-[#fffff4] transition-all duration-300">
-                <div className="absolute right-0 top-0 bg-amber-400 text-ink border-l-2 border-b-2 border-ink px-3 py-1 text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5" /> AI Companion
-                </div>
-
-                <div className="flex items-center gap-2 mb-3 border-b border-ink/10 pb-2">
-                  <Sparkles className="w-4 h-4 text-ink animate-pulse" />
-                  <h3 className="font-logo font-black text-sm text-ink uppercase tracking-wider">
-                    Góc Tri Kỷ Chiêm Nghiệm
-                  </h3>
+                  
+                  {aiInsights[currentPage.date] && (
+                    <span className="text-[9px] uppercase tracking-widest text-[#b45309] bg-[#fffbeb] px-2 py-0.5 rounded-full border border-amber-200/50 font-bold">
+                      {aiInsights[currentPage.date].title || "Kỷ niệm ngày"}
+                    </span>
+                  )}
                 </div>
 
                 {aiInsights[currentPage.date] ? (
-                  <div className="space-y-3.5 text-ink">
-                    <div className="bg-[#fffbeb] p-3 rounded-xl border border-dashed border-amber-300">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-[#b45309] block">🎭 Chủ đề ngày:</span>
-                      <p className="font-hand text-xl font-bold italic text-ink/90 leading-snug">
-                        "{aiInsights[currentPage.date].title}"
-                      </p>
-                      <span className="text-[9px] bg-white border border-amber-200 text-amber-800 px-2 py-0.5 rounded-full mt-1.5 inline-block font-sans font-bold">
-                        🌌 Cảm xúc: {aiInsights[currentPage.date].moodAnalysis}
-                      </span>
-                    </div>
-
-                    <div className="relative pl-6 py-0.5">
-                      <Quote className="w-4 h-4 text-ink/15 absolute left-0 top-0 rotate-180" />
-                      <p className="font-hand text-lg leading-relaxed text-ink/80 italic whitespace-pre-line">
+                  <div className="space-y-3 font-sans text-ink">
+                    <div className="relative pl-4 border-l-2 border-amber-300">
+                      <Quote className="w-3 h-3 text-ink/10 absolute left-0.5 top-0 rotate-180" />
+                      <p className="font-hand text-lg leading-relaxed text-ink/80 italic whitespace-pre-line pl-1">
                         {aiInsights[currentPage.date].summary}
                       </p>
                     </div>
 
-                    {aiInsights[currentPage.date].quote && (
-                      <div className="bg-ink/5 p-2.5 rounded-xl border border-ink/10 italic text-[11px] text-ink/75 leading-relaxed">
-                        💡 "{aiInsights[currentPage.date].quote}"
-                      </div>
-                    )}
-
                     {aiInsights[currentPage.date].suggestions && aiInsights[currentPage.date].suggestions.length > 0 && (
-                      <div className="border-t border-dashed border-ink/10 pt-3">
-                        <span className="text-[10px] font-black uppercase text-ink block mb-1.5">🌱 Ngày mai chắp bút rèn luyện:</span>
-                        <ul className="space-y-1">
-                          {aiInsights[currentPage.date].suggestions.map((s, idx) => (
-                            <li key={idx} className="flex items-start gap-1.5 text-xs text-ink/80 leading-relaxed font-medium">
-                              <span className="text-emerald-600 font-bold">✓</span>
-                              <span>{s}</span>
-                            </li>
-                          ))}
-                        </ul>
+                      <div className="text-[10px] text-ink/60 space-y-1 border-t border-dashed border-ink/5 pt-2">
+                        <span className="font-bold text-ink/70 uppercase text-[9px] block">💡 Điểm gợi mở cho hôm sau:</span>
+                        {aiInsights[currentPage.date].suggestions.map((s, idx) => (
+                          <div key={idx} className="flex items-start gap-1">
+                            <span className="text-emerald-600 font-bold">✓</span>
+                            <span>{s}</span>
+                          </div>
+                        ))}
                       </div>
                     )}
 
-                    <div className="flex justify-end pt-2 border-t border-dashed border-ink/10 mt-2">
+                    <div className="flex justify-end border-t border-dashed border-ink/5 mt-2 pt-1.5">
                       <button
                         onClick={() => fetchAIInsight(currentPage)}
                         disabled={loadingInsight}
-                        className="text-[9px] font-black uppercase text-ink/65 hover:text-ink transition-colors flex items-center gap-1"
+                        className="text-[9px] font-black uppercase text-ink/40 hover:text-ink transition-colors flex items-center gap-1 cursor-pointer"
                       >
-                        <RefreshCw className={`w-2.5 h-2.5 ${loadingInsight ? "animate-spin" : ""}`} /> Viết lại chiêm nghiệm
+                        <RefreshCw className={`w-2.5 h-2.5 ${loadingInsight ? "animate-spin" : ""}`} /> Thể hiện góc nhìn mới
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-5 px-3 bg-white/50 rounded-xl border border-dashed border-ink/15">
-                    <span className="text-2xl block mb-1">✨</span>
-                    <h4 className="font-black text-xs text-ink uppercase tracking-wide">Trò chuyện tri kỷ chiêm nghiệm</h4>
-                    <p className="text-[10px] text-ink/60 max-w-sm mx-auto mb-3.5 leading-relaxed">
-                      AI sẽ lắng nghe thói quen, từ vựng và tâm tư của ngày này để đồng hành trải lòng bình lặng.
+                  <div className="text-center py-3 px-3 bg-white/40 rounded-lg border border-dashed border-ink/10">
+                    <p className="text-[10px] text-ink/50 max-w-sm mx-auto mb-2 leading-relaxed">
+                      AI Tri Kỷ sẽ xâu chuỗi thói quen học tập, tài sản và nội dung tâm bút để phản chiếu những điểm chiêm nghiệm an tĩnh nhất.
                     </p>
                     <button
                       onClick={() => fetchAIInsight(currentPage)}
                       disabled={loadingInsight}
-                      className="sketch-button py-1 px-4 text-[10px] uppercase font-black bg-[#fbcfe8] hover:bg-white text-ink transition-all inline-flex items-center gap-1.5 shadow-sm"
+                      className="py-1 px-4 text-[10px] uppercase font-black bg-[#fbcfe8] hover:bg-[#fbcfe8]/80 text-ink rounded-lg transition-all inline-flex items-center gap-1 cursor-pointer border border-ink/15 shadow-xs"
                     >
                       {loadingInsight ? (
                         <>
-                          <RefreshCw className="w-3 h-3 animate-spin" /> Tri kỉ đang chắp bút...
+                          <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Chắp bút dệt kí ức...
                         </>
                       ) : (
                         <>
-                          <Sparkles className="w-3 h-3" /> Chiêm nghiệm ngay
+                          <Sparkles className="w-2.5 h-2.5" /> Khám phá chiêm nghiệm
                         </>
                       )}
                     </button>
@@ -903,23 +908,23 @@ export function DigitalJournal({
             </div>
 
             {/* Pagination helper badge */}
-            <div className="flex justify-between items-center mt-6 pt-4 border-t border-ink/10 relative z-10 text-[10px] font-mono select-none font-bold text-ink/40">
+            <div className="flex justify-between items-center mt-6 pt-4 border-t border-ink/10 relative z-10 text-[10px] font-mono select-none font-bold text-ink/35">
               <button
                 onClick={() => currentPageIndex > 0 && setCurrentPageIndex(p => p - 1)}
                 disabled={currentPageIndex === 0}
-                className="hover:text-ink transition-colors disabled:opacity-30 disabled:pointer-events-none uppercase flex items-center gap-1"
+                className="hover:text-ink transition-colors disabled:opacity-30 disabled:pointer-events-none uppercase flex items-center gap-1 shrink-0"
               >
-                <ChevronLeft size={12} /> Trang trước
+                <ChevronLeft size={12} /> Bài trước
               </button>
               
-              <span>TRANG 0{currentPageIndex + 1} / 0{pages.length}</span>
+              <span>TRANG {currentPageIndex + 1} / {pages.length}</span>
 
               <button
                 onClick={() => currentPageIndex < pages.length - 1 && setCurrentPageIndex(p => p + 1)}
                 disabled={currentPageIndex === pages.length - 1}
-                className="hover:text-ink transition-colors disabled:opacity-30 disabled:pointer-events-none uppercase flex items-center gap-1"
+                className="hover:text-ink transition-colors disabled:opacity-30 disabled:pointer-events-none uppercase flex items-center gap-1 shrink-0"
               >
-                Trang sau <ChevronRight size={12} />
+                Bài sau <ChevronRight size={12} />
               </button>
             </div>
 
