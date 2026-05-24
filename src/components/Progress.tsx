@@ -155,9 +155,12 @@ export function Progress({
   }, [purchasedItemsList]);
 
   // Exclude option and format conversions
-  const getValueInVND = (value: number, currency: string) => {
+  const getValueInVND = (value: number, currency: string, exchangeRate?: number) => {
     if (currency === 'VND') return value;
-    if (currency === 'USD') return value * 25000;
+    if (exchangeRate && exchangeRate > 0) {
+      return value * exchangeRate;
+    }
+    if (currency === 'USD') return value * 25400;
     if (currency === 'EUR') return value * 27000;
     if (currency === 'GOLD') return value * 8000000; // estimation
     return value;
@@ -202,7 +205,7 @@ export function Progress({
   const standardNetWorth = useMemo(() => {
     return assets.reduce((sum, item) => {
       if (item.excludeFromNetWorth) return sum;
-      const val = getValueInVND(item.value, item.currency);
+      const val = getValueInVND(item.value, item.currency, item.exchangeRate);
       return item.isDebt ? sum - val : sum + val;
     }, 0);
   }, [assets]);
@@ -210,7 +213,7 @@ export function Progress({
   // Complete net worth including exclusions: counts everything
   const totalWithExcludedNetWorth = useMemo(() => {
     return assets.reduce((sum, item) => {
-      const val = getValueInVND(item.value, item.currency);
+      const val = getValueInVND(item.value, item.currency, item.exchangeRate);
       return item.isDebt ? sum - val : sum + val;
     }, 0);
   }, [assets]);
@@ -222,9 +225,9 @@ export function Progress({
 
   const excludedTotal = useMemo(() => {
     return excludedAssetsList.reduce((sum, item) => {
-      const val = getValueInVND(item.value, item.currency);
+      const val = getValueInVND(item.value, item.currency, item.exchangeRate);
       return item.isDebt ? sum - val : sum + val;
-    }, 0);
+    }, [excludedAssetsList]);
   }, [excludedAssetsList]);
 
   return (
@@ -756,7 +759,7 @@ export function Progress({
                       <div className="pt-2 space-y-1.5 border-t border-ink/5">
                         <span className="text-[9px] font-black uppercase tracking-wider text-ink/40 block">Các tài sản loại trừ được tính gộp:</span>
                         {excludedAssetsList.map(asset => {
-                          const totalVal = getValueInVND(asset.value, asset.currency);
+                          const totalVal = getValueInVND(asset.value, asset.currency, asset.exchangeRate);
                           return (
                             <div key={asset.id} className="flex justify-between items-center text-[11px] p-2 bg-amber-55/40 border border-amber-200/50 rounded font-sans leading-tight">
                               <div>

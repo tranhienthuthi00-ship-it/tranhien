@@ -364,12 +364,12 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   }, [assets]);
 
   const totalAssetsVND = useMemo(() => {
-    // Assets that are not debt, not loan, and NOT new money (the user wants to separate new money)
-    return assets.filter(a => !a.isDebt && !a.isLoan && !a.isNewMoney).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
+    // Assets that are not debt, not loan, NOT new money, and NOT excluded from report
+    return assets.filter(a => !a.isDebt && !a.isLoan && !a.isNewMoney && !a.excludeFromNetWorth).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
   }, [assets]);
 
   const totalLoansVND = useMemo(() => {
-    return assets.filter(a => a.isLoan).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
+    return assets.filter(a => a.isLoan && !a.excludeFromNetWorth).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
   }, [assets]);
 
   const totalNewMoneyVND = useMemo(() => {
@@ -389,7 +389,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   }, [bulkCash]);
 
   const totalDebtsVND = useMemo(() => {
-    return assets.filter(a => a.isDebt).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
+    return assets.filter(a => a.isDebt && !a.excludeFromNetWorth).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
   }, [assets]);
 
   const saveBulkCash = () => {

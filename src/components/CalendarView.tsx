@@ -277,6 +277,7 @@ export function CalendarView({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [viewMode, setViewMode] = useState<'Month' | 'Year'>('Month');
+  const [typeFilter, setTypeFilter] = useState<'All' | 'Reflections' | 'Events'>('All');
   
   const [logText, setLogText] = useState("");
   const [logType, setLogType] = useState<'Reflection' | 'Event'>('Reflection');
@@ -303,7 +304,7 @@ export function CalendarView({
       setLogs(logs.map(log => log.id === editingId ? {
         ...log,
         content: logText,
-        type: 'Reflection',
+        type: logType,
         icon: selectedIcon,
         time: eventTime || undefined
       } : log));
@@ -313,7 +314,7 @@ export function CalendarView({
         id: Date.now().toString(),
         date: dateStr,
         content: logText,
-        type: 'Reflection',
+        type: logType,
         icon: selectedIcon,
         time: eventTime || undefined
       };
@@ -346,6 +347,12 @@ export function CalendarView({
     const dStr = format(date, 'yyyy-MM-dd');
     return logs
       .filter(l => l.date === dStr)
+      .filter(l => {
+        if (typeFilter === 'All') return true;
+        if (typeFilter === 'Reflections') return l.type === 'Reflection';
+        if (typeFilter === 'Events') return l.type === 'Event';
+        return true;
+      })
       .sort((a, b) => {
         if (a.type === b.type) return 0;
         return a.type === 'Reflection' ? -1 : 1;
@@ -355,6 +362,12 @@ export function CalendarView({
   const getGroupedEvents = () => {
     const events = logs
       .filter(l => l.date.startsWith(format(currentDate, 'yyyy-MM')))
+      .filter(l => {
+        if (typeFilter === 'All') return true;
+        if (typeFilter === 'Reflections') return l.type === 'Reflection';
+        if (typeFilter === 'Events') return l.type === 'Event';
+        return true;
+      })
       .sort((a, b) => a.date.localeCompare(b.date));
 
     if (events.length === 0) return [];
@@ -401,11 +414,24 @@ export function CalendarView({
     const year = format(currentDate, 'yyyy');
     return logs
       .filter(l => l.date.startsWith(year))
+      .filter(l => {
+        if (typeFilter === 'All') return true;
+        if (typeFilter === 'Reflections') return l.type === 'Reflection';
+        if (typeFilter === 'Events') return l.type === 'Event';
+        return true;
+      })
       .sort((a, b) => a.date.localeCompare(b.date));
   };
 
   const getYearlyStats = () => {
-    const yearlyLogs = logs.filter(l => l.date.startsWith(format(currentDate, 'yyyy')));
+    const yearlyLogs = logs
+      .filter(l => l.date.startsWith(format(currentDate, 'yyyy')))
+      .filter(l => {
+        if (typeFilter === 'All') return true;
+        if (typeFilter === 'Reflections') return l.type === 'Reflection';
+        if (typeFilter === 'Events') return l.type === 'Event';
+        return true;
+      });
     const entryCount = yearlyLogs.length;
     
     // Group events by month
@@ -425,7 +451,14 @@ export function CalendarView({
 
   const getMonthlyStats = () => {
     const monthStr = format(currentDate, 'yyyy-MM');
-    const monthlyLogs = logs.filter(l => l.date.startsWith(monthStr));
+    const monthlyLogs = logs
+      .filter(l => l.date.startsWith(monthStr))
+      .filter(l => {
+        if (typeFilter === 'All') return true;
+        if (typeFilter === 'Reflections') return l.type === 'Reflection';
+        if (typeFilter === 'Events') return l.type === 'Event';
+        return true;
+      });
     return { entryCount: monthlyLogs.length };
   };
 
@@ -435,14 +468,33 @@ export function CalendarView({
     return (
       <div className="w-full max-w-[1400px] mx-auto p-2 md:p-6 flex flex-col gap-6 md:gap-10">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-           <div className="flex items-center gap-4">
+           <div className="flex flex-wrap items-center gap-4">
               <button 
                 onClick={() => setViewMode('Month')}
                 className="sketch-button px-4 py-2 text-sm font-bold uppercase tracking-widest text-ink/60 hover:text-ink"
               >
                 ← Back to Month
               </button>
-              <h2 className="text-5xl font-black font-sans tracking-tighter uppercase">{format(currentDate, "yyyy")} Recap</h2>
+              <h2 className="text-4xl md:text-5xl font-black font-sans tracking-tighter uppercase">{format(currentDate, "yyyy")} Recap</h2>
+              
+              <div className="flex items-center gap-2 bg-[#fffbeb] p-1.5 sketch-border rounded-xl">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-ink/55 pl-1">Filter:</span>
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value as any)}
+                  className="text-xs font-bold bg-white border border-ink/20 rounded-lg pl-2 pr-7 py-1 outline-none text-ink cursor-pointer uppercase tracking-wider appearance-none select-none"
+                  style={{
+                    backgroundImage: "url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpolyline points=%226 9 12 15 18 9%22%3E%3C/polyline%3E%3C/svg%3E')",
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 6px center',
+                    backgroundSize: '10px'
+                  }}
+                >
+                  <option value="All">All Entries</option>
+                  <option value="Reflections">Reflections Only</option>
+                  <option value="Events">Events Only</option>
+                </select>
+              </div>
            </div>
            <div className="flex gap-4">
               <div className="p-4 sketch-border border-dashed bg-white/40 shadow-sm flex flex-col items-center min-w-[120px]">
@@ -501,21 +553,42 @@ export function CalendarView({
     <div className="w-full max-w-[1400px] mx-auto p-2 md:p-4 flex flex-col xl:flex-row gap-4 md:gap-6 items-start">
       {/* Calendar Grid */}
       <div className="w-full xl:w-[65%] space-y-2 md:space-y-4 shrink-0">
-        <div className="flex items-center justify-center gap-4 relative">
-          <button onClick={onPrevMonth} className="sketch-button px-3 py-1.5"><ChevronLeft style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
-          <div className="flex flex-col items-center">
-            <h2 className="text-2xl md:text-3xl font-bold font-sans tracking-tight text-center min-w-[200px] flex items-center justify-center gap-2">
-              <HandDrawnIcon type="document" className="w-6 h-6 text-crimson" />
-              {format(currentDate, "MMMM yyyy")}
-            </h2>
-            <button 
-              onClick={() => setViewMode('Year')}
-              className="text-[9px] font-bold uppercase tracking-widest text-crimson hover:underline mt-0.5"
-            >
-              View Yearly Recap →
-            </button>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b-2 border-dashed border-ink/10">
+          <div className="flex items-center justify-center sm:justify-start gap-4">
+            <button onClick={onPrevMonth} className="sketch-button px-3 py-1.5"><ChevronLeft style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
+            <div className="flex flex-col items-center">
+              <h2 className="text-xl md:text-2xl font-bold font-sans tracking-tight text-center min-w-[180px] flex items-center justify-center gap-2">
+                <HandDrawnIcon type="document" className="w-5 h-5 text-crimson" />
+                {format(currentDate, "MMMM yyyy")}
+              </h2>
+              <button 
+                onClick={() => setViewMode('Year')}
+                className="text-[9px] font-bold uppercase tracking-widest text-crimson hover:underline mt-0.5"
+              >
+                View Yearly Recap →
+              </button>
+            </div>
+            <button onClick={onNextMonth} className="sketch-button px-3 py-1.5"><ChevronRight style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
           </div>
-          <button onClick={onNextMonth} className="sketch-button px-3 py-1.5"><ChevronRight style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
+
+          <div className="flex items-center justify-center gap-2 bg-[#fffbeb] p-2 sketch-border rounded-xl">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-ink/55 pl-1">Filter:</span>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as any)}
+              className="text-xs font-bold bg-white border border-ink/20 rounded-lg pl-2 pr-7 py-1 outline-none text-ink cursor-pointer uppercase tracking-wider appearance-none select-none"
+              style={{
+                backgroundImage: "url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpolyline points=%226 9 12 15 18 9%22%3E%3C/polyline%3E%3C/svg%3E')",
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 6px center',
+                backgroundSize: '10px'
+              }}
+            >
+              <option value="All">All Entries</option>
+              <option value="Reflections">Reflections Only</option>
+              <option value="Events">Events Only</option>
+            </select>
+          </div>
         </div>
 
         <div className="grid grid-cols-7 gap-1 md:gap-2">
@@ -609,6 +682,27 @@ export function CalendarView({
                        </button>
                      ))}
                    </div>
+                 </div>
+               </div>
+
+               <div className="flex gap-2 items-center">
+                 <span className="text-[10px] font-bold uppercase tracking-widest text-ink/50">Type:</span>
+                 <div className="flex gap-1.5">
+                   {(['Reflection', 'Event'] as const).map(type => (
+                     <button
+                       key={type}
+                       type="button"
+                       onClick={() => setLogType(type)}
+                       className={cn(
+                         "text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border transition-all cursor-pointer",
+                         logType === type 
+                           ? "bg-crimson text-white border-crimson shadow-xs" 
+                           : "text-ink/65 border-ink/20 hover:border-ink/45 hover:bg-ink/5"
+                       )}
+                     >
+                       {type === 'Reflection' ? '✍️ Reflection' : '📅 Event'}
+                     </button>
+                   ))}
                  </div>
                </div>
 
