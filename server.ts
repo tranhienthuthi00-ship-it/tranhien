@@ -860,31 +860,41 @@ CRITICAL: Return ONLY a raw JSON object. Do NOT wrap it in any formatting, expla
         return res.json(fallback);
       }
 
-      const prompt = `Bạn là một người bạn tri kỉ đồng cảm, người hỗ trợ học tập và phát triển bản thân của người dùng (trong ứng dụng "Study Hub"). Hãy đọc thông tin các hoạt động và suy nghĩ trong ngày hôm nay của người dùng để viết một phản hồi đồng cảm, truyền động lực, mang phong cách "sổ tay kí ức" ấm áp.
+      const prompt = `Bạn là một Nhà Thấu Cảm và Chuyên Gia Thần Số Học sâu sắc, đồng hành cùng người dùng đặc biệt dưới đây:
+Họ tên: Trần Thị Thu Hiền
+Ngày sinh: 24/08/2000
+Số chủ đạo (Ruling Number): 7 (Được tính từ 2+4+0+8+2+0+0+0 = 16 = 1+6 = 7)
 
-Thông tin ngày hôm nay (${date}):
-- Cảm xúc người dùng tự chọn: ${userMood || "Chưa chọn cảm xúc"}
-- Nhật ký / Suy ngẫm:
+Đặc điểm cốt lõi của Số Chủ Đạo 7 (Trần Thị Thu Hiền):
+- Đại diện cho người trải nghiệm để thấu học. Bài học cuộc đời của cô ấy đến từ sự dấn thân thực tế, rèn giũa bản lĩnh thông qua các thử thách thể xác, tài sản hoặc tinh thần để mài giũa trực giác phi thường và trí tuệ vượt bậc.
+- Khao khát tri thức sâu sắc, có tư duy phân tích sắc sảo, thích chia sẻ hiểu biết và chỉ dạy lại những gì đã đúc kết.
+- Cần học cách cân bằng thế giới nội tâm sâu lắng với nhịp sống bận rộn bên ngoài, tránh sự khép kín cô độc.
+
+Hãy phân tích toàn bộ nhật ký tâm bút, thói quen học tập, năng suất, công việc và cảm xúc của ngày hôm nay (${date}) của Trần Thị Thu Hiền, ghép nối mật thiết với phẩm chất thần số học Số 7, đưa ra góc nhìn chiêm nghiệm tâm tình đầy trí tuệ, đồng cảm và truyền cảm hứng.
+
+Thông tin của Hiền hôm nay (${date}):
+- Cảm xúc tự chọn hôm nay: ${userMood || "Chưa chọn cụ thể"}
+- Nhật ký / Tâm sự:
 ${logs.length > 0 ? logs.map((l: string) => `- ${l}`).join('\n') : "(Chưa ghi nhật ký)"}
 - Thói quen đã hoàn thành:
 ${habits.length > 0 ? habits.map((h: string) => `- ${h}`).join('\n') : "(Không có thói quen nào hoàn thành)"}
-- Nhiệm vụ đã làm:
-${tasks.length > 0 ? tasks.map((t: string) => `- ${t}`).join('\n') : "(Không có nhiệm vụ nào xong)"}
-- Địa điểm đã đi:
-${places.length > 0 ? places.map((p: string) => `- ${p}`).join('\n') : "(Không có địa điểm nào)"}
-- Từ vựng tiếng Anh đã ôn:
-${words.length > 0 ? words.map((w: string) => `- ${w}`).join('\n') : "(Không có từ vựng nào)"}
-- Ý tưởng sáng tạo nội dung đã làm:
-${ideas.length > 0 ? ideas.map((i: string) => `- ${i}`).join('\n') : "(Không có ý tưởng mới)"}
-- Thành tựu đạt được:
-${achievements.length > 0 ? achievements.map((a: string) => `- ${a}`).join('\n') : "(Không có thành tựu mới)"}
+- Công việc đã hoàn thành:
+${tasks.length > 0 ? tasks.map((t: string) => `- ${t}`).join('\n') : "(Chưa hoàn thành công việc cụ thể)"}
+- Địa điểm đã đặt chân qua:
+${places.length > 0 ? places.map((p: string) => `- ${p}`).join('\n') : "(Không ghi nhận địa điểm mới)"}
+- Từ vựng tiếng Anh đã học nhóm:
+${words.length > 0 ? words.map((w: string) => `- ${w}`).join('\n') : "(Không ghi nhận vốn từ mới)"}
+- Ý tưởng sáng tạo:
+${ideas.length > 0 ? ideas.map((i: string) => `- ${i}`).join('\n') : "(Không ghi nhận ý tưởng phát triển)"}
+- Thành quả:
+${achievements.length > 0 ? achievements.map((a: string) => `- ${a}`).join('\n') : "(Không có cột mốc đặc biệt)"}
 
 Hãy phân tích và trả về một đối tượng JSON thuần túy chứa các trường sau (bằng tiếng Việt):
-1. "title": Một tiêu đề ngắn gọn, thú vị, đầy chất thơ cho ngày hôm nay (tối đa 6-7 từ) ví dụ "Một ngày bình yên bên tách cà phê", "Từng bước nhỏ tạo sóng lớn".
-2. "moodAnalysis": Phân tích cảm xúc ngắn (tối đa 15 từ) từ tổng thể hoạt động hôm nay.
-3. "summary": Phản hồi chính (tầm 2-3 câu ngắn gọn, ấm áp, đậm tình tri kỉ). Nhận xét chân thành về những nỗ lực hôm nay của họ (học từ vựng, thói quen), cổ vũ họ bất kể họ có một ngày bận rộn hay nhàn hạ, nhắc nhở họ trân trọng bản thân. Hãy xưng hô thân mật là "bạn" và gọi bằng góc nhìn của người tri kỉ.
-4. "quote": Một câu trích dẫn tích cực hoặc danh ngôn truyền cảm hứng phù hợp với tinh thần của ngày hôm nay.
-5. "suggestions": Một mảng chứa đúng 1 hoặc 2 gợi ý nhỏ, thiết thực cho ngày mai để họ tiếp tục học tập và phát triển bản thân (ví dụ: "Dành ra 5 phút thiền định trước lúc ngủ để đầu óc thanh thản", "Ôn tập lại các từ vựng đã ghi chép hôm nay").
+1. "title": Một tiêu đề ngắn gọn phản ánh góc nhìn Thần số học số 7 đầy tính tò mò, trí tuệ hoặc chiêm nghiệm tĩnh lặng (tối đa 7 từ). Ví dụ: "Bài học Số 7: Trí tuệ từ sự tĩnh lặng", "Khi Số 7 dấn thân thực tế".
+2. "moodAnalysis": Phân tích cảm xúc thần số học ngắn gọn (tối đa 15 từ) phác họa nguồn năng lượng nội sới hôm nay của cô ấy.
+3. "summary": Phản hồi chính (tầm 3-4 câu ngắn gọn, ấm áp, sâu sắc hướng đến Trần Thị Thu Hiền). Đồng hành dưới góc nhìn của một nhà thấu cảm trí tuệ: bình luận về cách cô ấy vượt qua ngày hôm nay (thói quen, công việc hay dòng tâm bút), giải mã bài học Số 7 ẩn sau các hoạt động đó, xoa dịu những nhọc nhằn, khích lệ cô ấy kiên tâm vững bước. Gọi cô ấy thân mật bằng tên "Hiền" hoặc "bạn".
+4. "quote": Một câu trích dẫn/danh ngôn truyền động lực sâu sắc, rất mực thông thái phù hợp với bài học trải nghiệm của Số 7.
+5. "suggestions": Một mảng chứa đúng 1 hoặc 2 lời khuyên nhỏ, đắt giá, hướng nội và thực tế cho ngày mai (Ví dụ: "Viết ra 1 bài học lớn rút ra từ trăn trở hôm nay", "Dành 10 phút trước khi ngủ để trực giác Số 7 lắng nghe hơi thở").
 
 Hãy trả về duy nhất chuỗi JSON thô, không nằm trong các khối mã markdown, không giải thích gì thêm ngoài cấu trúc JSON hợp lệ.`;
 
@@ -913,25 +923,25 @@ Hãy trả về duy nhất chuỗi JSON thô, không nằm trong các khối mã
     const wordCount = words.length;
     const taskCount = tasks.length;
     
-    let summary = "Hôm nay là một ngày ý nghĩa trong cuộc hành trình của bạn. Từng hoạt động nhỏ, từng dòng nhật ký đều là mảnh ghép hoàn mỹ tạo nên bản thân bạn.";
+    let summary = "Hiền thân mến, là một người mang Số Chủ Đạo 7, hành trình sống của bạn vốn tràn ngập linh cảm và đúc kết từ trải nghiệm thực tế. Mỗi một việc nhỏ bạn làm hôm nay đều âm thầm bồi đắp cho sự uyên bác của tâm hồn.";
     if (habitCount > 0 && wordCount > 0) {
-      summary = `Một ngày thật tuyệt vời khi bạn vừa duy trì được ${habitCount} thói quen tốt, vừa tích lũy thêm ${wordCount} hạt giống từ vựng mới. Bạn đang đi rất đúng hướng đấy!`;
+      summary = `Hiền ơi, người mang Số Chủ Đạo 7 rất trân trọng tri thức thực chứng. Việc bạn rèn luyện được ${habitCount} thói quen tốt và học thêm ${wordCount} từ vựng hôm nay chính là nỗ lực tự học tuyệt vời để gieo hạt giống trí tuệ. Để trực giác dẫn lối nhé!`;
     } else if (habitCount > 0) {
-      summary = `Thật kiên trì! Bạn đã hoàn thành được ${habitCount} thói quen tốt trong ngày hôm nay. Kỳ tích được tạo dựng từ những điều nhỏ bé lặp đi lặp lại hàng ngày.`;
+      summary = `Kỷ luật tự thân là chất xúc tác mạnh mẽ giúp Số Chủ Đạo 7 chuyển hóa trải nghiệm thành cột mốc thành công. Bạn đã hoàn thành xuất sắc ${habitCount} thói quen hôm nay - đó là những bước đi cực kỳ vững vàng của Hiền!`;
     } else if (wordCount > 0) {
-      summary = `Hành trình vạn dặm bắt đầu từ bước đi đầu tiên. Việc bạn ôn tập ${wordCount} từ vựng hôm nay chính là cầu nối dẫn bạn đến sự lưu loát tương lai.`;
+      summary = `Ham tìm tòi, mở mang tri thức là vũ khí bản năng của Số Chủ Đạo 7. Chúc mừng Hiền đã kiên trì lưu giữ thêm ${wordCount} từ vựng ngoại ngữ mới hôm nay để sẵn sàng bước ra đại dương tri thức rộng lớn.`;
     } else if (logs.length > 0) {
-      summary = "Ghi chép lại suy nghĩ là cách tuyệt vời để kết nối với chính mình. Cảm ơn bạn đã can đảm lưu giữ lại những suy nghĩ chân thật nhất của ngày hôm nay.";
+      summary = `Trầm tư và dốc lòng vào trang viết chính là cách Số Chủ Đạo 7 tự thấu hiểu bản thân sâu sắc nhất. Cảm ơn Hiền đã dùng tâm bút này để đối diện chân thực với những suy nghĩ, cảm xúc ẩn hiện của mình hôm nay.`;
     }
     
     return {
-      title: "Mảnh ghép ngày thường",
-      moodAnalysis: "Bình yên và tích lũy",
+      title: "Góc Nhìn Số 7: Trực Giác & Trải Nghiệm",
+      moodAnalysis: "Sức mạnh chuyển hóa nội tâm",
       summary: summary,
-      quote: "Hành trình vạn dặm khởi đầu từ một bước chân. - Lão Tử",
+      quote: "Cuộc sống chính là trường đại học lớn nhất của người mang Số Chủ Đạo 7. Hãy can đảm bước đi và đúc kết chiêm nghiệm. - Thần Số Học Đồng Hành",
       suggestions: [
-        "Dành 5 phút nhìn lại những gì đã thực hiện trước khi ngủ.",
-        "Tiếp tục đặt mục tiêu nhỏ cho ngày mai."
+        "Hãy dành ra 5 phút tĩnh tâm cuối ngày để lắng nghe tiếng nói trực giác bên trong.",
+        "Viết ngắn gọn 1 điều bạn tâm đắc nhất đã học được thông qua hoạt động hôm nay."
       ]
     };
   }

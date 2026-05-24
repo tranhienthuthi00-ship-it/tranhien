@@ -94,6 +94,21 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     return DEFAULT_WEEK_DEBTS.map(item => ({ ...item }));
   });
 
+  const [bulkCardSpends, setBulkCardSpends] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_bulkCardSpends");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === 7) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "", notes: "" }));
+  });
+
   useEffect(() => {
     try {
       localStorage.setItem("studyHub_bulkDebts", JSON.stringify(bulkDebts));
@@ -101,6 +116,93 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
       console.error(e);
     }
   }, [bulkDebts]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("studyHub_bulkCardSpends", JSON.stringify(bulkCardSpends));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [bulkCardSpends]);
+
+  const justCardRangeText = useMemo(() => {
+    const activeDates = bulkCardSpends
+      .map(d => d.name)
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+    if (activeDates.length === 0) {
+      return "(Từ ngày … đến ngày …)";
+    }
+    const formatDateStr = (ymd: string) => {
+      try {
+        const portions = ymd.split("-");
+        if (portions.length === 3) {
+          return `${portions[2]}/${portions[1]}/${portions[0]}`; // DD/MM/YYYY
+        }
+        return ymd;
+      } catch {
+        return ymd;
+      }
+    };
+    const minDate = formatDateStr(activeDates[0]);
+    const maxDate = formatDateStr(activeDates[activeDates.length - 1]);
+    return `(Từ ngày ${minDate} đến ngày ${maxDate})`;
+  }, [bulkCardSpends]);
+
+  const handleResetBulkCardSpends = () => {
+    setBulkCardSpends(DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "", notes: "" })));
+  };
+
+  const handleSaveBulkCardSpends = () => {
+     const now = Date.now();
+     const validSpends = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
+     if (validSpends.length === 0) {
+       alert("Hãy nhập số tiền sử dụng thẻ cho ít nhất một ngày!");
+       return;
+     }
+
+     const formattedDateRange = justCardRangeText;
+     const calculatedSum = validSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
+     const totalSum = Math.abs(calculatedSum);
+     const catId = categories.find(c => 
+       c.name.toLowerCase().includes("tín dụng") || 
+       c.name.toLowerCase().includes("thẻ") || 
+       c.name.toLowerCase().includes("credit") || 
+       c.name.toLowerCase().includes("nợ")
+     )?.id || defaultCatID;
+
+     const formatDateHelper = (ymd: string) => {
+       try {
+         const parts = ymd.split("-");
+         return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
+       } catch {
+         return ymd;
+       }
+     };
+
+     const detailNotesList = validSpends.map(d => {
+       const val = parseFloat(d.amount.replace(/,/g, ''));
+       const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
+       return `• ${formatDateHelper(d.name)}: ${val.toLocaleString('vi-VN')} đ${dayNote}`;
+     }).join("\n");
+
+     const aggregatedCardDebt: Asset = {
+        id: `card-held-${now}`,
+        name: `Nợ thẻ tín dụng ${formattedDateRange}`,
+        category: catId,
+        value: totalSum,
+        currency: "VND",
+        notes: `Bảng kê chi tiết nợ tiêu dùng thẻ tín dụng:\n${detailNotesList}`,
+        acquiredAt: now,
+        isDebt: true,
+        isNewMoney: false,
+        excludeFromNetWorth: false
+     };
+
+     setAssets([aggregatedCardDebt, ...assets]);
+     alert(`Đã lưu tổng nợ thẻ tín dụng tuần trị giá +${totalSum.toLocaleString('vi-VN')}đ vào Sổ Tài Sản (Mục Nợ) thành công!`);
+     handleResetBulkCardSpends();
+  };
 
   const justDateRangeText = useMemo(() => {
     const activeDates = bulkDebts
@@ -1255,6 +1357,153 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                className="sketch-button sketch-button-primary py-2 px-6 flex items-center gap-2 text-xs transition-all bg-crimson/90 text-white hover:bg-crimson hover:shadow-lg active:scale-95 cursor-pointer font-black"
              >
                <Receipt size={14} /> Lưu Doanh Thu
+             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Bảng Kê Chi Tiêu Thẻ Tín Dụng Tuần - Specialized Section */}
+      <div className="mt-12 animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b-4 border-indigo-600/80 pb-2 gap-4">
+           <div className="flex items-center gap-3">
+              <button className="p-2 bg-indigo-600 text-white rounded-xl shadow-lg">
+                <CreditCard size={24} />
+              </button>
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-indigo-600">Nợ thẻ tín dụng</h2>
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">{justCardRangeText}</p>
+              </div>
+           </div>
+        </div>
+
+        <div className="bg-[#f0f4ff] sketch-border p-4 rounded-xl overflow-hidden mb-6">
+          <div className="overflow-x-auto max-w-full">
+            <table className="min-w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-indigo-100 text-[9px] font-black uppercase tracking-widest text-indigo-700 border-b-2 border-indigo-200">
+                  <th className="px-4 py-3 font-black w-44">Ngày</th>
+                  <th className="px-4 py-3 text-right font-black w-48">Số Tiền (VND)</th>
+                  <th className="px-4 py-3 font-black">Ghi Chú Chi Tiết</th>
+                </tr>
+              </thead>
+              <tbody className="font-sans divide-y divide-indigo-100">
+                {bulkCardSpends.map((item, idx) => (
+                  <tr key={item.id} className="transition-colors hover:bg-indigo-50/50">
+                    <td className="px-4 py-2 bg-indigo-50/30">
+                      <input 
+                        type="date" 
+                        value={item.name} 
+                        onChange={e => {
+                          const newSpends = [...bulkCardSpends];
+                          newSpends[idx].name = e.target.value;
+                          if (idx === 0 && e.target.value) {
+                            try {
+                              const baseDate = new Date(e.target.value + "T12:00:00");
+                              if (!isNaN(baseDate.getTime())) {
+                                for (let i = 1; i < 7; i++) {
+                                  const nextDate = new Date(baseDate.getTime());
+                                  nextDate.setDate(baseDate.getDate() + i);
+                                  newSpends[i].name = nextDate.toISOString().split("T")[0];
+                                }
+                              }
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }
+                          setBulkCardSpends(newSpends);
+                        }} 
+                        className="w-full font-bold text-ink bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-indigo-600 text-xs shadow-inner"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input 
+                        type="text" 
+                        value={item.amount} 
+                        onChange={e => {
+                          const valStr = e.target.value.replace(/,/g, '');
+                          if (!/^-?\d*$/.test(valStr)) return;
+                          
+                          let formatted = "";
+                          if (valStr === "-") {
+                            formatted = "-";
+                          } else if (valStr) {
+                            const isNeg = valStr.startsWith("-");
+                            const cleanDigits = valStr.replace('-', '');
+                            if (cleanDigits) {
+                              const parsedVal = parseInt(cleanDigits, 10);
+                              if (!isNaN(parsedVal)) {
+                                formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                              }
+                            }
+                          }
+                          const newSpends = [...bulkCardSpends];
+                          newSpends[idx].amount = formatted;
+                          setBulkCardSpends(newSpends);
+                        }} 
+                        placeholder="0"
+                        className="w-full text-right font-mono font-bold text-indigo-700 bg-white border border-ink/15 rounded-lg px-3 py-1 outline-none focus:border-indigo-600 text-sm shadow-inner"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input 
+                        type="text" 
+                        value={item.notes || ""} 
+                        onChange={e => {
+                          const newSpends = [...bulkCardSpends];
+                          newSpends[idx].notes = e.target.value;
+                          setBulkCardSpends(newSpends);
+                        }} 
+                        placeholder="Nhập mục chi tiêu bằng thẻ tín dụng..."
+                        className="w-full text-left font-bold text-indigo-800 bg-white border border-ink/15 rounded-lg px-3 py-1 outline-none focus:border-indigo-600 text-xs shadow-inner"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-indigo-100 font-bold text-indigo-700 border-t-2 border-indigo-200">
+                  <td className="px-4 py-3 uppercase text-[10px] tracking-widest font-black">
+                    Tổng Nợ Thẻ Đã Tiêu
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono font-black text-sm">
+                    {(() => {
+                      const rawSum = bulkCardSpends.reduce((sum, item) => sum + (parseFloat(item.amount.replace(/,/g, '')) || 0), 0);
+                      const formatted = Math.abs(rawSum).toLocaleString('vi-VN');
+                      return `+${formatted} đ`;
+                    })()}
+                  </td>
+                  <td className="px-4 py-3 text-indigo-950/50 text-[10px] font-medium italic text-right">
+                    {(() => {
+                      const count = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, '')))).length;
+                      return `* Tổng hợp từ ${count}/7 ngày chi tiêu thẻ`;
+                    })()}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* Action Panel */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-indigo-50/30 sketch-border border-dashed border-indigo-200 rounded-xl mb-12">
+          <div className="text-center sm:text-left">
+            <p className="text-xs text-indigo-950/75 leading-relaxed">
+              ⚠️ <strong>Quy tắc tính nợ tín dụng:</strong> Các khoản chi thẻ hàng ngày sẽ gom thành một khoản dư nợ thẻ tích lũy (tính vào nợ tín dụng, giảm Net Worth) để bạn dễ theo dõi nghĩa vụ trả nợ sau này.
+            </p>
+          </div>
+          
+          <div className="flex gap-2 shrink-0">
+             <button 
+               onClick={handleResetBulkCardSpends}
+               className="sketch-button text-xs py-2 px-4 font-bold uppercase tracking-widest text-[#1a2530] hover:bg-white cursor-pointer transition-all border border-ink/10"
+             >
+               Reset Bảng
+             </button>
+             <button 
+               onClick={handleSaveBulkCardSpends}
+               className="sketch-button sketch-button-primary py-2 px-6 flex items-center gap-2 text-xs transition-all bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg active:scale-95 cursor-pointer font-black"
+             >
+               <CreditCard size={14} /> Lưu Nợ Tín Dụng
              </button>
           </div>
         </div>

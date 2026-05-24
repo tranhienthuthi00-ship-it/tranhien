@@ -866,12 +866,12 @@ export function DigitalJournal({
                 <div className="flex items-center justify-between border-b border-ink/10 pb-2 mb-3">
                   <div className="flex items-center gap-1.5 text-xs font-black text-ink/60">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                    <span>Góc Tri Kỷ Chiêm Nghiệm</span>
+                    <span>Góc Nhìn Số Chủ Đạo — Trần Thị Thu Hiền 24/08/2000</span>
                   </div>
                   
                   {aiInsights[currentPage.date] && (
                     <span className="text-[9px] uppercase tracking-widest text-[#b45309] bg-[#fffbeb] px-2 py-0.5 rounded-full border border-amber-200/50 font-bold">
-                      {aiInsights[currentPage.date].title || "Kỷ niệm ngày"}
+                      {aiInsights[currentPage.date].title || "Góc nhìn Số 7"}
                     </span>
                   )}
                 </div>
@@ -887,7 +887,7 @@ export function DigitalJournal({
 
                     {aiInsights[currentPage.date].suggestions && aiInsights[currentPage.date].suggestions.length > 0 && (
                       <div className="text-[10px] text-ink/60 space-y-1 border-t border-dashed border-ink/5 pt-2">
-                        <span className="font-bold text-ink/70 uppercase text-[9px] block">💡 Điểm gợi mở cho hôm sau:</span>
+                        <span className="font-bold text-ink/70 uppercase text-[9px] block">💡 Điểm gợi mở góc nhìn cho Số 7:</span>
                         {aiInsights[currentPage.date].suggestions.map((s, idx) => (
                           <div key={idx} className="flex items-start gap-1">
                             <span className="text-emerald-600 font-bold">✓</span>
@@ -903,14 +903,14 @@ export function DigitalJournal({
                         disabled={loadingInsight}
                         className="text-[9px] font-black uppercase text-ink/40 hover:text-ink transition-colors flex items-center gap-1 cursor-pointer"
                       >
-                        <RefreshCw className={`w-2.5 h-2.5 ${loadingInsight ? "animate-spin" : ""}`} /> Thể hiện góc nhìn mới
+                        <RefreshCw className={`w-2.5 h-2.5 ${loadingInsight ? "animate-spin" : ""}`} /> Thể hiện góc nhìn mới (Thần Số Học)
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center py-3 px-3 bg-white/40 rounded-lg border border-dashed border-ink/10">
                     <p className="text-[10px] text-ink/50 max-w-sm mx-auto mb-2 leading-relaxed">
-                      AI Tri Kỷ sẽ xâu chuỗi thói quen học tập, tài sản và nội dung tâm bút để phản chiếu những điểm chiêm nghiệm an tĩnh nhất.
+                      Phân tích Thần số học cho Số Chủ Đạo 7 (Trần Thị Thu Hiền - 24/08/2000) sẽ tổng hợp thói quen, công việc và nhật ký tâm bút để phản chiếu những bài học sâu sắc từ trải nghiệm thực tế hôm nay.
                     </p>
                     <button
                       onClick={() => fetchAIInsight(currentPage)}
@@ -919,11 +919,11 @@ export function DigitalJournal({
                     >
                       {loadingInsight ? (
                         <>
-                          <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Chắp bút dệt kí ức...
+                          <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Chắp bút thấu ngộ...
                         </>
                       ) : (
                         <>
-                          <Sparkles className="w-2.5 h-2.5" /> Khám phá chiêm nghiệm
+                          <Sparkles className="w-2.5 h-2.5" /> Khám phá chiêm nghiệm Số 7
                         </>
                       )}
                     </button>
