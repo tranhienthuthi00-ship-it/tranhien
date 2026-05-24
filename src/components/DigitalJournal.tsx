@@ -22,7 +22,8 @@ import {
   ChevronDown, 
   ChevronUp, 
   Trash2,
-  Heart
+  Heart,
+  Check
 } from "lucide-react";
 
 interface DigitalJournalProps {
@@ -33,6 +34,7 @@ interface DigitalJournalProps {
   places: FoodPlace[];
   ideas: ContentIdea[];
   tasks?: Task[];
+  setTasks?: (tasks: Task[]) => void;
   achievements?: Achievement[];
   goals?: StudyGoal[];
   setLogs?: React.Dispatch<React.SetStateAction<LogEntry[]>>;
@@ -73,6 +75,7 @@ export function DigitalJournal({
   places, 
   ideas, 
   tasks = [], 
+  setTasks,
   achievements = [], 
   goals = [], 
   setLogs 
@@ -135,6 +138,11 @@ export function DigitalJournal({
   // Simplify UX control toggles
   const [showPageCustomizer, setShowPageCustomizer] = useState(false);
   const [showAutomaticRecap, setShowAutomaticRecap] = useState(false);
+
+  // States for inline tasks
+  const [showAddTaskInline, setShowAddTaskInline] = useState(false);
+  const [newTaskContent, setNewTaskContent] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
 
   const handleAddQuickEntry = (dateStr: string) => {
     if (!newEntryContent.trim() || !setLogs) return;
@@ -261,6 +269,10 @@ export function DigitalJournal({
       return dateMap.get(dateInfo)!;
     };
 
+    // Guarantee that today always exists in the list so a page is never empty on load
+    const localToday = new Date().toLocaleDateString('en-CA');
+    ensureDate(localToday);
+
     // 1. Logs (Reflection / Event)
     logs.forEach(log => {
       const d = getDay(log.date);
@@ -367,6 +379,50 @@ export function DigitalJournal({
   }
 
   const currentPage = pages[currentPageIndex];
+
+  const todoTasks = useMemo(() => {
+    return tasks.filter(t => {
+      if (!t.completed) return true;
+      const completedDay = t.completedAt ? new Date(t.completedAt).toISOString().split("T")[0] : "";
+      return completedDay === currentPage.date;
+    });
+  }, [tasks, currentPage.date]);
+
+  const handleToggleTaskInline = (id: string) => {
+    if (!setTasks || !tasks) return;
+    setTasks(tasks.map(t => {
+      if (t.id === id) {
+        const nextCompleted = !t.completed;
+        return {
+          ...t,
+          completed: nextCompleted,
+          completedAt: nextCompleted ? Date.now() : undefined
+        };
+      }
+      return t;
+    }));
+  };
+
+  const handleAddTaskInline = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskContent.trim() || !setTasks || !tasks) return;
+    const newTaskItem: Task = {
+      id: Date.now().toString(),
+      content: newTaskContent.trim(),
+      completed: false,
+      priority: newTaskPriority,
+      createdAt: Date.now()
+    };
+    setTasks([newTaskItem, ...tasks]);
+    setNewTaskContent("");
+    setShowAddTaskInline(false);
+  };
+
+  const handleDeleteTaskInline = (id: string) => {
+    if (!setTasks || !tasks) return;
+    setTasks(tasks.filter(t => t.id !== id));
+  };
+
   const countOfTotalRecords = currentPage.habitCompletions.length + 
                              currentPage.wordsReviewed.length + 
                              currentPage.placesVisited.length + 
@@ -619,6 +675,92 @@ export function DigitalJournal({
                 </div>
               </div>
 
+              {/* TODAY'S TO-DO CHECKLIST WIDGET */}
+              <div className="space-y-3 bg-[#e0f2fe]/20 p-4 rounded-xl border border-dashed border-sky-300 relative">
+                <div className="flex items-center justify-between border-b border-sky-300/40 pb-2">
+                  <span className="text-xs uppercase font-black text-[#0369a1] flex items-center gap-1.5">
+                    <CheckSquare className="w-4 h-4 text-[#0284c7]" /> Việc cần làm {currentPage.date === new Date().toLocaleDateString('en-CA') ? "Hôm nay" : "Trang ngày"} ({todoTasks.length})
+                  </span>
+                  
+                  {setTasks && (
+                    <button
+                      onClick={() => setShowAddTaskInline(!showAddTaskInline)}
+                      className="text-[10px] py-1 px-2.5 bg-[#f0f9ff] border border-[#0284c7]/20 text-[#0369a1] hover:bg-[#e0f2fe] rounded-md transition-all uppercase font-black tracking-wider flex items-center gap-1 cursor-pointer"
+                    >
+                      {showAddTaskInline ? <X size={10} /> : <Plus size={10} />} Thêm việc
+                    </button>
+                  )}
+                </div>
+
+                {showAddTaskInline && (
+                  <form onSubmit={handleAddTaskInline} className="flex gap-2 items-center bg-white/85 p-2 rounded-lg border border-[#0284c7]/20">
+                    <input
+                      type="text"
+                      value={newTaskContent}
+                      onChange={(e) => setNewTaskContent(e.target.value)}
+                      placeholder="Thêm việc cần làm..."
+                      className="flex-1 px-3 py-1.5 text-xs bg-white border border-[#222]/15 rounded-lg focus:outline-none focus:border-sky-500 font-sans text-ink"
+                    />
+                    <select
+                      value={newTaskPriority}
+                      onChange={(e: any) => setNewTaskPriority(e.target.value)}
+                      className="px-2 py-1.5 text-xs bg-white border border-[#222]/15 rounded-lg focus:outline-none font-bold text-ink"
+                    >
+                      <option value="Low">Thấp</option>
+                      <option value="Medium">Trung</option>
+                      <option value="High">Cao</option>
+                    </select>
+                    <button
+                      type="submit"
+                      disabled={!newTaskContent.trim()}
+                      className="px-3 py-1.5 bg-ink text-white font-black text-[10px] rounded-lg hover:bg-ink/90 disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-wider cursor-pointer"
+                    >
+                      Lưu
+                    </button>
+                  </form>
+                )}
+
+                {todoTasks.length === 0 ? (
+                  <p className="text-xs italic text-ink/40 font-hand text-center py-2">
+                    Không có việc nào trong danh sách. Thật thảnh thơi!
+                  </p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {todoTasks.map((t) => (
+                      <div key={t.id} className="flex items-center justify-between gap-3 p-1 rounded-lg hover:bg-white/40 group/todo">
+                        <button
+                          onClick={() => handleToggleTaskInline(t.id)}
+                          className="flex items-center gap-2 text-left min-w-0"
+                        >
+                          <span className={`w-4 h-4 rounded border-2 border-[#1a1a1a] flex items-center justify-center cursor-pointer transition-colors shrink-0 ${t.completed ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white"}`}>
+                            {t.completed && <Check size={10} strokeWidth={4} />}
+                          </span>
+                          <span className={`text-sm font-hand text-lg text-ink/90 truncate leading-none ${t.completed ? "line-through opacity-45" : ""}`}>
+                            {t.content}
+                          </span>
+                          <span className={`text-[8px] uppercase font-black px-1 py-0.5 rounded-sm ${
+                            t.priority === "High" ? "bg-rose-50 text-rose-600 border border-rose-200" :
+                            t.priority === "Medium" ? "bg-amber-50 text-amber-600 border border-amber-200" :
+                            "bg-slate-50 text-slate-500 border border-slate-200"
+                          }`}>
+                            {t.priority === "High" ? "Cao" : t.priority === "Medium" ? "Trung" : "Thấp"}
+                          </span>
+                        </button>
+                        
+                        {setTasks && (
+                          <button
+                            onClick={() => handleDeleteTaskInline(t.id)}
+                            className="opacity-0 group-hover/todo:opacity-100 hover:text-crimson text-ink/30 p-0.5 rounded transition-opacity cursor-pointer"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* JOURNAL LOGS AND REFLECTIONS LIST (THE ACTUAL DIARY CORES) */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-ink/10 pb-2">
@@ -835,7 +977,7 @@ export function DigitalJournal({
                               {currentPage.tasksDone.map((t, idx) => (
                                 <li key={idx} className="text-[11px] text-sky-950 truncate flex items-center gap-1.5 font-medium">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                                  <span className="line-through decoration-emerald-300">{t.title}</span>
+                                  <span className="line-through decoration-emerald-300">{t.content}</span>
                                 </li>
                               ))}
                             </ul>
