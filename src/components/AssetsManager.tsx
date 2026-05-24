@@ -102,13 +102,13 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     }
   }, [bulkDebts]);
 
-  const dateRangeText = useMemo(() => {
+  const justDateRangeText = useMemo(() => {
     const activeDates = bulkDebts
       .map(d => d.name)
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b));
     if (activeDates.length === 0) {
-      return "Doanh thu (Từ ngày … đến ngày …)";
+      return "(Từ ngày … đến ngày …)";
     }
     const formatDateStr = (ymd: string) => {
       try {
@@ -123,11 +123,11 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     };
     const minDate = formatDateStr(activeDates[0]);
     const maxDate = formatDateStr(activeDates[activeDates.length - 1]);
-    return `Doanh thu (Từ ngày ${minDate} đến ngày ${maxDate})`;
+    return `(Từ ngày ${minDate} đến ngày ${maxDate})`;
   }, [bulkDebts]);
 
   const handleResetBulkDebts = () => {
-    setBulkDebts(DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "" })));
+    setBulkDebts(DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "", notes: "" })));
   };
 
   const handleSaveBulkDebts = () => {
@@ -138,20 +138,33 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
        return;
      }
 
+     const formattedDateRange = justDateRangeText;
      const calculatedSum = validDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
      const totalSum = Math.abs(calculatedSum);
      const catId = categories.find(c => c.name.toLowerCase().includes("doanh thu") || c.name.toLowerCase().includes("thu") || c.name.toLowerCase().includes("tiền mặt"))?.id || defaultCatID;
 
+     const formatDateHelper = (ymd: string) => {
+       try {
+         const parts = ymd.split("-");
+         return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
+       } catch {
+         return ymd;
+       }
+     };
+
+     const detailNotesList = validDebts.map(d => {
+       const val = parseFloat(d.amount.replace(/,/g, ''));
+       const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
+       return `• ${formatDateHelper(d.name)}: +${val.toLocaleString('vi-VN')} đ${dayNote}`;
+     }).join("\n");
+
      const aggregatedRevenue: Asset = {
         id: `rev-held-${now}`,
-        name: `Doanh thu tuần (${validDebts.length} ngày)`,
+        name: `Doanh thu ${formattedDateRange}`,
         category: catId,
         value: totalSum,
         currency: "VND",
-        notes: `Chi tiết doanh thu: ` + validDebts.map(d => {
-          const val = parseFloat(d.amount.replace(/,/g, ''));
-          return `${d.name}: +${val.toLocaleString('vi-VN')}đ`;
-        }).join(", "),
+        notes: `Bảng kê chi tiết doanh thu tích lũy:\n${detailNotesList}`,
         acquiredAt: now,
         isDebt: false,
         isNewMoney: true,
@@ -1108,21 +1121,9 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                 <Receipt size={24} />
               </button>
               <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-crimson">{dateRangeText}</h2>
-                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Ghi nhận doanh thu chi tiết theo từng ngày</p>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-crimson">Doanh thu</h2>
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">{justDateRangeText}</p>
               </div>
-           </div>
-           
-           {/* Sum displayed above */}
-           <div className="bg-crimson/10 border-2 border-crimson/30 px-4 py-2 rounded-xl text-right">
-              <p className="text-[10px] font-bold text-crimson/80 uppercase tracking-wider">TỔNG DOANH THU TUẦN (7 NGÀY)</p>
-              <p className="text-xl font-black text-crimson font-mono">
-                {(() => {
-                  const rawSum = bulkDebts.reduce((sum, item) => sum + (parseFloat(item.amount.replace(/,/g, '')) || 0), 0);
-                  const formatted = Math.abs(rawSum).toLocaleString('vi-VN');
-                  return `+${formatted} đ`;
-                })()}
-              </p>
            </div>
         </div>
 
@@ -1131,26 +1132,41 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
             <table className="min-w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-crimson/10 text-[9px] font-black uppercase tracking-widest text-crimson border-b-2 border-crimson/50">
-                  <th className="px-4 py-3 font-black">Ngày</th>
-                  <th className="px-4 py-3 text-right font-black-60">Số tiền (VND)</th>
+                  <th className="px-4 py-3 font-black w-44">Ngày</th>
+                  <th className="px-4 py-3 text-right font-black w-48">Số Tiền (VND)</th>
+                  <th className="px-4 py-3 font-black">Ghi Chú Chi Tiết</th>
                 </tr>
               </thead>
               <tbody className="font-sans divide-y divide-crimson/10">
                 {bulkDebts.map((item, idx) => (
                   <tr key={item.id} className="transition-colors hover:bg-crimson/5">
-                    <td className="px-4 py-3 bg-crimson/5 w-48">
+                    <td className="px-4 py-2 bg-crimson/5">
                       <input 
                         type="date" 
                         value={item.name} 
                         onChange={e => {
                           const newDebts = [...bulkDebts];
                           newDebts[idx].name = e.target.value;
+                          if (idx === 0 && e.target.value) {
+                            try {
+                              const baseDate = new Date(e.target.value + "T12:00:00");
+                              if (!isNaN(baseDate.getTime())) {
+                                for (let i = 1; i < 7; i++) {
+                                  const nextDate = new Date(baseDate.getTime());
+                                  nextDate.setDate(baseDate.getDate() + i);
+                                  newDebts[i].name = nextDate.toISOString().split("T")[0];
+                                }
+                              }
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }
                           setBulkDebts(newDebts);
                         }} 
-                        className="w-full font-bold text-ink bg-white border border-ink/15 rounded-lg px-2.5 py-1.5 outline-none focus:border-crimson text-xs shadow-inner"
+                        className="w-full font-bold text-ink bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-crimson text-xs shadow-inner"
                       />
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-2">
                       <input 
                         type="text" 
                         value={item.amount} 
@@ -1176,17 +1192,50 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                           setBulkDebts(newDebts);
                         }} 
                         placeholder="0"
-                        className="w-full text-right font-mono font-bold text-crimson bg-white border border-ink/15 rounded-lg px-3 py-1.5 outline-none focus:border-crimson text-sm shadow-inner"
+                        className="w-full text-right font-mono font-bold text-crimson bg-white border border-ink/15 rounded-lg px-3 py-1 outline-none focus:border-crimson text-sm shadow-inner"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input 
+                        type="text" 
+                        value={item.notes || ""} 
+                        onChange={e => {
+                          const newDebts = [...bulkDebts];
+                          newDebts[idx].notes = e.target.value;
+                          setBulkDebts(newDebts);
+                        }} 
+                        placeholder="Nhập nguồn thu, ghi chú ngày này..."
+                        className="w-full text-left font-bold text-ink/80 bg-white border border-ink/15 rounded-lg px-3 py-1 outline-none focus:border-crimson text-xs shadow-inner"
                       />
                     </td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr className="bg-crimson/10 font-bold text-crimson border-t-2 border-crimson/50">
+                  <td className="px-4 py-3 uppercase text-[10px] tracking-widest font-black">
+                    Tổng Doanh Thu Tuần
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono font-black text-sm">
+                    {(() => {
+                      const rawSum = bulkDebts.reduce((sum, item) => sum + (parseFloat(item.amount.replace(/,/g, '')) || 0), 0);
+                      const formatted = Math.abs(rawSum).toLocaleString('vi-VN');
+                      return `+${formatted} đ`;
+                    })()}
+                  </td>
+                  <td className="px-4 py-3 text-ink/50 text-[10px] font-medium italic">
+                    {(() => {
+                      const count = bulkDebts.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, '')))).length;
+                      return `* Tổng hợp từ ${count}/7 ngày có số liệu`;
+                    })()}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
 
-        {/* Sum displayed below as well */}
+        {/* Action Panel below */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-crimson/5 sketch-border border-dashed border-crimson/20 rounded-xl mb-10">
           <div className="text-center sm:text-left">
             <p className="text-xs text-ink/75 leading-relaxed">
