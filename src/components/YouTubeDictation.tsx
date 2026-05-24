@@ -555,6 +555,8 @@ export function YouTubeDictation({
   };
 
   const getSentences = (text: string) => {
+    // Hệ thống cắt câu tự động theo dấu . ! ? hoặc ; 
+    // Chỉ áp dụng ở phần YouTube Dictation và Translation. Các mục khác ngoài hai khu vực này không áp dụng để bảo mật mục đích nhập liệu của người học.
     const rawSentences = text.match(/[^.!?;\n]+[.!?;]*/g)?.map(s => s.trim()).filter(Boolean) || [];
     const timestampRegex = /^(?:\[)?(?:(\d+):)?(\d+)(?:\.(\d+))?(?:\])?[\s-:]*/;
     return rawSentences.map(s => s.replace(timestampRegex, '').trim()).filter(Boolean);

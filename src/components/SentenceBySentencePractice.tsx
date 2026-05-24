@@ -403,7 +403,9 @@ export function SentenceBySentencePractice({
   const handlePrepare = () => {
     if (!inputText.trim() || !referenceText.trim()) return;
 
-    // Simple split by punctuation
+    // Hệ thống cắt câu tự động theo dấu . ! ? hoặc dấu chấm phẩy ; 
+    // Thiết kế đặc trưng VÀ chỉ kích hoạt ở phần Translation (Sentence By Sentence) & YouTube Dictation.
+    // Các phần học khác (như Học từ vựng, Phản xạ nhanh, Sổ tay...) sẽ giữ nguyên chuỗi hoặc chỉ cắt theo dòng mới '\n' để bảo toàn văn bản gốc.
     const rawSentences = inputText
       .match(/[^.!?;\n]+[.!?;]*/g)
       ?.map((s) => s.trim())
