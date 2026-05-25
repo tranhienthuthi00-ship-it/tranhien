@@ -135,6 +135,94 @@ export function DigitalJournal({
     }
   }, [bulkCardSpends]);
 
+  // AUTOMATIC SYNC: Auto-save or update "card-debt-auto-sync" in assets when bulkCardSpends updates
+  React.useEffect(() => {
+    if (!setAssets || !assets) return;
+
+    try {
+      const validSpends = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
+      const totalSum = validSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
+      const absTotalSum = Math.abs(totalSum);
+
+      const existingDebtIdx = assets.findIndex(a => a.id === "card-debt-auto-sync");
+
+      if (absTotalSum === 0) {
+        if (existingDebtIdx !== -1) {
+          setAssets(assets.filter(a => a.id !== "card-debt-auto-sync"));
+        }
+        return;
+      }
+
+      const catId = categories.find(c => 
+        c.name.toLowerCase().includes("tín dụng") || 
+        c.name.toLowerCase().includes("thẻ") || 
+        c.name.toLowerCase().includes("credit") || 
+        c.name.toLowerCase().includes("nợ")
+      )?.id || (categories.length > 0 ? categories[0].id : "card-category-id");
+
+      const formatDateHelper = (ymd: string) => {
+        try {
+          const parts = ymd.split("-");
+          return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
+        } catch {
+          return ymd;
+        }
+      };
+
+      const detailNotesList = validSpends.map(d => {
+        const val = parseFloat(d.amount.replace(/,/g, ''));
+        const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
+        return `• ${formatDateHelper(d.name)}: ${val.toLocaleString('vi-VN')} đ${dayNote}`;
+      }).join("\n");
+
+      const activeDates = bulkCardSpends
+        .map(d => d.name)
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b));
+      
+      let dateRangeText = "";
+      if (activeDates.length > 0) {
+        const formatDateStr = (ymd: string) => {
+          const parts = ymd.split("-");
+          return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
+        };
+        dateRangeText = ` (${formatDateStr(activeDates[0])} - ${formatDateStr(activeDates[activeDates.length - 1])})`;
+      }
+
+      const updatedDebtAsset: Asset = {
+        id: "card-debt-auto-sync",
+        name: `Nợ thẻ tín dụng${dateRangeText} (Tự động)`,
+        category: catId,
+        value: absTotalSum,
+        currency: "VND",
+        notes: `Dư nợ tín dụng tổng hợp tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
+        acquiredAt: Date.now(),
+        isDebt: true,
+        isNewMoney: false,
+        excludeFromNetWorth: false
+      };
+
+      if (existingDebtIdx === -1) {
+        setAssets([updatedDebtAsset, ...assets]);
+      } else {
+        const existing = assets[existingDebtIdx];
+        if (existing.value !== updatedDebtAsset.value || existing.notes !== updatedDebtAsset.notes || existing.name !== updatedDebtAsset.name) {
+          const updatedList = [...assets];
+          updatedList[existingDebtIdx] = {
+            ...existing,
+            name: updatedDebtAsset.name,
+            value: updatedDebtAsset.value,
+            notes: updatedDebtAsset.notes,
+            category: updatedDebtAsset.category
+          };
+          setAssets(updatedList);
+        }
+      }
+    } catch (err) {
+      console.error("Lỗi tự động đồng bộ nợ thẻ tín dụng:", err);
+    }
+  }, [bulkCardSpends, categories, assets, setAssets]);
+
   const justCardRangeText = useMemo(() => {
     const activeDates = bulkCardSpends
       .map(d => d.name)
@@ -1511,12 +1599,12 @@ export function DigitalJournal({
             </div>
 
             {/* Action Panel */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-indigo-50/20 border border-dashed border-indigo-200 rounded-xl">
-              <p className="text-[10px] text-indigo-950/70 leading-relaxed text-center sm:text-left flex-1 font-sans">
-                ⚠️ Các khoản chi trong bảng sẽ gom thành một khoản dư nợ thẻ tích lũy (tính vào nợ tín dụng, giảm Net Worth) khi bạn bấm lưu.
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-emerald-50/50 border border-dashed border-emerald-200 rounded-xl">
+              <p className="text-[10px] text-emerald-950 font-sans leading-relaxed text-center sm:text-left flex-1 font-bold">
+                ⚡ <strong>Tự động đồng bộ:</strong> Toàn bộ chi tiêu thẻ hàng ngày ở trên đang được cộng dồn & cập nhật trực tiếp thành một khoản nợ trong Sổ Tài Sản. Net Worth sẽ tự tính toán real-time mà không cần thao tác bấm Lưu!
               </p>
               
-              <div className="flex gap-1.5 shrink-0 w-full sm:w-auto justify-end">
+              <div className="flex gap-1.5 shrink-0 w-full sm:w-auto justify-end items-center">
                  <button 
                    onClick={() => {
                      let nextDateStr = "";
@@ -1543,7 +1631,7 @@ export function DigitalJournal({
                        }
                      ]);
                    }}
-                   className="py-1 px-3 text-[10px] font-bold bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-200 rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                   className="py-1 px-3 text-[10px] font-bold bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-200 rounded-lg cursor-pointer transition-all flex items-center gap-1 animate-pulse"
                  >
                    <Plus size={10} /> Thêm Ngày
                  </button>
@@ -1553,12 +1641,10 @@ export function DigitalJournal({
                  >
                    Reset
                  </button>
-                 <button 
-                   onClick={handleSaveBulkCardSpends}
-                   className="py-1 px-4 flex items-center gap-1 text-[10px] rounded-lg transition-all bg-indigo-600 text-white hover:bg-indigo-700 font-bold active:scale-95 cursor-pointer uppercase tracking-wider"
-                 >
-                   <CreditCard size={10} /> Lưu Thẻ
-                 </button>
+                 <div className="py-1 px-3.5 flex items-center gap-1.5 text-[10px] rounded-lg bg-emerald-600 text-white font-black uppercase tracking-wider select-none shadow-[2px_2px_0_rgba(16,185,129,0.2)]">
+                   <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
+                   <span>✓ Đã liên kết nợ tự động</span>
+                 </div>
               </div>
             </div>
           </div>
