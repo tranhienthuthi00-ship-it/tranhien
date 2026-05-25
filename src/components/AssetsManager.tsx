@@ -125,6 +125,72 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     }
   }, [bulkCardSpends]);
 
+  // --- HỆ THỐNG DỰ TÍNH TIỀN LƯƠNG & DỰ CHI ---
+  const [salaryInput, setSalaryInput] = useState<string>(() => {
+    return localStorage.getItem("studyHub_salaryInput") || "15,000,000";
+  });
+
+  const [plannedExpenses, setPlannedExpenses] = useState<{ id: string; name: string; amount: string; notes: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_plannedExpenses");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [
+      { id: "pe-1", name: "Tiền thuê nhà / phòng", amount: "3,500,000", notes: "Thanh toán cố định đầu tháng" },
+      { id: "pe-2", name: "Chi phí ăn uống sinh hoạt", amount: "3,000,000", notes: "Ngân sách ăn uống ước tính" },
+      { id: "pe-3", name: "Cước phí dịch vụ (Điện, nước, net)", amount: "800,000", notes: "Thanh toán hóa đơn hàng tháng" },
+      { id: "pe-4", name: "Học tập & Sách vở", amount: "1,200,000", notes: "Luyện tiếng Anh và phát triển cá nhân" },
+      { id: "pe-5", name: "Tích lũy tài sản / Tiết kiệm", amount: "3,000,000", notes: "Khoản để riêng đầu tư" }
+    ];
+  });
+
+  const [newExpName, setNewExpName] = useState("");
+  const [newExpAmount, setNewExpAmount] = useState("");
+  const [newExpNotes, setNewExpNotes] = useState("");
+
+  useEffect(() => {
+    localStorage.setItem("studyHub_salaryInput", salaryInput);
+  }, [salaryInput]);
+
+  useEffect(() => {
+    localStorage.setItem("studyHub_plannedExpenses", JSON.stringify(plannedExpenses));
+  }, [plannedExpenses]);
+
+  const handleResetSalaryPlanner = () => {
+    setSalaryInput("15,000,000");
+    setPlannedExpenses([
+      { id: "pe-1", name: "Tiền thuê nhà / phòng", amount: "3,500,000", notes: "Thanh toán cố định đầu tháng" },
+      { id: "pe-2", name: "Chi phí ăn uống sinh hoạt", amount: "3,000,000", notes: "Ngân sách ăn uống ước tính" },
+      { id: "pe-3", name: "Cước phí dịch vụ (Điện, nước, net)", amount: "800,000", notes: "Thanh toán hóa đơn hàng tháng" },
+      { id: "pe-4", name: "Học tập & Sách vở", amount: "1,200,000", notes: "Luyện tiếng Anh và phát triển cá nhân" },
+      { id: "pe-5", name: "Tích lũy tài sản / Tiết kiệm", amount: "3,000,000", notes: "Khoản để riêng đầu tư" }
+    ]);
+    setNewExpName("");
+    setNewExpAmount("");
+    setNewExpNotes("");
+  };
+
+  const handleAddPlannedExpense = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newExpName.trim()) return;
+    const newExpense = {
+      id: `pe-${Date.now()}-${Math.random()}`,
+      name: newExpName.trim(),
+      amount: newExpAmount || "0",
+      notes: newExpNotes.trim()
+    };
+    setPlannedExpenses([...plannedExpenses, newExpense]);
+    setNewExpName("");
+    setNewExpAmount("");
+    setNewExpNotes("");
+  };
+
+  const handleRemovePlannedExpense = (id: string) => {
+    setPlannedExpenses(plannedExpenses.filter(pe => pe.id !== id));
+  };
+
   const justCardRangeText = useMemo(() => {
     const activeDates = bulkCardSpends
       .map(d => d.name)
@@ -602,6 +668,22 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const newMoneyAssets = useMemo(() => {
     return assets.filter(a => a.isNewMoney).sort((a, b) => (b.acquiredAt || 0) - (a.acquiredAt || 0));
   }, [assets]);
+
+  const totalSalIncome = useMemo(() => {
+    const parsed = parseFloat(salaryInput.replace(/,/g, ''));
+    return isNaN(parsed) ? 0 : parsed;
+  }, [salaryInput]);
+
+  const totalPlannedOutflows = useMemo(() => {
+    return plannedExpenses.reduce((sum, item) => {
+      const parsed = parseFloat(item.amount.replace(/,/g, ''));
+      return sum + (isNaN(parsed) ? 0 : parsed);
+    }, 0);
+  }, [plannedExpenses]);
+
+  const remainingBalance = totalSalIncome - totalPlannedOutflows;
+
+  const percentageSpent = totalSalIncome > 0 ? (totalPlannedOutflows / totalSalIncome) * 100 : 0;
 
   return (
     <div className="max-w-4xl mx-auto px-4 font-sans pb-10">
@@ -1547,6 +1629,253 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                className="sketch-button sketch-button-primary py-2 px-6 flex items-center gap-2 text-xs transition-all bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg active:scale-95 cursor-pointer font-black"
              >
                <CreditCard size={14} /> Lưu Nợ Tín Dụng
+             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* --- PHÂN KHÚC DỰ TÍNH TIỀN LƯƠNG & DỰ CHI --- */}
+      <div className="mt-16 animate-in fade-in slide-in-from-bottom-4 border-t-4 border-dashed border-emerald-600/30 pt-12">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 border-b-4 border-emerald-600/80 pb-2 gap-4">
+           <div className="flex items-center gap-3">
+              <button className="p-1.5 bg-emerald-600 text-white rounded-xl shadow-lg">
+                <Briefcase size={22} />
+              </button>
+              <div>
+                <h2 className="text-xl font-black uppercase tracking-tight text-emerald-600">Dự tính lương & Kế hoạch chi tiêu</h2>
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Lập ngân sách chủ động trước khi nhận lương</p>
+              </div>
+           </div>
+
+           {/* Quick Stats Badges */}
+           <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex items-center gap-2 bg-emerald-50 p-2 px-3 rounded-xl sketch-border border-emerald-200">
+                <div className="text-right">
+                  <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest">Dự tính lương</p>
+                  <div className="flex items-center gap-1.5 font-mono font-black text-xs text-emerald-700">
+                    <input
+                      type="text"
+                      value={salaryInput}
+                      onChange={e => {
+                        const valStr = e.target.value.replace(/[^0-9]/g, "");
+                        let formatted = "0";
+                        if (valStr) {
+                          const parsedVal = parseInt(valStr, 10);
+                          if (!isNaN(parsedVal)) {
+                            formatted = parsedVal.toLocaleString('en-US');
+                          }
+                        }
+                        setSalaryInput(formatted);
+                      }}
+                      className="w-24 text-right bg-white border border-emerald-300 font-mono font-bold rounded px-1 py-0.5 outline-none focus:border-emerald-600 text-xs shadow-inner"
+                      placeholder="0"
+                    />
+                    <span>đ</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-rose-50 p-2 px-3 rounded-xl sketch-border border-rose-200">
+                <div className="text-right">
+                  <p className="text-[8px] font-bold text-rose-600 uppercase tracking-widest font-sans">Tổng dự chi</p>
+                  <p className="text-xs font-black text-rose-700 font-mono">
+                    {totalPlannedOutflows.toLocaleString('vi-VN')} đ
+                  </p>
+                </div>
+              </div>
+
+              <div className={`flex items-center gap-2 p-2 px-3 rounded-xl sketch-border ${
+                remainingBalance >= 0 
+                  ? "bg-blue-50 border-blue-200 text-blue-700" 
+                  : "bg-red-50 border-red-200 text-red-600 animate-pulse"
+              }`}>
+                <div className="text-right">
+                  <p className="text-[8px] font-bold uppercase tracking-widest opacity-80 font-sans">Còn lại</p>
+                  <p className="text-xs font-black font-mono">
+                    {remainingBalance.toLocaleString('vi-VN')} đ
+                  </p>
+                </div>
+              </div>
+           </div>
+        </div>
+
+        {/* Visual Allocation Meter */}
+        <div className="bg-white sketch-border p-4 rounded-xl mb-6">
+          <div className="flex justify-between items-center text-xs mb-1.5 font-sans">
+            <span className="font-bold text-ink/70">Tỷ lệ phân bổ ngân sách dự tính:</span>
+            <span className={`font-mono font-black ${percentageSpent > 100 ? "text-rose-600" : "text-emerald-600"}`}>
+              {percentageSpent.toFixed(1)}% {percentageSpent > 100 ? "(Vượt hạn mức!)" : ""}
+            </span>
+          </div>
+          <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-ink/10 shadow-inner flex">
+            <div 
+              style={{ width: `${Math.min(percentageSpent, 100)}%` }} 
+              className={`h-full transition-all duration-500 ${
+                percentageSpent > 100 ? "bg-rose-500" :
+                percentageSpent > 80 ? "bg-amber-500" : "bg-emerald-500"
+              }`}
+            />
+          </div>
+          <p className="text-[10px] text-ink/50 mt-2 leading-relaxed italic">
+            * Khuyên dùng: Giữ tổng dự chi dưới 80% lương để dành từ 20% lương gửi tiết kiệm, đầu tư tài sản dài hạn.
+          </p>
+        </div>
+
+        {/* Expenses List Table */}
+        <div className="bg-white/70 sketch-border p-4 rounded-xl overflow-hidden mb-6">
+          <div className="overflow-x-auto max-w-full">
+            <table className="min-w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-emerald-50 text-[9px] font-black uppercase tracking-widest text-emerald-800 border-b-2 border-emerald-200">
+                  <th className="px-4 py-3 font-black w-56">Khoản Mục Dự Chi</th>
+                  <th className="px-4 py-3 text-right font-black w-40">Số Tiền (VND)</th>
+                  <th className="px-4 py-3 font-black">Ghi Chú Chi Tiết</th>
+                  <th className="px-4 py-3 text-center font-black w-14">Xóa</th>
+                </tr>
+              </thead>
+              <tbody className="font-sans divide-y divide-emerald-100">
+                {plannedExpenses.map((item, idx) => (
+                  <tr key={item.id} className="transition-colors hover:bg-emerald-50/20">
+                    <td className="px-4 py-2 font-bold text-ink">
+                      <input 
+                        type="text" 
+                        value={item.name} 
+                        onChange={e => {
+                          const newExp = [...plannedExpenses];
+                          newExp[idx].name = e.target.value;
+                          setPlannedExpenses(newExp);
+                        }} 
+                        className="w-full bg-transparent font-bold text-ink border-b border-transparent focus:border-emerald-500 outline-none py-0.5 text-xs"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input 
+                        type="text" 
+                        value={item.amount} 
+                        onChange={e => {
+                          const valStr = e.target.value.replace(/[^0-9]/g, "");
+                          let formatted = "0";
+                          if (valStr) {
+                            const parsedVal = parseInt(valStr, 10);
+                            if (!isNaN(parsedVal)) {
+                              formatted = parsedVal.toLocaleString('en-US');
+                            }
+                          }
+                          const newExp = [...plannedExpenses];
+                          newExp[idx].amount = formatted;
+                          setPlannedExpenses(newExp);
+                        }} 
+                        placeholder="0"
+                        className="w-full text-right font-mono font-bold text-emerald-700 bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-emerald-600 text-xs shadow-inner"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input 
+                        type="text" 
+                        value={item.notes} 
+                        onChange={e => {
+                          const newExp = [...plannedExpenses];
+                          newExp[idx].notes = e.target.value;
+                          setPlannedExpenses(newExp);
+                        }} 
+                        placeholder="Nhập ghi chú sinh hoạt..."
+                        className="w-full text-left text-ink/70 bg-transparent border-b border-transparent focus:border-emerald-500 outline-none text-xs"
+                      />
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <button
+                        onClick={() => handleRemovePlannedExpense(item.id)}
+                        className="p-1 text-rose-500 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                        title="Xóa khoản dự chi"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Inline adder row */}
+                <tr className="bg-slate-50 border-t-2 border-slate-200">
+                  <td className="px-4 py-2.5 font-semibold text-ink">
+                    <input 
+                      type="text" 
+                      value={newExpName} 
+                      onChange={e => setNewExpName(e.target.value)} 
+                      placeholder="Thêm khoản mới (Ví dụ: Sự kiện, Sách dã ngoại...)"
+                      className="w-full bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-slate-500 text-xs shadow-inner font-sans font-medium"
+                    />
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <input 
+                      type="text" 
+                      value={newExpAmount} 
+                      onChange={e => {
+                        const valStr = e.target.value.replace(/[^0-9]/g, "");
+                        let formatted = "";
+                        if (valStr) {
+                          const parsedVal = parseInt(valStr, 10);
+                          if (!isNaN(parsedVal)) {
+                            formatted = parsedVal.toLocaleString('en-US');
+                          }
+                        }
+                        setNewExpAmount(formatted);
+                      }} 
+                      placeholder="Số tiền (đ)"
+                      className="w-full text-right font-mono font-bold text-slate-700 bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-slate-500 text-xs shadow-inner"
+                    />
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <input 
+                      type="text" 
+                      value={newExpNotes} 
+                      onChange={e => setNewExpNotes(e.target.value)} 
+                      placeholder="Ghi chú chi tiết..."
+                      className="w-full text-left text-ink/70 bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-slate-500 text-xs shadow-inner font-sans font-medium"
+                    />
+                  </td>
+                  <td className="px-4 py-2.5 text-center">
+                    <button
+                      onClick={handleAddPlannedExpense}
+                      disabled={!newExpName.trim()}
+                      className="p-1.5 bg-emerald-600 disabled:opacity-30 text-white rounded-lg hover:bg-emerald-700 transition-colors cursor-pointer flex items-center justify-center mx-auto"
+                      title="Xác nhận thêm khoản"
+                    >
+                      <Plus size={13} />
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr className="bg-emerald-100 font-bold text-emerald-800 border-t-2 border-emerald-200">
+                  <td className="px-4 py-2.5 uppercase text-[10px] tracking-widest font-black font-sans">
+                    Tổng Dự Chi Tháng Này
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-xs">
+                    {totalPlannedOutflows.toLocaleString('vi-VN')} đ
+                  </td>
+                  <td colSpan={2} className="px-4 py-2.5 text-emerald-950/50 text-[10px] font-medium italic text-right font-sans">
+                    * Tổng {plannedExpenses.length} vị trí phân phối dòng tiền dự tính
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* Action button panel */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-emerald-50/20 sketch-border border-dashed border-emerald-200 rounded-xl mb-12">
+          <div className="text-center sm:text-left">
+            <p className="text-xs text-ink/75 leading-relaxed font-sans">
+              ℹ️ <strong>Mục Tiêu Tài Chính:</strong> Dự toán trước khi tiền lương về ví sẽ hạn chế tối đa việc chi tiêu tùy hứng và thiết lập ý thức tích lũy tài sản đều đặn mỗi chu kỳ.
+            </p>
+          </div>
+          
+          <div className="flex gap-2 shrink-0">
+             <button 
+               onClick={handleResetSalaryPlanner}
+               className="sketch-button text-xs py-2 px-6 font-bold uppercase tracking-widest text-ink bg-white hover:bg-emerald-50 cursor-pointer transition-all border border-ink/10"
+             >
+               Reset Bảng Lương
              </button>
           </div>
         </div>
