@@ -185,6 +185,8 @@ function AppContent() {
                     setAchievements={setAchievements}
                     tasks={tasks}
                     setTasks={setTasks}
+                    logs={logs}
+                    setLogs={setLogs}
                   />
                   <div className="sketch-border-sm border-t-8 border-ink/5 pt-12">
                     <MyList wishlist={wishlist} setWishlist={setWishlist} />

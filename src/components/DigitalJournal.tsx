@@ -826,18 +826,6 @@ export function DigitalJournal({
           >
             {isSidebarCollapsed ? "📖 Hiện danh sách ngày" : "📂 Ẩn bớt lịch sử (Đọc sách)"}
           </button>
-
-          <button
-            type="button"
-            onClick={() => setShowScrapbookStudio(!showScrapbookStudio)}
-            className={`text-xs border-2 border-ink px-4 py-2 rounded-xl transition-all duration-200 uppercase font-black tracking-wider flex items-center gap-2 shadow-[2px_2px_0_var(--color-ink)] cursor-pointer ${
-              showScrapbookStudio 
-                ? "bg-[#af1e2d] text-white hover:bg-[#af1e2d]/80" 
-                : "bg-indigo-600 text-white hover:bg-indigo-700 animate-pulse"
-            }`}
-          >
-            🎨 {showScrapbookStudio ? "Đóng Xưởng Sổ Tay" : "Vẽ Sổ Tay Doodle (Mẫu Ragu & Deco)"}
-          </button>
         </div>
 
         {isSidebarCollapsed && (
@@ -916,61 +904,6 @@ export function DigitalJournal({
                   );
                 })}
               </div>
-              
-              {/* COLLAPSABLE CUSTOMIZER FOR CLEANER LOOK */}
-              <div className="border-t border-ink/10 pt-3 space-y-2">
-                <button 
-                  onClick={() => setShowPageCustomizer(!showPageCustomizer)}
-                  className="w-full flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-ink/70 hover:text-ink transition-colors"
-                >
-                  <span className="flex items-center gap-1.5">🎨 Trang trí & Nhãn dán</span>
-                  <span>{showPageCustomizer ? "Thu gọn ▲" : "Mở rộng ▼"}</span>
-                </button>
-                
-                {showPageCustomizer && (
-                  <div className="space-y-3 pt-2 text-left border-t border-ink/5">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] uppercase font-bold text-ink/40">Loại giấy tập:</span>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {(['lined', 'grid', 'dotted', 'blank'] as const).map((style) => (
-                          <button
-                            key={style}
-                            onClick={() => setPaperStyle(style)}
-                            className={`px-2 py-0.5 text-[8px] font-black uppercase rounded border transition-all ${
-                              paperStyle === style ? "bg-ink text-paper border-ink" : "bg-white border-ink/10 text-ink/65 hover:bg-ink/5"
-                            }`}
-                          >
-                            {style === 'lined' ? "Kẻ ngang" : style === 'grid' ? "Ô ly" : style === 'dotted' ? "Chấm mờ" : "Trắng trơn"}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <span className="text-[10px] uppercase font-bold text-ink/40">Nhãn dán nhanh lên trang:</span>
-                      <div className="flex flex-wrap gap-1">
-                        {['🌸', '🎯', '🔥', '☕', '⭐', '🎉', '🚀', '🧸', '💡', '📖', '❤️'].map((st) => {
-                          const active = (pageStickers[currentPage.date] || []).includes(st);
-                          return (
-                            <button
-                              key={st}
-                              onClick={() => addSticker(st, currentPage.date)}
-                              className={`w-7 h-7 flex items-center justify-center text-sm rounded-lg transition-all hover:scale-110 active:scale-95 border ${
-                                active 
-                                  ? "bg-[#fffbeb] border-ink rotate-3 scale-105 shadow-[2px_2px_0_var(--color-ink)]" 
-                                  : "bg-white border border-ink/10 hover:border-ink opacity-60"
-                              }`}
-                              title={active ? "Gỡ sticker" : "Dán sticker"}
-                            >
-                              {st}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         )}
@@ -978,52 +911,33 @@ export function DigitalJournal({
         {/* RIGHT PANEL: DETAILS OF THE JOURNAL PAGE */}
         <div className={isSidebarCollapsed ? "lg:col-span-12 max-w-4xl mx-auto w-full space-y-4" : "lg:col-span-8 space-y-4"}>
           
-          {showScrapbookStudio ? (
-            <ScrapbookCreator 
-              currentDate={currentPage.date} 
-              onClose={() => setShowScrapbookStudio(false)}
-              onSaveToJournal={handleSaveScrapbookToJournal}
-            />
-          ) : (
-            <>
-              <div className="bg-white/80 backdrop-blur shadow-sm p-5 md:p-8 rounded-2xl sketch-border border-ink relative overflow-hidden min-h-[480px]">
-            
-            {/* Visual Paper Styling Sheet Wrapper */}
-            <div 
-              className="absolute inset-0 pointer-events-none opacity-[0.22] z-0"
-              style={
-                paperStyle === 'lined' ? {
-                  backgroundImage: "linear-gradient(transparent 95%, rgba(0,0,0,0.18) 100%)",
-                  backgroundSize: "100% 28px"
-                } : paperStyle === 'grid' ? {
-                  backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.12) 1px, transparent 1px)",
-                  backgroundSize: "24px 24px"
-                } : paperStyle === 'dotted' ? {
-                  backgroundImage: "radial-gradient(rgba(0,0,0,0.25) 1.5px, transparent 1.5px)",
-                  backgroundSize: "20px 20px"
-                } : {
-                  backgroundImage: "none"
-                }
+          <>
+            <div className="bg-white/80 backdrop-blur shadow-sm p-5 md:p-8 rounded-2xl sketch-border border-ink relative overflow-hidden min-h-[480px]">
+          
+          {/* Visual Paper Styling Sheet Wrapper */}
+          <div 
+            className="absolute inset-0 pointer-events-none opacity-[0.22] z-0"
+            style={
+              paperStyle === 'lined' ? {
+                backgroundImage: "linear-gradient(transparent 95%, rgba(0,0,0,0.18) 100%)",
+                backgroundSize: "100% 28px"
+              } : paperStyle === 'grid' ? {
+                backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.12) 1px, transparent 1px)",
+                backgroundSize: "24px 24px"
+              } : paperStyle === 'dotted' ? {
+                backgroundImage: "radial-gradient(rgba(0,0,0,0.25) 1.5px, transparent 1.5px)",
+                backgroundSize: "20px 20px"
+              } : {
+                backgroundImage: "none"
               }
-            />
+            }
+          />
 
-            {/* Note paper margin line to make it extremely cozy and high craft */}
-            <div className="absolute left-6 md:left-[36px] top-0 bottom-0 w-[1.5px] bg-rose-400/25 pointer-events-none z-10" />
+          {/* Note paper margin line to make it extremely cozy and high craft */}
+          <div className="absolute left-6 md:left-[36px] top-0 bottom-0 w-[1.5px] bg-rose-400/25 pointer-events-none z-10" />
 
-            {/* Sticker overlay visual layout */}
-            <div className="absolute top-4 right-4 flex gap-1 z-10 pointer-events-none select-none">
-              {(pageStickers[currentPage.date] || []).map((st, idx) => (
-                <span 
-                  key={idx} 
-                  className="w-7 h-7 flex items-center justify-center text-lg bg-[#fffbeb] border border-ink shadow-sm rounded-full rotate-6 animate-pulse"
-                >
-                  {st}
-                </span>
-              ))}
-            </div>
-
-            {/* MAIN CONTENT SECTION */}
-            <div className="relative z-10 space-y-5 pl-4 md:pl-6">
+          {/* MAIN CONTENT SECTION */}
+          <div className="relative z-10 space-y-5 pl-4 md:pl-6">
               
               {/* Daily Title & Mood bar */}
               <div className="border-b border-rose-300/40 pb-3.5 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
@@ -2015,7 +1929,7 @@ export function DigitalJournal({
               </div>
             </div>
           </div>
-          </>)}
+          </>
 
         </div>
 

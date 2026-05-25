@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { format } from "date-fns";
-import type { StudyGoal, Achievement, Task } from "../types";
+import type { StudyGoal, Achievement, Task, LogEntry } from "../types";
 import { cn } from "../lib/utils";
 
 export function PersonalGoals({ 
@@ -16,14 +16,18 @@ export function PersonalGoals({
   achievements, 
   setAchievements,
   tasks,
-  setTasks
+  setTasks,
+  logs,
+  setLogs
 }: { 
   goals: StudyGoal[], 
   setGoals: (goals: StudyGoal[]) => void,
   achievements: Achievement[],
   setAchievements: (achs: Achievement[]) => void,
   tasks: Task[],
-  setTasks: (tasks: Task[]) => void
+  setTasks: (tasks: Task[]) => void,
+  logs?: LogEntry[],
+  setLogs?: React.Dispatch<React.SetStateAction<LogEntry[]>>
 }) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -42,6 +46,10 @@ export function PersonalGoals({
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showAddTodo, setShowAddTodo] = useState(false);
   const [taskGoalId, setTaskGoalId] = useState("");
+
+  // Inline Task Editing states
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingTaskContent, setEditingTaskContent] = useState("");
 
   // Achievement modal / celebration states
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
@@ -204,11 +212,86 @@ export function PersonalGoals({
   }, [tasks, taskSortBy]);
 
   const toggleTask = (id: string) => {
-    setTasks(tasks.map(t => (t.id === id ? { ...t, completed: !t.completed } : t)));
+    let completedTask: Task | null = null;
+    const nextTasks = tasks.map(t => {
+      if (t.id === id) {
+        const nextCompleted = !t.completed;
+        const now = Date.now();
+        const updated = { ...t, completed: nextCompleted, completedAt: nextCompleted ? now : undefined };
+        if (nextCompleted) {
+          completedTask = updated;
+        }
+        return updated;
+      }
+      return t;
+    });
+    setTasks(nextTasks);
+
+    // Write to goal journey structure and daily journal (Vietnamese localization)
+    if (completedTask) {
+      const parentGoal = goals.find(g => g.id === (completedTask as Task).goalId);
+      const now = Date.now();
+      const dateStr = new Date().toISOString().split("T")[0]; // Local YYYY-MM-DD format
+      const isLinkedToGoal = !!parentGoal;
+      
+      const activityText = isLinkedToGoal 
+        ? `Sứ mệnh học tập: Đã hoàn tất việc "${(completedTask as Task).content}" cho mục tiêu "${parentGoal.title}"`
+        : `Dấu chân học tập: Đã xong việc "${(completedTask as Task).content}"`;
+
+      // 1. Add log entry to the daily summary journal
+      if (setLogs) {
+        const logId = `log_task_${(completedTask as Task).id}`;
+        setLogs(prev => {
+          if (prev.some(l => l.id === logId)) return prev;
+          const newLog: LogEntry = {
+            id: logId,
+            date: dateStr,
+            content: activityText,
+            type: 'Event',
+            emoji: '🎯'
+          };
+          return [...prev, newLog];
+        });
+      }
+
+      // 2. Add log entry into the Goal's internal journey tracking array
+      if (parentGoal) {
+        const journeyItem = {
+          id: `j_${now}`,
+          timestamp: now,
+          content: `Hoàn tất nhiệm vụ: ${(completedTask as Task).content}`
+        };
+        const updatedGoals = goals.map(g => {
+          if (g.id === parentGoal.id) {
+            const currentJourney = g.journey || [];
+            return {
+              ...g,
+              journey: [...currentJourney, journeyItem]
+            };
+          }
+          return g;
+        });
+        setGoals(updatedGoals);
+      }
+    } else {
+      // If task is unmarked, clean up the task completed log from daily logs
+      if (setLogs) {
+        setLogs(prev => prev.filter(l => l.id !== `log_task_${id}`));
+      }
+    }
+  };
+
+  const saveTaskEdit = (id: string, newContent: string) => {
+    if (!newContent.trim()) return;
+    setTasks(tasks.map(t => t.id === id ? { ...t, content: newContent.trim() } : t));
+    setEditingTaskId(null);
   };
 
   const removeTask = (id: string) => {
     setTasks(tasks.filter(t => t.id !== id));
+    if (setLogs) {
+      setLogs(prev => prev.filter(l => l.id !== `log_task_${id}`));
+    }
   };
 
   const handleAddGoal = async () => {
@@ -538,40 +621,96 @@ export function PersonalGoals({
                       {task.completed && <Check size={14} strokeWidth={4} />}
                     </button>
                     <div className="flex-1">
-                      <p className={cn(
-                        "font-bold text-sm transition-all font-sans", 
-                        task.completed ? "line-through text-ink/40" : 
-                        task.priority === 'High' ? "text-crimson" : 
-                        task.priority === 'Medium' ? "text-yellow-700" : "text-ink/70"
-                      )}>
-                        {task.content}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={cn(
-                          "text-[7px] uppercase font-black tracking-widest px-1.5 py-0.5 rounded shadow-sm border",
-                          task.completed ? "bg-ink/5 text-ink/20 border-transparent" :
-                          task.priority === 'High' ? "bg-white text-crimson border-crimson" : 
-                          task.priority === 'Medium' ? "bg-white text-yellow-600 border-yellow-500" : "bg-white text-ink/40 border-ink/20"
-                        )}>
-                          {task.priority}
-                        </span>
-                        {task.goalId && (() => {
-                          const associatedGoal = goals.find(g => g.id === task.goalId);
-                          if (!associatedGoal) return null;
-                          return (
-                            <span className="text-[7px] uppercase font-black bg-sky-55 text-sky-600 border border-sky-250 px-1.5 py-0.5 rounded shadow-sm">
-                              🎯 {associatedGoal.title}
+                      {editingTaskId === task.id ? (
+                        <div className="flex items-center gap-1.5 w-full">
+                          <input
+                            type="text"
+                            value={editingTaskContent}
+                            onChange={(e) => setEditingTaskContent(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveTaskEdit(task.id, editingTaskContent);
+                              if (e.key === 'Escape') setEditingTaskId(null);
+                            }}
+                            className="flex-1 px-2.5 py-1 text-xs sm:text-sm font-bold font-sans bg-[#fffbeb] border-2 border-ink rounded-lg text-ink focus:outline-none focus:ring-1 focus:ring-ink"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => saveTaskEdit(task.id, editingTaskContent)}
+                            className="p-1 text-emerald-600 hover:bg-emerald-50 rounded border border-emerald-200 transition-colors"
+                            title="Lưu"
+                          >
+                            <Check size={14} strokeWidth={3.5} />
+                          </button>
+                          <button
+                            onClick={() => setEditingTaskId(null)}
+                            className="p-1 text-crimson hover:bg-red-50 rounded border border-red-200 transition-colors"
+                            title="Hủy"
+                          >
+                            <X size={14} strokeWidth={3.5} />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <p 
+                            className={cn(
+                              "font-bold text-sm transition-all font-sans cursor-pointer hover:text-[#af1e2d]", 
+                              task.completed ? "line-through text-ink/40" : 
+                              task.priority === 'High' ? "text-crimson" : 
+                              task.priority === 'Medium' ? "text-yellow-700" : "text-ink/70"
+                            )}
+                            onClick={() => {
+                              if (!task.completed) {
+                                setEditingTaskId(task.id);
+                                setEditingTaskContent(task.content);
+                              }
+                            }}
+                            title="Bấm để sửa nhanh"
+                          >
+                            {task.content}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={cn(
+                              "text-[7px] uppercase font-black tracking-widest px-1.5 py-0.5 rounded shadow-sm border",
+                              task.completed ? "bg-ink/5 text-ink/20 border-transparent" :
+                              task.priority === 'High' ? "bg-white text-crimson border-crimson" : 
+                              task.priority === 'Medium' ? "bg-white text-yellow-600 border-yellow-500" : "bg-white text-ink/40 border-ink/20"
+                            )}>
+                              {task.priority}
                             </span>
-                          );
-                        })()}
-                      </div>
+                            {task.goalId && (() => {
+                              const associatedGoal = goals.find(g => g.id === task.goalId);
+                              if (!associatedGoal) return null;
+                              return (
+                                <span className="text-[7px] uppercase font-black bg-sky-55 text-sky-600 border border-sky-250 px-1.5 py-0.5 rounded shadow-sm">
+                                  🎯 {associatedGoal.title}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <button
-                      onClick={() => removeTask(task.id)}
-                      className="opacity-0 group-hover:opacity-100 text-ink/20 hover:text-crimson ml-4 transition-all"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {!task.completed && editingTaskId !== task.id && (
+                        <button
+                          onClick={() => {
+                            setEditingTaskId(task.id);
+                            setEditingTaskContent(task.content);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 text-ink/20 hover:text-[#d97706] transition-all p-1"
+                          title="Sửa mục việc"
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => removeTask(task.id)}
+                        className="opacity-0 group-hover:opacity-100 text-ink/20 hover:text-crimson transition-all p-1"
+                        title="Xóa mục việc"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </motion.div>
                 ))
               )}
