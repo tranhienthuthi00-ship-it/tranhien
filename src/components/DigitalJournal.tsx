@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { LogEntry, WishlistItem, Habit, Asset, Word, FoodPlace, ContentIdea, Task, Achievement, StudyGoal, AssetCategory } from "../types";
+import { ScrapbookCreator } from "./ScrapbookCreator";
 import { 
   BookOpen, 
   Calendar, 
@@ -88,6 +89,7 @@ export function DigitalJournal({
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [paperStyle, setPaperStyle] = useState<'lined' | 'grid' | 'dotted' | 'blank'>('lined');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showScrapbookStudio, setShowScrapbookStudio] = useState(false);
   
   // Goal Selection for tasks
   const [newTaskGoalId, setNewTaskGoalId] = useState<string>("");
@@ -512,6 +514,21 @@ export function DigitalJournal({
 
   const currentPage = pages[currentPageIndex];
 
+  const handleSaveScrapbookToJournal = (summary: string) => {
+    if (!setLogs) return;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const newLog: LogEntry = {
+      id: `scrapbook-log-${Date.now()}`,
+      date: currentPage.date,
+      content: summary,
+      type: 'Reflection',
+      emoji: '🎨',
+      time: timeStr
+    };
+    setLogs(prev => [...prev, newLog]);
+  };
+
   const todoTasks = useMemo(() => {
     return tasks.filter(t => {
       if (!t.completed) return true;
@@ -583,13 +600,27 @@ export function DigitalJournal({
 
       {/* Sidebar Focus Toggle and Layout Configuration */}
       <div className="flex justify-between items-center mb-4 select-none z-10 relative max-w-5xl mx-auto gap-4 flex-wrap">
-        <button
-          type="button"
-          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="text-xs bg-white text-ink border-2 border-ink px-4 py-2 rounded-xl hover:bg-ink hover:text-white transition-all duration-200 uppercase font-black tracking-wider flex items-center gap-2 shadow-sm"
-        >
-          {isSidebarCollapsed ? "📖 Hiện danh sách ngày" : "📂 Ẩn bớt lịch sử (Đọc sách)"}
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="text-xs bg-white text-ink border-2 border-ink px-4 py-2 rounded-xl hover:bg-ink hover:text-white transition-all duration-200 uppercase font-black tracking-wider flex items-center gap-2 shadow-sm cursor-pointer"
+          >
+            {isSidebarCollapsed ? "📖 Hiện danh sách ngày" : "📂 Ẩn bớt lịch sử (Đọc sách)"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowScrapbookStudio(!showScrapbookStudio)}
+            className={`text-xs border-2 border-ink px-4 py-2 rounded-xl transition-all duration-200 uppercase font-black tracking-wider flex items-center gap-2 shadow-[2px_2px_0_var(--color-ink)] cursor-pointer ${
+              showScrapbookStudio 
+                ? "bg-[#af1e2d] text-white hover:bg-[#af1e2d]/80" 
+                : "bg-indigo-600 text-white hover:bg-indigo-700 animate-pulse"
+            }`}
+          >
+            🎨 {showScrapbookStudio ? "Đóng Xưởng Sổ Tay" : "Vẽ Sổ Tay Doodle (Mẫu Ragu & Deco)"}
+          </button>
+        </div>
 
         {isSidebarCollapsed && (
           <div className="flex items-center gap-2">
@@ -729,7 +760,15 @@ export function DigitalJournal({
         {/* RIGHT PANEL: DETAILS OF THE JOURNAL PAGE */}
         <div className={isSidebarCollapsed ? "lg:col-span-12 max-w-4xl mx-auto w-full space-y-4" : "lg:col-span-8 space-y-4"}>
           
-          <div className="bg-white/80 backdrop-blur shadow-sm p-5 md:p-8 rounded-2xl sketch-border border-ink relative overflow-hidden min-h-[480px]">
+          {showScrapbookStudio ? (
+            <ScrapbookCreator 
+              currentDate={currentPage.date} 
+              onClose={() => setShowScrapbookStudio(false)}
+              onSaveToJournal={handleSaveScrapbookToJournal}
+            />
+          ) : (
+            <>
+              <div className="bg-white/80 backdrop-blur shadow-sm p-5 md:p-8 rounded-2xl sketch-border border-ink relative overflow-hidden min-h-[480px]">
             
             {/* Visual Paper Styling Sheet Wrapper */}
             <div 
@@ -1523,6 +1562,7 @@ export function DigitalJournal({
               </div>
             </div>
           </div>
+          </>)}
 
         </div>
 
