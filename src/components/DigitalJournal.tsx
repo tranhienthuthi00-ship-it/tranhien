@@ -1496,16 +1496,21 @@ export function DigitalJournal({
               {/* JOURNAL LOGS AND REFLECTIONS LIST (THE ACTUAL DIARY CORES) */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-ink/10 pb-2">
-                  <span className="text-xs uppercase font-black text-ink/70 flex items-center gap-1.5">
-                    <Feather className="w-3.5 h-3.5 text-crimson" /> Ghi chép cá nhân ({currentPage.logs.length})
+                  <span className="text-xs uppercase font-black text-ink/70 flex items-center gap-1.5 font-sans">
+                    <Sparkles className="w-3.5 h-3.5 text-crimson" /> Đúc Kết & Bài Học Đáng Giá ({currentPage.logs.length})
                   </span>
                   
                   {setLogs && (
                     <button
-                      onClick={() => setShowQuickEntry(!showQuickEntry)}
+                      onClick={() => {
+                        setShowQuickEntry(!showQuickEntry);
+                        // Default to lesson icon
+                        setNewEntryType('Reflection');
+                        setNewEntryEmoji('💡');
+                      }}
                       className="text-[10px] py-1 px-2.5 bg-ink text-paper hover:bg-ink/90 rounded-md transition-all uppercase font-bold tracking-wider flex items-center gap-1"
                     >
-                      {showQuickEntry ? <X size={10} /> : <Plus size={10} />} {showQuickEntry ? "Ẩn" : "Chắp bút"}
+                      {showQuickEntry ? <X size={10} /> : <Plus size={10} />} {showQuickEntry ? "Ẩn" : "Gieo Đúc Kết"}
                     </button>
                   )}
                 </div>
@@ -1515,49 +1520,48 @@ export function DigitalJournal({
                   <motion.div 
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-[#fffbeb] p-3 rounded-xl border border-ink/20 shadow-xs space-y-3"
+                    className="bg-[#fffbeb] p-3.5 rounded-xl border-2 border-ink shadow-xs space-y-3"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink/10 pb-1.5">
-                      <div className="flex gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setNewEntryType('Reflection')}
-                          className={`px-2 py-0.5 text-[9px] font-black uppercase rounded ${newEntryType === 'Reflection' ? "bg-ink text-white" : "bg-ink/10 text-ink"}`}
-                        >
-                          Suy ngẫm
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setNewEntryType('Event')}
-                          className={`px-2 py-0.5 text-[9px] font-black uppercase rounded ${newEntryType === 'Event' ? "bg-ink text-white" : "bg-ink/10 text-ink"}`}
-                        >
-                          Sự kiện nhật sự
-                        </button>
-                      </div>
-
-                      {/* Icon selector with simple tooltips */}
-                      <div className="flex items-center gap-1">
-                        <span className="text-[9px] uppercase font-bold text-ink/40 mr-1">Icon:</span>
-                        <div className="flex gap-1">
-                          {['📝', '💡', '🌟', '☕', '🔥', '🎉', '💻', '💪', '❤️', '🎓'].map((em) => (
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-black text-ink/40 tracking-widest block mb-1">Chọn kiểu tri thức cần ghi nhận</span>
+                      <div className="grid grid-cols-3 gap-1.5 mb-2 bg-paper/25 p-1 rounded-xl border border-ink/5">
+                        {[
+                          { label: "💡 Bài Học", desc: "Rút kinh nghiệm", type: "Reflection" as const, emoji: "💡" },
+                          { label: "🚀 Ý Tưởng", desc: "Đột phá sáng tạo", type: "Event" as const, emoji: "🚀" },
+                          { label: "🔮 Nhắc Nhở", desc: "Lời dặn ngày mai", type: "Reflection" as const, emoji: "🔮" },
+                        ].map(item => {
+                          const isSelected = newEntryEmoji === item.emoji;
+                          return (
                             <button
-                              key={em}
+                              key={item.emoji}
                               type="button"
-                              onClick={() => setNewEntryEmoji(em)}
-                              className={`text-xs p-0.5 rounded-md transition-transform ${newEntryEmoji === em ? "bg-[#fbcfe8] scale-110" : "opacity-40 hover:opacity-100"}`}
+                              onClick={() => {
+                                setNewEntryType(item.type);
+                                setNewEntryEmoji(item.emoji);
+                              }}
+                              className={`p-2 flex flex-col items-center gap-0.5 rounded-lg border-2 text-center transition-all cursor-pointer ${
+                                isSelected 
+                                  ? "bg-white border-crimson font-black text-ink shadow-xs scale-102" 
+                                  : "bg-white/40 border-ink/5 text-ink/65 hover:border-ink/20"
+                              }`}
                             >
-                              {em}
+                              <span className="text-xs font-black uppercase tracking-tight">{item.label}</span>
+                              <span className="text-[8px] font-sans font-medium leading-none text-ink/45">{item.desc}</span>
                             </button>
-                          ))}
-                        </div>
+                          );
+                        })}
                       </div>
                     </div>
 
                     <textarea
                       value={newEntryContent}
                       onChange={(e) => setNewEntryContent(e.target.value)}
-                      placeholder="Ghi lại lưu bút, mục tiêu đạt được hoặc bất kì tâm sự nào về học tập rèn luyện trong ngày..."
-                      className="w-full min-h-[80px] p-2 bg-white rounded border border-ink/15 text-sm focus:outline-none focus:border-ink/50 resize-none font-hand text-lg placeholder:font-sans placeholder:text-xs text-ink placeholder:text-ink/40 leading-relaxed"
+                      placeholder={
+                        newEntryEmoji === '💡' ? "Tôi đã học được bài học, kiến thức hay mẹo rèn luyện gì tuyệt vời hôm nay..." :
+                        newEntryEmoji === '🚀' ? "Để tối ưu đột phá, hôm nay tôi có ý tưởng thiết thực nào..." :
+                        "Tâm sự, lời nhắn nhủ nhắc nhở bản thân để ngày mai phát huy phong độ tốt nhất..."
+                      }
+                      className="w-full min-h-[90px] p-2 bg-white rounded border border-ink/15 text-sm focus:outline-none focus:border-ink/50 resize-none font-hand text-lg placeholder:font-sans placeholder:text-xs text-ink placeholder:text-ink/40 leading-relaxed"
                     />
 
                     <div className="flex justify-end gap-2 text-xs">
@@ -1572,7 +1576,7 @@ export function DigitalJournal({
                         disabled={!newEntryContent.trim()}
                         className="px-3.5 py-1 bg-ink text-paper font-black rounded hover:bg-ink/90 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
                       >
-                        <Send size={10} /> Lưu dòng này
+                        <Send size={10} /> Lưu đúc kết
                       </button>
                     </div>
                   </motion.div>
@@ -1581,7 +1585,7 @@ export function DigitalJournal({
                 {/* Logs Listing container */}
                 {currentPage.logs.length === 0 ? (
                   <div className="text-center py-6 px-4 border border-dashed border-ink/10 rounded-xl bg-ink/5 italic font-hand text-ink/40 text-base leading-relaxed">
-                    Trang ngày hôm nay chưa có dòng ghi chép riêng. Bạn có thể chắp bút nhanh ngay bên trên!
+                    Hôm nay chưa thu hoạch được đúc kết hay bài học giá trị nào. Bấm nút "Gieo Đúc Kết" phía trên để ghi chép nhanh nhé!
                   </div>
                 ) : (
                   <div className="space-y-3.5 pl-3 border-l-2 border-dashed border-ink/15 py-1">

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { 
   Plus, Target, Calendar, Trash2, CheckCircle2, Edit2,
   TrendingUp, X, FileText, ChevronDown, ChevronUp,
@@ -41,6 +41,7 @@ export function PersonalGoals({
   const [taskSortBy, setTaskSortBy] = useState<'Default' | 'Priority'>('Default');
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showAddTodo, setShowAddTodo] = useState(false);
+  const [taskGoalId, setTaskGoalId] = useState("");
 
   // Achievement modal / celebration states
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
@@ -111,12 +112,85 @@ export function PersonalGoals({
     await setGoals(updatedGoals);
   };
 
+  // Synchronize Goal completed state based on associated tasks
+  useEffect(() => {
+    if (goals.length === 0) return;
+
+    let goalsChanged = false;
+    let newAchievements: Achievement[] = [];
+    let completedGoalToCelebrate: StudyGoal | null = null;
+
+    const updatedGoals = goals.map(g => {
+      const goalTasks = tasks.filter(t => t.goalId === g.id);
+      if (goalTasks.length === 0) return g; // For goals with no tasks, let user toggle manually
+
+      const completedCount = goalTasks.filter(t => t.completed).length;
+      const totalCount = goalTasks.length;
+      const isCompletedNow = completedCount === totalCount && totalCount > 0;
+
+      // Check if state changed to avoid infinite loop
+      if (
+        g.isCompleted !== isCompletedNow ||
+        g.currentValue !== completedCount ||
+        g.targetValue !== totalCount
+      ) {
+        goalsChanged = true;
+        const now = Date.now();
+        
+        // If it transitioned from incomplete to complete, schedule achievement & celebration
+        if (isCompletedNow && !g.isCompleted) {
+          const alreadyHasAch = achievements.some(a => a.goalId === g.id);
+          if (!alreadyHasAch) {
+            const ach: Achievement = {
+              id: `ach-${Date.now()}-${g.id}`,
+              goalId: g.id,
+              title: `Hoàn thành: ${g.title}`,
+              description: "Mục tiêu đã hoàn tất!",
+              unlockedAt: now,
+              icon: 'Medal'
+            };
+            newAchievements.push(ach);
+            completedGoalToCelebrate = { ...g, isCompleted: true, completedAt: now, currentValue: completedCount, targetValue: totalCount };
+          }
+        }
+
+        return {
+          ...g,
+          isCompleted: isCompletedNow,
+          completedAt: isCompletedNow ? (g.completedAt || now) : undefined,
+          currentValue: completedCount,
+          targetValue: totalCount
+        };
+      }
+      return g;
+    });
+
+    if (goalsChanged) {
+      setGoals(updatedGoals);
+      if (newAchievements.length > 0) {
+        setAchievements([...newAchievements, ...achievements]);
+        if (completedGoalToCelebrate) {
+          setSelectedAchievement(newAchievements[0]);
+          setIsCelebration(true);
+        }
+      }
+    }
+  }, [tasks, goals, achievements, setGoals, setAchievements]);
+
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTask.trim()) return;
-    setTasks([{ id: Date.now().toString(), content: newTask, completed: false, priority: newTaskPriority }, ...tasks]);
+    setTasks([{ 
+      id: Date.now().toString(), 
+      content: newTask, 
+      completed: false, 
+      priority: newTaskPriority,
+      goalId: taskGoalId || undefined,
+      createdAt: Date.now()
+    }, ...tasks]);
     setNewTask("");
     setNewTaskPriority("Medium");
+    setTaskGoalId("");
     setShowAddTodo(false);
   };
 
@@ -378,6 +452,20 @@ export function PersonalGoals({
                 />
               </div>
 
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-ink/40 tracking-widest">Thuộc Mục tiêu (Mục cha)</label>
+                <select
+                  value={taskGoalId}
+                  onChange={(e) => setTaskGoalId(e.target.value)}
+                  className="w-full bg-white sketch-border-sm p-4 text-xs font-sans focus:outline-none focus:border-ink transition-all cursor-pointer font-bold"
+                >
+                  <option value="">(Không thuộc mục tiêu nào)</option>
+                  {goals.filter(g => !g.isCompleted).map(g => (
+                    <option key={g.id} value={g.id}>{g.title}</option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex gap-2 items-center">
                   <span className="text-[10px] font-black uppercase tracking-widest text-ink/40">Ưu tiên:</span>
@@ -467,6 +555,15 @@ export function PersonalGoals({
                         )}>
                           {task.priority}
                         </span>
+                        {task.goalId && (() => {
+                          const associatedGoal = goals.find(g => g.id === task.goalId);
+                          if (!associatedGoal) return null;
+                          return (
+                            <span className="text-[7px] uppercase font-black bg-sky-55 text-sky-600 border border-sky-250 px-1.5 py-0.5 rounded shadow-sm">
+                              🎯 {associatedGoal.title}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                     <button
@@ -530,6 +627,76 @@ export function PersonalGoals({
                           </div>
                           <button onClick={() => removeGoal(goal.id)} className="text-ink/10 hover:text-crimson transition-colors p-1"><Trash2 size={18} style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
                         </div>
+
+                        {/* Task Progress Tracking Info for the Goal */}
+                        {(() => {
+                          const goalTasks = tasks.filter(t => t.goalId === goal.id);
+                          if (goalTasks.length === 0) {
+                            return (
+                              <div className="mt-4 p-3 bg-ink/5 rounded-xl border border-dashed border-ink/10 space-y-1">
+                                <span className="text-[10px] uppercase font-black text-ink/40 tracking-wider block">Tiến độ mục tiêu:</span>
+                                <div className="flex items-center justify-between text-xs text-ink/65 font-sans">
+                                  <span>Tự đánh giá hoàn tất nhãn dán</span>
+                                  <span className="font-bold text-[10px] bg-ink/10 px-1.5 py-0.5 rounded font-mono">Chưa gán việc</span>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          const completedCount = goalTasks.filter(t => t.completed).length;
+                          const totalCount = goalTasks.length;
+                          const percent = Math.round((completedCount / totalCount) * 100);
+
+                          return (
+                            <div className="mt-4 p-3.5 bg-sky-50/25 rounded-xl border border-sky-100/30 space-y-2 font-sans">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] uppercase font-black text-sky-800 tracking-wider block">Tiến độ mục tiêu:</span>
+                                <span className="font-mono font-black text-xs text-sky-900 bg-sky-100 px-1.5 py-0.5 rounded">
+                                  {completedCount}/{totalCount} việc hoàn thành ({percent}%)
+                                </span>
+                              </div>
+
+                              {/* Realistic sketch-like progress bar wrapper */}
+                              <div className="w-full h-3 bg-paper rounded-full border-2 border-ink overflow-hidden p-[2px] relative">
+                                <div 
+                                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+
+                              {/* Listing subtasks linked to this goal under the goal card */}
+                              <div className="pt-2 border-t border-dashed border-sky-200/40 space-y-1.5">
+                                <span className="text-[8px] uppercase font-black text-sky-700/60 block">Danh sách nhiệm vụ nhỏ:</span>
+                                <div className="space-y-1">
+                                  {goalTasks.map(t => (
+                                    <div key={t.id} className="flex items-center justify-between py-0.5">
+                                      <div className="flex items-center gap-2 text-xs text-ink/75">
+                                        <button
+                                          onClick={() => toggleTask(t.id)}
+                                          className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                                            t.completed ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white border-ink/20 hover:border-ink/40"
+                                          }`}
+                                        >
+                                          {t.completed && <Check size={10} strokeWidth={4} />}
+                                        </button>
+                                        <span className={t.completed ? "line-through text-ink/40" : "font-medium"}>
+                                          {t.content}
+                                        </span>
+                                      </div>
+
+                                      <span className={`text-[8px] font-bold px-1 rounded ${
+                                        t.priority === 'High' ? "bg-crimson/10 text-crimson" :
+                                        t.priority === 'Medium' ? "bg-yellow-105 text-yellow-700" : "bg-gray-100 text-gray-500"
+                                      }`}>
+                                        {t.priority}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         {goal.notes && (
                           <div className="pt-2 border-t border-ink/5">
