@@ -1317,8 +1317,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
               <thead>
                 <tr className="bg-crimson/10 text-[9px] font-black uppercase tracking-widest text-crimson border-b-2 border-crimson/50">
                   <th className="px-4 py-3 font-black w-44">Ngày</th>
-                  <th className="px-4 py-3 text-right font-black w-48">Số Tiền (VND)</th>
-                  <th className="px-4 py-3 font-black">Ghi Chú Chi Tiết</th>
+                  <th className="px-4 py-3 text-right font-black">Số Tiền (VND)</th>
                 </tr>
               </thead>
               <tbody className="font-sans divide-y divide-crimson/10">
@@ -1379,38 +1378,25 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                         className="w-full text-right font-mono font-bold text-crimson bg-white border border-ink/15 rounded-lg px-3 py-1 outline-none focus:border-crimson text-sm shadow-inner"
                       />
                     </td>
-                    <td className="px-4 py-2">
-                      <input 
-                        type="text" 
-                        value={item.notes || ""} 
-                        onChange={e => {
-                          const newDebts = [...bulkDebts];
-                          newDebts[idx].notes = e.target.value;
-                          setBulkDebts(newDebts);
-                        }} 
-                        placeholder="Nhập nguồn thu, ghi chú ngày này..."
-                        className="w-full text-left font-bold text-ink/80 bg-white border border-ink/15 rounded-lg px-3 py-1 outline-none focus:border-crimson text-xs shadow-inner"
-                      />
-                    </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-crimson/10 font-bold text-crimson border-t-2 border-crimson/50">
-                  <td className="px-4 py-3 uppercase text-[10px] tracking-widest font-black">
-                    Tổng Doanh Thu Tuần
+                <tr className="bg-crimson/10 font-bold text-crimson border-t-2 border-crimson/50 font-sans text-xs">
+                  <td className="px-4 py-3">
+                    <span className="uppercase text-[10px] tracking-widest font-black block">Tổng Doanh Thu Tuần</span>
+                    <span className="text-ink/50 text-[10px] font-medium italic">
+                      {(() => {
+                        const count = bulkDebts.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, '')))).length;
+                        return `* Tổng hợp từ ${count}/7 ngày có số liệu`;
+                      })()}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-right font-mono font-black text-sm">
                     {(() => {
                       const rawSum = bulkDebts.reduce((sum, item) => sum + (parseFloat(item.amount.replace(/,/g, '')) || 0), 0);
                       const formatted = Math.abs(rawSum).toLocaleString('vi-VN');
                       return `+${formatted} đ`;
-                    })()}
-                  </td>
-                  <td className="px-4 py-3 text-ink/50 text-[10px] font-medium italic">
-                    {(() => {
-                      const count = bulkDebts.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, '')))).length;
-                      return `* Tổng hợp từ ${count}/7 ngày có số liệu`;
                     })()}
                   </td>
                 </tr>
@@ -1464,8 +1450,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
               <thead>
                 <tr className="bg-indigo-100 text-[9px] font-black uppercase tracking-widest text-indigo-700 border-b-2 border-indigo-200">
                   <th className="px-4 py-3 font-black w-44">Ngày</th>
-                  <th className="px-4 py-3 text-right font-black w-48">Số Tiền (VND)</th>
-                  <th className="px-4 py-3 font-black">Ghi Chú Chi Tiết</th>
+                  <th className="px-4 py-3 text-right font-black">Số Tiền (VND)</th>
                   <th className="px-4 py-3 text-center font-black w-14">Xóa</th>
                 </tr>
               </thead>
@@ -1527,19 +1512,6 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                         className="w-full text-right font-mono font-bold text-indigo-700 bg-white border border-ink/15 rounded-lg px-3 py-1 outline-none focus:border-indigo-600 text-sm shadow-inner"
                       />
                     </td>
-                    <td className="px-4 py-2">
-                      <input 
-                        type="text" 
-                        value={item.notes || ""} 
-                        onChange={e => {
-                          const newSpends = [...bulkCardSpends];
-                          newSpends[idx].notes = e.target.value;
-                          setBulkCardSpends(newSpends);
-                        }} 
-                        placeholder="Nhập mục chi tiêu bằng thẻ tín dụng..."
-                        className="w-full text-left font-bold text-indigo-800 bg-white border border-ink/15 rounded-lg px-3 py-1 outline-none focus:border-indigo-600 text-xs shadow-inner"
-                      />
-                    </td>
                     <td className="px-4 py-2 text-center">
                       <button
                         onClick={() => {
@@ -1556,9 +1528,15 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-indigo-100 font-bold text-indigo-700 border-t-2 border-indigo-200">
-                  <td className="px-4 py-3 uppercase text-[10px] tracking-widest font-black">
-                    Tổng Nợ Thẻ Đã Tiêu
+                <tr className="bg-indigo-100 font-bold text-indigo-700 border-t-2 border-indigo-200 font-sans text-xs">
+                  <td className="px-4 py-3">
+                    <span className="uppercase text-[10px] tracking-widest font-black block">Tổng Nợ Thẻ Đã Tiêu</span>
+                    <span className="text-indigo-950/50 text-[10px] font-medium italic">
+                      {(() => {
+                        const count = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, '')))).length;
+                        return `* Tổng hợp từ ${count}/${bulkCardSpends.length} ngày ghi chi tiêu`;
+                      })()}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-right font-mono font-black text-sm">
                     {(() => {
@@ -1567,12 +1545,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                       return `+${formatted} đ`;
                     })()}
                   </td>
-                  <td colSpan={2} className="px-4 py-3 text-indigo-950/50 text-[10px] font-medium italic text-right">
-                    {(() => {
-                      const count = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, '')))).length;
-                      return `* Tổng hợp từ ${count}/${bulkCardSpends.length} ngày ghi chi tiêu`;
-                    })()}
-                  </td>
+                  <td></td>
                 </tr>
               </tfoot>
             </table>
@@ -1728,8 +1701,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
               <thead>
                 <tr className="bg-emerald-50 text-[9px] font-black uppercase tracking-widest text-emerald-800 border-b-2 border-emerald-200">
                   <th className="px-4 py-3 font-black w-56">Khoản Mục Dự Chi</th>
-                  <th className="px-4 py-3 text-right font-black w-40">Số Tiền (VND)</th>
-                  <th className="px-4 py-3 font-black">Ghi Chú Chi Tiết</th>
+                  <th className="px-4 py-3 text-right font-black">Số Tiền (VND)</th>
                   <th className="px-4 py-3 text-center font-black w-14">Xóa</th>
                 </tr>
               </thead>
@@ -1769,19 +1741,6 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                         className="w-full text-right font-mono font-bold text-emerald-700 bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-emerald-600 text-xs shadow-inner"
                       />
                     </td>
-                    <td className="px-4 py-2">
-                      <input 
-                        type="text" 
-                        value={item.notes} 
-                        onChange={e => {
-                          const newExp = [...plannedExpenses];
-                          newExp[idx].notes = e.target.value;
-                          setPlannedExpenses(newExp);
-                        }} 
-                        placeholder="Nhập ghi chú sinh hoạt..."
-                        className="w-full text-left text-ink/70 bg-transparent border-b border-transparent focus:border-emerald-500 outline-none text-xs"
-                      />
-                    </td>
                     <td className="px-4 py-2 text-center">
                       <button
                         onClick={() => handleRemovePlannedExpense(item.id)}
@@ -1805,56 +1764,47 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                       className="w-full bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-slate-500 text-xs shadow-inner font-sans font-medium"
                     />
                   </td>
-                  <td className="px-4 py-2.5">
-                    <input 
-                      type="text" 
-                      value={newExpAmount} 
-                      onChange={e => {
-                        const valStr = e.target.value.replace(/[^0-9]/g, "");
-                        let formatted = "";
-                        if (valStr) {
-                          const parsedVal = parseInt(valStr, 10);
-                          if (!isNaN(parsedVal)) {
-                            formatted = parsedVal.toLocaleString('en-US');
+                  <td colSpan={2} className="px-4 py-2.5">
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={newExpAmount} 
+                        onChange={e => {
+                          const valStr = e.target.value.replace(/[^0-9]/g, "");
+                          let formatted = "";
+                          if (valStr) {
+                            const parsedVal = parseInt(valStr, 10);
+                            if (!isNaN(parsedVal)) {
+                              formatted = parsedVal.toLocaleString('en-US');
+                            }
                           }
-                        }
-                        setNewExpAmount(formatted);
-                      }} 
-                      placeholder="Số tiền (đ)"
-                      className="w-full text-right font-mono font-bold text-slate-700 bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-slate-500 text-xs shadow-inner"
-                    />
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <input 
-                      type="text" 
-                      value={newExpNotes} 
-                      onChange={e => setNewExpNotes(e.target.value)} 
-                      placeholder="Ghi chú chi tiết..."
-                      className="w-full text-left text-ink/70 bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-slate-500 text-xs shadow-inner font-sans font-medium"
-                    />
-                  </td>
-                  <td className="px-4 py-2.5 text-center">
-                    <button
-                      onClick={handleAddPlannedExpense}
-                      disabled={!newExpName.trim()}
-                      className="p-1.5 bg-emerald-600 disabled:opacity-30 text-white rounded-lg hover:bg-emerald-700 transition-colors cursor-pointer flex items-center justify-center mx-auto"
-                      title="Xác nhận thêm khoản"
-                    >
-                      <Plus size={13} />
-                    </button>
+                          setNewExpAmount(formatted);
+                        }} 
+                        placeholder="Số tiền (đ)"
+                        className="flex-1 text-right font-mono font-bold text-slate-700 bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-slate-500 text-xs shadow-inner"
+                      />
+                      <button
+                        onClick={handleAddPlannedExpense}
+                        disabled={!newExpName.trim()}
+                        className="p-1.5 bg-emerald-600 disabled:opacity-30 text-white rounded-lg hover:bg-emerald-700 transition-colors cursor-pointer flex items-center justify-center shrink-0"
+                        title="Xác nhận thêm khoản"
+                      >
+                        <Plus size={13} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
               <tfoot>
                 <tr className="bg-emerald-100 font-bold text-emerald-800 border-t-2 border-emerald-200">
-                  <td className="px-4 py-2.5 uppercase text-[10px] tracking-widest font-black font-sans">
-                    Tổng Dự Chi Tháng Này
+                  <td className="px-4 py-2.5 font-sans">
+                    <span className="uppercase text-[10px] tracking-widest font-black block">Tổng Dự Chi Tháng Này</span>
+                    <span className="text-emerald-950/50 text-[10px] font-medium italic">
+                      * Tổng {plannedExpenses.length} vị trí phân phối dòng tiền dự tính
+                    </span>
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono font-bold text-xs">
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-xs" colSpan={2}>
                     {totalPlannedOutflows.toLocaleString('vi-VN')} đ
-                  </td>
-                  <td colSpan={2} className="px-4 py-2.5 text-emerald-950/50 text-[10px] font-medium italic text-right font-sans">
-                    * Tổng {plannedExpenses.length} vị trí phân phối dòng tiền dự tính
                   </td>
                 </tr>
               </tfoot>
