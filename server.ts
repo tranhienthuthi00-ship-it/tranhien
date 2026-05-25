@@ -173,8 +173,8 @@ async function startServer() {
 
       const xmlText = await xmlResponse.text();
 
-      // Simple regex to pull start, dur, and inner texts of <text start="1.2" dur="3.4">text here</text>
-      const regex = /<text\s+start="([\d.]+)"\s+dur="([\d.]+)"[^>]*>([\s\S]*?)<\/text>/gi;
+      // Robust regex that extracts all attributes of <text ...> tag and its inner XML body
+      const regex = /<text\s+([^>]*?)>([\s\S]*?)<\/text>/gi;
       let matchText;
       const segments = [];
 
@@ -191,14 +191,21 @@ async function startServer() {
       }
 
       while ((matchText = regex.exec(xmlText)) !== null) {
-        const start = parseFloat(matchText[1]);
-        const duration = parseFloat(matchText[2]);
-        const text = decodeHtmlEntities(matchText[3]);
-        segments.push({
-          text,
-          offset: Math.round(start * 1000),
-          duration: Math.round(duration * 1000)
-        });
+        const attributes = matchText[1];
+        const body = decodeHtmlEntities(matchText[2]);
+
+        const startMatch = attributes.match(/start="([\d.]+)"/i) || attributes.match(/start='([\d.]+)'/i);
+        const durMatch = attributes.match(/dur="([\d.]+)"/i) || attributes.match(/dur='([\d.]+)'/i);
+
+        if (startMatch) {
+          const start = parseFloat(startMatch[1]);
+          const duration = durMatch ? parseFloat(durMatch[1]) : 5.0; // Fallback to 5.0 seconds
+          segments.push({
+            text: body,
+            offset: Math.round(start * 1000),
+            duration: Math.round(duration * 1000)
+          });
+        }
       }
 
       console.log(`[Custom Scraper] Custom scraper parsed ${segments.length} segments successfully!`);

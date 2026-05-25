@@ -87,6 +87,7 @@ export function DigitalJournal({
   categories = []
 }: DigitalJournalProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [quoteIndex, setQuoteIndex] = useState(0);
   const [paperStyle, setPaperStyle] = useState<'lined' | 'grid' | 'dotted' | 'blank'>('lined');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showScrapbookStudio, setShowScrapbookStudio] = useState(false);
@@ -1073,141 +1074,146 @@ export function DigitalJournal({
                 </div>
               </div>
 
-              {/* COZY TODAY BENTO INTEGRATION: WELLNESS, HYDRATION, GRATITUDE & TIMER */}
+              {/* COZY TODAY BENTO INTEGRATION: STUDY SUITE */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* 1. HYDROGEN HABITS (UỐNG NƯỚC COZY WATERING) */}
-                <div className="bg-[#f0fdfa]/60 p-4 rounded-2xl border-2 border-dashed border-teal-200 relative overflow-hidden backdrop-blur-xs flex flex-col justify-between shadow-[3px_3px_0_rgba(20,184,166,0.15)]">
+                {/* 1. VOCABULARY KNOWLEDGE SNAPSHOT (BẢNG VÀNG TỪ VỰNG) */}
+                <div className="bg-[#f0fdf2]/60 p-4 rounded-2xl border-2 border-dashed border-emerald-250 relative overflow-hidden backdrop-blur-xs flex flex-col justify-between shadow-[3px_3px_0_rgba(16,185,129,0.15)]">
                   <div>
-                    <div className="flex items-center justify-between border-b border-teal-200/50 pb-2 mb-3">
-                      <span className="text-xs uppercase font-black text-teal-800 flex items-center gap-1.5">
-                        💧 Nhật Ký Uống Nước
+                    <div className="flex items-center justify-between border-b border-emerald-200 pb-2 mb-2.5">
+                      <span className="text-xs uppercase font-black text-emerald-800 flex items-center gap-1.5 font-sans">
+                        💡 Thống Kê Từ Vựng 4YOU
                       </span>
-                      <span className="text-[9px] font-bold text-teal-600 bg-white px-2 py-0.5 rounded-full border border-teal-150">
-                        Mục tiêu: 8 Cốc
+                      <span className="text-[9px] font-bold text-emerald-600 bg-white px-2 py-0.5 rounded-full border border-emerald-100">
+                        {words.length} từ đã lưu
                       </span>
                     </div>
 
-                    {/* Water cups row visual block */}
-                    <div className="flex items-center justify-between gap-1 bg-white/50 p-2.5 rounded-xl border border-teal-100/60 mb-2.5">
-                      {Array.from({ length: 8 }).map((_, idx) => {
-                        const currentWaterVal = dailyWater[currentPage.date] || 0;
-                        const isFilled = idx < currentWaterVal;
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => {
-                              let nextCount = idx + 1;
-                              if (currentWaterVal === nextCount) {
-                                nextCount = idx; // toggle decrement on clicking currently filled peak
-                              }
-                              setDailyWater({ ...dailyWater, [currentPage.date]: nextCount });
-                            }}
-                            className={`w-8 h-10 flex flex-col items-center justify-end pb-1.5 rounded-lg border-2 transition-all relative group cursor-pointer ${
-                              isFilled 
-                                ? "bg-cyan-100 text-cyan-600 border-cyan-400 scale-105 shadow-xs" 
-                                : "bg-white/80 text-slate-300 border-teal-100 hover:border-teal-300"
-                            }`}
-                            title={`Cốc nước số ${idx + 1}`}
-                          >
-                            {/* Water level representation */}
-                            {isFilled && (
-                              <div className="absolute inset-x-0 bottom-0 bg-cyan-300/60 rounded-b-md transition-all h-[75%] animate-pulse" />
-                            )}
-                            <span className="text-lg relative z-10 transition-transform group-hover:scale-125 select-none font-sans">
-                              {isFilled ? "🥛" : "🫙"}
-                            </span>
-                          </button>
-                        );
-                      })}
+                    <div className="space-y-1.5 min-h-[90px]">
+                      {words.length === 0 ? (
+                        <p className="text-xs text-emerald-700/60 font-sans italic leading-relaxed py-2 text-center">
+                          Sổ tay từ vựng còn rỗng. Nhấn click vào các từ khóa trong video YouTube để thêm nhé!
+                        </p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <span className="text-[8px] font-black tracking-widest uppercase text-emerald-700/40 font-sans block">3 Từ Vựng Mới Lưu:</span>
+                          <div className="grid grid-cols-1 gap-1">
+                            {words.slice(0, 3).map((w, idx) => (
+                              <div key={w.id || idx} className="flex items-center justify-between bg-white/70 px-2 py-1 rounded-lg border border-emerald-100/40 text-xs text-emerald-950 font-sans">
+                                <span className="font-extrabold text-xs text-emerald-900 font-mono">
+                                  {w.vocabulary} <span className="text-[9px] font-medium text-emerald-500">{w.ipa ? `(${w.ipa})` : ""}</span>
+                                </span>
+                                <span className="text-[9px] font-semibold text-emerald-700 truncate max-w-[150px]">
+                                  {w.definition}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] font-sans">
-                    <span className="text-teal-900/60 font-bold">
-                      Đã nạp: <strong className="text-teal-950 text-xs font-black">{(dailyWater[currentPage.date] || 0) * 250} ml</strong> / 2000 ml
+                  <div className="flex items-center justify-between text-[10px] font-sans pb-0.5 border-t border-emerald-200/40 pt-1.5 mt-1.5">
+                    <span className="text-emerald-800/80 font-bold">
+                      Học phần từ vựng: <strong className="text-emerald-950 text-xs font-black">{words.filter(w => w.difficulty === 1).length}</strong> đã thành thạo
                     </span>
-                    <span className="text-teal-800 font-black bg-teal-100 px-2 py-0.5 rounded-xs">
-                      {Math.round(((dailyWater[currentPage.date] || 0) / 8) * 100)}%
+                    <span className="text-emerald-850 font-black bg-emerald-150 px-2 py-0.5 rounded text-[9px] uppercase tracking-wide">
+                      Active
                     </span>
                   </div>
                 </div>
 
-                {/* 2. WEATHER & MOOD TEMPERATURE (THỜI TIẾT HÔM NAY) */}
-                <div className="bg-[#fffbeb]/60 p-4 rounded-2xl border-2 border-dashed border-amber-200 relative overflow-hidden flex flex-col justify-between shadow-[3px_3px_0_rgba(245,158,11,0.15)]">
+                {/* 2. ACTIONS & TARGET GOALS PROGRESS (TIẾN ĐỘ RÈN LUYỆN) */}
+                <div className="bg-[#eff6ff]/60 p-4 rounded-2xl border-2 border-dashed border-sky-200 relative overflow-hidden flex flex-col justify-between shadow-[3px_3px_0_rgba(59,130,246,0.15)] text-left">
                   <div>
-                    <div className="flex items-center justify-between border-b border-amber-200/50 pb-2 mb-3">
-                      <span className="text-xs uppercase font-black text-amber-800 flex items-center gap-1.5">
-                        🌈 Khí hậu & Tiết trời
+                    <div className="flex items-center justify-between border-b border-sky-200 pb-2 mb-2.5">
+                      <span className="text-xs uppercase font-black text-sky-800 flex items-center gap-1.5 font-sans">
+                        🎯 Tiến Độ Hôm Nay
                       </span>
-                      <span className="text-[9px] font-bold text-amber-600 bg-white px-2 py-0.5 rounded-full border border-amber-100">
-                        {dailyWeather[currentPage.date]?.name || "Chưa ghi nhận"}
+                      <span className="text-[9px] font-sans font-bold text-sky-600 bg-white px-2 py-0.5 rounded-full border border-sky-100">
+                        Nghị Lực Bền Bỉ
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {[
-                        { emoji: "☀️", name: "Nắng ráo" },
-                        { emoji: "☁️", name: "Nhiều mây" },
-                        { emoji: "🌧️", name: "Mưa bay" },
-                        { emoji: "🍃", name: "Gió mát" },
-                        { emoji: "❄️", name: "Se lạnh" }
-                      ].map(wItem => {
-                        const isCurrentWeather = dailyWeather[currentPage.date]?.emoji === wItem.emoji;
-                        return (
-                          <button
-                            key={wItem.emoji}
-                            onClick={() => setDailyWeather({ ...dailyWeather, [currentPage.date]: wItem })}
-                            className={`py-2 px-1 flex flex-col items-center gap-1 rounded-xl border-2 transition-all text-center cursor-pointer ${
-                              isCurrentWeather 
-                                ? "bg-amber-100 border-amber-400 font-bold text-amber-950 scale-105 shadow-xs" 
-                                : "bg-white/80 border-amber-100 text-slate-500 hover:border-amber-350"
-                            }`}
-                          >
-                            <span className="text-base select-none">{wItem.emoji}</span>
-                            <span className="text-[8px] font-sans whitespace-nowrap tracking-tighter leading-none">{wItem.name}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {(() => {
+                      const completedCount = tasks.filter(t => t.completed).length;
+                      const totalCount = tasks.length;
+                      const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+                      const activeTargets = goals.filter(g => !g.isCompleted).length;
+
+                      return (
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center text-[11px] font-sans">
+                            <span className="text-sky-900/60 font-bold shrink-0">Nhiệm vụ hàng ngày:</span>
+                            <span className="font-mono text-sky-950 text-xs font-black">
+                              {completedCount}/{totalCount} việc hoàn thành ({percent}%)
+                            </span>
+                          </div>
+
+                          {/* Beautiful sketch-like progress bar wrapper */}
+                          <div className="w-full h-3 bg-white/80 rounded-full border-2 border-sky-400 overflow-hidden p-[2px] relative">
+                            <div 
+                              className="h-full bg-sky-500 rounded-full transition-all duration-500"
+                              style={{ width: `${percent}%` }}
+                            />
+                          </div>
+
+                          <div className="flex justify-between items-center text-[10px] bg-sky-100/40 px-2 py-1 rounded-xl font-sans mt-2 border border-sky-100">
+                            <span className="text-sky-900/60 font-bold">Mục tiêu học trình đang chạy:</span>
+                            <span className="font-bold text-sky-950 bg-white px-2 py-0.5 rounded-full ring-1 ring-sky-300">
+                              {activeTargets} Mục tiêu
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
-                  <p className="text-[10px] text-amber-900/40 italic font-hand text-right mt-2 select-none">
-                    Ghi lại tiết trời để đồng điệu cảm xúc cùng trang viết
+                  <p className="text-[9px] text-[#0369a1]/50 italic font-sans mt-2">
+                    * Đóng liên tiếp các công việc để mở khóa Huy Chương thăng cấp.
                   </p>
                 </div>
 
-                {/* 3. GRATITUDE NURTURING (BA ĐIỀU BIẾT ƠN) */}
-                <div className="bg-[#fff1f2]/60 p-4 rounded-2xl border-2 border-dashed border-rose-250 relative overflow-hidden shadow-[3px_3px_0_rgba(244,63,94,0.15)]">
-                  <div className="flex items-center justify-between border-b border-rose-200/50 pb-2 mb-3">
-                    <span className="text-xs uppercase font-black text-rose-800 flex items-center gap-1.5">
-                      🌸 3 Điều Biết Ơn Hôm Nay
-                    </span>
-                    <span className="text-[9px] font-sans font-semibold text-rose-600 bg-white px-2 py-0.5 rounded-full border border-rose-100">
-                      Nuôi dưỡng an lành
-                    </span>
-                  </div>
+                {/* 3. INSPIRATION STUDY & GROWTH MINDSET QUOTE (TRẠM ĐỘNG LỰC) */}
+                <div className="bg-[#fff1f2]/60 p-4 rounded-2xl border-2 border-dashed border-rose-250 relative overflow-hidden shadow-[3px_3px_0_rgba(244,63,94,0.15)] flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between border-b border-rose-200/50 pb-2 mb-2">
+                      <span className="text-xs uppercase font-black text-rose-800 flex items-center gap-1.5 font-sans">
+                        🌟 Trạm Truyền Cảm Hứng
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const quoteListLength = 6;
+                          setQuoteIndex(prev => (prev + 1) % quoteListLength);
+                        }}
+                        className="text-[8px] font-sans font-black text-rose-600 bg-white hover:bg-rose-100/30 px-2.5 py-0.5 rounded-full border border-rose-150 cursor-pointer active:scale-95 transition-all"
+                      >
+                        Gieo Ý Chí ⇄
+                      </button>
+                    </div>
 
-                  <div className="space-y-2">
-                    {[0, 1, 2].map(index => {
-                      const list = dailyGratitude[currentPage.date] || ["", "", ""];
-                      const currentVal = list[index] || "";
+                    {(() => {
+                      const STUDY_QUOTES = [
+                        { text: "Nghị lực và sự kiên trì sẽ chiến thắng tất cả mọi rào cản trên thế gian.", author: "Benjamin Franklin" },
+                        { text: "Hành trình vạn dặm bắt đầu từ một bước chân nhỏ bé vững chãi mỗi ngày.", author: "Lão Tử" },
+                        { text: "Khó khăn thử thách học tập chính là cơ hội để khẳng định nỗ lực phi thường.", author: "Marcus Aurelius" },
+                        { text: "Học tập mà không suy nghĩ thì vô ích; suy nghĩ mà không học tập thì thật hiểm nghèo.", author: "Khổng Tử" },
+                        { text: "Chúng ta chính là những gì chúng ta liên tục rèn luyện hằng ngày. Thành tích là thói quen.", author: "Aristotle" },
+                        { text: "Đừng mong ước cuộc đời sẽ dễ dàng hơn, hãy nỗ lực giúp trí óc bản thân thấu suốt và nghị lực hơn.", author: "Jim Rohn" }
+                      ];
+                      const activeQuote = STUDY_QUOTES[quoteIndex] || STUDY_QUOTES[0];
                       return (
-                        <div key={index} className="flex items-center gap-1.5 relative">
-                          <span className="text-xs font-logo text-rose-400 font-black shrink-0 w-3">{index + 1}.</span>
-                          <input
-                            type="text"
-                            value={currentVal}
-                            placeholder={index === 0 ? "Điều tích cực đầu tiên..." : index === 1 ? "Người đã tiếp sức cho bạn..." : "Bình yên bé nhỏ hôm nay..."}
-                            onChange={(e) => {
-                              const newList = [...(dailyGratitude[currentPage.date] || ["", "", ""])];
-                              newList[index] = e.target.value;
-                              setDailyGratitude({ ...dailyGratitude, [currentPage.date]: newList });
-                            }}
-                            className="w-full bg-white/40 border-b border-rose-200 focus:border-rose-400 focus:bg-white text-xs px-2 py-1 outline-none text-rose-950 font-hand text-lg placeholder:font-sans placeholder:text-xs placeholder:italic transition-all rounded-xs"
-                          />
+                        <div className="space-y-1.5 py-1 text-left">
+                          <p className="font-hand text-[17px] sm:text-[18px] leading-relaxed text-rose-950 font-black italic">
+                            "{activeQuote.text}"
+                          </p>
+                          <span className="block text-[10px] text-rose-800/60 font-sans font-bold text-right italic">
+                            — {activeQuote.author}
+                          </span>
                         </div>
                       );
-                    })}
+                    })()}
                   </div>
                 </div>
 

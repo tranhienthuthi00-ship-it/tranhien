@@ -736,15 +736,24 @@ export function TranslationPractice({
                                 <div className="space-y-1">
                                   {/* Clickable English Words for Lookup */}
                                   <div className="font-sans font-semibold text-[15px] text-ink leading-relaxed flex flex-wrap gap-x-1 gap-y-0.5">
-                                    {sub.en.split(/\s+/).map((word: string, wIdx: number) => (
-                                      <span
-                                        key={wIdx}
-                                        onClick={() => handleWordLookup(word)}
-                                        className="cursor-help hover:text-amber-700 hover:underline hover:bg-amber-100/50 rounded px-0.5"
-                                      >
-                                        {word}
-                                      </span>
-                                    ))}
+                                    {sub.en.split(/\s+/).map((word: string, wIdx: number) => {
+                                      const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "").trim();
+                                      const isLookedUp = lookupWord?.toLowerCase() === cleanWord.toLowerCase() && cleanWord !== "";
+                                      return (
+                                        <span
+                                          key={wIdx}
+                                          onClick={() => handleWordLookup(word)}
+                                          className={`cursor-pointer border-b border-dashed transition-all px-0.5 rounded ${
+                                            isLookedUp 
+                                              ? "bg-amber-200/95 text-ink border-amber-600 font-extrabold scale-102" 
+                                              : "border-transparent hover:text-amber-800 hover:bg-amber-150/70 hover:border-amber-400"
+                                          }`}
+                                          title="Bấm để tra từ điển & lưu"
+                                        >
+                                          {word}
+                                        </span>
+                                      );
+                                    })}
                                   </div>
                                   <p className="font-sans text-xs text-ink/65 leading-relaxed">{sub.vi}</p>
                                 </div>
