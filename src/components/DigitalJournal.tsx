@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import type { LogEntry, WishlistItem, Habit, Asset, Word, FoodPlace, ContentIdea, Task, Achievement, StudyGoal } from "../types";
+import type { LogEntry, WishlistItem, Habit, Asset, Word, FoodPlace, ContentIdea, Task, Achievement, StudyGoal, AssetCategory } from "../types";
 import { 
   BookOpen, 
   Calendar, 
@@ -23,7 +23,8 @@ import {
   ChevronUp, 
   Trash2,
   Heart,
-  Check
+  Check,
+  CreditCard
 } from "lucide-react";
 
 interface DigitalJournalProps {
@@ -38,6 +39,8 @@ interface DigitalJournalProps {
   achievements?: Achievement[];
   goals?: StudyGoal[];
   setLogs?: React.Dispatch<React.SetStateAction<LogEntry[]>>;
+  setAssets?: (assets: Asset[]) => void;
+  categories?: AssetCategory[];
 }
 
 interface DailySummary {
@@ -78,12 +81,141 @@ export function DigitalJournal({
   setTasks,
   achievements = [], 
   goals = [], 
-  setLogs 
+  setLogs,
+  setAssets,
+  categories = []
 }: DigitalJournalProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [paperStyle, setPaperStyle] = useState<'lined' | 'grid' | 'dotted' | 'blank'>('lined');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
+  // Goal Selection for tasks
+  const [newTaskGoalId, setNewTaskGoalId] = useState<string>("");
+
+  // Helpers for Credit Card Spends
+  const getLast7Dates = () => {
+    const dates = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dates.push(d.toISOString().split("T")[0]);
+    }
+    return dates;
+  };
+
+  const DEFAULT_WEEK_DEBTS = getLast7Dates().map((dateStr, idx) => ({
+    id: idx + 1,
+    name: dateStr,
+    amount: "",
+    notes: ""
+  }));
+
+  const [bulkCardSpends, setBulkCardSpends] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_bulkCardSpends");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "", notes: "" }));
+  });
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("studyHub_bulkCardSpends", JSON.stringify(bulkCardSpends));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [bulkCardSpends]);
+
+  const justCardRangeText = useMemo(() => {
+    const activeDates = bulkCardSpends
+      .map(d => d.name)
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+    if (activeDates.length === 0) {
+      return "(Từ ngày … đến ngày …)";
+    }
+    const formatDateStr = (ymd: string) => {
+      try {
+        const portions = ymd.split("-");
+        if (portions.length === 3) {
+          return `${portions[2]}/${portions[1]}/${portions[0]}`; // DD/MM/YYYY
+        }
+        return ymd;
+      } catch {
+        return ymd;
+      }
+    };
+    const minDate = formatDateStr(activeDates[0]);
+    const maxDate = formatDateStr(activeDates[activeDates.length - 1]);
+    return `(Từ ngày ${minDate} đến ngày ${maxDate})`;
+  }, [bulkCardSpends]);
+
+  const handleResetBulkCardSpends = () => {
+    setBulkCardSpends(DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "", notes: "" })));
+  };
+
+  const handleSaveBulkCardSpends = () => {
+     if (!setAssets) {
+       alert("Lỗi: Không tìm thấy phương thức lưu tài sản!");
+       return;
+     }
+     const now = Date.now();
+     const validSpends = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
+     if (validSpends.length === 0) {
+       alert("Hãy nhập số tiền sử dụng thẻ cho ít nhất một ngày!");
+       return;
+     }
+
+     const formattedDateRange = justCardRangeText;
+     const calculatedSum = validSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
+     const totalSum = Math.abs(calculatedSum);
+     const catId = categories.find(c => 
+       c.name.toLowerCase().includes("tín dụng") || 
+       c.name.toLowerCase().includes("thẻ") || 
+       c.name.toLowerCase().includes("credit") || 
+       c.name.toLowerCase().includes("nợ")
+     )?.id || (categories.length > 0 ? categories[0].id : "");
+
+     const formatDateHelper = (ymd: string) => {
+       try {
+         const parts = ymd.split("-");
+         return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
+       } catch {
+         return ymd;
+       }
+     };
+
+     const detailNotesList = validSpends.map(d => {
+       const val = parseFloat(d.amount.replace(/,/g, ''));
+       const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
+       return `• ${formatDateHelper(d.name)}: ${val.toLocaleString('vi-VN')} đ${dayNote}`;
+     }).join("\n");
+
+     const aggregatedCardDebt: Asset = {
+        id: `card-held-${now}`,
+        name: `Nợ thẻ tín dụng ${formattedDateRange}`,
+        category: catId,
+        value: totalSum,
+        currency: "VND",
+        notes: `Bảng kê chi tiết nợ tiêu dùng thẻ tín dụng:\n${detailNotesList}`,
+        acquiredAt: now,
+        isDebt: true,
+        isNewMoney: false,
+        excludeFromNetWorth: false
+     };
+
+     setAssets([aggregatedCardDebt, ...assets]);
+     alert(`Đã lưu tổng nợ thẻ tín dụng tuần trị giá +${totalSum.toLocaleString('vi-VN')}đ vào Sổ Tài Sản (Mục Nợ) thành công!`);
+     handleResetBulkCardSpends();
+  };
+
   const [pageStickers, setPageStickers] = useState<{ [date: string]: string[] }>(() => {
     try {
       const saved = localStorage.getItem("journal_stickers");
@@ -411,10 +543,12 @@ export function DigitalJournal({
       content: newTaskContent.trim(),
       completed: false,
       priority: newTaskPriority,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      goalId: newTaskGoalId || undefined
     };
     setTasks([newTaskItem, ...tasks]);
     setNewTaskContent("");
+    setNewTaskGoalId("");
     setShowAddTaskInline(false);
   };
 
@@ -679,7 +813,7 @@ export function DigitalJournal({
               <div className="space-y-3 bg-[#e0f2fe]/20 p-4 rounded-xl border border-dashed border-sky-300 relative">
                 <div className="flex items-center justify-between border-b border-sky-300/40 pb-2">
                   <span className="text-xs uppercase font-black text-[#0369a1] flex items-center gap-1.5">
-                    <CheckSquare className="w-4 h-4 text-[#0284c7]" /> Việc cần làm {currentPage.date === new Date().toLocaleDateString('en-CA') ? "Hôm nay" : "Trang ngày"} ({todoTasks.length})
+                    <CheckSquare className="w-4 h-4 text-[#0284c7]" /> What’s the next thing to do? ({todoTasks.length})
                   </span>
                   
                   {setTasks && (
@@ -693,30 +827,50 @@ export function DigitalJournal({
                 </div>
 
                 {showAddTaskInline && (
-                  <form onSubmit={handleAddTaskInline} className="flex gap-2 items-center bg-white/85 p-2 rounded-lg border border-[#0284c7]/20">
-                    <input
-                      type="text"
-                      value={newTaskContent}
-                      onChange={(e) => setNewTaskContent(e.target.value)}
-                      placeholder="Thêm việc cần làm..."
-                      className="flex-1 px-3 py-1.5 text-xs bg-white border border-[#222]/15 rounded-lg focus:outline-none focus:border-sky-500 font-sans text-ink"
-                    />
-                    <select
-                      value={newTaskPriority}
-                      onChange={(e: any) => setNewTaskPriority(e.target.value)}
-                      className="px-2 py-1.5 text-xs bg-white border border-[#222]/15 rounded-lg focus:outline-none font-bold text-ink"
-                    >
-                      <option value="Low">Thấp</option>
-                      <option value="Medium">Trung</option>
-                      <option value="High">Cao</option>
-                    </select>
-                    <button
-                      type="submit"
-                      disabled={!newTaskContent.trim()}
-                      className="px-3 py-1.5 bg-ink text-white font-black text-[10px] rounded-lg hover:bg-ink/90 disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-wider cursor-pointer"
-                    >
-                      Lưu
-                    </button>
+                  <form onSubmit={handleAddTaskInline} className="flex flex-col gap-2 p-3 bg-white rounded-xl border border-[#0284c7]/30 shadow-xs">
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={newTaskContent}
+                        onChange={(e) => setNewTaskContent(e.target.value)}
+                        placeholder="Nội dung công việc..."
+                        className="flex-1 px-3 py-1.5 text-xs bg-white border border-[#222]/15 rounded-lg focus:outline-none focus:border-sky-500 font-sans text-ink"
+                        required
+                      />
+                      <select
+                        value={newTaskPriority}
+                        onChange={(e: any) => setNewTaskPriority(e.target.value)}
+                        className="px-2 py-1.5 text-xs bg-white border border-[#222]/15 rounded-lg focus:outline-none font-bold text-ink cursor-pointer"
+                      >
+                        <option value="Low">Thấp</option>
+                        <option value="Medium">Trung</option>
+                        <option value="High">Cao</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between pt-1 border-t border-dashed border-sky-100">
+                      <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                        <span className="text-[9px] font-black uppercase text-ink/40 tracking-wider shrink-0">Thuộc Mục tiêu:</span>
+                        <select
+                          value={newTaskGoalId}
+                          onChange={(e) => setNewTaskGoalId(e.target.value)}
+                          className="w-full sm:w-44 text-[10px] py-1 px-1.5 bg-slate-50 border border-ink/10 rounded-md focus:outline-none text-ink truncate font-sans font-bold cursor-pointer"
+                        >
+                          <option value="">(Không thuộc mục tiêu nào)</option>
+                          {goals.filter(g => !g.isCompleted).map(g => (
+                            <option key={g.id} value={g.id}>{g.title}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={!newTaskContent.trim()}
+                        className="w-full sm:w-auto px-4 py-1.5 bg-ink text-white font-black text-[10px] rounded-lg hover:bg-[#af1e2d] transition-colors disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-wider cursor-pointer"
+                      >
+                        Xác nhận
+                      </button>
+                    </div>
                   </form>
                 )}
 
@@ -725,38 +879,132 @@ export function DigitalJournal({
                     Không có việc nào trong danh sách. Thật thảnh thơi!
                   </p>
                 ) : (
-                  <div className="space-y-1.5">
-                    {todoTasks.map((t) => (
-                      <div key={t.id} className="flex items-center justify-between gap-3 p-1 rounded-lg hover:bg-white/40 group/todo">
-                        <button
-                          onClick={() => handleToggleTaskInline(t.id)}
-                          className="flex items-center gap-2 text-left min-w-0"
-                        >
-                          <span className={`w-4 h-4 rounded border-2 border-[#1a1a1a] flex items-center justify-center cursor-pointer transition-colors shrink-0 ${t.completed ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white"}`}>
-                            {t.completed && <Check size={10} strokeWidth={4} />}
-                          </span>
-                          <span className={`text-sm font-hand text-lg text-ink/90 truncate leading-none ${t.completed ? "line-through opacity-45" : ""}`}>
-                            {t.content}
-                          </span>
-                          <span className={`text-[8px] uppercase font-black px-1 py-0.5 rounded-sm ${
-                            t.priority === "High" ? "bg-rose-50 text-rose-600 border border-rose-200" :
-                            t.priority === "Medium" ? "bg-amber-50 text-amber-600 border border-amber-200" :
-                            "bg-slate-50 text-slate-500 border border-slate-200"
-                          }`}>
-                            {t.priority === "High" ? "Cao" : t.priority === "Medium" ? "Trung" : "Thấp"}
-                          </span>
-                        </button>
-                        
-                        {setTasks && (
-                          <button
-                            onClick={() => handleDeleteTaskInline(t.id)}
-                            className="opacity-0 group-hover/todo:opacity-100 hover:text-crimson text-ink/30 p-0.5 rounded transition-opacity cursor-pointer"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                  <div className="space-y-3">
+                    {/* Active Goals as Parent items */}
+                    {goals.filter(g => !g.isCompleted).map(goal => {
+                      const goalTasks = todoTasks.filter(t => t.goalId === goal.id);
+                      const sortedSubtasks = [...goalTasks].sort((a,b) => {
+                        const w = { 'High': 3, 'Medium': 2, 'Low': 1 };
+                        return w[b.priority] - w[a.priority];
+                      });
+
+                      if (sortedSubtasks.length === 0) return null;
+
+                      return (
+                        <div key={goal.id} className="bg-white/40 p-3 rounded-lg border border-sky-200/50 space-y-2">
+                          {/* Goal Parent Row */}
+                          <div className="flex items-center justify-between border-b border-sky-100/60 pb-1">
+                            <span className="text-[11px] uppercase font-black text-[#0369a1] tracking-wide truncate">
+                              🎯 Mục tiêu: {goal.title}
+                            </span>
+                            
+                            {setTasks && (
+                              <button
+                                onClick={() => {
+                                  setNewTaskGoalId(goal.id);
+                                  setShowAddTaskInline(true);
+                                }}
+                                className="text-[8px] font-black text-sky-600 hover:text-sky-800 flex items-center gap-0.5 cursor-pointer bg-sky-50 px-1.5 py-0.5 rounded border border-sky-100 transition-colors"
+                              >
+                                <Plus size={8} /> Thêm việc
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Subtasks under this Goal */}
+                          <div className="space-y-1.5 pl-3 border-l border-dashed border-sky-300/40">
+                            {sortedSubtasks.map(t => (
+                              <div key={t.id} className="flex items-center justify-between gap-3 p-0.5 rounded-lg hover:bg-white/40 group/todo">
+                                <button
+                                  onClick={() => handleToggleTaskInline(t.id)}
+                                  className="flex items-center gap-2 text-left min-w-0"
+                                >
+                                  <span className={`w-3.5 h-3.5 rounded border border-[#1a1a1a] flex items-center justify-center cursor-pointer transition-colors shrink-0 ${t.completed ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white"}`}>
+                                    {t.completed && <Check size={8} strokeWidth={4} />}
+                                  </span>
+                                  <span className={`text-sm font-hand text-lg text-ink/90 truncate leading-none ${t.completed ? "line-through opacity-45" : ""}`}>
+                                    {t.content}
+                                  </span>
+                                  <span className={`text-[7px] uppercase font-black px-1 py-0.2 rounded-xs scale-90 origin-left shrink-0 ${
+                                    t.priority === "High" ? "bg-rose-50 text-rose-600 border border-rose-100" :
+                                    t.priority === "Medium" ? "bg-amber-50 text-amber-600 border border-amber-100" :
+                                    "bg-slate-50 text-slate-500 border border-slate-200"
+                                  }`}>
+                                    {t.priority === "High" ? "Cao" : t.priority === "Medium" ? "Trung" : "Thấp"}
+                                  </span>
+                                </button>
+                                
+                                {setTasks && (
+                                  <button
+                                    onClick={() => handleDeleteTaskInline(t.id)}
+                                    className="opacity-0 group-hover/todo:opacity-100 hover:text-crimson text-ink/30 p-0.5 rounded transition-opacity cursor-pointer animate-in fade-in"
+                                  >
+                                    <Trash2 size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* General Free Tasks */}
+                    {(() => {
+                      const activeGoals = goals.filter(g => !g.isCompleted);
+                      const freeTasks = todoTasks.filter(t => !t.goalId || !activeGoals.some(g => g.id === t.goalId));
+                      const sortedFree = [...freeTasks].sort((a,b) => {
+                        const w = { 'High': 3, 'Medium': 2, 'Low': 1 };
+                        return w[b.priority] - w[a.priority];
+                      });
+
+                      if (sortedFree.length === 0) return null;
+
+                      return (
+                        <div className="bg-white/40 p-3 rounded-lg border border-slate-200/50 space-y-2">
+                          {/* Free Row */}
+                          <div className="flex items-center justify-between border-b border-slate-100/60 pb-1">
+                            <span className="text-[11px] uppercase font-black text-slate-600 tracking-wide truncate">
+                              📋 Việc lẻ tự do / Khác
+                            </span>
+                          </div>
+
+                          <div className="space-y-1.5 pl-3 border-l border-dashed border-slate-300/40">
+                            {sortedFree.map(t => (
+                              <div key={t.id} className="flex items-center justify-between gap-3 p-0.5 rounded-lg hover:bg-white/40 group/todo">
+                                <button
+                                  onClick={() => handleToggleTaskInline(t.id)}
+                                  className="flex items-center gap-2 text-left min-w-0"
+                                >
+                                  <span className={`w-3.5 h-3.5 rounded border border-[#1a1a1a] flex items-center justify-center cursor-pointer transition-colors shrink-0 ${t.completed ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white"}`}>
+                                    {t.completed && <Check size={8} strokeWidth={4} />}
+                                  </span>
+                                  <span className={`text-sm font-hand text-lg text-ink/90 truncate leading-none ${t.completed ? "line-through opacity-45" : ""}`}>
+                                    {t.content}
+                                  </span>
+                                  <span className={`text-[7px] uppercase font-black px-1 py-0.2 rounded-xs scale-90 origin-left shrink-0 ${
+                                    t.priority === "High" ? "bg-rose-50 text-rose-600 border border-rose-100" :
+                                    t.priority === "Medium" ? "bg-amber-50 text-amber-600 border border-amber-100" :
+                                    "bg-slate-50 text-slate-500 border border-slate-200"
+                                  }`}>
+                                    {t.priority === "High" ? "Cao" : t.priority === "Medium" ? "Trung" : "Thấp"}
+                                  </span>
+                                </button>
+                                
+                                {setTasks && (
+                                  <button
+                                    onClick={() => handleDeleteTaskInline(t.id)}
+                                    className="opacity-0 group-hover/todo:opacity-100 hover:text-crimson text-ink/30 p-0.5 rounded transition-opacity cursor-pointer animate-in fade-in"
+                                  >
+                                    <Trash2 size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -1096,6 +1344,184 @@ export function DigitalJournal({
               </button>
             </div>
 
+          </div>
+
+          {/* NEW SECTION: Bảng Kê Chi Tiêu Thẻ Tín Dụng directly on Today page */}
+          <div className="bg-white/95 shadow-lg p-5 rounded-2xl border-2 border-indigo-600 relative overflow-hidden animate-in fade-in duration-500">
+            <div className="absolute top-0 right-0 left-0 h-1.5 bg-indigo-600" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 pb-2 border-b-2 border-indigo-100 gap-4">
+               <div className="flex items-center gap-2.5">
+                  <button className="p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm">
+                    <CreditCard size={18} />
+                  </button>
+                  <div>
+                    <h3 className="text-base font-black uppercase tracking-tight text-indigo-700 font-sans flex items-center gap-1.5">
+                      Tiêu dùng &amp; Nợ thẻ tín dụng (Credit Card Logs)
+                    </h3>
+                    <p className="text-[9px] font-bold text-ink/40 uppercase tracking-widest">{justCardRangeText}</p>
+                  </div>
+               </div>
+            </div>
+
+            <div className="bg-indigo-50/40 p-3 rounded-xl overflow-hidden mb-4 border border-indigo-100">
+              <div className="overflow-x-auto max-w-full">
+                <table className="min-w-full text-left border-collapse text-xs text-ink/80">
+                  <thead>
+                    <tr className="bg-indigo-100/70 text-[8px] font-black uppercase tracking-widest text-indigo-800 border-b border-indigo-200">
+                      <th className="px-3 py-2 font-black w-36">Ngày</th>
+                      <th className="px-3 py-2 text-right font-black">Số Tiền (VND)</th>
+                      <th className="px-3 py-2 text-center font-black w-10">Xóa</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-sans divide-y divide-indigo-100/50">
+                    {bulkCardSpends.map((item, idx) => (
+                      <tr key={item.id} className="transition-colors hover:bg-indigo-50/30">
+                        <td className="px-2 py-1.5">
+                          <input 
+                            type="date" 
+                            value={item.name} 
+                            onChange={e => {
+                              const newSpends = [...bulkCardSpends];
+                              newSpends[idx].name = e.target.value;
+                              if (idx === 0 && e.target.value) {
+                                try {
+                                  const baseDate = new Date(e.target.value + "T12:00:00");
+                                  if (!isNaN(baseDate.getTime())) {
+                                    for (let i = 1; i < newSpends.length; i++) {
+                                      const nextDate = new Date(baseDate.getTime());
+                                      nextDate.setDate(baseDate.getDate() + i);
+                                      newSpends[i].name = nextDate.toISOString().split("T")[0];
+                                    }
+                                  }
+                                } catch (err) {
+                                  console.error(err);
+                                }
+                              }
+                              setBulkCardSpends(newSpends);
+                            }} 
+                            className="w-[125px] font-bold text-ink bg-white border border-ink/10 rounded-md px-2 py-0.5 outline-none focus:border-indigo-600 text-xs"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <input 
+                            type="text" 
+                            value={item.amount} 
+                            onChange={e => {
+                              const valStr = e.target.value.replace(/,/g, '');
+                              if (!/^-?\d*$/.test(valStr)) return;
+                              
+                              let formatted = "";
+                              if (valStr === "-") {
+                                formatted = "-";
+                              } else if (valStr) {
+                                const isNeg = valStr.startsWith("-");
+                                const cleanDigits = valStr.replace('-', '');
+                                if (cleanDigits) {
+                                  const parsedVal = parseInt(cleanDigits, 10);
+                                  if (!isNaN(parsedVal)) {
+                                    formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                                  }
+                                }
+                              }
+                              const newSpends = [...bulkCardSpends];
+                              newSpends[idx].amount = formatted;
+                              setBulkCardSpends(newSpends);
+                            }} 
+                            placeholder="0"
+                            className="w-full text-right font-mono font-bold text-indigo-700 bg-white border border-ink/10 rounded-md px-2 py-0.5 outline-none focus:border-indigo-600 text-xs"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5 text-center">
+                          <button
+                            onClick={() => {
+                              const newSpends = bulkCardSpends.filter(s => s.id !== item.id);
+                              setBulkCardSpends(newSpends);
+                            }}
+                            className="p-1 text-[#e11d48] hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                            title="Xóa dòng"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-indigo-100/40 font-bold text-indigo-800 border-t border-indigo-200 font-sans text-xs">
+                      <td className="px-3 py-2">
+                        <span className="uppercase text-[8px] tracking-widest font-black block">Tổng Nợ Thẻ Đã Tiêu</span>
+                        <span className="text-indigo-950/40 text-[8px] font-medium italic">
+                          {(() => {
+                            const count = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, '')))).length;
+                            return `* ${count}/${bulkCardSpends.length} ngày có dữ liệu`;
+                          })()}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono font-black text-xs text-indigo-700">
+                        {(() => {
+                          const rawSum = bulkCardSpends.reduce((sum, item) => sum + (parseFloat(item.amount.replace(/,/g, '')) || 0), 0);
+                          const formatted = Math.abs(rawSum).toLocaleString('vi-VN');
+                          return `+${formatted} đ`;
+                        })()}
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            {/* Action Panel */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-indigo-50/20 border border-dashed border-indigo-200 rounded-xl">
+              <p className="text-[10px] text-indigo-950/70 leading-relaxed text-center sm:text-left flex-1 font-sans">
+                ⚠️ Các khoản chi trong bảng sẽ gom thành một khoản dư nợ thẻ tích lũy (tính vào nợ tín dụng, giảm Net Worth) khi bạn bấm lưu.
+              </p>
+              
+              <div className="flex gap-1.5 shrink-0 w-full sm:w-auto justify-end">
+                 <button 
+                   onClick={() => {
+                     let nextDateStr = "";
+                     if (bulkCardSpends.length > 0) {
+                       const lastDateStr = bulkCardSpends[bulkCardSpends.length - 1].name;
+                       try {
+                         const d = new Date(lastDateStr + "T12:00:00");
+                         if (!isNaN(d.getTime())) {
+                           d.setDate(d.getDate() + 1);
+                           nextDateStr = d.toISOString().split("T")[0];
+                         }
+                       } catch {}
+                     }
+                     if (!nextDateStr) {
+                       nextDateStr = new Date().toISOString().split("T")[0];
+                     }
+                     setBulkCardSpends([
+                       ...bulkCardSpends,
+                       {
+                         id: Date.now() + Math.random(),
+                         name: nextDateStr,
+                         amount: "",
+                         notes: ""
+                       }
+                     ]);
+                   }}
+                   className="py-1 px-3 text-[10px] font-bold bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-200 rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                 >
+                   <Plus size={10} /> Thêm Ngày
+                 </button>
+                 <button 
+                   onClick={handleResetBulkCardSpends}
+                   className="text-[10px] py-1 px-3 font-bold uppercase tracking-wider text-[#1a2530] hover:bg-neutral-50 rounded-lg cursor-pointer transition-all border border-ink/15"
+                 >
+                   Reset
+                 </button>
+                 <button 
+                   onClick={handleSaveBulkCardSpends}
+                   className="py-1 px-4 flex items-center gap-1 text-[10px] rounded-lg transition-all bg-indigo-600 text-white hover:bg-indigo-700 font-bold active:scale-95 cursor-pointer uppercase tracking-wider"
+                 >
+                   <CreditCard size={10} /> Lưu Thẻ
+                 </button>
+              </div>
+            </div>
           </div>
 
         </div>

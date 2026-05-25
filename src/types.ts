@@ -20,6 +20,7 @@ export interface Task {
   priority: 'Low' | 'Medium' | 'High';
   createdAt?: number;
   completedAt?: number;
+  goalId?: string;
 }
 
 export interface FoodPlace {
