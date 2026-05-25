@@ -91,6 +91,9 @@ export function DigitalJournal({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showScrapbookStudio, setShowScrapbookStudio] = useState(false);
   
+  // Safe ref to track the active date across render boundaries
+  const activeDateRef = React.useRef<string>("");
+
   // Goal Selection for tasks
   const [newTaskGoalId, setNewTaskGoalId] = useState<string>("");
 
@@ -366,6 +369,129 @@ export function DigitalJournal({
   const [newTaskContent, setNewTaskContent] = useState("");
   const [newTaskPriority, setNewTaskPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
 
+  // NEW STATES FOR TODAY PAGE PROGRESS & WELLNESS
+  const [dailyWater, setDailyWater] = useState<{ [date: string]: number }>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_dailyWater");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [dailyWeather, setDailyWeather] = useState<{ [date: string]: { emoji: string; name: string } }>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_dailyWeather");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [dailyGratitude, setDailyGratitude] = useState<{ [date: string]: string[] }>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_dailyGratitude");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Pomodoro timer states (not persistent, only live in session)
+  const [pomoTimeLeft, setPomoTimeLeft] = useState(1500); // 215 min default
+  const [pomoIsActive, setPomoIsActive] = useState(false);
+  const [pomoMode, setPomoMode] = useState<'Focus' | 'Break'>('Focus');
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("studyHub_dailyWater", JSON.stringify(dailyWater));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [dailyWater]);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("studyHub_dailyWeather", JSON.stringify(dailyWeather));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [dailyWeather]);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("studyHub_dailyGratitude", JSON.stringify(dailyGratitude));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [dailyGratitude]);
+
+  // Pomodoro Ticking sound and timing effect
+  React.useEffect(() => {
+    let interval: any = null;
+    if (pomoIsActive && pomoTimeLeft > 0) {
+      interval = setInterval(() => {
+        setPomoTimeLeft(prev => {
+          if (prev <= 1) {
+            setPomoIsActive(false);
+            // play synthesised bell sound at completion
+            try {
+              const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+              const osc0 = ctx.createOscillator();
+              const osc1 = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc0.connect(gain);
+              osc1.connect(gain);
+              gain.connect(ctx.destination);
+              
+              osc0.type = "sine";
+              osc0.frequency.setValueAtTime(880, ctx.currentTime); // High note A5
+              
+              osc1.type = "triangle";
+              osc1.frequency.setValueAtTime(554.37, ctx.currentTime); // C#5 harmonizer
+              
+              gain.gain.setValueAtTime(0.25, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+              osc0.start(ctx.currentTime);
+              osc1.start(ctx.currentTime);
+              osc0.stop(ctx.currentTime + 1.5);
+              osc1.stop(ctx.currentTime + 1.5);
+            } catch (e) {
+              console.log("Audio barred or error: ", e);
+            }
+
+            // Fire logger check dynamically using stable ref
+            const activeDateVal = activeDateRef.current || new Date().toLocaleDateString('en-CA');
+            const now = new Date();
+            const logTime = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            
+            if (pomoMode === 'Focus') {
+              if (setLogs) {
+                const autoPomoLog: LogEntry = {
+                  id: `pomo-clock-${Date.now()}`,
+                  date: activeDateVal,
+                  content: "Đã rèn luyện & Tập trung cao độ một chu kỳ Pomodoro trọn vẹn (25 Phút) 🎯🔥",
+                  type: 'Event',
+                  emoji: '🎯',
+                  time: logTime
+                };
+                setLogs(prev => [...prev, autoPomoLog]);
+              }
+              alert("⏱️ Chuông báo tập trung: Tuyệt vời! Bạn vừa bền bỉ hoàn thành 25 phút tập trung sâu. Hoạt động này đã được lưu vào dấu chân ngày hôm nay!");
+            } else {
+              alert("⏱️ Hết giờ giải lao! Hãy chuẩn bị tinh thần bước vào chu kỳ rèn luyện tiếp theo nhé.");
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [pomoIsActive, pomoTimeLeft, pomoMode, setLogs]);
+
   const handleAddQuickEntry = (dateStr: string) => {
     if (!newEntryContent.trim() || !setLogs) return;
 
@@ -601,6 +727,9 @@ export function DigitalJournal({
   }
 
   const currentPage = pages[currentPageIndex];
+  
+  // Keep the stable ref updated dynamically during active page changes
+  activeDateRef.current = currentPage?.date || "";
 
   const handleSaveScrapbookToJournal = (summary: string) => {
     if (!setLogs) return;
@@ -898,10 +1027,18 @@ export function DigitalJournal({
               {/* Daily Title & Mood bar */}
               <div className="border-b border-rose-300/40 pb-3.5 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#af1e2d] block mb-0.5">
-                    Trang ngày {currentPage.date.split("-").reverse().join("/")}
-                  </span>
-                  <h2 className="text-2xl sm:text-3xl font-logo font-black text-ink tracking-tight uppercase leading-none">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#af1e2d] block">
+                      Trang ngày {currentPage.date.split("-").reverse().join("/")}
+                    </span>
+                    {dailyWeather[currentPage.date] && (
+                      <span className="py-0.5 px-2 bg-amber-50 text-amber-800 text-[9px] font-black uppercase rounded-full border border-amber-200 flex items-center gap-1 shrink-0 animate-bounce">
+                        <span>{dailyWeather[currentPage.date].emoji}</span>
+                        <span>{dailyWeather[currentPage.date].name}</span>
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-logo font-black text-ink tracking-tight uppercase leading-none mt-1">
                     {currentPage.displayDate}
                   </h2>
                 </div>
@@ -933,6 +1070,226 @@ export function DigitalJournal({
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* COZY TODAY BENTO INTEGRATION: WELLNESS, HYDRATION, GRATITUDE & TIMER */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1. HYDROGEN HABITS (UỐNG NƯỚC COZY WATERING) */}
+                <div className="bg-[#f0fdfa]/60 p-4 rounded-2xl border-2 border-dashed border-teal-200 relative overflow-hidden backdrop-blur-xs flex flex-col justify-between shadow-[3px_3px_0_rgba(20,184,166,0.15)]">
+                  <div>
+                    <div className="flex items-center justify-between border-b border-teal-200/50 pb-2 mb-3">
+                      <span className="text-xs uppercase font-black text-teal-800 flex items-center gap-1.5">
+                        💧 Nhật Ký Uống Nước
+                      </span>
+                      <span className="text-[9px] font-bold text-teal-600 bg-white px-2 py-0.5 rounded-full border border-teal-150">
+                        Mục tiêu: 8 Cốc
+                      </span>
+                    </div>
+
+                    {/* Water cups row visual block */}
+                    <div className="flex items-center justify-between gap-1 bg-white/50 p-2.5 rounded-xl border border-teal-100/60 mb-2.5">
+                      {Array.from({ length: 8 }).map((_, idx) => {
+                        const currentWaterVal = dailyWater[currentPage.date] || 0;
+                        const isFilled = idx < currentWaterVal;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              let nextCount = idx + 1;
+                              if (currentWaterVal === nextCount) {
+                                nextCount = idx; // toggle decrement on clicking currently filled peak
+                              }
+                              setDailyWater({ ...dailyWater, [currentPage.date]: nextCount });
+                            }}
+                            className={`w-8 h-10 flex flex-col items-center justify-end pb-1.5 rounded-lg border-2 transition-all relative group cursor-pointer ${
+                              isFilled 
+                                ? "bg-cyan-100 text-cyan-600 border-cyan-400 scale-105 shadow-xs" 
+                                : "bg-white/80 text-slate-300 border-teal-100 hover:border-teal-300"
+                            }`}
+                            title={`Cốc nước số ${idx + 1}`}
+                          >
+                            {/* Water level representation */}
+                            {isFilled && (
+                              <div className="absolute inset-x-0 bottom-0 bg-cyan-300/60 rounded-b-md transition-all h-[75%] animate-pulse" />
+                            )}
+                            <span className="text-lg relative z-10 transition-transform group-hover:scale-125 select-none font-sans">
+                              {isFilled ? "🥛" : "🫙"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] font-sans">
+                    <span className="text-teal-900/60 font-bold">
+                      Đã nạp: <strong className="text-teal-950 text-xs font-black">{(dailyWater[currentPage.date] || 0) * 250} ml</strong> / 2000 ml
+                    </span>
+                    <span className="text-teal-800 font-black bg-teal-100 px-2 py-0.5 rounded-xs">
+                      {Math.round(((dailyWater[currentPage.date] || 0) / 8) * 100)}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. WEATHER & MOOD TEMPERATURE (THỜI TIẾT HÔM NAY) */}
+                <div className="bg-[#fffbeb]/60 p-4 rounded-2xl border-2 border-dashed border-amber-200 relative overflow-hidden flex flex-col justify-between shadow-[3px_3px_0_rgba(245,158,11,0.15)]">
+                  <div>
+                    <div className="flex items-center justify-between border-b border-amber-200/50 pb-2 mb-3">
+                      <span className="text-xs uppercase font-black text-amber-800 flex items-center gap-1.5">
+                        🌈 Khí hậu & Tiết trời
+                      </span>
+                      <span className="text-[9px] font-bold text-amber-600 bg-white px-2 py-0.5 rounded-full border border-amber-100">
+                        {dailyWeather[currentPage.date]?.name || "Chưa ghi nhận"}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {[
+                        { emoji: "☀️", name: "Nắng ráo" },
+                        { emoji: "☁️", name: "Nhiều mây" },
+                        { emoji: "🌧️", name: "Mưa bay" },
+                        { emoji: "🍃", name: "Gió mát" },
+                        { emoji: "❄️", name: "Se lạnh" }
+                      ].map(wItem => {
+                        const isCurrentWeather = dailyWeather[currentPage.date]?.emoji === wItem.emoji;
+                        return (
+                          <button
+                            key={wItem.emoji}
+                            onClick={() => setDailyWeather({ ...dailyWeather, [currentPage.date]: wItem })}
+                            className={`py-2 px-1 flex flex-col items-center gap-1 rounded-xl border-2 transition-all text-center cursor-pointer ${
+                              isCurrentWeather 
+                                ? "bg-amber-100 border-amber-400 font-bold text-amber-950 scale-105 shadow-xs" 
+                                : "bg-white/80 border-amber-100 text-slate-500 hover:border-amber-350"
+                            }`}
+                          >
+                            <span className="text-base select-none">{wItem.emoji}</span>
+                            <span className="text-[8px] font-sans whitespace-nowrap tracking-tighter leading-none">{wItem.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-amber-900/40 italic font-hand text-right mt-2 select-none">
+                    Ghi lại tiết trời để đồng điệu cảm xúc cùng trang viết
+                  </p>
+                </div>
+
+                {/* 3. GRATITUDE NURTURING (BA ĐIỀU BIẾT ƠN) */}
+                <div className="bg-[#fff1f2]/60 p-4 rounded-2xl border-2 border-dashed border-rose-250 relative overflow-hidden shadow-[3px_3px_0_rgba(244,63,94,0.15)]">
+                  <div className="flex items-center justify-between border-b border-rose-200/50 pb-2 mb-3">
+                    <span className="text-xs uppercase font-black text-rose-800 flex items-center gap-1.5">
+                      🌸 3 Điều Biết Ơn Hôm Nay
+                    </span>
+                    <span className="text-[9px] font-sans font-semibold text-rose-600 bg-white px-2 py-0.5 rounded-full border border-rose-100">
+                      Nuôi dưỡng an lành
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {[0, 1, 2].map(index => {
+                      const list = dailyGratitude[currentPage.date] || ["", "", ""];
+                      const currentVal = list[index] || "";
+                      return (
+                        <div key={index} className="flex items-center gap-1.5 relative">
+                          <span className="text-xs font-logo text-rose-400 font-black shrink-0 w-3">{index + 1}.</span>
+                          <input
+                            type="text"
+                            value={currentVal}
+                            placeholder={index === 0 ? "Điều tích cực đầu tiên..." : index === 1 ? "Người đã tiếp sức cho bạn..." : "Bình yên bé nhỏ hôm nay..."}
+                            onChange={(e) => {
+                              const newList = [...(dailyGratitude[currentPage.date] || ["", "", ""])];
+                              newList[index] = e.target.value;
+                              setDailyGratitude({ ...dailyGratitude, [currentPage.date]: newList });
+                            }}
+                            className="w-full bg-white/40 border-b border-rose-200 focus:border-rose-400 focus:bg-white text-xs px-2 py-1 outline-none text-rose-950 font-hand text-lg placeholder:font-sans placeholder:text-xs placeholder:italic transition-all rounded-xs"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. POMODORO FOCUS MACHINE (HỘP TẬP TRUNG RÈN LUYỆN) */}
+                <div className="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-300 relative overflow-hidden shadow-[3px_3px_0_rgba(100,116,139,0.15)] flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+                      <span className="text-xs uppercase font-black text-slate-700 flex items-center gap-1.5">
+                        ⏱️ Hộp Tập Trung (Pomodoro)
+                      </span>
+
+                      {/* Mode toggle selectors */}
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => {
+                            setPomoIsActive(false);
+                            setPomoMode('Focus');
+                            setPomoTimeLeft(1500); // 25 Min
+                          }}
+                          className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded ${
+                            pomoMode === 'Focus' ? "bg-slate-700 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          Tập Trung
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPomoIsActive(false);
+                            setPomoMode('Break');
+                            setPomoTimeLeft(300); // 5 Min
+                          }}
+                          className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded ${
+                            pomoMode === 'Break' ? "bg-teal-700 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          Giải Lao
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Timer digital dial content design */}
+                    <div className="flex items-center justify-between gap-4 bg-white p-2.5 rounded-xl border border-slate-200 mb-2">
+                      <div className="flex flex-col">
+                        <span className="font-mono text-2xl font-black text-slate-800 tracking-tight leading-none">
+                          {Math.floor(pomoTimeLeft / 60).toString().padStart(2, '0')}:
+                          {(pomoTimeLeft % 60).toString().padStart(2, '0')}
+                        </span>
+                        <span className="text-[8px] uppercase tracking-wider font-bold text-slate-400 mt-1 leading-none">
+                          {pomoMode === 'Focus' ? "🔥 TRONG CHU KỲ TẬP TRUNG" : "☕ GIẢI LAO PHỤC HỒI"}
+                        </span>
+                      </div>
+
+                      {/* Primary controls */}
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => setPomoIsActive(!pomoIsActive)}
+                          className={`px-3.5 py-1.5 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all active:scale-95 flex items-center gap-1 ${
+                            pomoIsActive 
+                              ? "bg-rose-600 text-white hover:bg-rose-700" 
+                              : "bg-emerald-600 text-white hover:bg-emerald-700"
+                          }`}
+                        >
+                          {pomoIsActive ? "Tử đầu" : "Bắt đầu"}
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setPomoIsActive(false);
+                            setPomoTimeLeft(pomoMode === 'Focus' ? 1500 : 300);
+                          }}
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-250 border border-slate-200 text-slate-700 text-[10px] uppercase font-bold rounded-lg cursor-pointer transition-all active:scale-95"
+                          title="Thiết lập lại đồng hồ số"
+                        >
+                          Làm lại
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-[9px] text-slate-400 leading-tight select-none">
+                    * Đeo tai nghe, bật nhạc Lofi và tập trung cao độ. Khi đồng hồ chạy hết 25 phút, hệ thống sẽ tự chép 1 dòng Event "Tập trung sâu" vào Dấu chân rèn luyện!
+                  </p>
                 </div>
               </div>
 
