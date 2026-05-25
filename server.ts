@@ -952,6 +952,113 @@ Hãy trả về duy nhất chuỗi JSON thô, không nằm trong các khối mã
     };
   }
 
+  // Helper for rule-based matching when Gemini is offline or not configured
+  function getLocalCategoryMatch(itemName: string, categories: { id: string, name: string }[]) {
+    const lowerName = itemName.toLowerCase().trim();
+    const ruleMapping = [
+      { keywords: ["tiết kiệm", "ngân hàng", "vcb", "bidv", "timo", "mbbank", "techcombank", "savings", "bank", "deposit", "sổ", "scb", "acb", "sacombank"], categoryKeywords: ["tiết kiệm", "ngân hàng", "savings", "bank"], confidence: 0.9, reasoning: "Gợi ý tự động dựa trên từ khóa ngân hàng & dịch vụ tiền gửi chính xác." },
+      { keywords: ["xe", "car", "moto", "honda", "yamaha", "vespa", "ôtô", "oto", "sh", "phương tiện", "vận tải"], categoryKeywords: ["xe", "car"], confidence: 0.95, reasoning: "Gợi ý tự động dựa trên từ khóa liên quan đến phương tiện đi lại." },
+      { keywords: ["nhà", "đất", "chung cư", "bđs", "căn hộ", "real estate", "house", "villa", "homestay"], categoryKeywords: ["nhà", "bđs", "nhà cửa", "home", "building"], confidence: 0.9, reasoning: "Gợi ý tự động dựa trên từ khóa liên quan đến bất động sản & tài sản nhà đất." },
+      { keywords: ["bitcoin", "crypto", "eth", "sol", "usdt", "coin", "binance", "mạng", "ví điện tử"], categoryKeywords: ["crypto", "bitcoin", "coin"], confidence: 0.95, reasoning: "Gợi ý tự động dựa trên từ khóa liên quan đến danh mục Crypto kỹ thuật số." },
+      { keywords: ["vàng", "gold", "trang sức", "nhẫn", "vòng", "bông tai", "gem", "jewelry", "kim cương"], categoryKeywords: ["vàng", "trang sức", "gem", "gold"], confidence: 0.95, reasoning: "Gợi ý tự động dựa trên từ khóa liên quan đến kim loại quý & vật trữ vàng bạc." },
+      { keywords: ["laptop", "máy tính", "pc", "macbook", "ipad", "iphone", "điện thoại", "tai nghe", "airpods", "phone", "tech", "máy ảnh", "camera", "màn hình"], categoryKeywords: ["công nghệ", "thiết bị", "laptop", "tech", "computer", "smartphone", "devices"], confidence: 0.9, reasoning: "Gợi ý tự động dựa trên từ khóa công nghệ & thiết bị điện tử tiện ích số." },
+      { keywords: ["ví", "bóp", "wallet", "tiền mặt", "cash", "coins", "heo đất"], categoryKeywords: ["ví", "tiền mặt", "wallet", "cash"], confidence: 0.85, reasoning: "Gợi ý tự động dựa trên từ khóa liên quan đến ví cầm tay & tiền cơ sở mặt lưu giữ." },
+      { keywords: ["nợ", "thẻ tín dụng", "visa", "mastercard", "shopee pay", "debt", "credit", "vay", "trả góp"], categoryKeywords: ["nợ", "tín dụng", "debt", "card", "credit"], confidence: 0.9, reasoning: "Gợi ý tự động dựa trên từ khóa liên quan đến thẻ tín dụng tiện ích hoặc khoản vay nợ phải thu gom." }
+    ];
+
+    for (const rule of ruleMapping) {
+      if (rule.keywords.some(kw => lowerName.includes(kw))) {
+        const foundCat = categories.find((c: any) => 
+          rule.categoryKeywords.some(ckw => c.name.toLowerCase().includes(ckw))
+        );
+        if (foundCat) {
+          return { id: foundCat.id, confidence: rule.confidence, reasoning: rule.reasoning };
+        }
+      }
+    }
+
+    return { 
+      id: categories[0]?.id || "", 
+      confidence: 0.3, 
+      reasoning: "Phân loại mặc định hệ thống (chưa lọc được từ khóa phù hợp đặc trưng)." 
+    };
+  }
+
+  // API Route for AI-powered Assets auto-categorization based on asset name
+  app.post("/api/assets/categorize", async (req, res) => {
+    try {
+      const { itemName, categories = [] } = req.body;
+      if (!itemName) {
+        return res.status(400).json({ error: "Missing itemName" });
+      }
+
+      const categoriesStr = categories
+        .map((c: any) => `- ID: "${c.id}", Name: "${c.name}"`)
+        .join("\n");
+
+      const prompt = `You are an intelligent financial asset classifier. 
+Given an asset or liability name, you should suggest the most matching category ID from the list of available categories.
+
+Asset/Liability Name to categorize: "${itemName}"
+
+Available Categories list:
+${categoriesStr}
+
+Your response must be a JSON object with this exact structure:
+{
+  "suggestedCategoryId": "The ID of the suggested category (MUST exactly match one of the available category IDs)",
+  "confidence": number, // confidence score between 0.0 and 1.0
+  "reasoning": "A brief explanation in Vietnamese explaining why this category is selected."
+}
+
+CRITICAL: Return ONLY a raw JSON object matching the requested schema. No markdown formatting, no explanations, no wrappers.`;
+
+      let suggestedCategoryId = categories[0]?.id || "";
+      let confidence = 0.5;
+      let reasoning = "Gợi ý mặc định hệ thống.";
+
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          const result = await ai.models.generateContent({
+            model: "gemini-3.5-flash",
+            contents: prompt,
+            config: {
+              responseMimeType: "application/json"
+            }
+          });
+
+          const responseText = result.text.trim();
+          const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
+          const payload = JSON.parse(cleanJson);
+          
+          if (payload && payload.suggestedCategoryId) {
+            const matchedCategory = categories.find((c: any) => c.id === payload.suggestedCategoryId);
+            if (matchedCategory) {
+              suggestedCategoryId = payload.suggestedCategoryId;
+              confidence = payload.confidence || 0.9;
+              reasoning = payload.reasoning || `Đề xuất danh mục "${matchedCategory.name}" thông qua mô hình học máy trí tuệ nhân tạo.`;
+            }
+          }
+        } catch (geminiErr) {
+          console.error("Gemini Asset Categorization failed, falling back to local rule-based matching:", geminiErr);
+        }
+      }
+
+      // If Gemini wasn't used, or it returned an invalid ID or failed, use fallback rule-based matching
+      if (suggestedCategoryId === (categories[0]?.id || "") && confidence === 0.5) {
+        const fallback = getLocalCategoryMatch(itemName, categories);
+        suggestedCategoryId = fallback.id;
+        confidence = fallback.confidence;
+        reasoning = fallback.reasoning;
+      }
+
+      res.json({ suggestedCategoryId, confidence, reasoning });
+    } catch (e: any) {
+      console.error("Error categorizing asset:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

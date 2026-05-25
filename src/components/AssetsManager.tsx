@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Plus, Trash2, Edit2, Wallet, Settings, Landmark, Car, MonitorSmartphone, Gem, PiggyBank, Briefcase, Bitcoin, Building, Home, Coins, CreditCard, TrendingUp, Smartphone, Laptop, Handshake, Users, Receipt } from "lucide-react";
 import type { FormEvent } from "react";
-import { cn } from "@/lib/utils";
+import { cn, getAbsoluteUrl } from "@/lib/utils";
 import type { Asset, AssetCategory } from "@/types";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
@@ -59,6 +59,52 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   const [isLoan, setIsLoan] = useState(false);
   const [isNewMoney, setIsNewMoney] = useState(false);
   const [excludeFromNetWorth, setExcludeFromNetWorth] = useState(false);
+
+  const [isCategorizing, setIsCategorizing] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<{ id: string; name: string; reasoning: string } | null>(null);
+
+  // AI-powered Auto Categorization triggered when newName changes
+  useEffect(() => {
+    if (!newName.trim() || isNewMoney) {
+      setAiSuggestion(null);
+      return;
+    }
+
+    const handler = setTimeout(() => {
+      const fetchSuggestion = async () => {
+        setIsCategorizing(true);
+        try {
+          const response = await fetch(getAbsoluteUrl("/api/assets/categorize"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              itemName: newName,
+              categories: categories.map(c => ({ id: c.id, name: c.name }))
+            })
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const matchingCat = categories.find(c => c.id === data.suggestedCategoryId);
+            if (matchingCat) {
+              setAiSuggestion({
+                id: matchingCat.id,
+                name: matchingCat.name,
+                reasoning: data.reasoning
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Auto-categorization fetch failed", error);
+        } finally {
+          setIsCategorizing(false);
+        }
+      };
+
+      fetchSuggestion();
+    }, 800);
+
+    return () => clearTimeout(handler);
+  }, [newName, categories, isNewMoney]);
 
   // Generate last 7 dates in YYYY-MM-DD
   const getLast7Dates = () => {
@@ -479,6 +525,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setIsLoan(false);
     setIsNewMoney(false);
     setExcludeFromNetWorth(false);
+    setAiSuggestion(null);
+    setIsCategorizing(false);
   };
 
   const formatCurrency = (val: number, cur: string) => {
@@ -568,6 +616,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     setIsNewMoney(false);
     setExcludeFromNetWorth(false);
     setNewCategory(catToUse);
+    setAiSuggestion(null);
+    setIsCategorizing(false);
   };
 
   const removeAsset = (id: string) => {
@@ -950,6 +1000,44 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                 className="sketch-input bg-white/50 py-2"
                 required
               />
+              
+              {/* AI Auto-Categorization Suggestion Box */}
+              {newName.trim() && !isNewMoney && (
+                <div className="mt-1 flex flex-col gap-1 text-[11px] transition-all duration-300">
+                  {isCategorizing ? (
+                    <span className="text-crimson/80 flex items-center gap-1.5 animate-pulse font-sans ml-1">
+                      <span className="inline-block w-2 h-2 rounded-full bg-crimson border border-ink/20 animate-bounce"></span>
+                      ✨ Trí tuệ nhân tạo (AI) đang phân tích gợi ý danh mục...
+                    </span>
+                  ) : aiSuggestion ? (
+                    <div className="bg-[#fff9f9] border border-dashed border-crimson/40 p-3 rounded-lg flex flex-col gap-1.5 shadow-2xs transition-all">
+                      <div className="flex items-center justify-between font-sans">
+                        <span className="flex items-center gap-1.5 text-ink">
+                          <span className="text-sm">💡</span> Gợi ý danh mục phù hợp: <strong className="text-crimson font-extrabold uppercase tracking-wide">{aiSuggestion.name}</strong>
+                        </span>
+                        {newCategory === aiSuggestion.id ? (
+                          <span className="py-0.5 px-2 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded-full border border-emerald-200 uppercase tracking-wider shrink-0">
+                            Đã Đống Nhất ✓
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setNewCategory(aiSuggestion.id)}
+                            className="py-1 px-3 bg-crimson hover:bg-crimson/95 active:scale-95 text-white text-[9px] uppercase font-bold rounded-lg cursor-pointer transition-all shadow-2xs shrink-0"
+                          >
+                            Áp dụng ngay
+                          </button>
+                        )}
+                      </div>
+                      {aiSuggestion.reasoning && (
+                        <p className="text-ink/65 italic font-sans leading-relaxed text-[10px] pl-5 border-l-2 border-crimson/20">
+                          {aiSuggestion.reasoning}
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
