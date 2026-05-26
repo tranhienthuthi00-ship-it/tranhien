@@ -347,7 +347,7 @@ export function AssetsManager({
      const detailNotesList = validDebts.map(d => {
        const val = parseFloat(d.amount.replace(/,/g, ''));
        const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
-       return `• ${formatDateHelper(d.name)}: +${val.toLocaleString('vi-VN')} đ${dayNote}`;
+       return `• ${formatDateHelper(d.name)}: ${val >= 0 ? "+" : ""}${val.toLocaleString('vi-VN')} đ${dayNote}`;
      }).join("\n");
 
      const aggregatedRevenue: Asset = {

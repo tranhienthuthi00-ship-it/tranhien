@@ -760,11 +760,26 @@ export function DigitalJournal({
                       <input
                         type="text"
                         placeholder="Số tiền"
-                        value={item.amount ? Number(item.amount.replace(/,/g, "")).toLocaleString("vi-VN") : ""}
+                        value={item.amount}
                         onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9]/g, "");
+                          const valStr = e.target.value.replace(/,/g, '');
+                          if (!/^-?\d*$/.test(valStr)) return;
+                          
+                          let formatted = "";
+                          if (valStr === "-") {
+                            formatted = "-";
+                          } else if (valStr) {
+                            const isNeg = valStr.startsWith("-");
+                            const cleanDigits = valStr.replace('-', '');
+                            if (cleanDigits) {
+                              const parsedVal = parseInt(cleanDigits, 10);
+                              if (!isNaN(parsedVal)) {
+                                formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                              }
+                            }
+                          }
                           const updated = [...bulkDebts];
-                          updated[index].amount = val;
+                          updated[index].amount = formatted;
                           setBulkDebts(updated);
                         }}
                         className="w-full px-2.5 py-1.5 text-xs bg-white text-right font-bold text-emerald-950 rounded-lg border border-emerald-200 focus:outline-none focus:border-emerald-400 placeholder:text-emerald-300 placeholder:font-normal"
@@ -976,8 +991,67 @@ export function DigitalJournal({
             <p className="text-xs text-ink/40 font-hand italic">Chưa lưu mẹo hay hoặc địa điểm hấp dẫn nào. Nhấn Thêm mới để tạo ngay!</p>
           </div>
         ) : (
-          <div className="overflow-x-auto scrollbar-thin">
-            <table className="min-w-full divide-y divide-ink/10">
+          <div className="overflow-x-auto scrollbar-thin max-w-full">
+            {/* Mobile layout: Card stacking */}
+            <div className="block sm:hidden space-y-3">
+              {filteredTips.map((tip) => (
+                <div key={tip.id} className="bg-white p-4 rounded-xl border border-ink/10 flex flex-col gap-2 shadow-xs text-left relative group">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="text-xs font-black text-ink">{tip.name}</h4>
+                      <span className="inline-block mt-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-2 py-0.5 font-sans font-black text-[9px] uppercase tracking-wide">
+                        {tip.address || "Khác / Tips"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleStartEditTip(tip)}
+                        className="hover:text-blue-600 p-1.5 bg-slate-50 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
+                        title="Sửa hàng"
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTip(tip.id)}
+                        className="hover:text-crimson p-1.5 bg-rose-50/50 hover:bg-rose-100 rounded-md transition-all cursor-pointer"
+                        title="Xóa hàng"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {tip.price ? (
+                    <div className="text-[11px] font-bold text-emerald-700 font-mono mt-0.5">
+                      <span className="text-ink/50 font-normal">Giá tiền: </span>{tip.price.toLocaleString("vi-VN")} đ
+                    </div>
+                  ) : null}
+                  
+                  {tip.notes && (
+                    <p className="text-[11px] italic text-ink/65 border-t border-ink/5 pt-1.5 text-left font-sans">
+                      <strong>Ghi chú:</strong> {tip.notes}
+                    </p>
+                  )}
+                  
+                  {tip.link ? (
+                    <div className="border-t border-ink/5 pt-1.5">
+                      <a 
+                        href={tip.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1 font-semibold hover:underline text-[11px]"
+                      >
+                        <Link2 size={11} className="shrink-0" />
+                        <span>Xem link gốc</span>
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop layout: Large table */}
+            <table className="hidden sm:table min-w-full divide-y divide-ink/10">
               <thead className="bg-ink/5 text-ink text-[10px] font-black uppercase tracking-wider text-left">
                 <tr>
                   <th scope="col" className="px-5 py-3">Mô Tả / Tên</th>
