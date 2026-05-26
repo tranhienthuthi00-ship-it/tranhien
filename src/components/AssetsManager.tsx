@@ -1245,52 +1245,45 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-wrap gap-2.5">
                 {items.map(asset => (
                   <div key={asset.id} className={cn(
-                    "p-4 bg-white/60 sketch-border flex flex-col justify-between group relative overflow-hidden transition-all hover:bg-white hover:shadow-lg",
-                    asset.isDebt ? "border-l-4 border-l-crimson" : ""
+                    "inline-flex items-center gap-2 px-3.5 py-2 bg-white/70 hover:bg-white rounded-xl border border-ink/10 text-xs transition-all relative group shadow-sm shrink-0",
+                    asset.isDebt ? "bg-red-50/55 hover:bg-red-50 border-red-200" : ""
                   )}>
-                    <div className="absolute top-1 right-1 flex items-center justify-end px-2 gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-ink">{asset.name}</span>
+                      <span className={cn(
+                        "font-mono font-bold px-2 py-0.5 rounded-lg text-[10px]",
+                        asset.isDebt ? "text-crimson bg-crimson/5" : asset.isLoan ? "text-blue-600 bg-blue-50" : asset.isNewMoney ? "text-amber-500 bg-amber-50" : "text-[#0369a1] bg-[#e0f2fe]"
+                      )}>
+                        {asset.isDebt ? "-" : ""}{formatCurrency(asset.value, asset.currency)}
+                      </span>
+                    </div>
+                    
+                    {/* Compact actions showing on hover */}
+                    <div className="flex items-center gap-1.5 opacity-60 sm:opacity-0 group-hover:opacity-100 transition-all ml-1.5 pl-2 border-l border-ink/10">
                       <button 
                         onClick={() => startEdit(asset)}
-                        className="p-1.5 bg-ink text-white rounded-lg shadow-sm hover:scale-110 transition-transform"
+                        className="p-1 text-ink/70 hover:text-blue-600 transition-colors"
                         title="Sửa"
                       >
-                        <Edit2 size={12} />
+                        <Edit2 size={10} />
                       </button>
                       <button 
                         onClick={() => removeAsset(asset.id)}
-                        className="p-1.5 bg-crimson text-white rounded-lg shadow-sm hover:scale-110 transition-transform"
+                        className="p-1 text-ink/70 hover:text-crimson transition-all"
                         title="Xóa"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={10} />
                       </button>
                     </div>
 
-                    <div className="flex justify-between items-start mb-2 relative z-10 pointer-events-none">
-                      <h3 className="font-bold text-lg leading-tight truncate pr-16">{asset.name}</h3>
-                    </div>
-                    
-                    <div className="text-2xl font-mono font-bold tracking-tight mt-2 flex items-baseline gap-2">
-                      <span className={asset.isDebt ? "text-crimson" : asset.isLoan ? "text-blue-600" : asset.isNewMoney ? "text-amber-500" : asset.excludeFromNetWorth ? "text-ink/60" : "text-ink/90"}>
-                        {asset.isDebt ? "-" : ""}{formatCurrency(asset.value, asset.currency)}
+                    {asset.notes && (
+                      <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block bg-ink text-paper text-[10px] px-2 py-1 rounded shadow-lg z-30 pointer-events-none whitespace-pre max-w-[200px] truncate leading-tight italic">
+                        {asset.notes}
                       </span>
-                      {asset.isDebt && <span className="text-[10px] uppercase font-bold text-crimson bg-crimson/5 px-1 rounded">Nợ</span>}
-                      {asset.isLoan && <span className="text-[10px] uppercase font-bold text-blue-600 bg-blue-600/5 px-1 rounded">Cho vay</span>}
-                      {asset.isNewMoney && <span className="text-[10px] uppercase font-bold text-amber-500 bg-amber-500/5 px-1 rounded font-sans">Tiền mới</span>}
-                      {asset.excludeFromNetWorth && !asset.isNewMoney && <span className="text-[10px] uppercase font-bold text-ink/40 bg-ink/5 px-1 rounded font-sans">Loại trừ</span>}
-                    </div>
-
-                    {asset.exchangeRate && asset.exchangeRate > 0 && (
-                      <div className="text-[11px] text-ink/60 font-semibold bg-amber-50/40 p-1.5 rounded border border-dashed border-amber-200 mt-1 max-w-fit">
-                        Giá/Tỷ giá: <span className="font-mono text-ink">{formatCurrency(asset.exchangeRate, 'VND')}</span> / {asset.currency === 'GOLD' ? 'chỉ' : asset.currency} 
-                        <span className="mx-2 text-ink/20">|</span> 
-                        Quy đổi: <span className="font-bold text-emerald-700 font-mono">{formatCurrency(asset.value * asset.exchangeRate, 'VND')}</span>
-                      </div>
                     )}
-                    
-                    {asset.notes && <div className="text-xs text-ink/60 mt-2 bg-ink/5 p-2 rounded italic font-hand">{asset.notes}</div>}
                   </div>
                 ))}
               </div>

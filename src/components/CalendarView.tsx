@@ -477,24 +477,7 @@ export function CalendarView({
               </button>
               <h2 className="text-4xl md:text-5xl font-black font-sans tracking-tighter uppercase">{format(currentDate, "yyyy")} Recap</h2>
               
-              <div className="flex items-center gap-2 bg-[#fffbeb] p-1.5 sketch-border rounded-xl">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-ink/55 pl-1">Filter:</span>
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value as any)}
-                  className="text-xs font-bold bg-white border border-ink/20 rounded-lg pl-2 pr-7 py-1 outline-none text-ink cursor-pointer uppercase tracking-wider appearance-none select-none"
-                  style={{
-                    backgroundImage: "url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpolyline points=%226 9 12 15 18 9%22%3E%3C/polyline%3E%3C/svg%3E')",
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 6px center',
-                    backgroundSize: '10px'
-                  }}
-                >
-                  <option value="All">All Entries</option>
-                  <option value="Reflections">Reflections Only</option>
-                  <option value="Events">Events Only</option>
-                </select>
-              </div>
+              {/* Filter selector removed per request */}
            </div>
            <div className="flex gap-4">
               <div className="p-4 sketch-border border-dashed bg-white/40 shadow-sm flex flex-col items-center min-w-[120px]">
@@ -571,24 +554,7 @@ export function CalendarView({
             <button onClick={onNextMonth} className="sketch-button px-3 py-1.5"><ChevronRight style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
           </div>
 
-          <div className="flex items-center justify-center gap-2 bg-[#fffbeb] p-2 sketch-border rounded-xl">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-ink/55 pl-1">Filter:</span>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as any)}
-              className="text-xs font-bold bg-white border border-ink/20 rounded-lg pl-2 pr-7 py-1 outline-none text-ink cursor-pointer uppercase tracking-wider appearance-none select-none"
-              style={{
-                backgroundImage: "url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpolyline points=%226 9 12 15 18 9%22%3E%3C/polyline%3E%3C/svg%3E')",
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 6px center',
-                backgroundSize: '10px'
-              }}
-            >
-              <option value="All">All Entries</option>
-              <option value="Reflections">Reflections Only</option>
-              <option value="Events">Events Only</option>
-            </select>
-          </div>
+          {/* Filter selector removed per request */}
         </div>
 
         <div className="grid grid-cols-7 gap-1 md:gap-2">

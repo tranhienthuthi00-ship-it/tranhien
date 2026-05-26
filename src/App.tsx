@@ -212,6 +212,7 @@ function AppContent() {
               categories={assetCategories}
               words={words} 
               places={foodPlaces} 
+              setPlaces={setFoodPlaces} 
               ideas={contentIdeas} 
               tasks={tasks} 
               setTasks={setTasks} 

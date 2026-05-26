@@ -11,7 +11,7 @@ export function NavBar({ activeTab, setActiveTab, lastSaved, onLogout, dueCount 
       case "Dashboard": return "DASH";
       case "Collections": return "HUB";
       case "Calendar": return "CAL";
-      case "Journal": return "TODAY";
+      case "Journal": return "HOME";
       default: return tab;
     }
   };
@@ -51,7 +51,7 @@ export function NavBar({ activeTab, setActiveTab, lastSaved, onLogout, dueCount 
                 )}
               >
                 <span className="md:hidden">{getTabLabel(tab)}</span>
-                <span className="hidden md:inline">{tab === "Journal" ? "For Today" : tab}</span>
+                <span className="hidden md:inline">{tab === "Journal" ? "Home" : tab}</span>
                 {tab === "English Hub" && dueCount > 0 && (
                   <span className="inline-flex items-center justify-center bg-crimson text-white text-[8px] md:text-[10px] w-3.5 h-3.5 md:w-5 md:h-5 rounded-full font-black -mt-1 shadow-sm">
                     {dueCount > 99 ? "99+" : dueCount}
