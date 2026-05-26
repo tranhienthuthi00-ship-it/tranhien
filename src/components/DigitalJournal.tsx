@@ -20,7 +20,6 @@ import {
   Heart
 } from "lucide-react";
 
-import { HomeLedgers } from './HomeLedgers';
 
 interface DigitalJournalProps {
   logs: LogEntry[];
@@ -641,8 +640,6 @@ export function DigitalJournal({
           </div>
         )}
       </div>
-
-      <HomeLedgers assets={assets} setAssets={setAssets!} categories={categories} />
 
       {/* 4. PERSONAL TIPS, HACKS & PLACES LOGBOOK TABLE */}
       <div className="bg-white/95 p-6 rounded-2xl sketch-border border-ink shadow-sm space-y-4">

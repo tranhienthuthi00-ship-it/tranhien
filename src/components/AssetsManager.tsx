@@ -1779,10 +1779,10 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
           <button 
             type="button"
             onClick={() => setBulkCurrentCash({})}
-            disabled={Object.values(bulkCurrentCash).reduce((sum, v) => sum + v, 0) === 0}
+            disabled={Object.values(bulkCurrentCash).reduce((sum: number, v: any) => sum + Number(v || 0), 0) === 0}
             className={cn(
               "sketch-button text-xs py-2 px-6 font-bold uppercase tracking-widest shrink-0 transition-all font-sans",
-              Object.values(bulkCurrentCash).reduce((sum, v) => sum + v, 0) === 0 
+              Object.values(bulkCurrentCash).reduce((sum: number, v: any) => sum + Number(v || 0), 0) === 0 
                 ? "text-ink/20 cursor-not-allowed border-ink/5" 
                 : "text-crimson hover:bg-crimson/5 border-crimson hover:border-crimson cursor-pointer"
             )}
@@ -1791,9 +1791,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
           </button>
         </div>
       </div>
-      
-      {false && (
-      <>
+
       {/* Bảng Kê Doanh Thu Tuần - Specialized Section */}
       <div className="mt-16 animate-in fade-in slide-in-from-bottom-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b-4 border-crimson/80 pb-2 gap-4">
@@ -2326,7 +2324,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         </div>
       </div>
 
-      </>)}
+
 
       {filteredAssets.length === 0 && (
         <div className="text-center py-20 opacity-30">

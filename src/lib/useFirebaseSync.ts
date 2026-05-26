@@ -251,26 +251,32 @@ export function useFirebaseSync() {
     setLocalState: React.Dispatch<React.SetStateAction<T[]>>,
     isSingleDoc: boolean = false
   ) => {
-    return async (newItems: T[] | string[]) => {
+    return async (newItems: T[] | string[] | ((prev: T[]) => T[])) => {
       if (!user) return;
 
       const currentItems = itemsRef.current;
+      let targetItems: T[];
+
+      if (typeof newItems === 'function') {
+        targetItems = (newItems as (prev: T[]) => T[])(currentItems);
+      } else {
+        targetItems = newItems as T[];
+      }
 
       // Optimistic update
       if (!isSingleDoc) {
-        setLocalState(newItems as T[]);
+        setLocalState(targetItems);
       }
 
       try {
         if (isSingleDoc) {
-          await setDoc(doc(db, `users/${user.uid}/data/${collectionName}`), { [collectionName]: newItems });
+          await setDoc(doc(db, `users/${user.uid}/data/${collectionName}`), { [collectionName]: targetItems });
           return;
         }
         
-        const newItemsArr = newItems as T[];
-        const newIds = new Set(newItemsArr.map(i => i.id));
+        const newIds = new Set(targetItems.map(i => i.id));
 
-        const toAddOrUpdate = newItemsArr.filter(i => {
+        const toAddOrUpdate = targetItems.filter(i => {
           const existing = currentItems.find(c => c.id === i.id);
           if (!existing) return true;
           // Cleaner comparison

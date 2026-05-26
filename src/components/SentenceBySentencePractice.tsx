@@ -407,11 +407,11 @@ export function SentenceBySentencePractice({
     // Thiết kế đặc trưng VÀ chỉ kích hoạt ở phần Translation (Sentence By Sentence) & YouTube Dictation.
     // Các phần học khác (như Học từ vựng, Phản xạ nhanh, Sổ tay...) sẽ giữ nguyên chuỗi hoặc chỉ cắt theo dòng mới '\n' để bảo toàn văn bản gốc.
     const rawSentences = inputText
-      .match(/[^;\n]+[;]*/g)
+      .match(/[^.!?;\n]+[.!?;"']*/g)
       ?.map((s) => s.trim())
       .filter((s) => s.length > 0) || [];
     const rawRefs = referenceText
-      .match(/[^;\n]+[;]*/g)
+      .match(/[^.!?;\n]+[.!?;"']*/g)
       ?.map((s) => s.trim())
       .filter((s) => s.length > 0) || [];
 
@@ -457,11 +457,11 @@ export function SentenceBySentencePractice({
         const vi = p.vietnamese;
         const en = p.english;
         const rawSentences = vi
-          .match(/[^;\n]+[;]*/g)
+          .match(/[^.!?;\n]+[.!?;"']*/g)
           ?.map((s) => s.trim())
           .filter((s) => s.length > 0) || [];
         const rawRefs = en
-          ? (en.match(/[^;\n]+[;]*/g)?.map((s) => s.trim()).filter((s) => s.length > 0) || [])
+          ? (en.match(/[^.!?;\n]+[.!?;"']*/g)?.map((s) => s.trim()).filter((s) => s.length > 0) || [])
           : [];
         initialSentences = rawSentences.map((s, i) => ({
           vi: s.trim(),
@@ -546,14 +546,14 @@ export function SentenceBySentencePractice({
         sentences.length > 0
           ? sentences.map(({ vi, en, hint }) => ({ vi, en: en || "", hint }))
           : (inputText
-              .match(/[^;\n]+[;]*/g)
+              .match(/[^.!?;\n]+[.!?;"']*/g)
               ?.map((s) => s.trim())
               .filter((s) => s.length > 0) || []
             ).map((s, i) => ({
                 vi: s,
                 en:
                   (referenceText
-                    .match(/[^;\n]+[;]*/g)
+                    .match(/[^.!?;\n]+[.!?;"']*/g)
                     ?.map((r) => r.trim())
                     .filter((r) => r.length > 0) || [])
                     [i] || "",
