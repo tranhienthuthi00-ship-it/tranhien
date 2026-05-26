@@ -17,7 +17,9 @@ import {
   Bookmark, 
   ChevronLeft, 
   ChevronRight,
-  Heart
+  Heart,
+  CreditCard,
+  Receipt
 } from "lucide-react";
 
 
@@ -36,6 +38,13 @@ interface DigitalJournalProps {
   achievements?: Achievement[];
   goals?: StudyGoal[];
   setLogs?: React.Dispatch<React.SetStateAction<LogEntry[]>>;
+  
+  bulkDebts: {id: number, name: string, amount: string, notes: string}[];
+  setBulkDebts: React.Dispatch<React.SetStateAction<{id: number, name: string, amount: string, notes: string}[]>>;
+  bulkCardSpends: {id: number, name: string, amount: string, notes: string}[];
+  setBulkCardSpends: React.Dispatch<React.SetStateAction<{id: number, name: string, amount: string, notes: string}[]>>;
+  bulkCurrentCash: Record<number, number>;
+  setBulkCurrentCash: React.Dispatch<React.SetStateAction<Record<number, number>>>;
 }
 
 export function DigitalJournal({ 
@@ -49,7 +58,13 @@ export function DigitalJournal({
   setLogs,
   assets = [],
   setAssets,
-  categories = []
+  categories = [],
+  bulkDebts,
+  setBulkDebts,
+  bulkCardSpends,
+  setBulkCardSpends,
+  bulkCurrentCash,
+  setBulkCurrentCash
 }: DigitalJournalProps) {
   
   // ---------------- STATIC QUOTES ----------------
@@ -597,6 +612,197 @@ export function DigitalJournal({
         </div>
 
       </div>{/* End of top grid */}
+
+      {/* SECTION 2.5: CREDIT CARD & REVENUE STATEMENTS (BẢNG KÊ CHI TIÊU & DOANH THU) */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-2">
+        {/* LEFT CARD: BẢNG KÊ CHI TIÊU THẺ TÍN DỤNG */}
+        <div className="bg-gradient-to-tr from-[#fcfdff] to-[#f5f8ff] p-6 rounded-2xl sketch-border border-ink shadow-sm space-y-4 text-left">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-[#3b82f6] pb-2.5 gap-2">
+            <div className="flex items-center gap-2 text-left">
+              <span className="p-2 bg-[#dbeafe] rounded-xl text-[#1e40af] border border-blue-250">
+                <CreditCard size={18} className="animate-pulse" />
+              </span>
+              <div>
+                <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#1e40af] font-sans">
+                  Bảng Kê Chi Tiêu Thẻ Tín Dụng
+                </h3>
+                <p className="text-[10px] font-bold text-blue-700/60 uppercase tracking-widest leading-none mt-0.5">
+                  Tự động đồng bộ dư nợ vào mục Ngân hàng
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                if (confirm("Đặt lại toàn bộ bảng kê chi tiêu thẻ tín dụng tuần này?")) {
+                  setBulkCardSpends(bulkCardSpends.map(item => ({ ...item, amount: "", notes: "" })));
+                }
+              }}
+              className="px-2.5 py-1 text-[10px] bg-red-50 text-crimson rounded-lg border border-red-200 uppercase font-black tracking-widest hover:bg-crimson hover:text-white transition-all cursor-pointer"
+            >
+              Reset tuần
+            </button>
+          </div>
+
+          <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+            {bulkCardSpends.map((item, index) => {
+              const dateObj = new Date(item.name);
+              const dayStr = isNaN(dateObj.getTime())
+                ? item.name
+                : dateObj.toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit" });
+
+              return (
+                <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-white p-2.5 rounded-xl border border-blue-100 hover:border-blue-300 transition-all">
+                  <div className="col-span-12 sm:col-span-4 text-left">
+                    <span className="text-xs font-black text-blue-950 font-sans truncate block capitalize">
+                      {dayStr}
+                    </span>
+                    <span className="text-[9px] font-mono text-blue-600 block">
+                      {item.name}
+                    </span>
+                  </div>
+
+                  <div className="col-span-12 sm:col-span-3">
+                    <div className="relative rounded-md shadow-xs">
+                      <input
+                        type="text"
+                        placeholder="Số tiền"
+                        value={item.amount ? Number(item.amount.replace(/,/g, "")).toLocaleString("vi-VN") : ""}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, "");
+                          const updated = [...bulkCardSpends];
+                          updated[index].amount = val;
+                          setBulkCardSpends(updated);
+                        }}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white text-right font-bold text-indigo-950 rounded-lg border border-blue-200 focus:outline-none focus:border-blue-400 placeholder:text-blue-300 placeholder:font-normal"
+                      />
+                      <span className="absolute right-2 top-2 text-[9px] text-blue-400/80 font-bold pointer-events-none">đ</span>
+                    </div>
+                  </div>
+
+                  <div className="col-span-12 sm:col-span-5">
+                    <input
+                      type="text"
+                      placeholder="Chi tiết chi tiêu..."
+                      value={item.notes || ""}
+                      onChange={(e) => {
+                        const updated = [...bulkCardSpends];
+                        updated[index].notes = e.target.value;
+                        setBulkCardSpends(updated);
+                      }}
+                      className="w-full px-2.5 py-1.5 text-xs bg-white text-left text-blue-900 rounded-lg border border-blue-200 focus:outline-none focus:border-blue-400 placeholder:text-blue-300"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Sum footer */}
+          <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-150">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-blue-800">Tổng chi tiêu thẻ:</span>
+            <span className="text-sm font-black text-[#1e40af] font-mono">
+              {(() => {
+                const total = bulkCardSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                return total.toLocaleString("vi-VN") + " đ";
+              })()}
+            </span>
+          </div>
+        </div>
+
+        {/* RIGHT CARD: BẢNG KÊ DOANH THU KHÁCH NỢ TUẦN QUA */}
+        <div className="bg-gradient-to-tr from-[#fdfdfc] to-[#f4fbf7] p-6 rounded-2xl sketch-border border-ink shadow-sm space-y-4 text-left">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-[#10b981] pb-2.5 gap-2">
+            <div className="flex items-center gap-2 text-left">
+              <span className="p-2 bg-[#d1fae5] rounded-xl text-[#065f46] border border-emerald-250">
+                <Receipt size={18} className="animate-pulse" />
+              </span>
+              <div>
+                <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#065f46] font-sans">
+                  Doanh Thu / Khách Nợ Tuần Qua
+                </h3>
+                <p className="text-[10px] font-bold text-emerald-700/60 uppercase tracking-widest leading-none mt-0.5">
+                  Lưu trữ nhanh doanh thu đạt được và danh sách nợ khách
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                if (confirm("Đặt lại toàn bộ bảng kê doanh thu và khách nợ tuần này?")) {
+                  setBulkDebts(bulkDebts.map(item => ({ ...item, amount: "", notes: "" })));
+                }
+              }}
+              className="px-2.5 py-1 text-[10px] bg-red-50 text-crimson rounded-lg border border-red-200 uppercase font-black tracking-widest hover:bg-crimson hover:text-white transition-all cursor-pointer"
+            >
+              Reset tuần
+            </button>
+          </div>
+
+          <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+            {bulkDebts.map((item, index) => {
+              const dateObj = new Date(item.name);
+              const dayStr = isNaN(dateObj.getTime())
+                ? item.name
+                : dateObj.toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit" });
+
+              return (
+                <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-white p-2.5 rounded-xl border border-emerald-100 hover:border-emerald-300 transition-all">
+                  <div className="col-span-12 sm:col-span-4 text-left">
+                    <span className="text-xs font-black text-emerald-950 font-sans truncate block capitalize">
+                      {dayStr}
+                    </span>
+                    <span className="text-[9px] font-mono text-emerald-600 block">
+                      {item.name}
+                    </span>
+                  </div>
+
+                  <div className="col-span-12 sm:col-span-3">
+                    <div className="relative rounded-md shadow-xs">
+                      <input
+                        type="text"
+                        placeholder="Số tiền"
+                        value={item.amount ? Number(item.amount.replace(/,/g, "")).toLocaleString("vi-VN") : ""}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, "");
+                          const updated = [...bulkDebts];
+                          updated[index].amount = val;
+                          setBulkDebts(updated);
+                        }}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white text-right font-bold text-emerald-950 rounded-lg border border-emerald-200 focus:outline-none focus:border-emerald-400 placeholder:text-emerald-300 placeholder:font-normal"
+                      />
+                      <span className="absolute right-2 top-2 text-[9px] text-emerald-400/80 font-bold pointer-events-none">đ</span>
+                    </div>
+                  </div>
+
+                  <div className="col-span-12 sm:col-span-5">
+                    <input
+                      type="text"
+                      placeholder="Nguồn thu / Tên khách nợ..."
+                      value={item.notes || ""}
+                      onChange={(e) => {
+                        const updated = [...bulkDebts];
+                        updated[index].notes = e.target.value;
+                        setBulkDebts(updated);
+                      }}
+                      className="w-full px-2.5 py-1.5 text-xs bg-white text-left text-emerald-900 rounded-lg border border-emerald-200 focus:outline-none focus:border-emerald-400 placeholder:text-emerald-300"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Sum footer */}
+          <div className="flex items-center justify-between bg-emerald-50/50 p-3 rounded-xl border border-emerald-150">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-800">Tổng thu nhập / Nợ tuần:</span>
+            <span className="text-sm font-black text-[#0f5132] font-mono">
+              {(() => {
+                const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                return total.toLocaleString("vi-VN") + " đ";
+              })()}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* 3. ACHIEVEMENT WALL COMPONENT */}
       <div className="bg-white/80 p-6 rounded-2xl sketch-border border-dashed border-ink/30">

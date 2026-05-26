@@ -37,11 +37,28 @@ export const renderIcon = (iconName: string, size: number = 16, className?: stri
    return <span style={{fontSize: size}} className={className}>{iconName}</span>;
 };
 
-export function AssetsManager({ assets, setAssets, categories, setCategories }: {
+export function AssetsManager({ 
+  assets, 
+  setAssets, 
+  categories, 
+  setCategories,
+  bulkDebts,
+  setBulkDebts,
+  bulkCardSpends,
+  setBulkCardSpends,
+  bulkCurrentCash,
+  setBulkCurrentCash
+}: {
   assets: Asset[];
   setAssets: (a: Asset[]) => void;
   categories: AssetCategory[];
   setCategories: (c: AssetCategory[]) => void;
+  bulkDebts: {id: number, name: string, amount: string, notes: string}[];
+  setBulkDebts: React.Dispatch<React.SetStateAction<{id: number, name: string, amount: string, notes: string}[]>>;
+  bulkCardSpends: {id: number, name: string, amount: string, notes: string}[];
+  setBulkCardSpends: React.Dispatch<React.SetStateAction<{id: number, name: string, amount: string, notes: string}[]>>;
+  bulkCurrentCash: Record<number, number>;
+  setBulkCurrentCash: React.Dispatch<React.SetStateAction<Record<number, number>>>;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"name" | "value" | "date">("date");
@@ -125,318 +142,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     notes: ""
   }));
 
-  const [bulkDebts, setBulkDebts] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => {
-    try {
-      const saved = localStorage.getItem("studyHub_bulkDebts");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === 7) {
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    return DEFAULT_WEEK_DEBTS.map(item => ({ ...item }));
-  });
-
-  const [bulkCardSpends, setBulkCardSpends] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => {
-    try {
-      const saved = localStorage.getItem("studyHub_bulkCardSpends");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    return DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "", notes: "" }));
-  });
-
-  const [bulkCurrentCash, setBulkCurrentCash] = useState<Record<number, number>>(() => {
-    try {
-      const saved = localStorage.getItem("studyHub_bulkCurrentCash");
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return {};
-  });
-
-  // 1. Cross-Device Sync: FROM remote Firebase meta-assets TO local state
-  useEffect(() => {
-    if (!assets) return;
-    
-    // a. Debts sync
-    const debtsMeta = assets.find(a => a.id === "meta_bulk_debts");
-    if (debtsMeta && debtsMeta.notes) {
-      try {
-        const remoteArr = JSON.parse(debtsMeta.notes);
-        if (Array.isArray(remoteArr) && remoteArr.length === 7) {
-          if (JSON.stringify(bulkDebts) !== debtsMeta.notes) {
-            setBulkDebts(remoteArr);
-          }
-        }
-      } catch (err) {
-        console.error("Lỗi đồng bộ remote bulkDebts:", err);
-      }
-    }
-
-    // b. Card Spends sync
-    const cardsMeta = assets.find(a => a.id === "meta_bulk_card_spends");
-    if (cardsMeta && cardsMeta.notes) {
-      try {
-        const remoteArr = JSON.parse(cardsMeta.notes);
-        if (Array.isArray(remoteArr) && remoteArr.length > 0) {
-          if (JSON.stringify(bulkCardSpends) !== cardsMeta.notes) {
-            setBulkCardSpends(remoteArr);
-          }
-        }
-      } catch (err) {
-        console.error("Lỗi đồng bộ remote bulkCardSpends:", err);
-      }
-    }
-
-    // c. Current Cash sync
-    const cashMeta = assets.find(a => a.id === "meta_bulk_current_cash");
-    if (cashMeta && cashMeta.notes) {
-      try {
-        const remoteObj = JSON.parse(cashMeta.notes);
-        if (JSON.stringify(bulkCurrentCash) !== cashMeta.notes) {
-          setBulkCurrentCash(remoteObj);
-        }
-      } catch (err) {
-        console.error("Lỗi đồng bộ remote bulkCurrentCash:", err);
-      }
-    }
-  }, [assets]);
-
-  // 2. Cross-Device Sync: FROM local state TO remote Firebase meta-assets & localStorage
-  useEffect(() => {
-    try {
-      const localStr = JSON.stringify(bulkDebts);
-      localStorage.setItem("studyHub_bulkDebts", localStr);
-
-      const existing = assets.find(a => a.id === "meta_bulk_debts");
-      if (!existing || existing.notes !== localStr) {
-        const updatedMeta: Asset = {
-          id: "meta_bulk_debts",
-          name: "Meta Bulk Debts (Sync)",
-          category: "meta",
-          value: 0,
-          currency: "VND",
-          notes: localStr,
-          excludeFromNetWorth: true
-        };
-        const filtered = assets.filter(a => a.id !== "meta_bulk_debts");
-        setAssets([updatedMeta, ...filtered]);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, [bulkDebts, setAssets, assets]);
-
-  useEffect(() => {
-    try {
-      const localStr = JSON.stringify(bulkCardSpends);
-      localStorage.setItem("studyHub_bulkCardSpends", localStr);
-
-      const existing = assets.find(a => a.id === "meta_bulk_card_spends");
-      if (!existing || existing.notes !== localStr) {
-        const updatedMeta: Asset = {
-          id: "meta_bulk_card_spends",
-          name: "Meta Bulk Card Spends (Sync)",
-          category: "meta",
-          value: 0,
-          currency: "VND",
-          notes: localStr,
-          excludeFromNetWorth: true
-        };
-        const filtered = assets.filter(a => a.id !== "meta_bulk_card_spends");
-        setAssets([updatedMeta, ...filtered]);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, [bulkCardSpends, setAssets, assets]);
-
-  useEffect(() => {
-    try {
-      const localStr = JSON.stringify(bulkCurrentCash);
-      localStorage.setItem("studyHub_bulkCurrentCash", localStr);
-
-      const existing = assets.find(a => a.id === "meta_bulk_current_cash");
-      if (!existing || existing.notes !== localStr) {
-        const updatedMeta: Asset = {
-          id: "meta_bulk_current_cash",
-          name: "Meta Bulk Current Cash (Sync)",
-          category: "meta",
-          value: 0,
-          currency: "VND",
-          notes: localStr,
-          excludeFromNetWorth: true
-        };
-        const filtered = assets.filter(a => a.id !== "meta_bulk_current_cash");
-        setAssets([updatedMeta, ...filtered]);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, [bulkCurrentCash, setAssets, assets]);
-
-  // AUTOMATIC SYNC: Update bulk card spends credit card debt into the central assets state
-  useEffect(() => {
-    if (!setAssets || !assets) return;
-    try {
-      const validSpends = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
-      const totalSum = validSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
-      const absTotalSum = Math.abs(totalSum);
-
-      const existingDebtIdx = assets.findIndex(a => a.id === "card-debt-auto-sync");
-
-      if (absTotalSum === 0) {
-        if (existingDebtIdx !== -1) {
-          setAssets(assets.filter(a => a.id !== "card-debt-auto-sync"));
-        }
-        return;
-      }
-
-      const catId = categories.find(c => 
-        c.name.toLowerCase().includes("tín dụng") || 
-        c.name.toLowerCase().includes("thẻ") || 
-        c.name.toLowerCase().includes("credit") || 
-        c.name.toLowerCase().includes("nợ")
-      )?.id || defaultCatID;
-
-      const formatDateHelper = (ymd: string) => {
-        try {
-          const parts = ymd.split("-");
-          return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
-        } catch {
-          return ymd;
-        }
-      };
-
-      const detailNotesList = validSpends.map(d => {
-        const val = parseFloat(d.amount.replace(/,/g, ''));
-        const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
-        return `• ${formatDateHelper(d.name)}: ${val.toLocaleString('vi-VN')} đ${dayNote}`;
-      }).join("\n");
-
-      const activeDates = bulkCardSpends
-        .map(d => d.name)
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b));
-      
-      let dateRangeText = "";
-      if (activeDates.length > 0) {
-        const formatDateStr = (ymd: string) => {
-          const parts = ymd.split("-");
-          return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
-        };
-        dateRangeText = ` (${formatDateStr(activeDates[0])} - ${formatDateStr(activeDates[activeDates.length - 1])})`;
-      }
-
-      const updatedDebtAsset: Asset = {
-        id: "card-debt-auto-sync",
-        name: `Nợ thẻ tín dụng${dateRangeText} (Tự động)`,
-        category: catId,
-        value: absTotalSum,
-        currency: "VND",
-        notes: `Dư nợ tín dụng tổng hợp tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
-        acquiredAt: Date.now(),
-        isDebt: true,
-        isNewMoney: false,
-        excludeFromNetWorth: false
-      };
-
-      if (existingDebtIdx === -1) {
-        setAssets([updatedDebtAsset, ...assets]);
-      } else {
-        const existing = assets[existingDebtIdx];
-        if (existing.value !== updatedDebtAsset.value || existing.notes !== updatedDebtAsset.notes || existing.name !== updatedDebtAsset.name) {
-          const updatedList = [...assets];
-          updatedList[existingDebtIdx] = {
-            ...existing,
-            name: updatedDebtAsset.name,
-            value: updatedDebtAsset.value,
-            notes: updatedDebtAsset.notes,
-            category: updatedDebtAsset.category
-          };
-          setAssets(updatedList);
-        }
-      }
-    } catch (err) {
-      console.error("Lỗi tự động đồng bộ nợ thẻ tín dụng:", err);
-    }
-  }, [bulkCardSpends, categories, assets, setAssets, defaultCatID]);
-
-  // AUTOMATIC SYNC: Update bulk current cash (Bảng kê tiền mặt đang có) into the central assets state
-  useEffect(() => {
-    if (!setAssets || !assets) return;
-    try {
-      const denominations = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000];
-      const totalSum = denominations.reduce((sum, den) => {
-        const val = bulkCurrentCash[den] || 0;
-        return sum + (den * val);
-      }, 0);
-
-      const existingCashIdx = assets.findIndex(a => a.id === "current-cash-auto-sync");
-
-      if (totalSum === 0) {
-        if (existingCashIdx !== -1) {
-          setAssets(assets.filter(a => a.id !== "current-cash-auto-sync"));
-        }
-        return;
-      }
-
-      const catId = categories.find(c => 
-        c.name.toLowerCase().includes("tiền mặt") || 
-        c.name.toLowerCase().includes("tiền") || 
-        c.name.toLowerCase().includes("wallet")
-      )?.id || "cat-money";
-
-      const detailNotesList = denominations.map(den => {
-        const qty = bulkCurrentCash[den] || 0;
-        if (qty <= 0) return null;
-        return `• ${den.toLocaleString('vi-VN')} đ: ${qty} tờ = ${(den * qty).toLocaleString('vi-VN')} đ`;
-      }).filter(Boolean).join("\n");
-
-      const updatedCashAsset: Asset = {
-        id: "current-cash-auto-sync",
-        name: `Tiền mặt đang có (Bảng kê tự động)`,
-        category: catId,
-        value: totalSum,
-        currency: "VND",
-        notes: `Tổng tiền mặt đang có từ bảng kê chi tiết:\n${detailNotesList}`,
-        acquiredAt: Date.now(),
-        isDebt: false,
-        isNewMoney: false, // SHOW IN NORMAL ASSETS!
-        excludeFromNetWorth: false
-      };
-
-      if (existingCashIdx === -1) {
-        setAssets([updatedCashAsset, ...assets]);
-      } else {
-        const existing = assets[existingCashIdx];
-        if (existing.value !== updatedCashAsset.value || existing.notes !== updatedCashAsset.notes || existing.name !== updatedCashAsset.name || existing.category !== updatedCashAsset.category) {
-          const updatedList = [...assets];
-          updatedList[existingCashIdx] = {
-            ...existing,
-            name: updatedCashAsset.name,
-            value: updatedCashAsset.value,
-            notes: updatedCashAsset.notes,
-            category: updatedCashAsset.category
-          };
-          setAssets(updatedList);
-        }
-      }
-    } catch (err) {
-      console.error("Lỗi tự động đồng bộ tiền mặt đang có:", err);
-    }
-  }, [bulkCurrentCash, categories, assets, setAssets]);
+  // Rely on bulkDebts, bulkCardSpends, bulkCurrentCash passed from App.tsx
 
   // --- HỆ THỐNG DỰ TÍNH TIỀN LƯƠNG & DỰ CHI ---
   const [salaryInput, setSalaryInput] = useState<string>(() => {
