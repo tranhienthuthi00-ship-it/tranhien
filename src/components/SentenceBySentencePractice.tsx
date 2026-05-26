@@ -407,11 +407,11 @@ export function SentenceBySentencePractice({
     // Thiết kế đặc trưng VÀ chỉ kích hoạt ở phần Translation (Sentence By Sentence) & YouTube Dictation.
     // Các phần học khác (như Học từ vựng, Phản xạ nhanh, Sổ tay...) sẽ giữ nguyên chuỗi hoặc chỉ cắt theo dòng mới '\n' để bảo toàn văn bản gốc.
     const rawSentences = inputText
-      .match(/[^.!?;\n]+[.!?;]*/g)
+      .match(/[^;\n]+[;]*/g)
       ?.map((s) => s.trim())
       .filter((s) => s.length > 0) || [];
     const rawRefs = referenceText
-      .match(/[^.!?;\n]+[.!?;]*/g)
+      .match(/[^;\n]+[;]*/g)
       ?.map((s) => s.trim())
       .filter((s) => s.length > 0) || [];
 
@@ -457,11 +457,11 @@ export function SentenceBySentencePractice({
         const vi = p.vietnamese;
         const en = p.english;
         const rawSentences = vi
-          .match(/[^.!?;\n]+[.!?;]*/g)
+          .match(/[^;\n]+[;]*/g)
           ?.map((s) => s.trim())
           .filter((s) => s.length > 0) || [];
         const rawRefs = en
-          ? (en.match(/[^.!?;\n]+[.!?;]*/g)?.map((s) => s.trim()).filter((s) => s.length > 0) || [])
+          ? (en.match(/[^;\n]+[;]*/g)?.map((s) => s.trim()).filter((s) => s.length > 0) || [])
           : [];
         initialSentences = rawSentences.map((s, i) => ({
           vi: s.trim(),
@@ -546,14 +546,14 @@ export function SentenceBySentencePractice({
         sentences.length > 0
           ? sentences.map(({ vi, en, hint }) => ({ vi, en: en || "", hint }))
           : (inputText
-              .match(/[^.!?;\n]+[.!?;]*/g)
+              .match(/[^;\n]+[;]*/g)
               ?.map((s) => s.trim())
               .filter((s) => s.length > 0) || []
             ).map((s, i) => ({
                 vi: s,
                 en:
                   (referenceText
-                    .match(/[^.!?;\n]+[.!?;]*/g)
+                    .match(/[^;\n]+[;]*/g)
                     ?.map((r) => r.trim())
                     .filter((r) => r.length > 0) || [])
                     [i] || "",
@@ -1595,7 +1595,36 @@ export function SentenceBySentencePractice({
                                   </button>
                                 </div>
                                 <p className="text-sm font-bold text-ink select-all break-words leading-relaxed">
-                                  {currentSentence.en}
+                                  {currentSentence.en?.split(" ").map((w, wIdx) => {
+                                    const cleanWord = w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "").trim();
+                                    return (
+                                      <span key={wIdx}>
+                                        <span
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (cleanWord) {
+                                              setIsDefiningWord(true);
+                                              setDefinedWordResult(null);
+                                              setShowQuickAddDialog(true);
+                                              fetch("/api/translation/define-word", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ word: cleanWord }),
+                                              }).then(res => res.json()).then(data => {
+                                                setDefinedWordResult(data.error ? { vocabulary: cleanWord, wordType: "noun", ipa: "", definition: "", example: "" } : data);
+                                              }).catch(() => {
+                                                setDefinedWordResult({ vocabulary: cleanWord, wordType: "noun", ipa: "", definition: "Lỗi mạng", example: "" });
+                                              });
+                                            }
+                                          }}
+                                          className="inline hover:bg-amber-200/90 hover:text-ink border-b-2 border-dashed border-transparent hover:border-amber-600 rounded px-0.5 transition-all cursor-pointer"
+                                        >
+                                          {w}
+                                        </span>
+                                        {" "}
+                                      </span>
+                                    );
+                                  })}
                                 </p>
                               </motion.div>
                             )}

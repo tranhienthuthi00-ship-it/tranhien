@@ -39,7 +39,8 @@ function AppContent() {
     achievements, setAchievements} = useFirebase();
 
   const [activeTab, setActiveTab] = useState<Tab>("Journal");
-  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation" | "Speech" | "SRS" | "Translation" | "Reflex">("Academy");
+  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
+  const [activePracticeSubTab, setActivePracticeSubTab] = useState<"Dictation" | "Speech" | "Translation" | "Reflex" | "SRS">("Dictation");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Habits" | "Places" | "Content" | "Assets">("Lists");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
@@ -109,48 +110,66 @@ function AppContent() {
         <div className="max-w-[100vw] px-1 sm:px-2">
           {activeTab === "English Hub" && (
             <div className="flex flex-col gap-4">
-              {/* COMPACT ENGLISH HUB SELECTOR */}
-              <div className="mx-auto max-w-xl w-full px-4 mb-2">
-                <div className="sketch-border bg-[#fffbeb] p-3.5 rounded-2xl border-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-sm">
-                  <div>
-                    <h3 className="text-sm font-black text-ink uppercase tracking-tight flex items-center justify-center sm:justify-start gap-1.5">
+              {/* GỘP ENGLISH HUB: TỪ VỰNG, LUYỆN TẬP, TRÒ CHƠI */}
+              <div className="mx-auto max-w-2xl w-full px-2 mb-2">
+                <div className="bg-[#fffbeb] p-2 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-sm border border-amber-200">
+                  <div className="pl-2">
+                    <h3 className="text-sm font-black text-amber-900 uppercase tracking-tight flex items-center justify-center sm:justify-start gap-1.5">
                       <Sparkles className="w-4 h-4 text-amber-500" /> English Hub
                     </h3>
-                    <p className="text-[10px] text-ink/40 font-bold uppercase mt-0.5">Chế độ rèn luyện & thực hành tiếng Anh</p>
                   </div>
 
-                  <div className="relative">
-                    <select
-                      value={activeEnglishSubTab}
-                      onChange={(e) => setActiveEnglishSubTab(e.target.value as any)}
-                      className="text-xs font-black bg-white border-2 border-ink rounded-xl pl-4 pr-10 py-2 outline-none text-ink shadow-[3px_3px_0_var(--color-ink)] cursor-pointer uppercase tracking-wider appearance-none min-w-[210px] select-none"
-                      style={{
-                        backgroundImage: "url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpolyline points=%226 9 12 15 18 9%22%3E%3C/polyline%3E%3C/svg%3E')",
-                        backgroundRepeat: 'no-repeat',
-                        backgroundPosition: 'right 12px center',
-                        backgroundSize: '16px'
-                      }}
-                    >
-                      <option value="Academy">📖 Từ vựng chính (Vocab)</option>
-                      <option value="SRS">🧠 Ghi nhớ ngắt quãng (SRS)</option>
-                      <option value="Dictation">🎧 Chép chính tả (Dictation)</option>
-                      <option value="Speech">🎙️ Luyện phát âm (Speech)</option>
-                      <option value="Translation">🔤 Chuyển ngữ (Translation)</option>
-                      <option value="Reflex">⚡ Phản xạ nhanh (Reflex)</option>
-                      <option value="Learning Games">🎮 Trò chơi ôn tập (Games)</option>
-                    </select>
+                  <div className="flex bg-amber-100/50 p-1 rounded-xl">
+                    {(["Từ Vựng", "Luyện Tập", "Trò Chơi"] as const).map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveEnglishSubTab(tab)}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300 ${activeEnglishSubTab === tab ? "bg-amber-500 text-white shadow-sm" : "text-amber-800/60 hover:text-amber-700 hover:bg-amber-100"}`}
+                      >
+                        {tab}
+                      </button>
+                    ))}
                   </div>
                 </div>
+
+                {/* Sub-tabs for Practice Module */}
+                {activeEnglishSubTab === "Luyện Tập" && (
+                  <div className="flex justify-center flex-wrap gap-2 mt-3 animate-in slide-in-from-top-2">
+                    {[
+                      { id: "Dictation", label: "🎧 Chép chính tả", name: "Dictation" },
+                      { id: "Speech", label: "🎙️ Phát âm", name: "Speech" },
+                      { id: "Translation", label: "🔤 Dịch thuật", name: "Translation" },
+                      { id: "Reflex", label: "⚡ Phản xạ", name: "Reflex" },
+                      { id: "SRS", label: "🧠 Ghi nhớ (SRS)", name: "SRS" },
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActivePracticeSubTab(tab.id as any)}
+                        className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg border-2 transition-all ${activePracticeSubTab === tab.id ? "bg-white text-ink border-ink" : "bg-white/50 text-ink/40 border-transparent hover:border-ink/20"}`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
-              {activeEnglishSubTab === "Academy" && <Academy words={words} setWords={setWords} tags={tags} setTags={setTags} />}
-              {activeEnglishSubTab === "Learning Games" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={setActiveEnglishSubTab} />}
-              {activeEnglishSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} words={words} setWords={setWords} />}
-              {activeEnglishSubTab === "Speech" && <SpeechGame words={words} updateWordDifficulty={updateWordDifficulty} />}
-              {activeEnglishSubTab === "Translation" && <TranslationPractice words={words} setWords={setWords} />}
-              {activeEnglishSubTab === "Reflex" && <ReflexPractice />}
-              {activeEnglishSubTab === "SRS" && <Flashcards words={words} setWords={setWords} />}
+              {activeEnglishSubTab === "Từ Vựng" && <Academy words={words} setWords={setWords} tags={tags} setTags={setTags} />}
+              {activeEnglishSubTab === "Trò Chơi" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={(val) => {
+                if(val === "Academy") setActiveEnglishSubTab("Từ Vựng");
+                else { setActiveEnglishSubTab("Luyện Tập"); setActivePracticeSubTab(val as any); }
+              }} />}
+              
+              {activeEnglishSubTab === "Luyện Tập" && (
+                <>
+                  {activePracticeSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} words={words} setWords={setWords} />}
+                  {activePracticeSubTab === "Speech" && <SpeechGame words={words} updateWordDifficulty={updateWordDifficulty} />}
+                  {activePracticeSubTab === "Translation" && <TranslationPractice words={words} setWords={setWords} />}
+                  {activePracticeSubTab === "Reflex" && <ReflexPractice />}
+                  {activePracticeSubTab === "SRS" && <Flashcards words={words} setWords={setWords} />}
+                </>
+              )}
             </div>
           </div>
         )}

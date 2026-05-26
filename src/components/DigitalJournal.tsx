@@ -20,6 +20,8 @@ import {
   Heart
 } from "lucide-react";
 
+import { HomeLedgers } from './HomeLedgers';
+
 interface DigitalJournalProps {
   logs: LogEntry[];
   wishlist: any[];
@@ -45,7 +47,10 @@ export function DigitalJournal({
   setTasks,
   achievements = [], 
   goals = [], 
-  setLogs
+  setLogs,
+  assets = [],
+  setAssets,
+  categories = []
 }: DigitalJournalProps) {
   
   // ---------------- STATIC QUOTES ----------------
@@ -73,6 +78,7 @@ export function DigitalJournal({
   const [showAddTask, setShowAddTask] = useState(false);
 
   // ---------------- PERSONAL TIPS & HACKS TABLE STATE ----------------
+  const [isPersonalOpen, setIsPersonalOpen] = useState(true);
   const [showAddTip, setShowAddTip] = useState(false);
   const [tipDesc, setTipDesc] = useState("");
   const [tipCategory, setTipCategory] = useState("Tips");
@@ -283,44 +289,177 @@ export function DigitalJournal({
     return logs.filter(l => l.date === selectedDateStr);
   }, [logs, selectedDateStr]);
 
+  
+  const [taskFilter, setTaskFilter] = useState<string>("All");
+  
   const activeTasks = useMemo(() => {
     return tasks.filter(t => !t.completed);
   }, [tasks]);
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 font-sans select-none space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-7xl mx-auto py-8 px-4 font-sans select-none space-y-8 animate-in fade-in duration-300">
       
-      {/* 1. MOTIVATIONAL WELCOME HEADER */}
-      <div className="bg-gradient-to-tr from-[#fff9f0] to-[#fffdf9] p-8 rounded-3xl sketch-border border-ink relative overflow-hidden flex flex-col md:flex-row items-center justify-between shadow-sm gap-6">
-        <div className="space-y-2 text-center md:text-left">
-          <div className="inline-flex items-center gap-2 bg-[#fbcfe8] px-3 py-1 text-[10px] font-black uppercase rounded-full border-2 border-ink tracking-wider">
-            <Sparkles size={12} className="text-pink-600 animate-spin" /> Welcome Home!
-          </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold font-sans tracking-tight uppercase leading-none text-ink">
-            Góc Bình Yên Của Bạn
-          </h1>
-          <p className="font-hand text-lg text-ink/75">
-            "{quotes[quoteIndex].text}" – <span className="font-sans font-bold text-xs uppercase tracking-wider text-[#af1e2d]">{quotes[quoteIndex].author}</span>
-          </p>
-        </div>
-
-        <div className="flex gap-4 md:border-l border-ink/10 pl-0 md:pl-8 text-center shrink-0">
-          <div className="p-3 bg-white/75 rounded-2xl border border-dashed border-ink/20 min-w-[#100px]">
-            <p className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">Việc Cần Làm</p>
-            <p className="text-2xl font-black text-sky-600 font-sans mt-1">{activeTasks.length}</p>
-          </div>
-          <div className="p-3 bg-white/75 rounded-2xl border border-dashed border-ink/20 min-w-[#100px]">
-            <p className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">Huy Chương</p>
-            <p className="text-2xl font-black text-amber-500 font-sans mt-1">{achievements.length}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. DUAL INTERACTIVE HUB (Calendar & Tasks) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* OVERRIDE GRID 1: WELCOME & TASKS (8 cols) and CALENDAR (4 cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-2 border-b-2 border-ink/5">
         
-        {/* INTERACTIVE MINI-CALENDAR GRID (5 Cols) */}
-        <div className="lg:col-span-6 space-y-4">
+        {/* LEFT COLUMN: WELCOME + TASKS */}
+        <div className="lg:col-span-8 space-y-6">
+          
+          {/* 1. MOTIVATIONAL WELCOME HEADER */}
+          <div className="bg-gradient-to-tr from-[#fff9f0] to-[#fffdf9] p-8 rounded-3xl sketch-border border-ink relative overflow-hidden flex flex-col md:flex-row items-center justify-between shadow-sm gap-6">
+            <div className="space-y-2 text-center md:text-left">
+              <div className="inline-flex items-center gap-2 bg-[#fbcfe8] px-3 py-1 text-[10px] font-black uppercase rounded-full border-2 border-ink tracking-wider">
+                <Sparkles size={12} className="text-pink-600 animate-spin" /> Welcome Home!
+              </div>
+              <h1 className="text-3xl md:text-4xl font-extrabold font-sans tracking-tight uppercase leading-none text-ink">
+                Góc Bình Yên Của Bạn
+              </h1>
+              <p className="font-hand text-lg text-ink/75">
+                "{quotes[quoteIndex].text}" – <span className="font-sans font-bold text-xs uppercase tracking-wider text-[#af1e2d]">{quotes[quoteIndex].author}</span>
+              </p>
+            </div>
+
+            <div className="flex gap-4 md:border-l border-ink/10 pl-0 md:pl-8 text-center shrink-0">
+              <div className="p-3 bg-white/75 rounded-2xl border border-dashed border-ink/20 min-w-[#100px]">
+                <p className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">Việc Cần Làm</p>
+                <p className="text-2xl font-black text-sky-600 font-sans mt-1">{activeTasks.length}</p>
+              </div>
+              <div className="p-3 bg-white/75 rounded-2xl border border-dashed border-ink/20 min-w-[#100px]">
+                <p className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">Huy Chương</p>
+                <p className="text-2xl font-black text-amber-500 font-sans mt-1">{achievements.length}</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* TASKS COMPONENT */}
+          <div className="bg-white/90 p-5 rounded-2xl sketch-border border-ink/60 space-y-4 shadow-sm min-h-[380px]">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-2.5 border-ink/15 gap-2">
+              <span className="text-xs uppercase font-extrabold tracking-wider text-sky-850 flex items-center gap-1.5 shrink-0">
+                <Check size={16} className="text-emerald-500 stroke-[3]" />
+                What's The Next Thing To Do?
+              </span>
+              <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+                <select
+                  value={taskFilter}
+                  onChange={(e) => setTaskFilter(e.target.value)}
+                  className="px-2 py-1 bg-ink/5 border border-ink/10 rounded-lg text-[10px] uppercase font-bold font-sans text-ink outline-none tracking-widest cursor-pointer"
+                >
+                  <option value="All">Tất Cả</option>
+                  <option value="Priority:High">Ưu tiên Cao</option>
+                  <option value="Priority:Medium">Ưu tiên Trung</option>
+                  <option value="Priority:Low">Ưu tiên Thấp</option>
+                  {goals.map(g => <option key={g.id} value={"Goal:" + g.id}>Mục tiêu: {g.title}</option>)}
+                </select>
+                <button onClick={() => setShowAddTask(!showAddTask)} className="p-1 hover:bg-ink hover:text-paper rounded border border-ink/20 shrink-0">
+                  <Plus size={14} className={showAddTask ? "rotate-45" : ""} />
+                </button>
+              </div>
+            </div>
+
+            {showAddTask && (
+              <form onSubmit={handleAddTask} className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex flex-col gap-2">
+                <input
+                  type="text"
+                  placeholder="Tôi sẽ bắt tay vào làm việc gì?"
+                  value={newTaskContent}
+                  onChange={e => setNewTaskContent(e.target.value)}
+                  className="px-3 py-2 text-xs bg-white rounded-lg border border-blue-200 outline-none w-full font-bold text-ink"
+                  required
+                />
+                <div className="flex gap-2">
+                  <select
+                    value={newTaskGoalId}
+                    onChange={e => setNewTaskGoalId(e.target.value)}
+                    className="flex-1 px-2 py-1 text-xs bg-white rounded-lg border border-blue-200 outline-none max-w-[150px]"
+                  >
+                    <option value="">(Không có mục tiêu lớn)</option>
+                    {goals.map(g => (
+                      <option key={g.id} value={g.id}>{g.title}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={newTaskPriority}
+                    onChange={e => setNewTaskPriority(e.target.value as any)}
+                    className="flex-1 px-2 py-1 text-xs bg-white text-ink font-bold rounded-lg border border-blue-200 outline-none uppercase max-w-[100px]"
+                  >
+                    <option value="High">Cao</option>
+                    <option value="Medium">Trung Bình</option>
+                    <option value="Low">Thấp</option>
+                  </select>
+                  <button type="submit" className="flex-1 px-3 py-1 bg-ink text-white font-black text-xs uppercase tracking-widest rounded-lg">
+                    Thêm Ngay
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* list display */}
+            {activeTasks.filter(t => {
+              if (taskFilter === "All") return true;
+              if (taskFilter.startsWith("Priority:")) return t.priority === taskFilter.split(":")[1];
+              if (taskFilter.startsWith("Goal:")) return t.goalId === taskFilter.split(":")[1];
+              return true;
+            }).length === 0 ? (
+              <div className="text-center py-10 select-none">
+                <span className="text-3xl block">🥳</span>
+                <p className="text-xs font-hand italic text-ink/50 mt-1">Hoàn hảo! Trống trải không còn nhiệm vụ nào.</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                {activeTasks.filter(t => {
+                  if (taskFilter === "All") return true;
+                  if (taskFilter.startsWith("Priority:")) return t.priority === taskFilter.split(":")[1];
+                  if (taskFilter.startsWith("Goal:")) return t.goalId === taskFilter.split(":")[1];
+                  return true;
+                }).map(task => {
+                  const priorityStyles = 
+                    task.priority === "High" ? "bg-red-50 text-crimson border-red-200" :
+                    task.priority === "Medium" ? "bg-amber-50 text-amber-600 border-amber-200" :
+                    "bg-slate-50 text-slate-500 border-slate-200";
+                  const targetGoal = goals.find(g => g.id === task.goalId);
+
+                  return (
+                    <div 
+                      key={task.id} 
+                      className="flex items-start justify-between bg-white px-3.5 py-3 rounded-2xl border border-ink/10 hover:border-ink/20 hover:shadow-sm transition-all"
+                    >
+                      <div className="flex gap-3 min-w-0 flex-1 pr-2">
+                        <button
+                          onClick={() => handleToggleTask(task.id)}
+                          className="w-5 h-5 rounded hover:border-emerald-500 bg-emerald-50/30 border-2 border-ink/20 shrink-0 cursor-pointer flex items-center justify-center mt-0.5"
+                        ></button>
+                        
+                        <div className="min-w-0 text-left flex-1">
+                          <p className="font-bold text-xs text-ink leading-snug break-words">{task.content}</p>
+                          {targetGoal && (
+                            <span className="inline-flex mt-1 text-[10px] font-black text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-100 uppercase">
+                              🎯 Goal: {targetGoal.title}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${priorityStyles} font-mono shrink-0`}>
+                          {task.priority}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="p-1 hover:text-crimson text-ink/30 cursor-pointer shrink-0"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* RIGHT COLUMN: CALENDAR (4 Cols) */}
+        <div className="lg:col-span-4 space-y-4">
           <div className="bg-white/90 p-5 rounded-2xl sketch-border border-ink/60 space-y-4 shadow-sm">
             
             <div className="flex items-center justify-between border-b pb-2.5 border-ink/15">
@@ -434,137 +573,33 @@ export function DigitalJournal({
               </form>
             </div>
           </div>
-        </div>
 
-        {/* GOALS & WHAT'S THE NEXT THING TO DO (7 Cols) */}
-        <div className="lg:col-span-6 space-y-4">
-          <div className="bg-white/90 p-5 rounded-2xl sketch-border border-ink/60 space-y-4 shadow-sm min-h-[380px]">
-            
-            <div className="flex items-center justify-between border-b pb-2.5 border-ink/15">
-              <span className="text-xs uppercase font-extrabold tracking-wider text-sky-850 flex items-center gap-1.5">
-                <Check size={16} className="text-emerald-500 stroke-[3]" />
-                What's The Next Thing To Do?
-              </span>
-
-              <button
-                onClick={() => setShowAddTask(!showAddTask)}
-                className="text-[10px] py-1 px-3 font-black bg-sky-50 border border-sky-100 text-sky-700 hover:bg-sky-100 rounded-lg transition-all uppercase tracking-wider cursor-pointer"
-              >
-                {showAddTask ? "Đóng form" : "Thêm việc mới"}
-              </button>
-            </div>
-
-            {/* Task Add Form Overlay */}
-            {showAddTask && (
-              <form onSubmit={handleAddTask} className="p-4 bg-sky-50/55 rounded-xl border border-dashed border-sky-200 space-y-3.5">
-                <div className="flex gap-2.5 items-center">
-                  <input
-                    type="text"
-                    value={newTaskContent}
-                    onChange={(e) => setNewTaskContent(e.target.value)}
-                    placeholder="Nhập việc tiếp theo cần triển khai..."
-                    className="flex-1 px-3 py-1.5 text-xs bg-white rounded-lg border border-ink/10 focus:outline-none text-ink font-sans"
-                    required
-                  />
-                  
-                  <select
-                    value={newTaskPriority}
-                    onChange={(e: any) => setNewTaskPriority(e.target.value)}
-                    className="text-xs font-bold bg-white text-ink border border-ink/10 rounded-lg px-2 py-1.5 outline-none cursor-pointer"
-                  >
-                    <option value="Low">Thấp</option>
-                    <option value="Medium">Trung</option>
-                    <option value="High">Cao</option>
-                  </select>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-black uppercase text-ink/40 tracking-wider">Mục tiêu gắn liền:</span>
-                    <select
-                      value={newTaskGoalId}
-                      onChange={(e) => setNewTaskGoalId(e.target.value)}
-                      className="text-[10px] py-1 bg-white border border-ink/10 rounded-md focus:outline-none text-ink font-sans font-bold cursor-pointer pr-4"
-                    >
-                      <option value="">(Không gắn mục tiêu)</option>
-                      {goals.filter(g => !g.isCompleted).map(g => (
-                        <option key={g.id} value={g.id}>{g.title}</option>
-                      ))}
-                    </select>
+          {/* UPCOMING EVENTS */}
+          <div className="bg-white/90 p-5 rounded-2xl sketch-border border-ink/60 shadow-sm mt-4">
+            <span className="text-xs uppercase font-extrabold tracking-wider text-rose-700 flex items-center gap-1.5 border-b pb-2.5 border-rose-200 mb-3">
+              <Sparkles className="w-4 h-4 text-rose-500" />
+              Sự Kiện Sắp Tới
+            </span>
+            <div className="space-y-2">
+              {logs.filter(l => l.type === 'Event' && l.date >= new Date().toISOString().split("T")[0])
+                .sort((a,b) => a.date.localeCompare(b.date))
+                .slice(0, 3)
+                .map(event => (
+                  <div key={event.id} className="flex gap-2 items-start text-xs border-l-2 border-rose-400 pl-2">
+                    <span className="bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded font-mono font-bold shrink-0">{event.date.slice(5).replace("-", "/")}</span>
+                    <span className="text-ink truncate">{event.content}</span>
                   </div>
-
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 bg-ink text-white font-black text-[10px] rounded-lg tracking-wider uppercase cursor-pointer"
-                  >
-                    Thêm Ngay
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Tasks list display */}
-            {activeTasks.length === 0 ? (
-              <div className="text-center py-10 select-none">
-                <span className="text-3xl block">🥳</span>
-                <p className="text-xs font-hand italic text-ink/50 mt-1">Hết sạch nhiệm vụ dồn nợ rồi! Cứ thư thả bạn nhé!</p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[290px] overflow-y-auto pr-1">
-                {activeTasks.map(task => {
-                  const priorityStyles = 
-                    task.priority === "High" ? "bg-red-50 text-crimson border-red-200" :
-                    task.priority === "Medium" ? "bg-amber-50 text-amber-600 border-amber-200" :
-                    "bg-slate-50 text-slate-500 border-slate-200";
-
-                  const targetGoal = goals.find(g => g.id === task.goalId);
-
-                  return (
-                    <div 
-                      key={task.id} 
-                      className="flex items-start justify-between bg-white px-3.5 py-3 rounded-2xl border border-ink/10 hover:border-ink/20 hover:shadow-sm group/task transition-all"
-                    >
-                      <div className="flex items-center gap-3 min-w-0 pr-2">
-                        <button
-                          onClick={() => handleToggleTask(task.id)}
-                          className="w-4 h-4 rounded-md border border-ink/20 hover:border-emerald-500 bg-white flex items-center justify-center shrink-0 cursor-pointer"
-                        >
-                          <Check size={8} className="text-white scale-0 transition-transform duration-200" />
-                        </button>
-                        
-                        <div className="min-w-0 text-left">
-                          <p className="font-semibold text-xs text-ink">{task.content}</p>
-                          {targetGoal && (
-                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-sky-600 uppercase pr-1 font-sans mt-0.5">
-                              • Goal: {targetGoal.title}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 shrink-0 opacity-100 group-hover/task:opacity-100 transition-opacity">
-                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${priorityStyles} font-mono`}>
-                          {task.priority}
-                        </span>
-                        
-                        <button
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="p-1 hover:text-crimson text-ink/30 cursor-pointer"
-                          title="Xóa việc"
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+              ))}
+              {logs.filter(l => l.type === 'Event' && l.date >= new Date().toISOString().split("T")[0]).length === 0 && (
+                <p className="text-[10px] text-ink/40 font-hand italic">Không có sự kiện nào sắp tới.</p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 3. ACHIEMENT WALL COMPONENT */}
+      </div>{/* End of top grid */}
+
+      {/* 3. ACHIEVEMENT WALL COMPONENT */}
       <div className="bg-white/80 p-6 rounded-2xl sketch-border border-dashed border-ink/30">
         <div className="flex items-center justify-between border-b-2 border-amber-400 pb-2 mb-4">
           <span className="text-xs uppercase font-black tracking-widest text-amber-700 flex items-center gap-1.5">
@@ -607,10 +642,12 @@ export function DigitalJournal({
         )}
       </div>
 
+      <HomeLedgers assets={assets} setAssets={setAssets!} categories={categories} />
+
       {/* 4. PERSONAL TIPS, HACKS & PLACES LOGBOOK TABLE */}
       <div className="bg-white/95 p-6 rounded-2xl sketch-border border-ink shadow-sm space-y-4">
         
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pb-3.5 border-b border-ink/15 gap-3.5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pb-3.5 border-b border-ink/15 gap-3.5 cursor-pointer" onClick={() => setIsPersonalOpen(!isPersonalOpen)}>
           <div className="space-y-0.5">
             <span className="text-xs uppercase font-black tracking-widest text-[#af1e2d] flex items-center gap-1.5">
               <Bookmark className="w-5 h-5 text-[#af1e2d] shrink-0" /> 
@@ -621,7 +658,7 @@ export function DigitalJournal({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <input
               type="text"
               value={tipSearch}
@@ -632,6 +669,7 @@ export function DigitalJournal({
             
             <button
               onClick={() => {
+                setIsPersonalOpen(true);
                 setEditingTipId(null);
                 setTipDesc("");
                 setTipCategory("Tips");
@@ -647,7 +685,9 @@ export function DigitalJournal({
           </div>
         </div>
 
-        {/* Tip Inline Mutation Form */}
+        {isPersonalOpen && (
+          <div className="space-y-4 animate-in slide-in-from-top-1">
+            {/* Tip Inline Mutation Form */}
         {showAddTip && (
           <form onSubmit={handleSaveTip} className="p-4 bg-rose-50/20 rounded-xl border border-dashed border-[#af1e2d]/35 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-3.5 text-left">
@@ -803,6 +843,8 @@ export function DigitalJournal({
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
           </div>
         )}
       </div>

@@ -1792,6 +1792,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
         </div>
       </div>
       
+      {false && (
+      <>
       {/* Bảng Kê Doanh Thu Tuần - Specialized Section */}
       <div className="mt-16 animate-in fade-in slide-in-from-bottom-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b-4 border-crimson/80 pb-2 gap-4">
@@ -2323,6 +2325,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
           </div>
         </div>
       </div>
+
+      </>)}
 
       {filteredAssets.length === 0 && (
         <div className="text-center py-20 opacity-30">

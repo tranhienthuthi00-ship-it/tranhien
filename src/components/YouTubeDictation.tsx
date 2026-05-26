@@ -500,44 +500,42 @@ export function YouTubeDictation({
       if (d.id === id) {
         let updated = { ...d, [field]: value, lastModified: Date.now() };
         
-        // If content is modified, parse timestamps immediately into transcriptItems
+        // If content is modified, parse timestamps conditionally
         if (field === 'content') {
           const text = value || "";
-          const lines = text.split('\n').map((l: string) => l.trim()).filter(Boolean);
-          const timestampRegex = /^(?:\[)?(?:(\d+):)?(\d+)(?:\.(\d+))?(?:\])?[\s-:]*/;
-          let lastOffset = 0;
-          
-          const parsedItems = lines.map((line: string) => {
-            const match = line.match(timestampRegex);
-            let offset = lastOffset;
-            let textClean = line;
+          // Check if user input includes explicit timestamps like [0:00]
+          const hasTimestamps = /\[\d+:\d+/.test(text) || /\[\d+\]/.test(text);
+
+          if (hasTimestamps) {
+            const lines = text.split('\n').map((l: string) => l.trim()).filter(Boolean);
+            const timestampRegex = /^(?:\[)?(?:(\d+):)?(\d+)(?:\.(\d+))?(?:\])?[\s-:]*/;
+            let lastOffset = 0;
             
-            if (match) {
-              const minutes = match[1] ? parseInt(match[1], 10) : 0;
-              const seconds = parseInt(match[2], 10);
-              const ms = match[3] ? parseInt(match[3].padEnd(3, '0').slice(0, 3), 10) : 0;
-              offset = ((minutes * 60) + seconds) * 1000 + ms;
-              textClean = line.replace(timestampRegex, '').trim();
-              lastOffset = offset + 5000;
-            } else {
-              offset = lastOffset;
-              lastOffset += 5000;
+            const parsedItems = lines.map((line: string) => {
+              const match = line.match(timestampRegex);
+              let offset = lastOffset;
+              let textClean = line;
+              
+              if (match) {
+                const minutes = match[1] ? parseInt(match[1], 10) : 0;
+                const seconds = parseInt(match[2], 10);
+                const ms = match[3] ? parseInt(match[3].padEnd(3, '0').slice(0, 3), 10) : 0;
+                offset = ((minutes * 60) + seconds) * 1000 + ms;
+                textClean = line.replace(timestampRegex, '').trim();
+                lastOffset = offset + 5000;
+              } else {
+                offset = lastOffset;
+                lastOffset += 5000;
+              }
+              return { text: textClean, offset, duration: 5000 };
+            });
+            
+            for (let i = 0; i < parsedItems.length - 1; i++) {
+              const diff = parsedItems[i+1].offset - parsedItems[i].offset;
+              if (diff > 0) parsedItems[i].duration = diff;
             }
-            return {
-              text: textClean,
-              offset,
-              duration: 5000
-            };
-          });
-          
-          for (let i = 0; i < parsedItems.length - 1; i++) {
-            const diff = parsedItems[i+1].offset - parsedItems[i].offset;
-            if (diff > 0) {
-              parsedItems[i].duration = diff;
-            }
+            updated.transcriptItems = parsedItems;
           }
-          
-          updated.transcriptItems = parsedItems;
         }
         
         return updated;
@@ -1379,13 +1377,6 @@ export function YouTubeDictation({
              </button>
            </form>
         </div>
-
-        <button 
-          onClick={() => setShowLibrary(true)}
-          className="sketch-button bg-crimson text-white border-crimson py-3 px-8 flex items-center gap-2 font-bold uppercase tracking-widest hover:scale-105 transition-all w-full sm:w-auto"
-        >
-          <Library size={18} /> Vào Kho Video
-        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-10">

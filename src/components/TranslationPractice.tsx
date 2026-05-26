@@ -233,57 +233,9 @@ export function TranslationPractice({
       setScoringSpeech(null);
     } catch (e: any) {
       console.error("Lỗi phân tích học trình 4YOU:", e);
-      alert("Lỗi phân tích: " + e.message + "\nHệ thống đã tự động kích hoạt gói bài mẫu để bạn học.");
-      // Fallback sample data package
-      setLearningPackage({
-        subtitles: [
-          { id: "sub0", en: "Welcome back to our English communication lesson.", vi: "Chào mừng bạn quay trở lại với bài học giao tiếp tiếng Anh.", startSec: 1, durationSec: 4 },
-          { id: "sub1", en: "Today, we'll explore essential phrases for daily life.", vi: "Hôm nay chúng ta sẽ khám phá các cụm từ thiết yếu trong cuộc sống.", startSec: 5, durationSec: 5 },
-          { id: "sub2", en: "This is a great opportunity to master native accents.", vi: "Đây là một cơ hội tuyệt vời để học phát âm chuẩn bản xứ.", startSec: 10, durationSec: 5 },
-          { id: "sub3", en: "Don't be afraid of making mistakes when practicing.", vi: "Đừng lo sợ việc mắc lỗi khi luyện nói tiếng Anh.", startSec: 15, durationSec: 4 }
-        ],
-        pronunciation: [
-          {
-            id: "p1",
-            en: "This is a great opportunity to practice.",
-            vi: "Đây là một cơ hội tuyệt vời để thực hành.",
-            tips: "Nối âm: 'great_opportunity' đọc mềm mại thành 'grea-topportunity'. Nuốt âm /t/ nhẹ.",
-            words: [
-              { word: "opportunity", ipa: "/ˌɒp.əˈtʃuː.nə.ti/", meaning: "cơ hội, dịp may" },
-              { word: "practice", ipa: "/ˈpræk.tɪs/", meaning: "thực hành, tập luyện" },
-              { word: "great", ipa: "/ɡreɪt/", meaning: "tuyệt vời" }
-            ]
-          }
-        ],
-        listening: [
-          {
-            id: "l1",
-            en: "Focus on your communication goals every day.",
-            vi: "Tập trung vào các mục tiêu giao tiếp của bạn mỗi ngày.",
-            blankText: "Focus on your [blank] goals every day.",
-            missingWord: "communication",
-            clue: "ngành giao tiếp, sự trao đổi thông tin",
-            startSec: 1
-          }
-        ],
-        conversation: [
-          { speaker: "Joe", textEn: "Hey, do you find shadowing practice useful?", textVi: "Này, cậu thấy luyện shadowing có ích không?" },
-          { speaker: "Hana", textEn: "Yes! It definitely boosts our speaking confidence.", textVi: "Có chứ! Nó chắc chắn làm tăng sự tự tin khi nói của tụi mình." }
-        ],
-        vocabulary: [
-          { vocabulary: "opportunity", wordType: "noun", ipa: "/ˌɒp.əˈtʃuː.nə.ti/", definition: "Một tình huống thuận lợi làm việc gì có khả năng", example: "Studying abroad is a once-in-a-lifetime opportunity." }
-        ],
-        quizzes: [
-          {
-            id: "q1",
-            type: "mc",
-            question: "What is the meaning of the word 'opportunity'?",
-            options: ["Cơ hội", "Khó khăn", "Phép màu", "Thất bại"],
-            answer: "Cơ hội",
-            explanation: "'Opportunity' dịch chuẩn xác nhất là cơ hội, thời cơ."
-          }
-        ]
-      });
+      setIsAnalyzing(false);
+      setShowManualTranscript(true);
+      setLearningPackage(null);
     } finally {
       setIsAnalyzing(false);
     }
