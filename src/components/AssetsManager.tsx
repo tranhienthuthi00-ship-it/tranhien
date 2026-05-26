@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Plus, Trash2, Edit2, Wallet, Settings, Landmark, Car, MonitorSmartphone, Gem, PiggyBank, Briefcase, Bitcoin, Building, Home, Coins, CreditCard, TrendingUp, Smartphone, Laptop, Handshake, Users, Receipt } from "lucide-react";
+import { Plus, Trash2, Edit2, Wallet, Settings, Landmark, Car, MonitorSmartphone, Gem, PiggyBank, Briefcase, Bitcoin, Building, Home, Coins, CreditCard, TrendingUp, Smartphone, Laptop, Handshake, Users, Receipt, ChevronDown, ChevronUp } from "lucide-react";
 import type { FormEvent } from "react";
 import { cn, getAbsoluteUrl } from "@/lib/utils";
 import type { Asset, AssetCategory } from "@/types";
@@ -62,6 +62,11 @@ export function AssetsManager({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"name" | "value" | "date">("date");
+
+  // Toggle Collapse UI States
+  const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
+  const [isNewMoneyCollapsed, setIsNewMoneyCollapsed] = useState(true);
+  const [isSalaryPlannerCollapsed, setIsSalaryPlannerCollapsed] = useState(true);
 
   const defaultCatID = categories.length > 0 ? categories[0].id : '';
   const [newName, setNewName] = useState("");
@@ -381,6 +386,7 @@ export function AssetsManager({
     setIsLoan(!!asset.isLoan);
     setIsNewMoney(!!asset.isNewMoney);
     setExcludeFromNetWorth(!!asset.excludeFromNetWorth);
+    setIsAddAssetOpen(true); // Open adding box automatically on Edit
 
     if (asset.currency === "GOLD" || asset.currency === "USD") {
       setNewQuantity(asset.quantity?.toString() || asset.value.toString());
@@ -413,6 +419,7 @@ export function AssetsManager({
     setExcludeFromNetWorth(false);
     setAiSuggestion(null);
     setIsCategorizing(false);
+    setIsAddAssetOpen(false); // Close drawer on cancel
   };
 
   const formatCurrency = (val: number, cur: string) => {
@@ -504,6 +511,7 @@ export function AssetsManager({
     setNewCategory(catToUse);
     setAiSuggestion(null);
     setIsCategorizing(false);
+    setIsAddAssetOpen(false); // Close form drawer on successfully adding/updating
   };
 
   const removeAsset = (id: string) => {
@@ -714,36 +722,159 @@ export function AssetsManager({
 
   return (
     <div className="max-w-4xl mx-auto px-4 font-sans pb-10">
-      <div className="mb-8 text-center flex flex-col items-center">
-         <h1 className="text-4xl font-black font-logo tracking-wide mb-2 uppercase">My Assets</h1>
-          <div className="flex flex-wrap justify-center gap-4 md:gap-8 mb-4">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Tài sản hiện có</span>
-              <span className="text-lg font-bold text-emerald-600">{formatCurrency(totalAssetsVND, 'VND')}</span>
+      {/* Dynamic Header and Controls Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="text-left">
+          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
+            SỔ QUẢN LÝ TÀI SẢN & NỢ
+          </span>
+          <h1 className="text-3xl font-black text-ink uppercase tracking-tight mt-1.5 font-sans">
+            Tài Sản & Công Nợ
+          </h1>
+          <p className="text-xs text-ink/50 mt-1">
+            Theo dõi phân lớp dòng tài sản, tiền mặt dự phòng và nợ tự động trực quan
+          </p>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Toggle Add form */}
+          <button 
+            onClick={() => setIsAddAssetOpen(!isAddAssetOpen)} 
+            className={cn(
+              "sketch-button flex items-center gap-2 px-4 py-2 text-xs font-bold transition-all shrink-0",
+              isAddAssetOpen ? "bg-emerald-600 text-white hover:bg-emerald-700 font-black shadow-md" : "bg-white hover:bg-zinc-50 border border-ink/10 text-ink"
+            )}
+            id="btn-toggle-add-asset"
+          >
+            {isAddAssetOpen ? "✕ Đóng khung nhập" : "＋ Thêm tài sản mới"}
+          </button>
+          
+          <button 
+            onClick={() => setIsManagingCats(!isManagingCats)} 
+            className={cn(
+              "sketch-button flex items-center gap-2 px-4 py-2 text-xs transition-all",
+              isManagingCats ? "bg-ink text-paper" : "bg-white hover:bg-zinc-50 border border-ink/10 text-ink"
+            )}
+            id="btn-manage-categories"
+          >
+            <Settings size={14} /> Danh Mục
+          </button>
+        </div>
+      </div>
+
+      {/* STATE-OF-THE-ART FINANCIAL BENTO GRID SCOREBOARD */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        
+        {/* Core Card: Vốn chủ sở hữu (Net Worth) - Spans 2 cols on tablet/desktop */}
+        <div className="sm:col-span-2 bg-[#18181b] text-zinc-100 p-5 rounded-2xl shadow-xl border border-zinc-800 flex flex-col justify-between relative overflow-hidden min-h-[145px]">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+          
+          <div className="flex items-start justify-between">
+            <div className="text-left">
+              <span className="text-[9px] font-extrabold text-zinc-400 uppercase tracking-widest">
+                Vốn Chủ Sở Hữu (Net Worth)
+              </span>
+              <h2 className="text-3xl font-black font-sans tracking-tight text-white mt-1">
+                {formatCurrency(totalVND, 'VND')}
+              </h2>
             </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Tiền mới</span>
-              <span className="text-lg font-bold text-amber-500">{formatCurrency(totalNewMoneyVND, 'VND')}</span>
+            <span className="p-2 bg-zinc-800 text-emerald-400 rounded-xl shadow-lg shrink-0">
+              <TrendingUp size={18} />
+            </span>
+          </div>
+
+          {/* Visual Asset-to-Debt Proportion Indicator Bar */}
+          <div className="mt-4 pt-4 border-t border-zinc-800">
+            <div className="flex items-center justify-between text-[11px] font-bold text-zinc-400 mb-1.5">
+              <span>Tỉ lệ Vốn tự có : Tổng nợ</span>
+              <span>
+                {(() => {
+                  const scale = (totalAssetsVND + totalLoansVND);
+                  const debt = totalDebtsVND;
+                  if (scale <= 0) return "100% tự chủ";
+                  const percent = Math.max(0, Math.min(100, Math.round((totalVND / scale) * 100)));
+                  return `${percent}% tự chủ`;
+                })()}
+              </span>
             </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Khoản cho vay</span>
-              <span className="text-lg font-bold text-blue-600">{formatCurrency(totalLoansVND, 'VND')}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Tổng Nợ</span>
-              <span className="text-lg font-bold text-crimson">{formatCurrency(totalDebtsVND, 'VND')}</span>
-            </div>
-            <div className="flex flex-col border-t md:border-t-0 md:border-l border-ink/10 pt-2 md:pt-0 md:pl-8">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Vốn chủ sở hữu</span>
-              <span className="text-lg font-bold text-ink">{formatCurrency(totalVND, 'VND')}</span>
+            
+            <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden flex">
+              <div 
+                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all" 
+                style={{ 
+                  width: `${Math.max(0, Math.min(100, (totalAssetsVND + totalLoansVND) > 0 ? (totalVND / (totalAssetsVND + totalLoansVND)) * 100 : 100))}%` 
+                }}
+              ></div>
             </div>
           </div>
-         
-         <div className="flex gap-2">
-           <button onClick={() => setIsManagingCats(!isManagingCats)} className={`sketch-button flex items-center gap-2 px-4 text-xs ${isManagingCats ? 'bg-ink text-paper' : ''}`}>
-             <Settings size={14} /> Quản Lý Danh Mục
-           </button>
-         </div>
+        </div>
+
+        {/* Card 2: Tổng tài sản hiện có */}
+        <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+          <div className="flex items-start justify-between">
+            <div className="text-left">
+              <span className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">
+                Tài sản tích lũy
+              </span>
+              <h3 className="text-xl font-extrabold text-emerald-600 mt-1 font-sans">
+                {formatCurrency(totalAssetsVND, 'VND')}
+              </h3>
+            </div>
+            <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
+              <Wallet size={16} />
+            </span>
+          </div>
+          
+          <div className="text-left text-[10px] text-ink/40 pt-2 border-t border-ink/5 flex items-center justify-between font-bold">
+            <span>Tiền mớ: {Math.round(totalNewMoneyVND / 1000000)}tr đ</span>
+            <span className="text-emerald-600">Ổn định</span>
+          </div>
+        </div>
+
+        {/* Card 3: Khoản cho vay (Receivables) */}
+        <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+          <div className="flex items-start justify-between">
+            <div className="text-left">
+              <span className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">
+                Khoản cho vay (Phải thu)
+              </span>
+              <h3 className="text-xl font-extrabold text-blue-600 mt-1 font-sans">
+                {formatCurrency(totalLoansVND, 'VND')}
+              </h3>
+            </div>
+            <span className="p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+              <Handshake size={16} />
+            </span>
+          </div>
+          
+          <div className="text-left text-[10px] text-ink/40 pt-2 border-t border-ink/5 flex items-center justify-between font-bold">
+            <span>Ứng trước đối tác / bạn bè</span>
+            <span className="text-blue-600">Receivable</span>
+          </div>
+        </div>
+
+        {/* Card 4: Tổng nợ phải trả */}
+        <div className="bg-red-50/20 p-5 rounded-2xl border border-red-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+          <div className="flex items-start justify-between">
+            <div className="text-left">
+              <span className="text-[9px] font-extrabold text-crimson/60 uppercase tracking-widest">
+                Nghĩa vụ nợ (Debts)
+              </span>
+              <h3 className="text-xl font-extrabold text-crimson mt-1 font-sans">
+                {formatCurrency(totalDebtsVND, 'VND')}
+              </h3>
+            </div>
+            <span className="p-2 bg-rose-50 text-crimson rounded-xl shrink-0">
+              <CreditCard size={16} />
+            </span>
+          </div>
+          
+          <div className="text-left text-[10px] text-crimson/50 pt-2 border-t border-red-100/60 flex items-center justify-between font-bold">
+            <span>Nợ tự động từ bảng kê</span>
+            <span className="text-crimson font-black uppercase">Pulsing nợ</span>
+          </div>
+        </div>
+
       </div>
 
       {isManagingCats && (
@@ -872,12 +1003,19 @@ export function AssetsManager({
         </div>
       </div>
 
-      <form onSubmit={addAsset} className="bg-paper p-5 sketch-border border-dashed border-ink/30 mb-8 mt-8 space-y-4 relative">
-        <div className="absolute -top-3 -left-3 rotate-[-10deg] z-10">
-          <span className="bg-crimson text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider sketch-border">
-            {editingId ? "Cập Nhật Tài Sản" : "Thêm Tài Sản"}
-          </span>
-        </div>
+      {isAddAssetOpen && (
+        <form onSubmit={addAsset} className={cn(
+          "bg-paper p-6 sketch-border duration-300 transition-all select-none relative mb-8 mt-8 space-y-4",
+          editingId ? "border-amber-400 border-2 ring-4 ring-amber-400/20" : "border-dashed border-ink/30"
+        )}>
+          <div className="absolute -top-3 -left-3 rotate-[-5deg] z-10 transition-transform">
+            <span className={cn(
+              "text-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider",
+              editingId ? "bg-amber-500 animate-pulse" : "bg-crimson"
+            )}>
+              {editingId ? "✨ Đang Cập Nhật Tài Sản" : "＋ Thêm Tài Sản Mới"}
+            </span>
+          </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-4">
@@ -1106,8 +1244,9 @@ export function AssetsManager({
           </button>
         </div>
       </form>
+      )}
 
-      <div className="space-y-12 mb-12">
+      <div className="space-y-8 mb-12">
         {(Object.entries(regularAssetsByCategory) as [string, Asset[]][]).map(([catId, items]) => {
           const cat = getCategory(catId);
           const catTotal = items.reduce((acc, curr) => {
@@ -1116,66 +1255,122 @@ export function AssetsManager({
           }, 0);
           
           return (
-            <div key={catId} className="animate-in fade-in slide-in-from-bottom-2">
-              <div className="flex items-end justify-between mb-4 border-b-2 border-ink pb-2">
+            <div key={catId} className="bg-white/60 backdrop-blur-md rounded-2xl border border-ink/5 p-5 shadow-sm hover:shadow-md transition-all animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-ink/5 mb-4">
                 <div className="flex items-center gap-3">
-                  <span className="p-2 text-white rounded-xl" style={{ backgroundColor: getCategoryColor(catId) }}>
+                  <span className="p-2 px-2.5 text-white rounded-xl shadow-inner flex items-center justify-center shrink-0" style={{ backgroundColor: getCategoryColor(catId) }}>
                     {renderIcon(cat.icon, 20)}
                   </span>
-                  <div>
-                    <h2 className="text-xl font-bold uppercase tracking-tight">{cat.name}</h2>
-                    <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">{items.length} tài sản</p>
+                  <div className="text-left">
+                    <h2 className="text-lg font-bold text-ink uppercase tracking-wide">{cat.name}</h2>
+                    <p className="text-[10px] font-black text-ink/30 uppercase tracking-widest">{items.length} hạng mục</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Số dư</p>
-                  <p className={cn("text-lg font-bold", catTotal < 0 ? "text-crimson" : "text-ink")}>
+                <div className="text-left sm:text-right border-l sm:border-l-0 sm:border-r border-ink/5 pl-3 sm:pl-0 sm:pr-4">
+                  <p className="text-[9px] font-bold text-ink/40 uppercase tracking-widest">Tổng số dư danh mục</p>
+                  <p className={cn("text-base font-extrabold font-sans", catTotal < 0 ? "text-crimson" : "text-emerald-700")}>
                     {catTotal < 0 ? "-" : ""}{formatCurrency(Math.abs(catTotal), 'VND')}
                   </p>
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-2.5">
-                {items.map(asset => (
-                  <div key={asset.id} className={cn(
-                    "inline-flex items-center gap-2 px-3.5 py-2 bg-white/70 hover:bg-white rounded-xl border border-ink/10 text-xs transition-all relative group shadow-sm shrink-0",
-                    asset.isDebt ? "bg-red-50/55 hover:bg-red-50 border-red-200" : ""
-                  )}>
-                    <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-ink">{asset.name}</span>
-                      <span className={cn(
-                        "font-mono font-bold px-2 py-0.5 rounded-lg text-[10px]",
-                        asset.isDebt ? "text-crimson bg-crimson/5" : asset.isLoan ? "text-blue-600 bg-blue-50" : asset.isNewMoney ? "text-amber-500 bg-amber-50" : "text-[#0369a1] bg-[#e0f2fe]"
-                      )}>
-                        {asset.isDebt ? "-" : ""}{formatCurrency(asset.value, asset.currency)}
-                      </span>
-                    </div>
-                    
-                    {/* Compact actions showing on hover */}
-                    <div className="flex items-center gap-1.5 opacity-60 sm:opacity-0 group-hover:opacity-100 transition-all ml-1.5 pl-2 border-l border-ink/10">
-                      <button 
-                        onClick={() => startEdit(asset)}
-                        className="p-1 text-ink/70 hover:text-blue-600 transition-colors"
-                        title="Sửa"
-                      >
-                        <Edit2 size={10} />
-                      </button>
-                      <button 
-                        onClick={() => removeAsset(asset.id)}
-                        className="p-1 text-ink/70 hover:text-crimson transition-all"
-                        title="Xóa"
-                      >
-                        <Trash2 size={10} />
-                      </button>
-                    </div>
+              <div className="space-y-3">
+                {items.map(asset => {
+                  const isAutoSynced = asset.id.includes("auto-sync") || asset.id.includes("card-held") || asset.id.includes("revenue-held");
+                  return (
+                    <div key={asset.id} className={cn(
+                      "flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-white hover:bg-zinc-50/70 border border-ink/5 rounded-xl transition-all relative group shadow-sm",
+                      asset.isDebt ? "bg-red-50/30 hover:bg-red-50/50 border-red-100/70" : ""
+                    )}>
+                      <div className="flex flex-col gap-0.5 text-left max-w-sm">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold text-ink text-sm tracking-tight">{asset.name}</span>
+                          
+                          {/* Sync badging */}
+                          {isAutoSynced && (
+                            <span className="inline-flex items-center gap-1 bg-[#f0f9ff] text-[#0369a1] text-[9px] font-bold px-1.5 py-0.5 rounded-md border border-[#bae6fd] animate-pulse">
+                              <span className="w-1.5 h-1.5 bg-current rounded-full"></span>
+                              Tự Động Sync
+                            </span>
+                          )}
+                          
+                          {/* Custom asset type labels */}
+                          {asset.isDebt && (
+                            <span className="bg-red-150 text-crimson text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                              Nợ Phải Trả
+                            </span>
+                          )}
+                          
+                          {asset.isLoan && (
+                            <span className="bg-blue-100 text-blue-700 text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                              Mượn / Cho Vay
+                            </span>
+                          )}
 
-                    {asset.notes && (
-                      <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block bg-ink text-paper text-[10px] px-2 py-1 rounded shadow-lg z-30 pointer-events-none whitespace-pre max-w-[200px] truncate leading-tight italic">
-                        {asset.notes}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                          {asset.isNewMoney && (
+                            <span className="bg-amber-100 text-amber-700 text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                              Tiền Mới Nhập
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Elegant direct note block */}
+                        {asset.notes && (
+                          <span className="text-[11px] text-ink/50 leading-normal line-clamp-2 max-w-md italic font-sans mt-0.5 whitespace-pre-line">
+                            {asset.notes}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between sm:justify-end gap-3.5">
+                        <div className="text-left sm:text-right font-sans">
+                          {/* Currency Conversions details if applicable */}
+                          {asset.currency !== "VND" && (
+                            <div className="text-[10px] text-ink/40 font-bold whitespace-nowrap">
+                              {asset.quantity} {asset.currency === "GOLD" ? "chỉ vàng" : asset.currency} × {asset.exchangeRate?.toLocaleString('vi-VN')}đ
+                            </div>
+                          )}
+                          <div className={cn(
+                            "text-sm font-extrabold font-mono whitespace-nowrap",
+                            asset.isDebt ? "text-crimson" : "text-ink"
+                          )}>
+                            {asset.isDebt ? "-" : ""}{formatCurrency(asset.value, asset.currency)}
+                          </div>
+                        </div>
+
+                        {/* Interactive Edit and Delete inline triggers */}
+                        <div className="flex items-center gap-1 sm:opacity-0 group-hover:opacity-100 transition-all border-l border-ink/5 pl-2 relative z-10 shrink-0">
+                          <button 
+                            onClick={() => startEdit(asset)}
+                            className="p-1.5 text-ink/50 hover:text-indigo-600 hover:bg-zinc-100 rounded-lg transition-all"
+                            title="Sửa"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          
+                          <button 
+                            onClick={() => {
+                              if (isAutoSynced) {
+                                if (!window.confirm("Đây là tài sản được đồng bộ tự động từ bảng kê. Bạn có chắc chắn muốn xóa không?")) {
+                                  return;
+                                }
+                              } else {
+                                if (!window.confirm(`Xóa "${asset.name}"?`)) {
+                                  return;
+                                }
+                              }
+                              removeAsset(asset.id);
+                            }}
+                            className="p-1.5 text-ink/50 hover:text-crimson hover:bg-red-50 rounded-lg transition-all"
+                            title="Xóa"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
@@ -1183,36 +1378,51 @@ export function AssetsManager({
       </div>
 
       {/* Bảng Kê Tiền Mới - Specialized Section */}
-      <div className="mt-16 animate-in fade-in slide-in-from-bottom-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b-4 border-amber-500 pb-2 gap-4">
+      <div className="mt-16 animate-in fade-in slide-in-from-bottom-4 bg-amber-50/15 p-6 rounded-2xl border border-amber-500/10 hover:border-amber-550/25 transition-all">
+        <div 
+          onClick={() => setIsNewMoneyCollapsed(!isNewMoneyCollapsed)}
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-4 border-b-2 border-amber-500/20 gap-4 cursor-pointer group select-none relative"
+        >
            <div className="flex items-center gap-3">
-              <button className="p-2 bg-amber-500 text-white rounded-xl shadow-lg">
-                <Coins size={24} />
+              <button className="p-2.5 bg-amber-500 text-white rounded-xl shadow-lg group-hover:scale-105 transition-transform">
+                <Coins size={22} />
               </button>
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-amber-600">Bảng Kê Tiền Mới</h2>
-                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Danh sách mệnh giá từ cao đến thấp</p>
+              <div className="text-left">
+                <h2 className="text-xl font-bold uppercase tracking-tight text-amber-600 flex items-center gap-2">
+                  Bảng Kê Tiền Mới
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100/60 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    {isNewMoneyCollapsed ? "Nhấp Để Mở" : "Thu Gọn"}
+                  </span>
+                </h2>
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Danh sách phân bổ mệnh giá tiền mặt chi tiết</p>
               </div>
            </div>
            
            <div className="flex flex-wrap gap-2 items-center">
-              <div className="flex items-center gap-2 bg-amber-50 p-2 px-3 rounded-xl sketch-border border-amber-200">
+              <div className="flex items-center gap-2 bg-amber-100/50 p-2 px-3 rounded-xl border border-amber-200">
                 <div className="text-right">
-                  <p className="text-[8px] font-bold text-amber-600 uppercase tracking-widest">Đã lưu</p>
-                  <p className="text-sm font-black text-amber-700">{formatCurrency(totalNewMoneyVND, 'VND')}</p>
+                  <p className="text-[8px] font-bold text-amber-600 uppercase tracking-widest">Bộ quỹ dự phòng</p>
+                  <p className="text-sm font-black text-amber-800">{formatCurrency(totalNewMoneyVND, 'VND')}</p>
                 </div>
               </div>
 
               {hasUnsavedNewMoneyChanges && (
-                <div className="flex items-center gap-2 bg-rose-50 p-2 px-3 rounded-xl sketch-border border-rose-200 animate-pulse">
+                <div className="flex items-center gap-2 bg-rose-50 p-2 px-3 rounded-xl border border-rose-200 animate-pulse">
                   <div className="text-right">
                     <p className="text-[8px] font-bold text-rose-600 uppercase tracking-widest">Chưa lưu mới</p>
                     <p className="text-sm font-black text-rose-700">{formatCurrency(liveNewMoneyVND, 'VND')}</p>
                   </div>
                 </div>
               )}
+              
+              <div className="p-1 text-amber-600 bg-amber-50 rounded-lg group-hover:bg-amber-100 transition-all">
+                {isNewMoneyCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+              </div>
            </div>
         </div>
+
+        {!isNewMoneyCollapsed && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
 
         <div className="bg-white/50 sketch-border p-4 rounded-xl overflow-hidden mb-6">
           <div className="overflow-x-auto max-w-full">
@@ -1353,6 +1563,8 @@ export function AssetsManager({
              </button>
           </div>
         </div>
+        </div>
+       )}
       </div>
 
       {/* Bảng Kê Tiền Mặt Đang Có - Specialized Section */}

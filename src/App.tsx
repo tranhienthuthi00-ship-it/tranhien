@@ -308,6 +308,92 @@ function AppContent() {
     }
   }, [bulkCardSpends, assetCategories, assets, setAssets]);
 
+  // AUTOMATIC SYNC: Update bulk debts (Doanh thu / Bảng kê nợ) into the central assets state
+  useEffect(() => {
+    if (!setAssets || !assets) return;
+    try {
+      const validDebts = bulkDebts.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
+      const totalSum = validDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
+      const absTotalSum = Math.abs(totalSum);
+
+      const existingDebtIdx = assets.findIndex(a => a.id === "revenue-debt-auto-sync");
+
+      if (absTotalSum === 0) {
+        if (existingDebtIdx !== -1) {
+          setAssets(assets.filter(a => a.id !== "revenue-debt-auto-sync"));
+        }
+        return;
+      }
+
+      const catId = assetCategories.find(c => 
+        c.name.toLowerCase().includes("doanh thu") || 
+        c.name.toLowerCase().includes("nợ") || 
+        c.name.toLowerCase().includes("thu")
+      )?.id || (assetCategories.length > 0 ? assetCategories[0].id : '');
+
+      const formatDateHelper = (ymd: string) => {
+        try {
+          const parts = ymd.split("-");
+          return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
+        } catch {
+          return ymd;
+        }
+      };
+
+      const detailNotesList = validDebts.map(d => {
+        const val = parseFloat(d.amount.replace(/,/g, ''));
+        const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
+        return `• ${formatDateHelper(d.name)}: +${val.toLocaleString('vi-VN')} đ${dayNote}`;
+      }).join("\n");
+
+      const activeDates = bulkDebts
+        .map(d => d.name)
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b));
+      
+      let dateRangeText = "";
+      if (activeDates.length > 0) {
+        const formatDateStr = (ymd: string) => {
+          const parts = ymd.split("-");
+          return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
+        };
+        dateRangeText = ` (${formatDateStr(activeDates[0])} - ${formatDateStr(activeDates[activeDates.length - 1])})`;
+      }
+
+      const updatedDebtAsset: any = {
+        id: "revenue-debt-auto-sync",
+        name: `Nợ tích lũy doanh thu${dateRangeText} (Tự động)`,
+        category: catId,
+        value: absTotalSum,
+        currency: "VND",
+        notes: `Nợ doanh thu tích lũy tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
+        acquiredAt: Date.now(),
+        isDebt: true,
+        isNewMoney: false,
+        excludeFromNetWorth: false
+      };
+
+      if (existingDebtIdx === -1) {
+        setAssets([updatedDebtAsset, ...assets]);
+      } else {
+        const existing = assets[existingDebtIdx];
+        if (existing.value !== updatedDebtAsset.value || existing.notes !== updatedDebtAsset.notes || existing.name !== updatedDebtAsset.name || existing.category !== updatedDebtAsset.category) {
+          const updatedList = [...assets];
+          updatedList[existingDebtIdx] = {
+            ...existing,
+            name: updatedDebtAsset.name,
+            value: updatedDebtAsset.value,
+            notes: updatedDebtAsset.notes,
+            category: updatedDebtAsset.category
+          };
+          setAssets(updatedList);
+        }
+      }
+    } catch (err) {
+      console.error("Lỗi tự động đồng bộ doanh thu nợ:", err);
+    }
+  }, [bulkDebts, assetCategories, assets, setAssets]);
+
   // AUTOMATIC SYNC: Update bulk current cash (Bảng kê tiền mặt đang có) into the central assets state
   useEffect(() => {
     if (!setAssets || !assets) return;
