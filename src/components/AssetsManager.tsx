@@ -155,21 +155,136 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     return DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "", notes: "" }));
   });
 
-  useEffect(() => {
+  const [bulkCurrentCash, setBulkCurrentCash] = useState<Record<number, number>>(() => {
     try {
-      localStorage.setItem("studyHub_bulkDebts", JSON.stringify(bulkDebts));
+      const saved = localStorage.getItem("studyHub_bulkCurrentCash");
+      if (saved) return JSON.parse(saved);
     } catch (e) {
       console.error(e);
     }
-  }, [bulkDebts]);
+    return {};
+  });
+
+  // 1. Cross-Device Sync: FROM remote Firebase meta-assets TO local state
+  useEffect(() => {
+    if (!assets) return;
+    
+    // a. Debts sync
+    const debtsMeta = assets.find(a => a.id === "meta_bulk_debts");
+    if (debtsMeta && debtsMeta.notes) {
+      try {
+        const remoteArr = JSON.parse(debtsMeta.notes);
+        if (Array.isArray(remoteArr) && remoteArr.length === 7) {
+          if (JSON.stringify(bulkDebts) !== debtsMeta.notes) {
+            setBulkDebts(remoteArr);
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi đồng bộ remote bulkDebts:", err);
+      }
+    }
+
+    // b. Card Spends sync
+    const cardsMeta = assets.find(a => a.id === "meta_bulk_card_spends");
+    if (cardsMeta && cardsMeta.notes) {
+      try {
+        const remoteArr = JSON.parse(cardsMeta.notes);
+        if (Array.isArray(remoteArr) && remoteArr.length > 0) {
+          if (JSON.stringify(bulkCardSpends) !== cardsMeta.notes) {
+            setBulkCardSpends(remoteArr);
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi đồng bộ remote bulkCardSpends:", err);
+      }
+    }
+
+    // c. Current Cash sync
+    const cashMeta = assets.find(a => a.id === "meta_bulk_current_cash");
+    if (cashMeta && cashMeta.notes) {
+      try {
+        const remoteObj = JSON.parse(cashMeta.notes);
+        if (JSON.stringify(bulkCurrentCash) !== cashMeta.notes) {
+          setBulkCurrentCash(remoteObj);
+        }
+      } catch (err) {
+        console.error("Lỗi đồng bộ remote bulkCurrentCash:", err);
+      }
+    }
+  }, [assets]);
+
+  // 2. Cross-Device Sync: FROM local state TO remote Firebase meta-assets & localStorage
+  useEffect(() => {
+    try {
+      const localStr = JSON.stringify(bulkDebts);
+      localStorage.setItem("studyHub_bulkDebts", localStr);
+
+      const existing = assets.find(a => a.id === "meta_bulk_debts");
+      if (!existing || existing.notes !== localStr) {
+        const updatedMeta: Asset = {
+          id: "meta_bulk_debts",
+          name: "Meta Bulk Debts (Sync)",
+          category: "meta",
+          value: 0,
+          currency: "VND",
+          notes: localStr,
+          excludeFromNetWorth: true
+        };
+        const filtered = assets.filter(a => a.id !== "meta_bulk_debts");
+        setAssets([updatedMeta, ...filtered]);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [bulkDebts, setAssets, assets]);
 
   useEffect(() => {
     try {
-      localStorage.setItem("studyHub_bulkCardSpends", JSON.stringify(bulkCardSpends));
+      const localStr = JSON.stringify(bulkCardSpends);
+      localStorage.setItem("studyHub_bulkCardSpends", localStr);
+
+      const existing = assets.find(a => a.id === "meta_bulk_card_spends");
+      if (!existing || existing.notes !== localStr) {
+        const updatedMeta: Asset = {
+          id: "meta_bulk_card_spends",
+          name: "Meta Bulk Card Spends (Sync)",
+          category: "meta",
+          value: 0,
+          currency: "VND",
+          notes: localStr,
+          excludeFromNetWorth: true
+        };
+        const filtered = assets.filter(a => a.id !== "meta_bulk_card_spends");
+        setAssets([updatedMeta, ...filtered]);
+      }
     } catch (e) {
       console.error(e);
     }
-  }, [bulkCardSpends]);
+  }, [bulkCardSpends, setAssets, assets]);
+
+  useEffect(() => {
+    try {
+      const localStr = JSON.stringify(bulkCurrentCash);
+      localStorage.setItem("studyHub_bulkCurrentCash", localStr);
+
+      const existing = assets.find(a => a.id === "meta_bulk_current_cash");
+      if (!existing || existing.notes !== localStr) {
+        const updatedMeta: Asset = {
+          id: "meta_bulk_current_cash",
+          name: "Meta Bulk Current Cash (Sync)",
+          category: "meta",
+          value: 0,
+          currency: "VND",
+          notes: localStr,
+          excludeFromNetWorth: true
+        };
+        const filtered = assets.filter(a => a.id !== "meta_bulk_current_cash");
+        setAssets([updatedMeta, ...filtered]);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [bulkCurrentCash, setAssets, assets]);
 
   // AUTOMATIC SYNC: Update bulk card spends credit card debt into the central assets state
   useEffect(() => {
@@ -257,6 +372,71 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
       console.error("Lỗi tự động đồng bộ nợ thẻ tín dụng:", err);
     }
   }, [bulkCardSpends, categories, assets, setAssets, defaultCatID]);
+
+  // AUTOMATIC SYNC: Update bulk current cash (Bảng kê tiền mặt đang có) into the central assets state
+  useEffect(() => {
+    if (!setAssets || !assets) return;
+    try {
+      const denominations = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000];
+      const totalSum = denominations.reduce((sum, den) => {
+        const val = bulkCurrentCash[den] || 0;
+        return sum + (den * val);
+      }, 0);
+
+      const existingCashIdx = assets.findIndex(a => a.id === "current-cash-auto-sync");
+
+      if (totalSum === 0) {
+        if (existingCashIdx !== -1) {
+          setAssets(assets.filter(a => a.id !== "current-cash-auto-sync"));
+        }
+        return;
+      }
+
+      const catId = categories.find(c => 
+        c.name.toLowerCase().includes("tiền mặt") || 
+        c.name.toLowerCase().includes("tiền") || 
+        c.name.toLowerCase().includes("wallet")
+      )?.id || "cat-money";
+
+      const detailNotesList = denominations.map(den => {
+        const qty = bulkCurrentCash[den] || 0;
+        if (qty <= 0) return null;
+        return `• ${den.toLocaleString('vi-VN')} đ: ${qty} tờ = ${(den * qty).toLocaleString('vi-VN')} đ`;
+      }).filter(Boolean).join("\n");
+
+      const updatedCashAsset: Asset = {
+        id: "current-cash-auto-sync",
+        name: `Tiền mặt đang có (Bảng kê tự động)`,
+        category: catId,
+        value: totalSum,
+        currency: "VND",
+        notes: `Tổng tiền mặt đang có từ bảng kê chi tiết:\n${detailNotesList}`,
+        acquiredAt: Date.now(),
+        isDebt: false,
+        isNewMoney: false, // SHOW IN NORMAL ASSETS!
+        excludeFromNetWorth: false
+      };
+
+      if (existingCashIdx === -1) {
+        setAssets([updatedCashAsset, ...assets]);
+      } else {
+        const existing = assets[existingCashIdx];
+        if (existing.value !== updatedCashAsset.value || existing.notes !== updatedCashAsset.notes || existing.name !== updatedCashAsset.name || existing.category !== updatedCashAsset.category) {
+          const updatedList = [...assets];
+          updatedList[existingCashIdx] = {
+            ...existing,
+            name: updatedCashAsset.name,
+            value: updatedCashAsset.value,
+            notes: updatedCashAsset.notes,
+            category: updatedCashAsset.category
+          };
+          setAssets(updatedList);
+        }
+      }
+    } catch (err) {
+      console.error("Lỗi tự động đồng bộ tiền mặt đang có:", err);
+    }
+  }, [bulkCurrentCash, categories, assets, setAssets]);
 
   // --- HỆ THỐNG DỰ TÍNH TIỀN LƯƠNG & DỰ CHI ---
   const [salaryInput, setSalaryInput] = useState<string>(() => {
@@ -461,19 +641,19 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
 
      const aggregatedRevenue: Asset = {
         id: `rev-held-${now}`,
-        name: `Doanh thu ${formattedDateRange}`,
+        name: `Nợ tích lũy doanh thu ${formattedDateRange}`,
         category: catId,
         value: totalSum,
         currency: "VND",
-        notes: `Bảng kê chi tiết doanh thu tích lũy:\n${detailNotesList}`,
+        notes: `Bảng kê chi tiết nợ doanh thu tuần:\n${detailNotesList}`,
         acquiredAt: now,
-        isDebt: false,
-        isNewMoney: true,
+        isDebt: true,
+        isNewMoney: false,
         excludeFromNetWorth: false
      };
 
      setAssets([aggregatedRevenue, ...assets]);
-     alert(`Đã lưu tổng doanh thu tuần trị giá +${totalSum.toLocaleString('vi-VN')}đ vào Sổ Tài Sản thành công!`);
+     alert(`Đã lưu tổng nợ doanh thu tuần trị giá +${totalSum.toLocaleString('vi-VN')}đ vào Sổ Tài Sản (Mục Nợ) thành công!`);
      handleResetBulkDebts();
   };
 
@@ -673,42 +853,46 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     return value;
   };
 
+  const sanitizedAssets = useMemo(() => {
+    return assets.filter(a => !a.id.startsWith("meta_"));
+  }, [assets]);
+
   const totalVND = useMemo(() => {
-    return assets.reduce((acc, curr) => {
+    return sanitizedAssets.reduce((acc, curr) => {
       if (curr.excludeFromNetWorth) return acc;
       const val = getValueInVND(curr.value, curr.currency, curr.exchangeRate);
       return curr.isDebt ? acc - val : acc + val;
     }, 0);
-  }, [assets]);
+  }, [sanitizedAssets]);
 
   const totalAssetsVND = useMemo(() => {
     // Assets that are not debt, not loan, NOT new money, and NOT excluded from report
-    return assets.filter(a => !a.isDebt && !a.isLoan && !a.isNewMoney && !a.excludeFromNetWorth).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
-  }, [assets]);
+    return sanitizedAssets.filter(a => !a.isDebt && !a.isLoan && !a.isNewMoney && !a.excludeFromNetWorth).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
+  }, [sanitizedAssets]);
 
   const totalLoansVND = useMemo(() => {
-    return assets.filter(a => a.isLoan && !a.excludeFromNetWorth).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
-  }, [assets]);
+    return sanitizedAssets.filter(a => a.isLoan && !a.excludeFromNetWorth).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
+  }, [sanitizedAssets]);
 
   const totalNewMoneyVND = useMemo(() => {
-    return assets.filter(a => a.isNewMoney).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
-  }, [assets]);
+    return sanitizedAssets.filter(a => a.isNewMoney).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
+  }, [sanitizedAssets]);
 
   const liveNewMoneyVND = useMemo(() => {
     return VND_DENOMINATIONS.reduce((sum, den) => {
-      const currentAsset = assets.find(a => a.isNewMoney && a.denomination === den);
+      const currentAsset = sanitizedAssets.find(a => a.isNewMoney && a.denomination === den);
       const val = bulkCash[den] !== undefined ? bulkCash[den] : (currentAsset?.quantity || 0);
       return sum + (den * val);
     }, 0);
-  }, [assets, bulkCash]);
+  }, [sanitizedAssets, bulkCash]);
 
   const hasUnsavedNewMoneyChanges = useMemo(() => {
     return Object.keys(bulkCash).length > 0;
   }, [bulkCash]);
 
   const totalDebtsVND = useMemo(() => {
-    return assets.filter(a => a.isDebt && !a.excludeFromNetWorth).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
-  }, [assets]);
+    return sanitizedAssets.filter(a => a.isDebt && !a.excludeFromNetWorth).reduce((acc, curr) => acc + getValueInVND(curr.value, curr.currency, curr.exchangeRate), 0);
+  }, [sanitizedAssets]);
 
   const saveBulkCash = () => {
     const newAssets = assets.filter(a => !a.isNewMoney);
@@ -767,7 +951,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   };
 
   const pieData = useMemo(() => {
-    return assets
+    return sanitizedAssets
       .filter(a => !a.isDebt && !a.isNewMoney && !a.excludeFromNetWorth)
       .map(a => ({
         id: a.id,
@@ -777,10 +961,10 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
       }))
       .filter(d => d.value > 0)
       .sort((a, b) => b.value - a.value);
-  }, [assets, getCategoryColor, getValueInVND]);
+  }, [sanitizedAssets, getCategoryColor, getValueInVND]);
 
   const filteredAssets = useMemo(() => {
-    let result = [...assets];
+    let result = [...sanitizedAssets];
 
     if (sortBy === "name") {
       result.sort((a, b) => a.name.localeCompare(b.name));
@@ -791,7 +975,7 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
     }
 
     return result;
-  }, [assets, sortBy, getValueInVND]);
+  }, [sanitizedAssets, sortBy, getValueInVND]);
 
   const regularAssetsByCategory = useMemo(() => {
     const groups: Record<string, Asset[]> = {};
@@ -803,8 +987,8 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
   }, [filteredAssets]);
 
   const newMoneyAssets = useMemo(() => {
-    return assets.filter(a => a.isNewMoney).sort((a, b) => (b.acquiredAt || 0) - (a.acquiredAt || 0));
-  }, [assets]);
+    return sanitizedAssets.filter(a => a.isNewMoney).sort((a, b) => (b.acquiredAt || 0) - (a.acquiredAt || 0));
+  }, [sanitizedAssets]);
 
   const totalSalIncome = useMemo(() => {
     const parsed = parseFloat(salaryInput.replace(/,/g, ''));
@@ -1462,6 +1646,149 @@ export function AssetsManager({ assets, setAssets, categories, setCategories }: 
                <PiggyBank size={14} /> Lưu Bảng Kê
              </button>
           </div>
+        </div>
+      </div>
+
+      {/* Bảng Kê Tiền Mặt Đang Có - Specialized Section */}
+      <div className="mt-16 animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b-4 border-emerald-500 pb-2 gap-4">
+           <div className="flex items-center gap-3">
+              <button className="p-2 bg-emerald-600 text-white rounded-xl shadow-lg font-sans">
+                <Coins size={24} />
+              </button>
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-emerald-600 font-sans">Tiền Mặt Đang Có</h2>
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest font-sans">Tự động cộng dồn và cập nhật vào Sổ Tài Sản mục Tiền mặt</p>
+              </div>
+           </div>
+           
+           <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex items-center gap-2 bg-emerald-50 p-2 px-3 rounded-xl sketch-border border-emerald-200">
+                <div className="text-right">
+                  <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest font-sans">Tổng tiền mặt đang có</p>
+                  <p className="text-sm font-black text-emerald-700">
+                    {formatCurrency(
+                      VND_DENOMINATIONS.reduce((sum, den) => sum + den * (bulkCurrentCash[den] || 0), 0), 
+                      'VND'
+                    )}
+                  </p>
+                </div>
+              </div>
+              <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-50 border border-emerald-200 p-1.5 px-2.5 rounded-lg animate-pulse whitespace-nowrap font-sans">
+                ● Tự động đồng bộ
+              </span>
+           </div>
+        </div>
+
+        <div className="bg-white/50 sketch-border p-4 rounded-xl overflow-hidden mb-6">
+          <div className="overflow-x-auto max-w-full">
+            <table className="min-w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-emerald-500/10 text-[9px] font-black uppercase tracking-widest text-emerald-600 border-b-2 border-emerald-500">
+                  <th className="px-4 py-3 font-black">Mệnh giá VND</th>
+                  <th className="px-4 py-3 text-center font-black w-44">Số lượng tờ</th>
+                  <th className="px-4 py-3 text-right font-black">Thành tiền</th>
+                  <th className="px-4 py-3 text-center font-black w-24">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="font-sans divide-y divide-emerald-500/10">
+                {VND_DENOMINATIONS.map(den => {
+                  const val = bulkCurrentCash[den] || 0;
+
+                  return (
+                    <tr 
+                      key={den} 
+                      className={cn(
+                        "transition-colors hover:bg-emerald-50/45", 
+                        val > 0 ? "bg-emerald-50/15 font-bold" : "opacity-60"
+                      )}
+                    >
+                      <td className="px-4 py-3">
+                        <span className="font-black text-ink text-sm">
+                          {formatCurrency(den, "VND")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newQty = Math.max(0, val - 1);
+                              setBulkCurrentCash(prev => ({ ...prev, [den]: newQty }));
+                            }}
+                            className="w-7 h-7 rounded-lg border border-ink/15 hover:bg-ink/5 flex items-center justify-center text-xs font-black select-none cursor-pointer"
+                          >
+                            −
+                          </button>
+                          <input 
+                            type="number"
+                            min="0"
+                            value={val || ""}
+                            onChange={(e) => {
+                              const qty = parseInt(e.target.value) || 0;
+                              setBulkCurrentCash(prev => ({ ...prev, [den]: qty }));
+                            }}
+                            placeholder="0"
+                            className="w-16 text-center font-bold text-emerald-600 bg-white border border-ink/15 rounded-lg py-1 outline-none focus:border-emerald-500 text-xs shadow-inner"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newQty = val + 1;
+                              setBulkCurrentCash(prev => ({ ...prev, [den]: newQty }));
+                            }}
+                            className="w-7 h-7 rounded-lg border border-ink/15 hover:bg-ink/5 flex items-center justify-center text-xs font-black select-none cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono font-black text-emerald-600 text-sm whitespace-nowrap">
+                        {formatCurrency(den * val, 'VND')}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setBulkCurrentCash(prev => ({ ...prev, [den]: 0 }));
+                          }}
+                          disabled={val === 0}
+                          className={cn(
+                            "text-[10px] font-bold px-2 py-1 rounded transition-all",
+                            val === 0 
+                              ? "text-ink/20 cursor-not-allowed" 
+                              : "text-crimson hover:bg-crimson/5 hover:text-red-700 cursor-pointer"
+                          )}
+                          title="Đặt lại về 0"
+                        >
+                          Xóa
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-emerald-50/50 sketch-border border-dashed border-emerald-200 rounded-xl mb-10">
+          <p className="text-xs text-ink/70 leading-relaxed text-center sm:text-left font-sans">
+            💡 Số tiền từ bảng kê này được tự động cộng dồn và đồng bộ trực tiếp thành tài sản <span className="font-bold text-emerald-600">"Tiền mặt đang có (Bảng kê tự động)"</span> trong Sổ Tài Sản. Trực quan và tức thời trên mọi thiết bị!
+          </p>
+          <button 
+            type="button"
+            onClick={() => setBulkCurrentCash({})}
+            disabled={Object.values(bulkCurrentCash).reduce((sum, v) => sum + v, 0) === 0}
+            className={cn(
+              "sketch-button text-xs py-2 px-6 font-bold uppercase tracking-widest shrink-0 transition-all font-sans",
+              Object.values(bulkCurrentCash).reduce((sum, v) => sum + v, 0) === 0 
+                ? "text-ink/20 cursor-not-allowed border-ink/5" 
+                : "text-crimson hover:bg-crimson/5 border-crimson hover:border-crimson cursor-pointer"
+            )}
+          >
+            Đặt lại toàn bộ về 0
+          </button>
         </div>
       </div>
       
