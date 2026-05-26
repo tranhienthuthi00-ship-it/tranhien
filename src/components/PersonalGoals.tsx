@@ -120,52 +120,28 @@ export function PersonalGoals({
     await setGoals(updatedGoals);
   };
 
-  // Synchronize Goal completed state based on associated tasks
+  // Synchronize Goal completed progress based on associated tasks without auto-completing
   useEffect(() => {
     if (goals.length === 0) return;
 
     let goalsChanged = false;
-    let newAchievements: Achievement[] = [];
-    let completedGoalToCelebrate: StudyGoal | null = null;
 
     const updatedGoals = goals.map(g => {
       const goalTasks = tasks.filter(t => t.goalId === g.id);
-      if (goalTasks.length === 0) return g; // For goals with no tasks, let user toggle manually
+      if (goalTasks.length === 0) return g; // For goals with no tasks
 
       const completedCount = goalTasks.filter(t => t.completed).length;
       const totalCount = goalTasks.length;
-      const isCompletedNow = completedCount === totalCount && totalCount > 0;
 
-      // Check if state changed to avoid infinite loop
+      // Check if state changed to avoid infinite loop.
+      // We do NOT change g.isCompleted here based on tasks.
       if (
-        g.isCompleted !== isCompletedNow ||
         g.currentValue !== completedCount ||
         g.targetValue !== totalCount
       ) {
         goalsChanged = true;
-        const now = Date.now();
-        
-        // If it transitioned from incomplete to complete, schedule achievement & celebration
-        if (isCompletedNow && !g.isCompleted) {
-          const alreadyHasAch = achievements.some(a => a.goalId === g.id);
-          if (!alreadyHasAch) {
-            const ach: Achievement = {
-              id: `ach-${Date.now()}-${g.id}`,
-              goalId: g.id,
-              title: `Hoàn thành: ${g.title}`,
-              description: "Mục tiêu đã hoàn tất!",
-              unlockedAt: now,
-              icon: 'Medal'
-            };
-            newAchievements.push(ach);
-            completedGoalToCelebrate = { ...g, isCompleted: true, completedAt: now, currentValue: completedCount, targetValue: totalCount };
-          }
-        }
-
         return {
           ...g,
-          isCompleted: isCompletedNow,
-          completedAt: isCompletedNow ? (g.completedAt || now) : undefined,
           currentValue: completedCount,
           targetValue: totalCount
         };
@@ -175,15 +151,8 @@ export function PersonalGoals({
 
     if (goalsChanged) {
       setGoals(updatedGoals);
-      if (newAchievements.length > 0) {
-        setAchievements([...newAchievements, ...achievements]);
-        if (completedGoalToCelebrate) {
-          setSelectedAchievement(newAchievements[0]);
-          setIsCelebration(true);
-        }
-      }
     }
-  }, [tasks, goals, achievements, setGoals, setAchievements]);
+  }, [tasks, goals, setGoals]);
 
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
