@@ -36,8 +36,7 @@ function AppContent() {
     dictations, setDictations,
     practiceParagraphs, setPracticeParagraphs,
     studyGoals, setStudyGoals,
-    achievements, setAchievements
-  } = useFirebase();
+    achievements, setAchievements} = useFirebase();
 
   const [activeTab, setActiveTab] = useState<Tab>("Journal");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Academy" | "Learning Games" | "Dictation" | "Speech" | "SRS" | "Translation" | "Reflex">("Academy");
@@ -218,6 +217,7 @@ function AppContent() {
               setTasks={setTasks} 
               achievements={achievements} 
               goals={studyGoals} 
+              
             />
           )}
         </div>

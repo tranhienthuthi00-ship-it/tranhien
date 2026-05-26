@@ -198,3 +198,10 @@ export interface TodayTask {
   notified?: boolean;
   date?: string;
 }
+
+export interface CardSpend {
+  id: string | number;
+  name: string;
+  amount: string;
+  notes: string;
+}

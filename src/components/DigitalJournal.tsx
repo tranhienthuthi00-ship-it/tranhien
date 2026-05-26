@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import type { LogEntry, WishlistItem, Habit, Asset, Word, FoodPlace, ContentIdea, Task, Achievement, StudyGoal, AssetCategory } from "../types";
+import type { LogEntry, WishlistItem, Habit, Asset, Word, FoodPlace, ContentIdea, Task, Achievement, StudyGoal, AssetCategory, CardSpend } from "../types";
 import { ScrapbookCreator } from "./ScrapbookCreator";
 import { 
   BookOpen, 
@@ -25,7 +25,8 @@ import {
   Trash2,
   Heart,
   Check,
-  CreditCard
+  CreditCard,
+  Edit2
 } from "lucide-react";
 
 interface DigitalJournalProps {
@@ -42,6 +43,8 @@ interface DigitalJournalProps {
   setLogs?: React.Dispatch<React.SetStateAction<LogEntry[]>>;
   setAssets?: (assets: Asset[]) => void;
   categories?: AssetCategory[];
+  cardSpends?: CardSpend[];
+  setCardSpends?: (spends: CardSpend[]) => void;
 }
 
 interface DailySummary {
@@ -61,11 +64,10 @@ const formatToVNShortDate = (dateStr: string) => {
   try {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
-    const weekdays = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
-    const w = weekdays[d.getDay()];
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${w}, ${day}/${month}`;
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
   } catch {
     return dateStr;
   }
@@ -84,7 +86,9 @@ export function DigitalJournal({
   goals = [], 
   setLogs,
   setAssets,
-  categories = []
+  categories = [],
+  cardSpends = [],
+  setCardSpends
 }: DigitalJournalProps) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [quoteIndex, setQuoteIndex] = useState(0);
@@ -98,217 +102,6 @@ export function DigitalJournal({
   // Goal Selection for tasks
   const [newTaskGoalId, setNewTaskGoalId] = useState<string>("");
 
-  // Helpers for Credit Card Spends
-  const getLast7Dates = () => {
-    const dates = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      dates.push(d.toISOString().split("T")[0]);
-    }
-    return dates;
-  };
-
-  const DEFAULT_WEEK_DEBTS = getLast7Dates().map((dateStr, idx) => ({
-    id: idx + 1,
-    name: dateStr,
-    amount: "",
-    notes: ""
-  }));
-
-  const [bulkCardSpends, setBulkCardSpends] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => {
-    try {
-      const saved = localStorage.getItem("studyHub_bulkCardSpends");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    return DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "", notes: "" }));
-  });
-
-  React.useEffect(() => {
-    try {
-      localStorage.setItem("studyHub_bulkCardSpends", JSON.stringify(bulkCardSpends));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [bulkCardSpends]);
-
-  // AUTOMATIC SYNC: Auto-save or update "card-debt-auto-sync" in assets when bulkCardSpends updates
-  React.useEffect(() => {
-    if (!setAssets || !assets) return;
-
-    try {
-      const validSpends = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
-      const totalSum = validSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
-      const absTotalSum = Math.abs(totalSum);
-
-      const existingDebtIdx = assets.findIndex(a => a.id === "card-debt-auto-sync");
-
-      if (absTotalSum === 0) {
-        if (existingDebtIdx !== -1) {
-          setAssets(assets.filter(a => a.id !== "card-debt-auto-sync"));
-        }
-        return;
-      }
-
-      const catId = categories.find(c => 
-        c.name.toLowerCase().includes("tín dụng") || 
-        c.name.toLowerCase().includes("thẻ") || 
-        c.name.toLowerCase().includes("credit") || 
-        c.name.toLowerCase().includes("nợ")
-      )?.id || (categories.length > 0 ? categories[0].id : "card-category-id");
-
-      const formatDateHelper = (ymd: string) => {
-        try {
-          const parts = ymd.split("-");
-          return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
-        } catch {
-          return ymd;
-        }
-      };
-
-      const detailNotesList = validSpends.map(d => {
-        const val = parseFloat(d.amount.replace(/,/g, ''));
-        const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
-        return `• ${formatDateHelper(d.name)}: ${val.toLocaleString('vi-VN')} đ${dayNote}`;
-      }).join("\n");
-
-      const activeDates = bulkCardSpends
-        .map(d => d.name)
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b));
-      
-      let dateRangeText = "";
-      if (activeDates.length > 0) {
-        const formatDateStr = (ymd: string) => {
-          const parts = ymd.split("-");
-          return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
-        };
-        dateRangeText = ` (${formatDateStr(activeDates[0])} - ${formatDateStr(activeDates[activeDates.length - 1])})`;
-      }
-
-      const updatedDebtAsset: Asset = {
-        id: "card-debt-auto-sync",
-        name: `Nợ thẻ tín dụng${dateRangeText} (Tự động)`,
-        category: catId,
-        value: absTotalSum,
-        currency: "VND",
-        notes: `Dư nợ tín dụng tổng hợp tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
-        acquiredAt: Date.now(),
-        isDebt: true,
-        isNewMoney: false,
-        excludeFromNetWorth: false
-      };
-
-      if (existingDebtIdx === -1) {
-        setAssets([updatedDebtAsset, ...assets]);
-      } else {
-        const existing = assets[existingDebtIdx];
-        if (existing.value !== updatedDebtAsset.value || existing.notes !== updatedDebtAsset.notes || existing.name !== updatedDebtAsset.name) {
-          const updatedList = [...assets];
-          updatedList[existingDebtIdx] = {
-            ...existing,
-            name: updatedDebtAsset.name,
-            value: updatedDebtAsset.value,
-            notes: updatedDebtAsset.notes,
-            category: updatedDebtAsset.category
-          };
-          setAssets(updatedList);
-        }
-      }
-    } catch (err) {
-      console.error("Lỗi tự động đồng bộ nợ thẻ tín dụng:", err);
-    }
-  }, [bulkCardSpends, categories, assets, setAssets]);
-
-  const justCardRangeText = useMemo(() => {
-    const activeDates = bulkCardSpends
-      .map(d => d.name)
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b));
-    if (activeDates.length === 0) {
-      return "(Từ ngày … đến ngày …)";
-    }
-    const formatDateStr = (ymd: string) => {
-      try {
-        const portions = ymd.split("-");
-        if (portions.length === 3) {
-          return `${portions[2]}/${portions[1]}/${portions[0]}`; // DD/MM/YYYY
-        }
-        return ymd;
-      } catch {
-        return ymd;
-      }
-    };
-    const minDate = formatDateStr(activeDates[0]);
-    const maxDate = formatDateStr(activeDates[activeDates.length - 1]);
-    return `(Từ ngày ${minDate} đến ngày ${maxDate})`;
-  }, [bulkCardSpends]);
-
-  const handleResetBulkCardSpends = () => {
-    setBulkCardSpends(DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "", notes: "" })));
-  };
-
-  const handleSaveBulkCardSpends = () => {
-     if (!setAssets) {
-       alert("Lỗi: Không tìm thấy phương thức lưu tài sản!");
-       return;
-     }
-     const now = Date.now();
-     const validSpends = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
-     if (validSpends.length === 0) {
-       alert("Hãy nhập số tiền sử dụng thẻ cho ít nhất một ngày!");
-       return;
-     }
-
-     const formattedDateRange = justCardRangeText;
-     const calculatedSum = validSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
-     const totalSum = Math.abs(calculatedSum);
-     const catId = categories.find(c => 
-       c.name.toLowerCase().includes("tín dụng") || 
-       c.name.toLowerCase().includes("thẻ") || 
-       c.name.toLowerCase().includes("credit") || 
-       c.name.toLowerCase().includes("nợ")
-     )?.id || (categories.length > 0 ? categories[0].id : "");
-
-     const formatDateHelper = (ymd: string) => {
-       try {
-         const parts = ymd.split("-");
-         return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
-       } catch {
-         return ymd;
-       }
-     };
-
-     const detailNotesList = validSpends.map(d => {
-       const val = parseFloat(d.amount.replace(/,/g, ''));
-       const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
-       return `• ${formatDateHelper(d.name)}: ${val.toLocaleString('vi-VN')} đ${dayNote}`;
-     }).join("\n");
-
-     const aggregatedCardDebt: Asset = {
-        id: `card-held-${now}`,
-        name: `Nợ thẻ tín dụng ${formattedDateRange}`,
-        category: catId,
-        value: totalSum,
-        currency: "VND",
-        notes: `Bảng kê chi tiết nợ tiêu dùng thẻ tín dụng:\n${detailNotesList}`,
-        acquiredAt: now,
-        isDebt: true,
-        isNewMoney: false,
-        excludeFromNetWorth: false
-     };
-
-     setAssets([aggregatedCardDebt, ...assets]);
-     alert(`Đã lưu tổng nợ thẻ tín dụng tuần trị giá +${totalSum.toLocaleString('vi-VN')}đ vào Sổ Tài Sản (Mục Nợ) thành công!`);
-     handleResetBulkCardSpends();
-  };
 
   const [pageStickers, setPageStickers] = useState<{ [date: string]: string[] }>(() => {
     try {
@@ -755,11 +548,18 @@ export function DigitalJournal({
     });
   }, [tasks, currentPage.date]);
 
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingTaskContent, setEditingTaskContent] = useState<string>("");
+
   const handleToggleTaskInline = (id: string) => {
     if (!setTasks || !tasks) return;
-    setTasks(tasks.map(t => {
+    const taskObj = tasks.find(t => t.id === id);
+    let shouldAddLog = false;
+    
+    const updatedTasks = tasks.map(t => {
       if (t.id === id) {
         const nextCompleted = !t.completed;
+        if (nextCompleted) shouldAddLog = true;
         return {
           ...t,
           completed: nextCompleted,
@@ -767,7 +567,36 @@ export function DigitalJournal({
         };
       }
       return t;
-    }));
+    });
+
+    if (shouldAddLog && taskObj && setLogs && logs) {
+      const isGoalTask = !!taskObj.goalId;
+      const newLog: LogEntry = {
+        id: Date.now().toString() + Math.random(),
+        date: new Date().toISOString().split("T")[0],
+        type: "Event",
+        content: `Hoàn thành việc cần làm ${isGoalTask ? "của mục tiêu " : ""}: ${taskObj.content}`,
+        emoji: "🎯",
+        icon: "🎯"
+      };
+      setLogs([newLog, ...logs]);
+    }
+
+    setTasks(updatedTasks);
+  };
+
+  const startEditingTask = (task: Task) => {
+    setEditingTaskId(task.id);
+    setEditingTaskContent(task.content);
+  };
+
+  const handleSaveEditTask = () => {
+    if (!setTasks || !tasks || !editingTaskId) return;
+    if (editingTaskContent.trim()) {
+      setTasks(tasks.map(t => t.id === editingTaskId ? { ...t, content: editingTaskContent.trim() } : t));
+    }
+    setEditingTaskId(null);
+    setEditingTaskContent("");
   };
 
   const handleAddTaskInline = (e: React.FormEvent) => {
@@ -802,20 +631,6 @@ export function DigitalJournal({
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 font-sans">
       
-      {/* HEADER BAR */}
-      <div className="sketch-border bg-[#fffbeb] py-5 px-6 text-center select-none shadow-sm border-b-4 border-r-4 border-ink relative overflow-hidden mb-8 max-w-4xl mx-auto rotate-[-0.5deg]">
-        <div className="absolute top-0 right-0 left-0 h-1.5 bg-crimson" />
-        <div className="flex items-center justify-center gap-3 mt-1">
-          <BookOpen className="w-6 h-6 text-crimson" />
-          <h1 className="text-2xl font-logo font-black uppercase text-ink tracking-wide">
-            Cuốn Sổ Tay Kỷ Niệm
-          </h1>
-        </div>
-        <p className="mt-1.5 text-xs text-ink/65 font-bold uppercase tracking-wider">
-          Chiêm nghiệm & lưu giữ từng dấu chân rèn luyện mỗi ngày
-        </p>
-      </div>
-
       {/* Sidebar Focus Toggle and Layout Configuration */}
       <div className="flex justify-between items-center mb-4 select-none z-10 relative max-w-5xl mx-auto gap-4 flex-wrap">
         <div className="flex gap-2 flex-wrap">
@@ -824,7 +639,7 @@ export function DigitalJournal({
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             className="text-xs bg-white text-ink border-2 border-ink px-4 py-2 rounded-xl hover:bg-ink hover:text-white transition-all duration-200 uppercase font-black tracking-wider flex items-center gap-2 shadow-sm cursor-pointer"
           >
-            {isSidebarCollapsed ? "📖 Hiện danh sách ngày" : "📂 Ẩn bớt lịch sử (Đọc sách)"}
+            {isSidebarCollapsed ? "📖 Hiện danh sách ngày" : "📂 Ẩn bớt lịch sử"}
           </button>
         </div>
 
@@ -944,7 +759,7 @@ export function DigitalJournal({
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-black uppercase tracking-widest text-[#af1e2d] block">
-                      Trang ngày {currentPage.date.split("-").reverse().join("/")}
+                      NHẬT KÝ HÀNH TRÌNH
                     </span>
                     {dailyWeather[currentPage.date] && (
                       <span className="py-0.5 px-2 bg-amber-50 text-amber-800 text-[9px] font-black uppercase rounded-full border border-amber-200 flex items-center gap-1 shrink-0 animate-bounce">
@@ -1087,137 +902,13 @@ export function DigitalJournal({
                     * Đóng liên tiếp các công việc để mở khóa Huy Chương thăng cấp.
                   </p>
                 </div>
-
-                {/* 3. INSPIRATION STUDY & GROWTH MINDSET QUOTE (TRẠM ĐỘNG LỰC) */}
-                <div className="bg-[#fff1f2]/60 p-4 rounded-2xl border-2 border-dashed border-rose-250 relative overflow-hidden shadow-[3px_3px_0_rgba(244,63,94,0.15)] flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between border-b border-rose-200/50 pb-2 mb-2">
-                      <span className="text-xs uppercase font-black text-rose-800 flex items-center gap-1.5 font-sans">
-                        🌟 Trạm Truyền Cảm Hứng
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const quoteListLength = 6;
-                          setQuoteIndex(prev => (prev + 1) % quoteListLength);
-                        }}
-                        className="text-[8px] font-sans font-black text-rose-600 bg-white hover:bg-rose-100/30 px-2.5 py-0.5 rounded-full border border-rose-150 cursor-pointer active:scale-95 transition-all"
-                      >
-                        Gieo Ý Chí ⇄
-                      </button>
-                    </div>
-
-                    {(() => {
-                      const STUDY_QUOTES = [
-                        { text: "Nghị lực và sự kiên trì sẽ chiến thắng tất cả mọi rào cản trên thế gian.", author: "Benjamin Franklin" },
-                        { text: "Hành trình vạn dặm bắt đầu từ một bước chân nhỏ bé vững chãi mỗi ngày.", author: "Lão Tử" },
-                        { text: "Khó khăn thử thách học tập chính là cơ hội để khẳng định nỗ lực phi thường.", author: "Marcus Aurelius" },
-                        { text: "Học tập mà không suy nghĩ thì vô ích; suy nghĩ mà không học tập thì thật hiểm nghèo.", author: "Khổng Tử" },
-                        { text: "Chúng ta chính là những gì chúng ta liên tục rèn luyện hằng ngày. Thành tích là thói quen.", author: "Aristotle" },
-                        { text: "Đừng mong ước cuộc đời sẽ dễ dàng hơn, hãy nỗ lực giúp trí óc bản thân thấu suốt và nghị lực hơn.", author: "Jim Rohn" }
-                      ];
-                      const activeQuote = STUDY_QUOTES[quoteIndex] || STUDY_QUOTES[0];
-                      return (
-                        <div className="space-y-1.5 py-1 text-left">
-                          <p className="font-hand text-[17px] sm:text-[18px] leading-relaxed text-rose-950 font-black italic">
-                            "{activeQuote.text}"
-                          </p>
-                          <span className="block text-[10px] text-rose-800/60 font-sans font-bold text-right italic">
-                            — {activeQuote.author}
-                          </span>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                {/* 4. POMODORO FOCUS MACHINE (HỘP TẬP TRUNG RÈN LUYỆN) */}
-                <div className="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-300 relative overflow-hidden shadow-[3px_3px_0_rgba(100,116,139,0.15)] flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
-                      <span className="text-xs uppercase font-black text-slate-700 flex items-center gap-1.5">
-                        ⏱️ Hộp Tập Trung (Pomodoro)
-                      </span>
-
-                      {/* Mode toggle selectors */}
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => {
-                            setPomoIsActive(false);
-                            setPomoMode('Focus');
-                            setPomoTimeLeft(1500); // 25 Min
-                          }}
-                          className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded ${
-                            pomoMode === 'Focus' ? "bg-slate-700 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          Tập Trung
-                        </button>
-                        <button
-                          onClick={() => {
-                            setPomoIsActive(false);
-                            setPomoMode('Break');
-                            setPomoTimeLeft(300); // 5 Min
-                          }}
-                          className={`px-1.5 py-0.5 text-[8px] font-black uppercase rounded ${
-                            pomoMode === 'Break' ? "bg-teal-700 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          Giải Lao
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Timer digital dial content design */}
-                    <div className="flex items-center justify-between gap-4 bg-white p-2.5 rounded-xl border border-slate-200 mb-2">
-                      <div className="flex flex-col">
-                        <span className="font-mono text-2xl font-black text-slate-800 tracking-tight leading-none">
-                          {Math.floor(pomoTimeLeft / 60).toString().padStart(2, '0')}:
-                          {(pomoTimeLeft % 60).toString().padStart(2, '0')}
-                        </span>
-                        <span className="text-[8px] uppercase tracking-wider font-bold text-slate-400 mt-1 leading-none">
-                          {pomoMode === 'Focus' ? "🔥 TRONG CHU KỲ TẬP TRUNG" : "☕ GIẢI LAO PHỤC HỒI"}
-                        </span>
-                      </div>
-
-                      {/* Primary controls */}
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={() => setPomoIsActive(!pomoIsActive)}
-                          className={`px-3.5 py-1.5 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all active:scale-95 flex items-center gap-1 ${
-                            pomoIsActive 
-                              ? "bg-rose-600 text-white hover:bg-rose-700" 
-                              : "bg-emerald-600 text-white hover:bg-emerald-700"
-                          }`}
-                        >
-                          {pomoIsActive ? "Tử đầu" : "Bắt đầu"}
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setPomoIsActive(false);
-                            setPomoTimeLeft(pomoMode === 'Focus' ? 1500 : 300);
-                          }}
-                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-250 border border-slate-200 text-slate-700 text-[10px] uppercase font-bold rounded-lg cursor-pointer transition-all active:scale-95"
-                          title="Thiết lập lại đồng hồ số"
-                        >
-                          Làm lại
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-[9px] text-slate-400 leading-tight select-none">
-                    * Đeo tai nghe, bật nhạc Lofi và tập trung cao độ. Khi đồng hồ chạy hết 25 phút, hệ thống sẽ tự chép 1 dòng Event "Tập trung sâu" vào Dấu chân rèn luyện!
-                  </p>
-                </div>
               </div>
 
               {/* TODAY'S TO-DO CHECKLIST WIDGET */}
               <div className="space-y-3 bg-[#e0f2fe]/20 p-4 rounded-xl border border-dashed border-sky-300 relative">
                 <div className="flex items-center justify-between border-b border-sky-300/40 pb-2">
                   <span className="text-xs uppercase font-black text-[#0369a1] flex items-center gap-1.5">
-                    <CheckSquare className="w-4 h-4 text-[#0284c7]" /> What’s the next thing to do? ({todoTasks.length})
+                    <CheckSquare className="w-4 h-4 text-[#0284c7]" /> Kế hoạch hôm nay ({todoTasks.length})
                   </span>
                   
                   {setTasks && (
@@ -1296,7 +987,6 @@ export function DigitalJournal({
 
                       return (
                         <div key={goal.id} className="bg-white/40 p-3 rounded-lg border border-sky-200/50 space-y-2">
-                          {/* Goal Parent Row */}
                           <div className="flex items-center justify-between border-b border-sky-100/60 pb-1">
                             <span className="text-[11px] uppercase font-black text-[#0369a1] tracking-wide truncate">
                               🎯 Mục tiêu: {goal.title}
@@ -1315,36 +1005,51 @@ export function DigitalJournal({
                             )}
                           </div>
 
-                          {/* Subtasks under this Goal */}
                           <div className="space-y-1.5 pl-3 border-l border-dashed border-sky-300/40">
                             {sortedSubtasks.map(t => (
                               <div key={t.id} className="flex items-center justify-between gap-3 p-0.5 rounded-lg hover:bg-white/40 group/todo">
-                                <button
-                                  onClick={() => handleToggleTaskInline(t.id)}
-                                  className="flex items-center gap-2 text-left min-w-0"
-                                >
-                                  <span className={`w-3.5 h-3.5 rounded border border-[#1a1a1a] flex items-center justify-center cursor-pointer transition-colors shrink-0 ${t.completed ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white"}`}>
+                                <div className="flex items-center gap-2 text-left min-w-0 flex-1">
+                                  <button onClick={() => handleToggleTaskInline(t.id)} className={`w-3.5 h-3.5 rounded border border-[#1a1a1a] flex items-center justify-center cursor-pointer transition-colors shrink-0 ${t.completed ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white"}`}>
                                     {t.completed && <Check size={8} strokeWidth={4} />}
-                                  </span>
-                                  <span className={`text-sm font-hand text-lg text-ink/90 truncate leading-none ${t.completed ? "line-through opacity-45" : ""}`}>
-                                    {t.content}
-                                  </span>
-                                  <span className={`text-[7px] uppercase font-black px-1 py-0.2 rounded-xs scale-90 origin-left shrink-0 ${
-                                    t.priority === "High" ? "bg-rose-50 text-rose-600 border border-rose-100" :
-                                    t.priority === "Medium" ? "bg-amber-50 text-amber-600 border border-amber-100" :
-                                    "bg-slate-50 text-slate-500 border border-slate-200"
-                                  }`}>
-                                    {t.priority === "High" ? "Cao" : t.priority === "Medium" ? "Trung" : "Thấp"}
-                                  </span>
-                                </button>
-                                
-                                {setTasks && (
-                                  <button
-                                    onClick={() => handleDeleteTaskInline(t.id)}
-                                    className="opacity-0 group-hover/todo:opacity-100 hover:text-crimson text-ink/30 p-0.5 rounded transition-opacity cursor-pointer animate-in fade-in"
-                                  >
-                                    <Trash2 size={10} />
                                   </button>
+                                  {editingTaskId === t.id ? (
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <input 
+                                        type="text" 
+                                        value={editingTaskContent} 
+                                        onChange={(e) => setEditingTaskContent(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSaveEditTask()}
+                                        autoFocus
+                                        className="flex-1 px-2 py-0.5 text-sm font-hand border border-ink/20 rounded bg-white"
+                                      />
+                                      <button onClick={handleSaveEditTask} className="text-[9px] uppercase font-bold text-sky-600 hover:bg-sky-50 px-2 py-1 rounded border border-sky-200">Lưu</button>
+                                      <button onClick={() => setEditingTaskId(null)} className="text-[9px] uppercase font-bold text-slate-500 hover:bg-slate-50 px-2 py-1 rounded border border-slate-200">Hủy</button>
+                                    </div>
+                                  ) : (
+                                    <span className={`text-sm font-hand text-lg text-ink/90 truncate leading-none cursor-pointer ${t.completed ? "line-through opacity-45" : ""}`} onDoubleClick={() => startEditingTask(t)}>
+                                      {t.content}
+                                    </span>
+                                  )}
+                                  {editingTaskId !== t.id && (
+                                    <span className={`text-[7px] uppercase font-black px-1 py-0.2 rounded-xs scale-90 origin-left shrink-0 ${
+                                      t.priority === "High" ? "bg-rose-50 text-rose-600 border border-rose-100" :
+                                      t.priority === "Medium" ? "bg-amber-50 text-amber-600 border border-amber-100" :
+                                      "bg-slate-50 text-slate-500 border border-slate-200"
+                                    }`}>
+                                      {t.priority === "High" ? "Cao" : t.priority === "Medium" ? "Trung" : "Thấp"}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                {setTasks && editingTaskId !== t.id && (
+                                  <div className="opacity-0 group-hover/todo:opacity-100 hover:text-crimson text-ink/30 p-0.5 flex gap-1 transition-opacity animate-in fade-in">
+                                    <button onClick={() => startEditingTask(t)} className="hover:text-amber-500 cursor-pointer" title="Sửa công việc">
+                                      <Edit2 size={10} />
+                                    </button>
+                                    <button onClick={() => handleDeleteTaskInline(t.id)} className="hover:text-crimson cursor-pointer" title="Xóa công việc">
+                                      <Trash2 size={10} />
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             ))}
@@ -1366,7 +1071,6 @@ export function DigitalJournal({
 
                       return (
                         <div className="bg-white/40 p-3 rounded-lg border border-slate-200/50 space-y-2">
-                          {/* Free Row */}
                           <div className="flex items-center justify-between border-b border-slate-100/60 pb-1">
                             <span className="text-[11px] uppercase font-black text-slate-600 tracking-wide truncate">
                               📋 Việc lẻ tự do / Khác
@@ -1376,32 +1080,48 @@ export function DigitalJournal({
                           <div className="space-y-1.5 pl-3 border-l border-dashed border-slate-300/40">
                             {sortedFree.map(t => (
                               <div key={t.id} className="flex items-center justify-between gap-3 p-0.5 rounded-lg hover:bg-white/40 group/todo">
-                                <button
-                                  onClick={() => handleToggleTaskInline(t.id)}
-                                  className="flex items-center gap-2 text-left min-w-0"
-                                >
-                                  <span className={`w-3.5 h-3.5 rounded border border-[#1a1a1a] flex items-center justify-center cursor-pointer transition-colors shrink-0 ${t.completed ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white"}`}>
+                                <div className="flex items-center gap-2 text-left min-w-0 flex-1">
+                                  <button onClick={() => handleToggleTaskInline(t.id)} className={`w-3.5 h-3.5 rounded border border-[#1a1a1a] flex items-center justify-center cursor-pointer transition-colors shrink-0 ${t.completed ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white"}`}>
                                     {t.completed && <Check size={8} strokeWidth={4} />}
-                                  </span>
-                                  <span className={`text-sm font-hand text-lg text-ink/90 truncate leading-none ${t.completed ? "line-through opacity-45" : ""}`}>
-                                    {t.content}
-                                  </span>
-                                  <span className={`text-[7px] uppercase font-black px-1 py-0.2 rounded-xs scale-90 origin-left shrink-0 ${
-                                    t.priority === "High" ? "bg-rose-50 text-rose-600 border border-rose-100" :
-                                    t.priority === "Medium" ? "bg-amber-50 text-amber-600 border border-amber-100" :
-                                    "bg-slate-50 text-slate-500 border border-slate-200"
-                                  }`}>
-                                    {t.priority === "High" ? "Cao" : t.priority === "Medium" ? "Trung" : "Thấp"}
-                                  </span>
-                                </button>
-                                
-                                {setTasks && (
-                                  <button
-                                    onClick={() => handleDeleteTaskInline(t.id)}
-                                    className="opacity-0 group-hover/todo:opacity-100 hover:text-crimson text-ink/30 p-0.5 rounded transition-opacity cursor-pointer animate-in fade-in"
-                                  >
-                                    <Trash2 size={10} />
                                   </button>
+                                  {editingTaskId === t.id ? (
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <input 
+                                        type="text" 
+                                        value={editingTaskContent} 
+                                        onChange={(e) => setEditingTaskContent(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSaveEditTask()}
+                                        autoFocus
+                                        className="flex-1 px-2 py-0.5 text-sm font-hand border border-ink/20 rounded bg-white"
+                                      />
+                                      <button onClick={handleSaveEditTask} className="text-[9px] uppercase font-bold text-sky-600 hover:bg-sky-50 px-2 py-1 rounded border border-sky-200">Lưu</button>
+                                      <button onClick={() => setEditingTaskId(null)} className="text-[9px] uppercase font-bold text-slate-500 hover:bg-slate-50 px-2 py-1 rounded border border-slate-200">Hủy</button>
+                                    </div>
+                                  ) : (
+                                    <span className={`text-sm font-hand text-lg text-ink/90 truncate leading-none cursor-pointer ${t.completed ? "line-through opacity-45" : ""}`} onDoubleClick={() => startEditingTask(t)}>
+                                      {t.content}
+                                    </span>
+                                  )}
+                                  {editingTaskId !== t.id && (
+                                    <span className={`text-[7px] uppercase font-black px-1 py-0.2 rounded-xs scale-90 origin-left shrink-0 ${
+                                      t.priority === "High" ? "bg-rose-50 text-rose-600 border border-rose-100" :
+                                      t.priority === "Medium" ? "bg-amber-50 text-amber-600 border border-amber-100" :
+                                      "bg-slate-50 text-slate-500 border border-slate-200"
+                                    }`}>
+                                      {t.priority === "High" ? "Cao" : t.priority === "Medium" ? "Trung" : "Thấp"}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                {setTasks && editingTaskId !== t.id && (
+                                  <div className="opacity-0 group-hover/todo:opacity-100 hover:text-crimson text-ink/30 p-0.5 flex gap-1 transition-opacity animate-in fade-in">
+                                    <button onClick={() => startEditingTask(t)} className="hover:text-amber-500 cursor-pointer" title="Sửa công việc">
+                                      <Edit2 size={10} />
+                                    </button>
+                                    <button onClick={() => handleDeleteTaskInline(t.id)} className="hover:text-crimson cursor-pointer" title="Xóa công việc">
+                                      <Trash2 size={10} />
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             ))}
@@ -1413,11 +1133,12 @@ export function DigitalJournal({
                 )}
               </div>
 
+
               {/* JOURNAL LOGS AND REFLECTIONS LIST (THE ACTUAL DIARY CORES) */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-ink/10 pb-2">
                   <span className="text-xs uppercase font-black text-ink/70 flex items-center gap-1.5 font-sans">
-                    <Sparkles className="w-3.5 h-3.5 text-crimson" /> Đúc Kết & Bài Học Đáng Giá ({currentPage.logs.length})
+                    <Sparkles className="w-3.5 h-3.5 text-crimson" /> Bút ký hành trình ({currentPage.logs.length})
                   </span>
                   
                   {setLogs && (
@@ -1426,11 +1147,11 @@ export function DigitalJournal({
                         setShowQuickEntry(!showQuickEntry);
                         // Default to lesson icon
                         setNewEntryType('Reflection');
-                        setNewEntryEmoji('💡');
+                        setNewEntryEmoji('📝');
                       }}
                       className="text-[10px] py-1 px-2.5 bg-ink text-paper hover:bg-ink/90 rounded-md transition-all uppercase font-bold tracking-wider flex items-center gap-1"
                     >
-                      {showQuickEntry ? <X size={10} /> : <Plus size={10} />} {showQuickEntry ? "Ẩn" : "Gieo Đúc Kết"}
+                      {showQuickEntry ? <X size={10} /> : <Plus size={10} />} {showQuickEntry ? "Ẩn" : "Viết nhanh"}
                     </button>
                   )}
                 </div>
@@ -1443,12 +1164,12 @@ export function DigitalJournal({
                     className="bg-[#fffbeb] p-3.5 rounded-xl border-2 border-ink shadow-xs space-y-3"
                   >
                     <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-black text-ink/40 tracking-widest block mb-1">Chọn kiểu tri thức cần ghi nhận</span>
+                      <span className="text-[10px] uppercase font-black text-ink/40 tracking-widest block mb-1">Chọn loại sự kiện</span>
                       <div className="grid grid-cols-3 gap-1.5 mb-2 bg-paper/25 p-1 rounded-xl border border-ink/5">
                         {[
-                          { label: "💡 Bài Học", desc: "Rút kinh nghiệm", type: "Reflection" as const, emoji: "💡" },
-                          { label: "🚀 Ý Tưởng", desc: "Đột phá sáng tạo", type: "Event" as const, emoji: "🚀" },
-                          { label: "🔮 Nhắc Nhở", desc: "Lời dặn ngày mai", type: "Reflection" as const, emoji: "🔮" },
+                          { label: "📝 Ghi chú", desc: "Viết lách tự do", type: "Reflection" as const, emoji: "📝" },
+                          { label: "🚀 Sự kiện", desc: "Đột phá hôm nay", type: "Event" as const, emoji: "🚀" },
+                          { label: "🎯 Nhiệm vụ", desc: "Đã hoàn thành", type: "Event" as const, emoji: "🎯" },
                         ].map(item => {
                           const isSelected = newEntryEmoji === item.emoji;
                           return (
@@ -1476,11 +1197,7 @@ export function DigitalJournal({
                     <textarea
                       value={newEntryContent}
                       onChange={(e) => setNewEntryContent(e.target.value)}
-                      placeholder={
-                        newEntryEmoji === '💡' ? "Tôi đã học được bài học, kiến thức hay mẹo rèn luyện gì tuyệt vời hôm nay..." :
-                        newEntryEmoji === '🚀' ? "Để tối ưu đột phá, hôm nay tôi có ý tưởng thiết thực nào..." :
-                        "Tâm sự, lời nhắn nhủ nhắc nhở bản thân để ngày mai phát huy phong độ tốt nhất..."
-                      }
+                      placeholder="Ghi chú lại sự kiện hoặc suy nghĩ nổi bật của hôm nay..."
                       className="w-full min-h-[90px] p-2 bg-white rounded border border-ink/15 text-sm focus:outline-none focus:border-ink/50 resize-none font-hand text-lg placeholder:font-sans placeholder:text-xs text-ink placeholder:text-ink/40 leading-relaxed"
                     />
 
@@ -1496,7 +1213,7 @@ export function DigitalJournal({
                         disabled={!newEntryContent.trim()}
                         className="px-3.5 py-1 bg-ink text-paper font-black rounded hover:bg-ink/90 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
                       >
-                        <Send size={10} /> Lưu đúc kết
+                        <Send size={10} /> Lưu dòng này
                       </button>
                     </div>
                   </motion.div>
@@ -1505,7 +1222,7 @@ export function DigitalJournal({
                 {/* Logs Listing container */}
                 {currentPage.logs.length === 0 ? (
                   <div className="text-center py-6 px-4 border border-dashed border-ink/10 rounded-xl bg-ink/5 italic font-hand text-ink/40 text-base leading-relaxed">
-                    Hôm nay chưa thu hoạch được đúc kết hay bài học giá trị nào. Bấm nút "Gieo Đúc Kết" phía trên để ghi chép nhanh nhé!
+                    Hôm nay chưa có dòng ghi chép nào. Bấm nút "Viết nhanh" để ghi lại hành trình!
                   </div>
                 ) : (
                   <div className="space-y-3.5 pl-3 border-l-2 border-dashed border-ink/15 py-1">
@@ -1658,77 +1375,6 @@ export function DigitalJournal({
                   </div>
                 </div>
               )}
-
-              {/* COZY AI COMPANION (COORDINATED WITH THE DAY) */}
-              <div className="bg-[#fffdf8] rounded-xl border border-ink/15 p-4 mt-2 hover:bg-[#fffff4] transition-all shadow-xs">
-                <div className="flex items-center justify-between border-b border-ink/10 pb-2 mb-3">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-ink/60">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                    <span>Góc Nhìn Số Chủ Đạo, Venus & Cung Mọc</span>
-                  </div>
-                  
-                  {aiInsights[currentPage.date] && (
-                    <span className="text-[9px] uppercase tracking-widest text-[#b45309] bg-[#fffbeb] px-2 py-0.5 rounded-full border border-amber-200/50 font-bold">
-                      {aiInsights[currentPage.date].title || "Góc nhìn Số 7"}
-                    </span>
-                  )}
-                </div>
-
-                {aiInsights[currentPage.date] ? (
-                  <div className="space-y-3 font-sans text-ink">
-                    <div className="relative pl-4 border-l-2 border-amber-300">
-                      <Quote className="w-3 h-3 text-ink/10 absolute left-0.5 top-0 rotate-180" />
-                      <p className="font-hand text-lg leading-relaxed text-ink/80 italic whitespace-pre-line pl-1">
-                        {aiInsights[currentPage.date].summary}
-                      </p>
-                    </div>
-
-                    {aiInsights[currentPage.date].suggestions && aiInsights[currentPage.date].suggestions.length > 0 && (
-                      <div className="text-[10px] text-ink/60 space-y-1 border-t border-dashed border-ink/5 pt-2">
-                        <span className="font-bold text-ink/70 uppercase text-[9px] block">💡 Điểm gợi mở góc nhìn hôm nay:</span>
-                        {aiInsights[currentPage.date].suggestions.map((s, idx) => (
-                          <div key={idx} className="flex items-start gap-1">
-                            <span className="text-emerald-600 font-bold">✓</span>
-                            <span>{s}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex justify-end border-t border-dashed border-ink/5 mt-2 pt-1.5">
-                      <button
-                        onClick={() => fetchAIInsight(currentPage)}
-                        disabled={loadingInsight}
-                        className="text-[9px] font-black uppercase text-ink/40 hover:text-ink transition-colors flex items-center gap-1 cursor-pointer"
-                      >
-                        <RefreshCw className={`w-2.5 h-2.5 ${loadingInsight ? "animate-spin" : ""}`} /> Thể hiện góc nhìn mới (Thần Số Học)
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-3 px-3 bg-white/40 rounded-lg border border-dashed border-ink/10">
-                    <p className="text-[10px] text-ink/50 max-w-sm mx-auto mb-2 leading-relaxed">
-                      Phân tích tổng hòa Nhân số học &amp; Chiêm tinh học (Hài hòa Số Chủ Đạo 7 kết hợp với Sao Kim &amp; Cung Mọc hộ mệnh) sẽ xâu chuỗi thói quen học tập, năng lực và tâm bút của hôm nay để phản chiếu những bài học thấu suốt.
-                    </p>
-                    <button
-                      onClick={() => fetchAIInsight(currentPage)}
-                      disabled={loadingInsight}
-                      className="py-1 px-4 text-[10px] uppercase font-black bg-[#fbcfe8] hover:bg-[#fbcfe8]/80 text-ink rounded-lg transition-all inline-flex items-center gap-1 cursor-pointer border border-ink/15 shadow-xs"
-                    >
-                      {loadingInsight ? (
-                        <>
-                          <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Chắp bút thấu ngộ...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-2.5 h-2.5" /> Khám phá chiêm nghiệm Số 7
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-
             </div>
 
             {/* Pagination helper badge */}
@@ -1754,181 +1400,6 @@ export function DigitalJournal({
 
           </div>
 
-          {/* NEW SECTION: Bảng Kê Chi Tiêu Thẻ Tín Dụng directly on Today page */}
-          <div className="bg-white/95 shadow-lg p-5 rounded-2xl border-2 border-indigo-600 relative overflow-hidden animate-in fade-in duration-500">
-            <div className="absolute top-0 right-0 left-0 h-1.5 bg-indigo-600" />
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 pb-2 border-b-2 border-indigo-100 gap-4">
-               <div className="flex items-center gap-2.5">
-                  <button className="p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm">
-                    <CreditCard size={18} />
-                  </button>
-                  <div>
-                    <h3 className="text-base font-black uppercase tracking-tight text-indigo-700 font-sans flex items-center gap-1.5">
-                      Tiêu dùng &amp; Nợ thẻ tín dụng (Credit Card Logs)
-                    </h3>
-                    <p className="text-[9px] font-bold text-ink/40 uppercase tracking-widest">{justCardRangeText}</p>
-                  </div>
-               </div>
-            </div>
-
-            <div className="bg-indigo-50/40 p-3 rounded-xl overflow-hidden mb-4 border border-indigo-100">
-              <div className="overflow-x-auto max-w-full">
-                <table className="min-w-full text-left border-collapse text-xs text-ink/80">
-                  <thead>
-                    <tr className="bg-indigo-100/70 text-[8px] font-black uppercase tracking-widest text-indigo-800 border-b border-indigo-200">
-                      <th className="px-3 py-2 font-black w-36">Ngày</th>
-                      <th className="px-3 py-2 text-right font-black">Số Tiền (VND)</th>
-                      <th className="px-3 py-2 text-center font-black w-10">Xóa</th>
-                    </tr>
-                  </thead>
-                  <tbody className="font-sans divide-y divide-indigo-100/50">
-                    {bulkCardSpends.map((item, idx) => (
-                      <tr key={item.id} className="transition-colors hover:bg-indigo-50/30">
-                        <td className="px-2 py-1.5">
-                          <input 
-                            type="date" 
-                            value={item.name} 
-                            onChange={e => {
-                              const newSpends = [...bulkCardSpends];
-                              newSpends[idx].name = e.target.value;
-                              if (idx === 0 && e.target.value) {
-                                try {
-                                  const baseDate = new Date(e.target.value + "T12:00:00");
-                                  if (!isNaN(baseDate.getTime())) {
-                                    for (let i = 1; i < newSpends.length; i++) {
-                                      const nextDate = new Date(baseDate.getTime());
-                                      nextDate.setDate(baseDate.getDate() + i);
-                                      newSpends[i].name = nextDate.toISOString().split("T")[0];
-                                    }
-                                  }
-                                } catch (err) {
-                                  console.error(err);
-                                }
-                              }
-                              setBulkCardSpends(newSpends);
-                            }} 
-                            className="w-[125px] font-bold text-ink bg-white border border-ink/10 rounded-md px-2 py-0.5 outline-none focus:border-indigo-600 text-xs"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input 
-                            type="text" 
-                            value={item.amount} 
-                            onChange={e => {
-                              const valStr = e.target.value.replace(/,/g, '');
-                              if (!/^-?\d*$/.test(valStr)) return;
-                              
-                              let formatted = "";
-                              if (valStr === "-") {
-                                formatted = "-";
-                              } else if (valStr) {
-                                const isNeg = valStr.startsWith("-");
-                                const cleanDigits = valStr.replace('-', '');
-                                if (cleanDigits) {
-                                  const parsedVal = parseInt(cleanDigits, 10);
-                                  if (!isNaN(parsedVal)) {
-                                    formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
-                                  }
-                                }
-                              }
-                              const newSpends = [...bulkCardSpends];
-                              newSpends[idx].amount = formatted;
-                              setBulkCardSpends(newSpends);
-                            }} 
-                            placeholder="0"
-                            className="w-full text-right font-mono font-bold text-indigo-700 bg-white border border-ink/10 rounded-md px-2 py-0.5 outline-none focus:border-indigo-600 text-xs"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5 text-center">
-                          <button
-                            onClick={() => {
-                              const newSpends = bulkCardSpends.filter(s => s.id !== item.id);
-                              setBulkCardSpends(newSpends);
-                            }}
-                            className="p-1 text-[#e11d48] hover:bg-rose-50 rounded transition-colors cursor-pointer"
-                            title="Xóa dòng"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-indigo-100/40 font-bold text-indigo-800 border-t border-indigo-200 font-sans text-xs">
-                      <td className="px-3 py-2">
-                        <span className="uppercase text-[8px] tracking-widest font-black block">Tổng Nợ Thẻ Đã Tiêu</span>
-                        <span className="text-indigo-950/40 text-[8px] font-medium italic">
-                          {(() => {
-                            const count = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, '')))).length;
-                            return `* ${count}/${bulkCardSpends.length} ngày có dữ liệu`;
-                          })()}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono font-black text-xs text-indigo-700">
-                        {(() => {
-                          const rawSum = bulkCardSpends.reduce((sum, item) => sum + (parseFloat(item.amount.replace(/,/g, '')) || 0), 0);
-                          const formatted = Math.abs(rawSum).toLocaleString('vi-VN');
-                          return `+${formatted} đ`;
-                        })()}
-                      </td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-
-            {/* Action Panel */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-emerald-50/50 border border-dashed border-emerald-200 rounded-xl">
-              <p className="text-[10px] text-emerald-950 font-sans leading-relaxed text-center sm:text-left flex-1 font-bold">
-                ⚡ <strong>Tự động đồng bộ:</strong> Toàn bộ chi tiêu thẻ hàng ngày ở trên đang được cộng dồn & cập nhật trực tiếp thành một khoản nợ trong Sổ Tài Sản. Net Worth sẽ tự tính toán real-time mà không cần thao tác bấm Lưu!
-              </p>
-              
-              <div className="flex gap-1.5 shrink-0 w-full sm:w-auto justify-end items-center">
-                 <button 
-                   onClick={() => {
-                     let nextDateStr = "";
-                     if (bulkCardSpends.length > 0) {
-                       const lastDateStr = bulkCardSpends[bulkCardSpends.length - 1].name;
-                       try {
-                         const d = new Date(lastDateStr + "T12:00:00");
-                         if (!isNaN(d.getTime())) {
-                           d.setDate(d.getDate() + 1);
-                           nextDateStr = d.toISOString().split("T")[0];
-                         }
-                       } catch {}
-                     }
-                     if (!nextDateStr) {
-                       nextDateStr = new Date().toISOString().split("T")[0];
-                     }
-                     setBulkCardSpends([
-                       ...bulkCardSpends,
-                       {
-                         id: Date.now() + Math.random(),
-                         name: nextDateStr,
-                         amount: "",
-                         notes: ""
-                       }
-                     ]);
-                   }}
-                   className="py-1 px-3 text-[10px] font-bold bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-200 rounded-lg cursor-pointer transition-all flex items-center gap-1 animate-pulse"
-                 >
-                   <Plus size={10} /> Thêm Ngày
-                 </button>
-                 <button 
-                   onClick={handleResetBulkCardSpends}
-                   className="text-[10px] py-1 px-3 font-bold uppercase tracking-wider text-[#1a2530] hover:bg-neutral-50 rounded-lg cursor-pointer transition-all border border-ink/15"
-                 >
-                   Reset
-                 </button>
-                 <div className="py-1 px-3.5 flex items-center gap-1.5 text-[10px] rounded-lg bg-emerald-600 text-white font-black uppercase tracking-wider select-none shadow-[2px_2px_0_rgba(16,185,129,0.2)]">
-                   <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
-                   <span>✓ Đã liên kết nợ tự động</span>
-                 </div>
-              </div>
-            </div>
-          </div>
           </>
 
         </div>
