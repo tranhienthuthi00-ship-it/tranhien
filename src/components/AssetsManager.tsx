@@ -5,6 +5,25 @@ import { cn, getAbsoluteUrl } from "@/lib/utils";
 import type { Asset, AssetCategory } from "@/types";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
+const formatDateDot = (dateStr: string) => {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day}.${month}.${year}`;
+  }
+  try {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}.${mm}.${yyyy}`;
+    }
+  } catch (err) {}
+  return dateStr;
+};
+
 export const ICON_MAP: Record<string, React.FC<any>> = {
   Wallet, Landmark, Car, MonitorSmartphone, Gem, PiggyBank, Briefcase, Bitcoin, Building, Home, Coins, CreditCard, TrendingUp, Smartphone, Laptop, Handshake, Users
 };
@@ -1834,16 +1853,24 @@ export function AssetsManager({
                 {bulkCardSpends.map((item, index) => (
                   <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
                     <td className="p-1 border border-blue-100/50">
-                      <input
-                        type="text"
-                        value={item.name}
-                        onChange={(e) => {
-                          const updated = [...bulkCardSpends];
-                          updated[index].name = e.target.value;
-                          setBulkCardSpends(updated);
-                        }}
-                        className="w-full px-2 py-1.5 text-xs bg-transparent text-blue-950 font-bold focus:outline-none focus:bg-white rounded"
-                      />
+                      <div className="relative flex items-center justify-between group/date w-full min-h-[32px] px-2">
+                        <span className="text-xs font-black text-blue-950 font-mono">
+                          {formatDateDot(item.name)}
+                        </span>
+                        <input
+                          type="date"
+                          value={item.name}
+                          onChange={(e) => {
+                            const updated = [...bulkCardSpends];
+                            updated[index].name = e.target.value;
+                            setBulkCardSpends(updated);
+                          }}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full text-xs"
+                        />
+                        <span className="text-[10px] text-blue-400 opacity-0 group-hover/date:opacity-100 transition-opacity pointer-events-none">
+                          ✏️
+                        </span>
+                      </div>
                     </td>
                     <td className="p-1 border border-blue-100/50">
                       <input
@@ -1960,20 +1987,25 @@ export function AssetsManager({
               </thead>
               <tbody>
                 {bulkDebts.map((item, index) => {
-                  const dateObj = new Date(item.name);
-                  const dayStr = isNaN(dateObj.getTime())
-                    ? item.name
-                    : dateObj.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
-
                   return (
                     <tr key={item.id} className="hover:bg-emerald-50/50 transition-colors">
                       <td className="p-1 border border-emerald-100/50">
-                        <div className="px-2 py-1.5 flex flex-col">
-                          <span className="text-xs font-black text-emerald-950 font-sans truncate capitalize">
-                            {dayStr}
+                        <div className="relative flex items-center justify-between group/date w-full min-h-[32px] px-2">
+                          <span className="text-xs font-black text-emerald-950 font-mono">
+                            {formatDateDot(item.name)}
                           </span>
-                          <span className="text-[9px] font-mono text-emerald-600 block">
-                            {item.name}
+                          <input
+                            type="date"
+                            value={item.name}
+                            onChange={(e) => {
+                              const updated = [...bulkDebts];
+                              updated[index].name = e.target.value;
+                              setBulkDebts(updated);
+                            }}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full text-xs"
+                          />
+                          <span className="text-[10px] text-emerald-400 opacity-0 group-hover/date:opacity-100 transition-opacity pointer-events-none">
+                            ✏️
                           </span>
                         </div>
                       </td>
