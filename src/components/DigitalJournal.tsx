@@ -67,14 +67,17 @@ export function DigitalJournal({
   setBulkCurrentCash
 }: DigitalJournalProps) {
   
-  // ---------------- STATIC QUOTES ----------------
-  const quotes = [
-    { text: "Hành trình vạn dặm khởi đầu từ một bước chân nhỏ bé.", author: "Lão Tử" },
-    { text: "Nghị lực bền bỉ chiến thắng mọi trở lực cuộc đời.", author: "Marcus Aurelius" },
-    { text: "Đầu tư vào tri thức luôn đem lại lãi suất tốt nhất.", author: "Benjamin Franklin" },
-    { text: "Ngày mai thuộc về những ai có sự chuẩn bị tốt cho hôm nay.", author: "Malcolm X" }
+  // ---------------- CUSTOM REWARDS MODAL STATE ----------------
+  const CUSTOM_REWARDS = [
+    { emoji: "☕", title: "Cà phê Time!", desc: "Thưởng 1 ly cà phê/trà sữa (50k)!" },
+    { emoji: "🍿", title: "Nghỉ Ngơi 30 Phút", desc: "Được phép thư giãn xem phim chill chill 30 phút." },
+    { emoji: "🛍️", title: "Mua Sắm Linh Tinh", desc: "Tự thưởng món đồ lặt vặt thú vị dưới 100k!" },
+    { emoji: "🍫", title: "Ăn Vặt Lên Ngôi", desc: "Thưởng ngay món snack yêu thích nhất!" },
+    { emoji: "🌿", title: "Chilling Walk", desc: "Đi dạo 20 phút không cầm điện thoại." },
+    { emoji: "💸", title: "Thưởng Nóng", desc: "Cộng ngay 50k vào heo đất." },
+    { emoji: "🎮", title: "Gaming Time", desc: "Thoải mái chơi 1 ván game yêu thích." }
   ];
-  const [quoteIndex] = useState(() => Math.floor(Math.random() * quotes.length));
+  const [rewardPopup, setRewardPopup] = useState<{ id: string, emoji: string, title: string, desc: string } | null>(null);
 
   // ---------------- INTERACTIVE MINI-CALENDAR STATE ----------------
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
@@ -225,6 +228,9 @@ export function DigitalJournal({
         emoji: "🚀"
       };
       setLogs(prev => [...prev, newLog]);
+      
+      const randReward = CUSTOM_REWARDS[Math.floor(Math.random() * CUSTOM_REWARDS.length)];
+      setRewardPopup({ id: Date.now().toString(), ...randReward });
     }
   };
 
@@ -334,26 +340,13 @@ export function DigitalJournal({
         <div className="lg:col-span-8 space-y-6">
           
           {/* 1. MOTIVATIONAL WELCOME HEADER */}
-          <div className="bg-[#fff9f0] p-4 md:p-5 rounded-2xl sketch-border border-ink relative overflow-hidden flex flex-wrap sm:flex-nowrap items-center justify-between shadow-sm gap-4">
-            <div className="space-y-1 text-center sm:text-left flex-1 min-w-[200px]">
-              <div className="inline-flex items-center gap-1.5 bg-[#fbcfe8] px-2.5 py-0.5 text-[9px] font-black uppercase rounded border border-ink tracking-wider">
-                <Sparkles size={10} className="text-pink-600" /> Welcome Home
-              </div>
-              <p className="font-hand text-sm md:text-base text-ink/80 mt-1">
-                "{quotes[quoteIndex].text}"
-              </p>
-            </div>
-
-            <div className="flex gap-3 text-center shrink-0 w-full sm:w-auto justify-center sm:justify-end">
-              <div className="px-3 py-2 bg-white/75 rounded-xl border border-dashed border-ink/20">
-                <p className="text-[8px] font-extrabold text-ink/40 uppercase tracking-widest">Việc Cần</p>
-                <p className="text-xl font-black text-sky-600 font-sans leading-none mt-1">{activeTasks.length}</p>
-              </div>
-              <div className="px-3 py-2 bg-white/75 rounded-xl border border-dashed border-ink/20">
-                <p className="text-[8px] font-extrabold text-ink/40 uppercase tracking-widest">Huy Chương</p>
-                <p className="text-xl font-black text-amber-500 font-sans leading-none mt-1">{achievements.length}</p>
-              </div>
-            </div>
+          <div className="bg-[#fffdf5] p-8 md:p-12 rounded-3xl sketch-border border-amber-200/80 relative overflow-hidden flex items-center justify-center shadow-sm min-h-[160px]">
+             <div className="absolute inset-0 opacity-40 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-100 via-transparent to-transparent"></div>
+             <h1 className="font-sans text-3xl md:text-5xl font-black uppercase tracking-widest text-amber-900/80 flex items-center gap-4 md:gap-6 relative z-10 drop-shadow-sm">
+               <Sparkles size={36} className="text-amber-500 animate-pulse" />
+               Welcome Home
+               <Sparkles size={36} className="text-amber-500 animate-pulse" />
+             </h1>
           </div>
           
           {/* TASKS COMPONENT */}
@@ -1211,6 +1204,56 @@ export function DigitalJournal({
           </div>
         )}
       </div>
+
+      {/* Thẻ Quà Tặng Overlay */}
+      <AnimatePresence>
+        {rewardPopup && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-amber-900/40 backdrop-blur-sm"
+          >
+            <div 
+              className="absolute inset-0 cursor-pointer"
+              onClick={() => setRewardPopup(null)}
+            />
+            
+            <motion.div 
+              initial={{ scale: 0.85, y: 50, rotate: -3 }}
+              animate={{ scale: 1, y: 0, rotate: 0 }}
+              exit={{ scale: 0.85, y: 50, opacity: 0, rotate: 5 }}
+              transition={{ type: "spring", bounce: 0.6 }}
+              className="bg-[#fffdf5] p-8 md:p-10 rounded-3xl sketch-border border-amber-300 max-w-sm w-full relative z-10 shadow-2xl flex flex-col items-center justify-center border-[3px]"
+            >
+              <div className="absolute -top-10 bg-white w-20 h-20 flex items-center justify-center rounded-full border-[3px] border-amber-300 rotate-12 shadow-xl shrink-0">
+                <span className="text-4xl">{rewardPopup.emoji}</span>
+              </div>
+              
+              <div className="mt-8 text-center space-y-4 w-full">
+                <p className="text-[10px] font-black tracking-[0.2em] text-amber-700/60 uppercase">
+                  ✨ Phần Thưởng Bất Ngờ ✨
+                </p>
+                <h3 className="font-sans font-black text-3xl text-amber-900 leading-tight drop-shadow-sm">
+                  {rewardPopup.title}
+                </h3>
+                <div className="p-5 bg-amber-50 rounded-2xl border border-dashed border-amber-300 relative shadow-sm">
+                   <p className="text-amber-800 font-bold leading-relaxed text-sm">
+                     {rewardPopup.desc}
+                   </p>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => setRewardPopup(null)}
+                className="mt-8 w-full py-3.5 text-sm font-black uppercase text-white tracking-widest bg-amber-600 outline-none rounded-xl hover:bg-amber-700 active:scale-95 transition-all shadow-md"
+              >
+                Nhận Quà 🎁
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
