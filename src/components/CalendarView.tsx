@@ -602,17 +602,19 @@ export function CalendarView({
                   ))}
                 </div>
                 
-                <div className="flex-1 overflow-hidden mt-6 space-y-1 relative z-10">
-                  {dayLogs.map(log => (
-                    <div key={log.id} className="leading-tight truncate flex items-center gap-1 relative z-10 px-1 rounded hand-text text-[11px] opacity-80">
-                      <span>•</span>
-                      <span className="truncate">
-                        {log.time && <span className="font-bold mr-1">{log.time}</span>}
-                        {log.content}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                {isSelected && (
+                  <div className="flex-1 overflow-y-auto mt-6 space-y-1 relative z-10 max-h-[100px] scrollbar-thin">
+                    {dayLogs.map(log => (
+                      <div key={log.id} className="leading-tight flex items-center gap-1 relative z-10 px-1 rounded hand-text text-[11px] opacity-80 break-words">
+                        <span className="shrink-0">•</span>
+                        <span>
+                          {log.time && <span className="font-bold mr-1">{log.time}</span>}
+                          {log.content}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}

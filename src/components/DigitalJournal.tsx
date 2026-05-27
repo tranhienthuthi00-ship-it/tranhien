@@ -320,27 +320,24 @@ export function DigitalJournal({
         <div className="lg:col-span-8 space-y-6">
           
           {/* 1. MOTIVATIONAL WELCOME HEADER */}
-          <div className="bg-gradient-to-tr from-[#fff9f0] to-[#fffdf9] p-8 rounded-3xl sketch-border border-ink relative overflow-hidden flex flex-col md:flex-row items-center justify-between shadow-sm gap-6">
-            <div className="space-y-2 text-center md:text-left">
-              <div className="inline-flex items-center gap-2 bg-[#fbcfe8] px-3 py-1 text-[10px] font-black uppercase rounded-full border-2 border-ink tracking-wider">
-                <Sparkles size={12} className="text-pink-600 animate-spin" /> Welcome Home!
+          <div className="bg-[#fff9f0] p-4 md:p-5 rounded-2xl sketch-border border-ink relative overflow-hidden flex flex-wrap sm:flex-nowrap items-center justify-between shadow-sm gap-4">
+            <div className="space-y-1 text-center sm:text-left flex-1 min-w-[200px]">
+              <div className="inline-flex items-center gap-1.5 bg-[#fbcfe8] px-2.5 py-0.5 text-[9px] font-black uppercase rounded border border-ink tracking-wider">
+                <Sparkles size={10} className="text-pink-600" /> Welcome Home
               </div>
-              <h1 className="text-3xl md:text-4xl font-extrabold font-sans tracking-tight uppercase leading-none text-ink">
-                Góc Bình Yên Của Bạn
-              </h1>
-              <p className="font-hand text-lg text-ink/75">
-                "{quotes[quoteIndex].text}" – <span className="font-sans font-bold text-xs uppercase tracking-wider text-[#af1e2d]">{quotes[quoteIndex].author}</span>
+              <p className="font-hand text-sm md:text-base text-ink/80 mt-1">
+                "{quotes[quoteIndex].text}"
               </p>
             </div>
 
-            <div className="flex gap-4 md:border-l border-ink/10 pl-0 md:pl-8 text-center shrink-0">
-              <div className="p-3 bg-white/75 rounded-2xl border border-dashed border-ink/20 min-w-[#100px]">
-                <p className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">Việc Cần Làm</p>
-                <p className="text-2xl font-black text-sky-600 font-sans mt-1">{activeTasks.length}</p>
+            <div className="flex gap-3 text-center shrink-0 w-full sm:w-auto justify-center sm:justify-end">
+              <div className="px-3 py-2 bg-white/75 rounded-xl border border-dashed border-ink/20">
+                <p className="text-[8px] font-extrabold text-ink/40 uppercase tracking-widest">Việc Cần</p>
+                <p className="text-xl font-black text-sky-600 font-sans leading-none mt-1">{activeTasks.length}</p>
               </div>
-              <div className="p-3 bg-white/75 rounded-2xl border border-dashed border-ink/20 min-w-[#100px]">
-                <p className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">Huy Chương</p>
-                <p className="text-2xl font-black text-amber-500 font-sans mt-1">{achievements.length}</p>
+              <div className="px-3 py-2 bg-white/75 rounded-xl border border-dashed border-ink/20">
+                <p className="text-[8px] font-extrabold text-ink/40 uppercase tracking-widest">Huy Chương</p>
+                <p className="text-xl font-black text-amber-500 font-sans leading-none mt-1">{achievements.length}</p>
               </div>
             </div>
           </div>

@@ -762,119 +762,297 @@ export function AssetsManager({
         </div>
       </div>
 
-      {/* STATE-OF-THE-ART FINANCIAL BENTO GRID SCOREBOARD */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-        
-        {/* Core Card: Vốn chủ sở hữu (Net Worth) - Spans 2 cols on tablet/desktop */}
-        <div className="sm:col-span-2 bg-[#18181b] text-zinc-100 p-5 rounded-2xl shadow-xl border border-zinc-800 flex flex-col justify-between relative overflow-hidden min-h-[145px]">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
-          
-          <div className="flex items-start justify-between">
-            <div className="text-left">
-              <span className="text-[9px] font-extrabold text-zinc-400 uppercase tracking-widest">
-                Vốn Chủ Sở Hữu (Net Worth)
+      {/* Container for Scoreboard + Add Asset Form */}
+      <div className={cn("flex flex-col xl:flex-row gap-6 mb-8 items-start", isAddAssetOpen ? "" : "")}>
+        {/* STATE-OF-THE-ART FINANCIAL BENTO GRID SCOREBOARD */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 flex-1 w-full">
+          {/* Core Card: Vốn chủ sở hữu (Net Worth) - Spans 2 cols on tablet/desktop */}
+          <div className="sm:col-span-2 bg-[#18181b] text-zinc-100 p-5 rounded-2xl shadow-xl border border-zinc-800 flex flex-col justify-between relative overflow-hidden min-h-[145px]">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div className="flex items-start justify-between">
+              <div className="text-left">
+                <span className="text-[9px] font-extrabold text-zinc-400 uppercase tracking-widest">
+                  Vốn Chủ Sở Hữu (Net Worth)
+                </span>
+                <h2 className="text-3xl font-black font-sans tracking-tight text-white mt-1">
+                  {formatCurrency(totalVND, 'VND')}
+                </h2>
+              </div>
+              <span className="p-2 bg-zinc-800 text-emerald-400 rounded-xl shadow-lg shrink-0">
+                <TrendingUp size={18} />
               </span>
-              <h2 className="text-3xl font-black font-sans tracking-tight text-white mt-1">
-                {formatCurrency(totalVND, 'VND')}
-              </h2>
             </div>
-            <span className="p-2 bg-zinc-800 text-emerald-400 rounded-xl shadow-lg shrink-0">
-              <TrendingUp size={18} />
-            </span>
+
+            {/* Visual Asset-to-Debt Proportion Indicator Bar */}
+            <div className="mt-4 pt-4 border-t border-zinc-800">
+              <div className="flex items-center justify-between text-[11px] font-bold text-zinc-400 mb-1.5">
+                <span>Tỉ lệ Vốn tự có : Tổng nợ</span>
+                <span>
+                  {(() => {
+                    const scale = (totalAssetsVND + totalLoansVND);
+                    const debt = totalDebtsVND;
+                    if (scale <= 0) return "100% tự chủ";
+                    const percent = Math.max(0, Math.min(100, Math.round((totalVND / scale) * 100)));
+                    return `${percent}% tự chủ`;
+                  })()}
+                </span>
+              </div>
+              
+              <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden flex">
+                <div 
+                  className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all" 
+                  style={{ 
+                    width: `${Math.max(0, Math.min(100, (totalAssetsVND + totalLoansVND) > 0 ? (totalVND / (totalAssetsVND + totalLoansVND)) * 100 : 100))}%` 
+                  }}
+                ></div>
+              </div>
+            </div>
           </div>
 
-          {/* Visual Asset-to-Debt Proportion Indicator Bar */}
-          <div className="mt-4 pt-4 border-t border-zinc-800">
-            <div className="flex items-center justify-between text-[11px] font-bold text-zinc-400 mb-1.5">
-              <span>Tỉ lệ Vốn tự có : Tổng nợ</span>
-              <span>
-                {(() => {
-                  const scale = (totalAssetsVND + totalLoansVND);
-                  const debt = totalDebtsVND;
-                  if (scale <= 0) return "100% tự chủ";
-                  const percent = Math.max(0, Math.min(100, Math.round((totalVND / scale) * 100)));
-                  return `${percent}% tự chủ`;
-                })()}
+          {/* Card 2: Tổng tài sản hiện có */}
+          <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+            <div className="flex items-start justify-between">
+              <div className="text-left">
+                <span className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">
+                  Tài sản tích lũy
+                </span>
+                <h3 className="text-xl font-extrabold text-emerald-600 mt-1 font-sans">
+                  {formatCurrency(totalAssetsVND, 'VND')}
+                </h3>
+              </div>
+              <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
+                <Wallet size={16} />
               </span>
             </div>
             
-            <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden flex">
-              <div 
-                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all" 
-                style={{ 
-                  width: `${Math.max(0, Math.min(100, (totalAssetsVND + totalLoansVND) > 0 ? (totalVND / (totalAssetsVND + totalLoansVND)) * 100 : 100))}%` 
-                }}
-              ></div>
+            <div className="text-left text-[10px] text-ink/40 pt-2 border-t border-ink/5 flex items-center justify-between font-bold">
+              <span>Tiền mớ: {Math.round(totalNewMoneyVND / 1000000)}tr đ</span>
+              <span className="text-emerald-600">Ổn định</span>
             </div>
           </div>
-        </div>
 
-        {/* Card 2: Tổng tài sản hiện có */}
-        <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
-          <div className="flex items-start justify-between">
-            <div className="text-left">
-              <span className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">
-                Tài sản tích lũy
+          {/* Card 3: Khoản cho vay (Receivables) */}
+          <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+            <div className="flex items-start justify-between">
+              <div className="text-left">
+                <span className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">
+                  Khoản cho vay (Phải thu)
+                </span>
+                <h3 className="text-xl font-extrabold text-blue-600 mt-1 font-sans">
+                  {formatCurrency(totalLoansVND, 'VND')}
+                </h3>
+              </div>
+              <span className="p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+                <Handshake size={16} />
               </span>
-              <h3 className="text-xl font-extrabold text-emerald-600 mt-1 font-sans">
-                {formatCurrency(totalAssetsVND, 'VND')}
-              </h3>
             </div>
-            <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
-              <Wallet size={16} />
-            </span>
+            
+            <div className="text-left text-[10px] text-ink/40 pt-2 border-t border-ink/5 flex items-center justify-between font-bold">
+              <span>Ứng trước đối tác / bạn bè</span>
+              <span className="text-blue-600">Receivable</span>
+            </div>
           </div>
-          
-          <div className="text-left text-[10px] text-ink/40 pt-2 border-t border-ink/5 flex items-center justify-between font-bold">
-            <span>Tiền mớ: {Math.round(totalNewMoneyVND / 1000000)}tr đ</span>
-            <span className="text-emerald-600">Ổn định</span>
-          </div>
-        </div>
 
-        {/* Card 3: Khoản cho vay (Receivables) */}
-        <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
-          <div className="flex items-start justify-between">
-            <div className="text-left">
-              <span className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">
-                Khoản cho vay (Phải thu)
+          {/* Card 4: Tổng nợ phải trả */}
+          <div className="bg-red-50/20 p-5 rounded-2xl border border-red-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+            <div className="flex items-start justify-between">
+              <div className="text-left">
+                <span className="text-[9px] font-extrabold text-crimson/60 uppercase tracking-widest">
+                  Nghĩa vụ nợ (Debts)
+                </span>
+                <h3 className="text-xl font-extrabold text-crimson mt-1 font-sans">
+                  {formatCurrency(totalDebtsVND, 'VND')}
+                </h3>
+              </div>
+              <span className="p-2 bg-rose-50 text-crimson rounded-xl shrink-0">
+                <CreditCard size={16} />
               </span>
-              <h3 className="text-xl font-extrabold text-blue-600 mt-1 font-sans">
-                {formatCurrency(totalLoansVND, 'VND')}
-              </h3>
             </div>
-            <span className="p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0">
-              <Handshake size={16} />
-            </span>
+            
+            <div className="text-left text-[10px] text-crimson/50 pt-2 border-t border-red-100/60 flex items-center justify-between font-bold">
+              <span>Nợ tự động từ bảng kê</span>
+              <span className="text-crimson font-black uppercase">Pulsing nợ</span>
+            </div>
           </div>
-          
-          <div className="text-left text-[10px] text-ink/40 pt-2 border-t border-ink/5 flex items-center justify-between font-bold">
-            <span>Ứng trước đối tác / bạn bè</span>
-            <span className="text-blue-600">Receivable</span>
-          </div>
+
         </div>
 
-        {/* Card 4: Tổng nợ phải trả */}
-        <div className="bg-red-50/20 p-5 rounded-2xl border border-red-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
-          <div className="flex items-start justify-between">
-            <div className="text-left">
-              <span className="text-[9px] font-extrabold text-crimson/60 uppercase tracking-widest">
-                Nghĩa vụ nợ (Debts)
+        {isAddAssetOpen && (
+          <form onSubmit={addAsset} className={cn(
+            "bg-paper p-5 sm:p-6 sketch-border duration-300 transition-all select-none relative xl:w-[450px] shrink-0 w-full mt-4 xl:mt-0 xl:sticky xl:top-4 h-max",
+            editingId ? "border-amber-400 border-2 ring-4 ring-amber-400/20" : "border-dashed border-ink/30"
+          )}>
+            <div className="absolute -top-3 -left-3 rotate-[-5deg] z-10 transition-transform">
+              <span className={cn(
+                "text-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider",
+                editingId ? "bg-amber-500 animate-pulse" : "bg-crimson"
+              )}>
+                {editingId ? "✨ Đang Cập Nhật Tài Sản" : "＋ Thêm Tài Sản Mới"}
               </span>
-              <h3 className="text-xl font-extrabold text-crimson mt-1 font-sans">
-                {formatCurrency(totalDebtsVND, 'VND')}
-              </h3>
             </div>
-            <span className="p-2 bg-rose-50 text-crimson rounded-xl shrink-0">
-              <CreditCard size={16} />
-            </span>
-          </div>
           
-          <div className="text-left text-[10px] text-crimson/50 pt-2 border-t border-red-100/60 flex items-center justify-between font-bold">
-            <span>Nợ tự động từ bảng kê</span>
-            <span className="text-crimson font-black uppercase">Pulsing nợ</span>
-          </div>
-        </div>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Tên Tài Sản</label>
+                <input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Ví dụ: Sổ tiết kiệm, Xe máy..."
+                  className="sketch-input bg-white/50 py-2"
+                  required
+                />
+                
+                {/* AI Auto-Categorization Suggestion Box */}
+                {newName.trim() && !isNewMoney && (
+                  <div className="mt-1 flex flex-col gap-1 text-[11px] transition-all duration-300">
+                    {isCategorizing ? (
+                      <span className="text-crimson/80 flex items-center gap-1.5 animate-pulse font-sans ml-1">
+                        <span className="inline-block w-2 h-2 rounded-full bg-crimson border border-ink/20 animate-bounce"></span>
+                        ✨ AI đang phân tích gợi ý danh mục...
+                      </span>
+                    ) : aiSuggestion ? (
+                      <div className="bg-[#fff9f9] border border-dashed border-crimson/40 p-3 rounded-lg flex flex-col gap-1.5 shadow-2xs transition-all">
+                        <div className="flex items-center justify-between font-sans">
+                          <span className="flex items-center gap-1.5 text-ink">
+                            <span className="text-sm">💡</span> Gợi ý: <strong className="text-crimson font-extrabold uppercase tracking-wide">{aiSuggestion.name}</strong>
+                          </span>
+                          {newCategory === aiSuggestion.id ? (
+                            <span className="py-0.5 px-2 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded-full border border-emerald-200 uppercase tracking-wider shrink-0">
+                              Đã Đống Nhất ✓
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setNewCategory(aiSuggestion.id)}
+                              className="py-1 px-3 bg-crimson hover:bg-crimson/95 active:scale-95 text-white text-[9px] uppercase font-bold rounded-lg cursor-pointer transition-all shadow-2xs shrink-0"
+                            >
+                              Áp dụng
+                            </button>
+                          )}
+                        </div>
+                        {aiSuggestion.reasoning && (
+                          <p className="text-ink/65 italic font-sans leading-relaxed text-[10px] pl-5 border-l-2 border-crimson/20">
+                            {aiSuggestion.reasoning}
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Danh Mục</label>
+                  <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="sketch-input bg-white/50 py-2" required>
+                    <option value="" disabled>-- Chọn --</option>
+                    {categories.map(c => (
+                       <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">
+                    {isNewMoney 
+                      ? "Tên (Ví dụ: Tiền VNĐ)" 
+                      : (newCurrency === "GOLD" || newCurrency === "USD")
+                        ? "Số lượng & Đơn giá"
+                        : "Giá Trị"}
+                  </label>
+                  <div className="flex gap-2">
+                    {!isNewMoney ? (
+                      (newCurrency === "GOLD" || newCurrency === "USD") ? (
+                        <div className="flex gap-2 flex-1">
+                          <input
+                            value={newQuantity}
+                            onChange={(e) => setNewQuantity(e.target.value)}
+                            placeholder={newCurrency === "GOLD" ? "Số chỉ (vd: 5)" : "Số lượng (vd: 100)"}
+                            type="number"
+                            step="any"
+                            className="sketch-input bg-white/50 py-2 min-w-0 w-1/2 px-2"
+                            required
+                          />
+                          <input
+                            value={newExchangeRate}
+                            onChange={(e) => setNewExchangeRate(e.target.value)}
+                            placeholder={newCurrency === "GOLD" ? "Giá 1 chỉ (VND)" : "Tỷ giá (VND/USD)"}
+                            type="number"
+                            step="any"
+                            className="sketch-input bg-white/50 py-2 min-w-0 w-1/2 px-2"
+                            required
+                          />
+                        </div>
+                      ) : (
+                        <input
+                          value={newValue}
+                          onChange={(e) => setNewValue(e.target.value)}
+                          placeholder="0"
+                          type="number"
+                          className="sketch-input bg-white/50 py-2 min-w-0 flex-1 px-2"
+                          required
+                        />
+                      )
+                    ) : (
+                      <select value={newDenomination} onChange={e => setNewDenomination(Number(e.target.value))} className="sketch-input flex-1 py-2 text-sm font-bold bg-white/50 px-2 sm:px-4">
+                        {VND_DENOMINATIONS.map(den => (
+                           <option key={den} value={den}>{den.toLocaleString('vi-VN')} đ</option>
+                        ))}
+                      </select>
+                    )}
+                    
+                    {!isNewMoney && (
+                      <select value={newCurrency} onChange={(e) => setNewCurrency(e.target.value)} className="sketch-input bg-[#efefef] font-bold py-2 w-[80px] shrink-0 px-1 text-center">
+                        <option value="VND">VND</option>
+                        <option value="USD">USD</option>
+                        <option value="GOLD">VÀNG</option>
+                      </select>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Ghi Chú & Đặc Tính</label>
+                <input
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  placeholder="Ghi chú thêm (không bắt buộc)"
+                  className="sketch-input bg-white/50 py-2"
+                />
+                <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2 ml-1">
+                   <label className="flex items-center gap-1.5 cursor-pointer group">
+                     <input type="checkbox" checked={isDebt} onChange={e => setIsDebt(e.target.checked)} className="accent-crimson w-3.5 h-3.5" />
+                     <span className="text-[11px] font-bold text-ink/70 group-hover:text-ink transition-colors uppercase tracking-wider">Khoản Nợ Phải Trả</span>
+                   </label>
+                   <label className="flex items-center gap-1.5 cursor-pointer group">
+                     <input type="checkbox" checked={isNewMoney} onChange={e => setIsNewMoney(e.target.checked)} className="accent-amber-500 w-3.5 h-3.5" />
+                     <span className="text-[11px] font-bold text-ink/70 group-hover:text-ink transition-colors uppercase tracking-wider">Tiền Mới Nguyên</span>
+                   </label>
+                   {!isDebt && !isNewMoney && (
+                     <label className="flex items-center gap-1.5 cursor-pointer group">
+                        <input type="checkbox" checked={excludeFromNetWorth} onChange={e => setExcludeFromNetWorth(e.target.checked)} className="accent-blue-500 w-3.5 h-3.5" />
+                        <span className="text-[11px] font-bold text-ink/70 group-hover:text-ink transition-colors uppercase tracking-wider text-blue-800">Khoản Cho Vay (Gắn Tags Chuyên Dụng)</span>
+                     </label>
+                   )}
+                </div>
+              </div>
 
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-2 border-t border-ink/10">
+                {editingId && (
+                  <button type="button" onClick={cancelEdit} className="flex-1 sketch-button py-2.5 text-xs">Hủy</button>
+                )}
+                <button type="submit" className={cn(
+                  "flex-[2] sketch-button py-2.5 text-xs font-black uppercase tracking-wider",
+                  editingId ? "bg-amber-500 text-white shadow-xl shadow-amber-500/20" : "bg-emerald-600 text-white shadow-xl shadow-emerald-500/20 hover:scale-105"
+                )}>
+                  {editingId ? "✔️ Hoàn Tất Sửa" : "➕ Lưu Tài Sản"}
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
       </div>
 
       {isManagingCats && (
