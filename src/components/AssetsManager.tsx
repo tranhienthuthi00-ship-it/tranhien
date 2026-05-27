@@ -764,118 +764,33 @@ export function AssetsManager({
 
       {/* Container for Scoreboard */}
       <div className="flex flex-col gap-6 mb-8 items-start w-full">
-        {/* STATE-OF-THE-ART FINANCIAL BENTO GRID SCOREBOARD */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
-          {/* Core Card: Vốn chủ sở hữu (Net Worth) - Spans 2 cols on tablet/desktop */}
-          <div className="sm:col-span-2 bg-[#18181b] text-zinc-100 p-5 rounded-2xl shadow-xl border border-zinc-800 flex flex-col justify-between relative overflow-hidden min-h-[145px]">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
-            
-            <div className="flex items-start justify-between">
-              <div className="text-left">
-                <span className="text-[9px] font-extrabold text-zinc-400 uppercase tracking-widest">
-                  Vốn Chủ Sở Hữu (Net Worth)
-                </span>
-                <h2 className="text-3xl font-black font-sans tracking-tight text-white mt-1">
-                  {formatCurrency(totalVND, 'VND')}
-                </h2>
-              </div>
-              <span className="p-2 bg-zinc-800 text-emerald-400 rounded-xl shadow-lg shrink-0">
-                <TrendingUp size={18} />
-              </span>
+        {/* CLEAN MINIMALIST SCOREBOARD */}
+        <div className="bg-[#fffdf5] p-6 rounded-3xl sketch-border border-[3px] flex flex-col sm:flex-row items-center justify-between w-full shadow-md gap-6 border-amber-200/80">
+          <div className="flex items-center gap-4 border-b sm:border-b-0 sm:border-r border-ink/10 pb-4 sm:pb-0 sm:pr-8 w-full sm:w-auto text-center sm:text-left">
+            <div className="p-3 bg-amber-100/50 rounded-2xl border border-amber-200/50 text-amber-600 shrink-0 mx-auto sm:mx-0 shadow-inner">
+               <TrendingUp size={28} />
             </div>
-
-            {/* Visual Asset-to-Debt Proportion Indicator Bar */}
-            <div className="mt-4 pt-4 border-t border-zinc-800">
-              <div className="flex items-center justify-between text-[11px] font-bold text-zinc-400 mb-1.5">
-                <span>Tỉ lệ Vốn tự có : Tổng nợ</span>
-                <span>
-                  {(() => {
-                    const scale = (totalAssetsVND + totalLoansVND);
-                    const debt = totalDebtsVND;
-                    if (scale <= 0) return "100% tự chủ";
-                    const percent = Math.max(0, Math.min(100, Math.round((totalVND / scale) * 100)));
-                    return `${percent}% tự chủ`;
-                  })()}
-                </span>
-              </div>
-              
-              <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden flex">
-                <div 
-                  className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all" 
-                  style={{ 
-                    width: `${Math.max(0, Math.min(100, (totalAssetsVND + totalLoansVND) > 0 ? (totalVND / (totalAssetsVND + totalLoansVND)) * 100 : 100))}%` 
-                  }}
-                ></div>
-              </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-ink/40">Vốn Chủ Sở Hữu (Net Worth)</p>
+              <h2 className="text-3xl font-black font-sans text-ink leading-none mt-1 drop-shadow-sm">
+                {formatCurrency(totalVND, 'VND')}
+              </h2>
             </div>
           </div>
-
-          {/* Card 2: Tổng tài sản hiện có */}
-          <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
-            <div className="flex items-start justify-between">
-              <div className="text-left">
-                <span className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">
-                  Tài sản tích lũy
-                </span>
-                <h3 className="text-xl font-extrabold text-emerald-600 mt-1 font-sans">
-                  {formatCurrency(totalAssetsVND, 'VND')}
-                </h3>
-              </div>
-              <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
-                <Wallet size={16} />
-              </span>
+          <div className="flex flex-wrap sm:flex-nowrap gap-6 w-full sm:w-auto justify-center sm:justify-start">
+            <div className="text-center sm:text-left">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-600/60 flex items-center justify-center sm:justify-start gap-1"><Wallet size={10}/> Tích lũy</p>
+              <p className="text-[13px] font-bold text-emerald-700 font-sans mt-0.5">{formatCurrency(totalAssetsVND, 'VND')}</p>
             </div>
-            
-            <div className="text-left text-[10px] text-ink/40 pt-2 border-t border-ink/5 flex items-center justify-between font-bold">
-              <span>Tiền mớ: {Math.round(totalNewMoneyVND / 1000000)}tr đ</span>
-              <span className="text-emerald-600">Ổn định</span>
+            <div className="text-center sm:text-left border-l border-ink/10 pl-6">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-blue-600/60 flex items-center justify-center sm:justify-start gap-1"><Handshake size={10}/> Phải Thu</p>
+              <p className="text-[13px] font-bold text-blue-700 font-sans mt-0.5">{formatCurrency(totalLoansVND, 'VND')}</p>
+            </div>
+            <div className="text-center sm:text-left border-l border-ink/10 pl-6 border-l-crimson/20">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-crimson/60 flex items-center justify-center sm:justify-start gap-1"><CreditCard size={10}/> Nghĩa vụ Nợ</p>
+              <p className="text-[13px] font-black text-crimson font-sans mt-0.5">{formatCurrency(totalDebtsVND, 'VND')}</p>
             </div>
           </div>
-
-          {/* Card 3: Khoản cho vay (Receivables) */}
-          <div className="bg-white p-5 rounded-2xl border border-ink/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
-            <div className="flex items-start justify-between">
-              <div className="text-left">
-                <span className="text-[9px] font-extrabold text-ink/40 uppercase tracking-widest">
-                  Khoản cho vay (Phải thu)
-                </span>
-                <h3 className="text-xl font-extrabold text-blue-600 mt-1 font-sans">
-                  {formatCurrency(totalLoansVND, 'VND')}
-                </h3>
-              </div>
-              <span className="p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0">
-                <Handshake size={16} />
-              </span>
-            </div>
-            
-            <div className="text-left text-[10px] text-ink/40 pt-2 border-t border-ink/5 flex items-center justify-between font-bold">
-              <span>Ứng trước đối tác / bạn bè</span>
-              <span className="text-blue-600">Receivable</span>
-            </div>
-          </div>
-
-          {/* Card 4: Tổng nợ phải trả */}
-          <div className="bg-red-50/20 p-5 rounded-2xl border border-red-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
-            <div className="flex items-start justify-between">
-              <div className="text-left">
-                <span className="text-[9px] font-extrabold text-crimson/60 uppercase tracking-widest">
-                  Nghĩa vụ nợ (Debts)
-                </span>
-                <h3 className="text-xl font-extrabold text-crimson mt-1 font-sans">
-                  {formatCurrency(totalDebtsVND, 'VND')}
-                </h3>
-              </div>
-              <span className="p-2 bg-rose-50 text-crimson rounded-xl shrink-0">
-                <CreditCard size={16} />
-              </span>
-            </div>
-            
-            <div className="text-left text-[10px] text-crimson/50 pt-2 border-t border-red-100/60 flex items-center justify-between font-bold">
-              <span>Nợ tự động từ bảng kê</span>
-              <span className="text-crimson font-black uppercase">Pulsing nợ</span>
-            </div>
-          </div>
-
         </div>
       </div>
 
@@ -1863,63 +1778,79 @@ export function AssetsManager({
         </div>
       </div>
 
-      {/* Bảng Kê Doanh Thu Tuần - Specialized Section */}
-      <div className="mt-16 animate-in fade-in slide-in-from-bottom-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b-4 border-crimson/80 pb-2 gap-4">
-           <div className="flex items-center gap-3">
-              <button className="p-2 bg-crimson/80 text-white rounded-xl shadow-lg">
-                <Receipt size={24} />
-              </button>
+      {/* COMPONENT SYNC BẢNG KÊ CHI TIÊU & DOANH THU TỪ HOME */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-16 w-full animate-in fade-in slide-in-from-bottom-4 mb-8">
+        {/* LEFT CARD: BẢNG KÊ CHI TIÊU THẺ TÍN DỤNG */}
+        <div className="bg-gradient-to-tr from-[#fcfdff] to-[#f5f8ff] p-6 rounded-2xl sketch-border border-ink shadow-sm space-y-4 text-left">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-[#3b82f6] pb-2.5 gap-2">
+            <div className="flex items-center gap-2 text-left">
+              <span className="p-2 bg-[#dbeafe] rounded-xl text-[#1e40af] border border-blue-250">
+                <CreditCard size={18} className="animate-pulse" />
+              </span>
               <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-crimson">Doanh thu</h2>
-                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">{justDateRangeText}</p>
+                <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#1e40af] font-sans">
+                  Bảng Kê Chi Tiêu Thẻ Tín Dụng
+                </h3>
               </div>
-           </div>
-        </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  setBulkCardSpends([...bulkCardSpends, {
+                    id: Date.now(),
+                    name: new Date().toISOString().split("T")[0],
+                    amount: "",
+                    notes: ""
+                  }]);
+                }}
+                className="px-2.5 py-1 text-[10px] bg-blue-50 text-blue-700 rounded-lg border border-blue-200 uppercase font-black tracking-widest hover:bg-[#1e40af] hover:text-white transition-all cursor-pointer flex items-center gap-1"
+              >
+                <Plus size={10} /> Thêm Dòng
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm("Reset toàn bộ bảng kê chi tiêu thẻ tín dụng?")) {
+                    setBulkCardSpends([]);
+                  }
+                }}
+                className="px-2.5 py-1 text-[10px] bg-red-50 text-crimson rounded-lg border border-red-200 uppercase font-black tracking-widest hover:bg-crimson hover:text-white transition-all cursor-pointer"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
 
-        <div className="bg-[#fffbeb] sketch-border p-4 rounded-xl overflow-hidden mb-6">
-          <div className="overflow-x-auto max-w-full">
+          <div className="w-full overflow-x-auto scrollbar-thin">
             <table className="min-w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-crimson/10 text-[9px] font-black uppercase tracking-widest text-crimson border-b-2 border-crimson/50">
-                  <th className="px-4 py-3 font-black w-44">Ngày</th>
-                  <th className="px-4 py-3 text-right font-black">Số Tiền (VND)</th>
+                <tr className="bg-blue-100/50 text-[#1e40af] font-bold uppercase tracking-wider text-[9px]">
+                  <th className="px-3 py-2 w-32 border border-blue-100">Ngày / Tên</th>
+                  <th className="px-3 py-2 w-40 border border-blue-100">Số Tiền (VND)</th>
+                  <th className="px-3 py-2 border border-blue-100">Ghi Chú</th>
+                  <th className="px-2 py-2 w-10 text-center border border-blue-100">Xóa</th>
                 </tr>
               </thead>
-              <tbody className="font-sans divide-y divide-crimson/10">
-                {bulkDebts.map((item, idx) => (
-                  <tr key={item.id} className="transition-colors hover:bg-crimson/5">
-                    <td className="px-4 py-2 bg-crimson/5">
-                      <input 
-                        type="date" 
-                        value={item.name} 
-                        onChange={e => {
-                          const newDebts = [...bulkDebts];
-                          newDebts[idx].name = e.target.value;
-                          if (idx === 0 && e.target.value) {
-                            try {
-                              const baseDate = new Date(e.target.value + "T12:00:00");
-                              if (!isNaN(baseDate.getTime())) {
-                                for (let i = 1; i < 7; i++) {
-                                  const nextDate = new Date(baseDate.getTime());
-                                  nextDate.setDate(baseDate.getDate() + i);
-                                  newDebts[i].name = nextDate.toISOString().split("T")[0];
-                                }
-                              }
-                            } catch (err) {
-                              console.error(err);
-                            }
-                          }
-                          setBulkDebts(newDebts);
-                        }} 
-                        className="w-full font-bold text-ink bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-crimson text-xs shadow-inner"
+              <tbody>
+                {bulkCardSpends.map((item, index) => (
+                  <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
+                    <td className="p-1 border border-blue-100/50">
+                      <input
+                        type="text"
+                        value={item.name}
+                        onChange={(e) => {
+                          const updated = [...bulkCardSpends];
+                          updated[index].name = e.target.value;
+                          setBulkCardSpends(updated);
+                        }}
+                        className="w-full px-2 py-1.5 text-xs bg-transparent text-blue-950 font-bold focus:outline-none focus:bg-white rounded"
                       />
                     </td>
-                    <td className="px-4 py-2">
-                      <input 
-                        type="text" 
-                        value={item.amount} 
-                        onChange={e => {
+                    <td className="p-1 border border-blue-100/50">
+                      <input
+                        type="text"
+                        placeholder="Số tiền"
+                        value={item.amount ? Number(item.amount.replace(/,/g, "")).toLocaleString("vi-VN") : ""}
+                        onChange={(e) => {
                           const valStr = e.target.value.replace(/,/g, '');
                           if (!/^-?\d*$/.test(valStr)) return;
                           
@@ -1936,240 +1867,179 @@ export function AssetsManager({
                               }
                             }
                           }
-                          const newDebts = [...bulkDebts];
-                          newDebts[idx].amount = formatted;
-                          setBulkDebts(newDebts);
-                        }} 
-                        placeholder="0"
-                        className="w-full text-right font-mono font-bold text-crimson bg-white border border-ink/15 rounded-lg px-3 py-1 outline-none focus:border-crimson text-sm shadow-inner"
+                          const updated = [...bulkCardSpends];
+                          updated[index].amount = formatted;
+                          setBulkCardSpends(updated);
+                        }}
+                        className="w-full px-2 py-1.5 text-xs bg-transparent text-right font-bold text-indigo-950 focus:outline-none focus:bg-white rounded"
                       />
                     </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-crimson/10 font-bold text-crimson border-t-2 border-crimson/50 font-sans text-xs">
-                  <td className="px-4 py-3">
-                    <span className="uppercase text-[10px] tracking-widest font-black block">Tổng Doanh Thu Tuần</span>
-                    <span className="text-ink/50 text-[10px] font-medium italic">
-                      {(() => {
-                        const count = bulkDebts.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, '')))).length;
-                        return `* Tổng hợp từ ${count}/7 ngày có số liệu`;
-                      })()}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono font-black text-sm">
-                    {(() => {
-                      const rawSum = bulkDebts.reduce((sum, item) => sum + (parseFloat(item.amount.replace(/,/g, '')) || 0), 0);
-                      const formatted = Math.abs(rawSum).toLocaleString('vi-VN');
-                      return `+${formatted} đ`;
-                    })()}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        {/* Action Panel below */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-crimson/5 sketch-border border-dashed border-crimson/20 rounded-xl mb-10">
-          <div className="text-center sm:text-left">
-            <p className="text-xs text-ink/75 leading-relaxed">
-              ⚠️ <strong>Quy tắc cộng doanh thu:</strong> Hệ thống tự động gom cả 7 ngày thành một khoản doanh thu tuần tích lũy trong danh mục tài sản, giúp bạn theo dõi tổng tiến trình tích lũy đơn giản hơn.
-            </p>
-          </div>
-          
-          <div className="flex gap-2 shrink-0">
-             <button 
-               onClick={handleResetBulkDebts}
-               className="sketch-button text-xs py-2 px-4 font-bold uppercase tracking-widest text-ink hover:bg-white cursor-pointer transition-all"
-             >
-               Reset Bảng
-             </button>
-             <button 
-               onClick={handleSaveBulkDebts}
-               className="sketch-button sketch-button-primary py-2 px-6 flex items-center gap-2 text-xs transition-all bg-crimson/90 text-white hover:bg-crimson hover:shadow-lg active:scale-95 cursor-pointer font-black"
-             >
-               <Receipt size={14} /> Lưu Doanh Thu
-             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Bảng Kê Chi Tiêu Thẻ Tín Dụng - Specialized Section */}
-      <div className="mt-12 animate-in fade-in slide-in-from-bottom-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b-4 border-indigo-600/80 pb-2 gap-4">
-           <div className="flex items-center gap-3">
-              <button className="p-2 bg-indigo-600 text-white rounded-xl shadow-lg">
-                <CreditCard size={24} />
-              </button>
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-indigo-600">Nợ thẻ tín dụng</h2>
-                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">{justCardRangeText}</p>
-              </div>
-           </div>
-        </div>
-
-        <div className="bg-[#f0f4ff] sketch-border p-4 rounded-xl overflow-hidden mb-6">
-          <div className="overflow-x-auto max-w-full">
-            <table className="min-w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-indigo-100 text-[9px] font-black uppercase tracking-widest text-indigo-700 border-b-2 border-indigo-200">
-                  <th className="px-4 py-3 font-black w-44">Ngày</th>
-                  <th className="px-4 py-3 text-right font-black">Số Tiền (VND)</th>
-                  <th className="px-4 py-3 text-center font-black w-14">Xóa</th>
-                </tr>
-              </thead>
-              <tbody className="font-sans divide-y divide-indigo-100">
-                {bulkCardSpends.map((item, idx) => (
-                  <tr key={item.id} className="transition-colors hover:bg-indigo-50/50">
-                    <td className="px-4 py-2 bg-indigo-50/30">
-                      <input 
-                        type="date" 
-                        value={item.name} 
-                        onChange={e => {
-                          const newSpends = [...bulkCardSpends];
-                          newSpends[idx].name = e.target.value;
-                          if (idx === 0 && e.target.value) {
-                            try {
-                              const baseDate = new Date(e.target.value + "T12:00:00");
-                              if (!isNaN(baseDate.getTime())) {
-                                for (let i = 1; i < newSpends.length; i++) {
-                                  const nextDate = new Date(baseDate.getTime());
-                                  nextDate.setDate(baseDate.getDate() + i);
-                                  newSpends[i].name = nextDate.toISOString().split("T")[0];
-                                }
-                              }
-                            } catch (err) {
-                              console.error(err);
-                            }
-                          }
-                          setBulkCardSpends(newSpends);
-                        }} 
-                        className="w-full font-bold text-ink bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-indigo-600 text-xs shadow-inner"
+                    <td className="p-1 border border-blue-100/50">
+                      <input
+                        type="text"
+                        placeholder="Chi tiết chi tiêu..."
+                        value={item.notes || ""}
+                        onChange={(e) => {
+                          const updated = [...bulkCardSpends];
+                          updated[index].notes = e.target.value;
+                          setBulkCardSpends(updated);
+                        }}
+                        className="w-full px-2 py-1.5 text-xs bg-transparent text-left text-blue-900 focus:outline-none focus:bg-white rounded"
                       />
                     </td>
-                    <td className="px-4 py-2">
-                      <input 
-                        type="text" 
-                        value={item.amount} 
-                        onChange={e => {
-                          const valStr = e.target.value.replace(/,/g, '');
-                          if (!/^-?\d*$/.test(valStr)) return;
-                          
-                          let formatted = "";
-                          if (valStr === "-") {
-                            formatted = "-";
-                          } else if (valStr) {
-                            const isNeg = valStr.startsWith("-");
-                            const cleanDigits = valStr.replace('-', '');
-                            if (cleanDigits) {
-                              const parsedVal = parseInt(cleanDigits, 10);
-                              if (!isNaN(parsedVal)) {
-                                formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
-                              }
-                            }
-                          }
-                          const newSpends = [...bulkCardSpends];
-                          newSpends[idx].amount = formatted;
-                          setBulkCardSpends(newSpends);
-                        }} 
-                        placeholder="0"
-                        className="w-full text-right font-mono font-bold text-indigo-700 bg-white border border-ink/15 rounded-lg px-3 py-1 outline-none focus:border-indigo-600 text-sm shadow-inner"
-                      />
-                    </td>
-                    <td className="px-4 py-2 text-center">
+                    <td className="p-1 border border-blue-100/50 text-center">
                       <button
                         onClick={() => {
-                          const newSpends = bulkCardSpends.filter(s => s.id !== item.id);
-                          setBulkCardSpends(newSpends);
+                          const updated = bulkCardSpends.filter((_, i) => i !== index);
+                          setBulkCardSpends(updated);
                         }}
-                        className="p-1 text-[#e11d48] hover:bg-rose-50 rounded transition-colors cursor-pointer"
-                        title="Xóa ngày chi tiêu này"
+                        className="p-1.5 text-rose-300 hover:text-crimson hover:bg-rose-50 rounded transition-colors mx-auto"
+                        title="Xóa hàng"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={12} />
                       </button>
                     </td>
                   </tr>
                 ))}
+                {bulkCardSpends.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="text-center p-4 text-[10px] text-blue-400 italic">
+                      Dữ liệu trống. Nhấp "Thêm Dòng" để tạo bảng kê mới.
+                    </td>
+                  </tr>
+                )}
               </tbody>
-              <tfoot>
-                <tr className="bg-indigo-100 font-bold text-indigo-700 border-t-2 border-indigo-200 font-sans text-xs">
-                  <td className="px-4 py-3">
-                    <span className="uppercase text-[10px] tracking-widest font-black block">Tổng Nợ Thẻ Đã Tiêu</span>
-                    <span className="text-indigo-950/50 text-[10px] font-medium italic">
-                      {(() => {
-                        const count = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, '')))).length;
-                        return `* Tổng hợp từ ${count}/${bulkCardSpends.length} ngày ghi chi tiêu`;
-                      })()}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono font-black text-sm">
-                    {(() => {
-                      const rawSum = bulkCardSpends.reduce((sum, item) => sum + (parseFloat(item.amount.replace(/,/g, '')) || 0), 0);
-                      const formatted = Math.abs(rawSum).toLocaleString('vi-VN');
-                      return `+${formatted} đ`;
-                    })()}
-                  </td>
-                  <td></td>
-                </tr>
-              </tfoot>
             </table>
+          </div>
+
+          {/* Sum footer */}
+          <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-150">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-blue-800">Tổng chi tiêu thẻ:</span>
+            <span className="text-sm font-black text-[#1e40af] font-mono">
+              {(() => {
+                const total = bulkCardSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                return total.toLocaleString("vi-VN") + " đ";
+              })()}
+            </span>
           </div>
         </div>
 
-        {/* Action Panel */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-emerald-50/50 sketch-border border-dashed border-emerald-200 rounded-xl mb-12">
-          <div className="text-center sm:text-left flex-1">
-            <p className="text-xs text-emerald-950 font-bold leading-relaxed">
-              ⚡ <strong>Tự động đồng bộ:</strong> Toàn bộ chi tiêu thẻ hàng ngày ở trên đang được tự động cộng dồn & cập nhật trực tiếp thành một khoản nợ thẻ tín dụng trong Sổ Tài Sản. Net Worth sẽ tự cập nhật real-time mà không cần thao tác bấm Lưu!
-            </p>
+        {/* RIGHT CARD: BẢNG KÊ DOANH THU KHÁCH NỢ TUẦN QUA */}
+        <div className="bg-gradient-to-tr from-[#fdfdfc] to-[#f4fbf7] p-6 rounded-2xl sketch-border border-ink shadow-sm space-y-4 text-left">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-[#10b981] pb-2.5 gap-2">
+            <div className="flex items-center gap-2 text-left">
+              <span className="p-2 bg-[#d1fae5] rounded-xl text-[#065f46] border border-emerald-250">
+                <Receipt size={18} className="animate-pulse" />
+              </span>
+              <div>
+                <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#065f46] font-sans">
+                  Doanh Thu / Khách Nợ Tuần Qua
+                </h3>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                if (confirm("Đặt lại toàn bộ bảng kê doanh thu và khách nợ tuần này?")) {
+                  setBulkDebts(bulkDebts.map(item => ({ ...item, amount: "", notes: "" })));
+                }
+              }}
+              className="px-2.5 py-1 text-[10px] bg-red-50 text-crimson rounded-lg border border-red-200 uppercase font-black tracking-widest hover:bg-crimson hover:text-white transition-all cursor-pointer"
+            >
+              Reset tuần
+            </button>
           </div>
-          
-          <div className="flex gap-2 shrink-0 items-center">
-             <button 
-               onClick={() => {
-                 let nextDateStr = "";
-                 if (bulkCardSpends.length > 0) {
-                   const lastDateStr = bulkCardSpends[bulkCardSpends.length - 1].name;
-                   try {
-                     const d = new Date(lastDateStr + "T12:00:00");
-                     if (!isNaN(d.getTime())) {
-                       d.setDate(d.getDate() + 1);
-                       nextDateStr = d.toISOString().split("T")[0];
-                     }
-                   } catch {}
-                 }
-                 if (!nextDateStr) {
-                   nextDateStr = new Date().toISOString().split("T")[0];
-                 }
-                 setBulkCardSpends([
-                   ...bulkCardSpends,
-                   {
-                     id: Date.now() + Math.random(),
-                     name: nextDateStr,
-                     amount: "",
-                     notes: ""
-                   }
-                 ]);
-               }}
-               className="sketch-button py-2 px-4 text-xs font-bold bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-200 cursor-pointer transition-all flex items-center gap-1 animate-pulse"
-             >
-               <Plus size={14} /> Thêm Hàng
-             </button>
-             <button 
-               onClick={handleResetBulkCardSpends}
-               className="sketch-button text-xs py-2 px-4 font-bold uppercase tracking-widest text-[#1a2530] hover:bg-white cursor-pointer transition-all border border-ink/10"
-             >
-               Reset Bảng
-             </button>
-             <div className="py-2 px-5 flex items-center gap-2 text-xs rounded-xl bg-emerald-600 text-white font-black uppercase tracking-wider select-none shadow-[3px_3px_0_rgba(16,185,129,0.3)]">
-               <span className="w-2 h-2 bg-white rounded-full animate-ping"></span>
-               <span>✓ Đã liên kết nợ tự động</span>
-             </div>
+
+          <div className="w-full overflow-x-auto scrollbar-thin">
+            <table className="min-w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-emerald-100/50 text-[#065f46] font-bold uppercase tracking-wider text-[9px]">
+                  <th className="px-3 py-2 w-32 border border-emerald-100">Ngày / Tên</th>
+                  <th className="px-3 py-2 w-40 border border-emerald-100">Số Tiền (VND)</th>
+                  <th className="px-3 py-2 border border-emerald-100">Ghi Chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bulkDebts.map((item, index) => {
+                  const dateObj = new Date(item.name);
+                  const dayStr = isNaN(dateObj.getTime())
+                    ? item.name
+                    : dateObj.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+                  return (
+                    <tr key={item.id} className="hover:bg-emerald-50/50 transition-colors">
+                      <td className="p-1 border border-emerald-100/50">
+                        <div className="px-2 py-1.5 flex flex-col">
+                          <span className="text-xs font-black text-emerald-950 font-sans truncate capitalize">
+                            {dayStr}
+                          </span>
+                          <span className="text-[9px] font-mono text-emerald-600 block">
+                            {item.name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-1 border border-emerald-100/50">
+                        <input
+                          type="text"
+                          placeholder="Số tiền"
+                          value={item.amount}
+                          onChange={(e) => {
+                            const valStr = e.target.value.replace(/,/g, '');
+                            if (!/^-?\d*$/.test(valStr)) return;
+                            
+                            let formatted = "";
+                            if (valStr === "-") {
+                              formatted = "-";
+                            } else if (valStr) {
+                              const isNeg = valStr.startsWith("-");
+                              const cleanDigits = valStr.replace('-', '');
+                              if (cleanDigits) {
+                                const parsedVal = parseInt(cleanDigits, 10);
+                                if (!isNaN(parsedVal)) {
+                                  formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                                }
+                              }
+                            }
+                            const updated = [...bulkDebts];
+                            updated[index].amount = formatted;
+                            setBulkDebts(updated);
+                          }}
+                          className="w-full px-2 py-1.5 text-xs bg-transparent text-right font-bold text-emerald-950 focus:outline-none focus:bg-white rounded"
+                        />
+                      </td>
+                      <td className="p-1 border border-emerald-100/50">
+                        <input
+                          type="text"
+                          placeholder="Nội dung..."
+                          value={item.notes || ""}
+                          onChange={(e) => {
+                            const updated = [...bulkDebts];
+                            updated[index].notes = e.target.value;
+                            setBulkDebts(updated);
+                          }}
+                          className="w-full px-2 py-1.5 text-xs bg-transparent text-left focus:outline-none focus:bg-white rounded"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Sum footer */}
+          <div className="flex items-center justify-between bg-emerald-50/50 p-3 rounded-xl border border-emerald-150">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-800">Tổng thu nhập / Nợ tuần:</span>
+            <span className="text-sm font-black text-[#065f46] font-mono">
+              {(() => {
+                const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                return (total > 0 ? "+" : "") + total.toLocaleString("vi-VN");
+              })()} đ
+            </span>
           </div>
         </div>
       </div>
+
+
 
       {/* --- PHÂN KHÚC DỰ TÍNH TIỀN LƯƠNG & DỰ CHI --- */}
       <div className="mt-16 animate-in fade-in slide-in-from-bottom-4 border-t-4 border-dashed border-emerald-600/30 pt-12">

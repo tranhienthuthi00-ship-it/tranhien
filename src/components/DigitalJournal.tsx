@@ -644,9 +644,6 @@ export function DigitalJournal({
                 <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#1e40af] font-sans">
                   Bảng Kê Chi Tiêu Thẻ Tín Dụng
                 </h3>
-                <p className="text-[10px] font-bold text-blue-700/60 uppercase tracking-widest leading-none mt-0.5">
-                  Tự động đồng bộ dư nợ vào mục Ngân hàng
-                </p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -791,9 +788,6 @@ export function DigitalJournal({
                 <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#065f46] font-sans">
                   Doanh Thu / Khách Nợ Tuần Qua
                 </h3>
-                <p className="text-[10px] font-bold text-emerald-700/60 uppercase tracking-widest leading-none mt-0.5">
-                  Lưu trữ nhanh doanh thu đạt được và danh sách nợ khách
-                </p>
               </div>
             </div>
             <button
@@ -822,7 +816,7 @@ export function DigitalJournal({
                   const dateObj = new Date(item.name);
                   const dayStr = isNaN(dateObj.getTime())
                     ? item.name
-                    : dateObj.toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit" });
+                    : dateObj.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
                   return (
                     <tr key={item.id} className="hover:bg-emerald-50/50 transition-colors">
