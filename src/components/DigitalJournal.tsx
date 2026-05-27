@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import confetti from "canvas-confetti";
 import type { LogEntry, Task, Achievement, StudyGoal, FoodPlace, AssetCategory } from "../types";
 import { 
   Plus, 
@@ -19,8 +20,12 @@ import {
   ChevronRight,
   Heart,
   CreditCard,
-  Receipt
+  Receipt,
+  Flame,
+  Gift,
+  Briefcase
 } from "lucide-react";
+import { useFirebase } from "../context/FirebaseContext";
 
 
 const formatDateDot = (dateStr: string) => {
@@ -86,16 +91,76 @@ export function DigitalJournal({
   setBulkCurrentCash
 }: DigitalJournalProps) {
   
-  // ---------------- CUSTOM REWARDS MODAL STATE ----------------
-  const CUSTOM_REWARDS = [
-    { emoji: "☕", title: "Cà phê Time!", desc: "Thưởng 1 ly cà phê/trà sữa (50k)!" },
-    { emoji: "🍿", title: "Nghỉ Ngơi 30 Phút", desc: "Được phép thư giãn xem phim chill chill 30 phút." },
-    { emoji: "🛍️", title: "Mua Sắm Linh Tinh", desc: "Tự thưởng món đồ lặt vặt thú vị dưới 100k!" },
-    { emoji: "🍫", title: "Ăn Vặt Lên Ngôi", desc: "Thưởng ngay món snack yêu thích nhất!" },
-    { emoji: "🌿", title: "Chilling Walk", desc: "Đi dạo 20 phút không cầm điện thoại." },
-    { emoji: "💸", title: "Thưởng Nóng", desc: "Cộng ngay 50k vào heo đất." },
-    { emoji: "🎮", title: "Gaming Time", desc: "Thoải mái chơi 1 ván game yêu thích." }
-  ];
+  // ---------------- GLOBAL SYNCED CONTEXT ----------------
+  const { 
+    habits, 
+    setHabits, 
+    customRewards, 
+    setCustomRewards,
+    salaryInput,
+    setSalaryInput,
+    plannedExpenses,
+    setPlannedExpenses
+  } = useFirebase();
+
+  // Local helper states for Salary Planner inline adding
+  const [newExpName, setNewExpName] = useState("");
+  const [newExpAmount, setNewExpAmount] = useState("");
+  const [newExpNotes, setNewExpNotes] = useState("");
+
+  const totalPlannedOutflows = useMemo(() => {
+    return plannedExpenses.reduce((sum, item) => {
+      const parsed = parseFloat(item.amount.replace(/,/g, ''));
+      return sum + (isNaN(parsed) ? 0 : parsed);
+    }, 0);
+  }, [plannedExpenses]);
+
+  const totalSalIncome = useMemo(() => {
+    const parsed = parseFloat(salaryInput.replace(/,/g, ''));
+    return isNaN(parsed) ? 0 : parsed;
+  }, [salaryInput]);
+
+  const remainingBalance = totalSalIncome - totalPlannedOutflows;
+
+  const percentageSpent = totalSalIncome > 0 ? (totalPlannedOutflows / totalSalIncome) * 100 : 0;
+
+  const handleAddPlannedExpense = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newExpName.trim()) return;
+    const newExpense = {
+      id: `pe-${Date.now()}-${Math.random()}`,
+      name: newExpName.trim(),
+      amount: newExpAmount || "0",
+      notes: newExpNotes.trim()
+    };
+    setPlannedExpenses([...plannedExpenses, newExpense]);
+    setNewExpName("");
+    setNewExpAmount("");
+    setNewExpNotes("");
+  };
+
+  const handleRemovePlannedExpense = (id: string) => {
+    setPlannedExpenses(plannedExpenses.filter(pe => pe.id !== id));
+  };
+
+  const handleResetSalaryPlanner = () => {
+    setSalaryInput("15,000,000");
+    setPlannedExpenses([
+      { id: "pe-1", name: "Tiền thuê nhà / phòng", amount: "3,500,000", notes: "Thanh toán cố định đầu tháng" },
+      { id: "pe-2", name: "Chi phí ăn uống sinh hoạt", amount: "3,000,000", notes: "Ngân sách ăn uống ước tính" },
+      { id: "pe-3", name: "Cước phí dịch vụ (Điện, nước, net)", amount: "800,000", notes: "Thanh toán hóa đơn hàng tháng" },
+      { id: "pe-4", name: "Học tập & Sách vở", amount: "1,200,000", notes: "Luyện tiếng Anh và phát triển cá nhân" },
+      { id: "pe-5", name: "Tích lũy tài sản / Tiết kiệm", amount: "3,000,000", notes: "Khoản để riêng đầu tư" }
+    ]);
+    setNewExpName("");
+    setNewExpAmount("");
+    setNewExpNotes("");
+  };
+
+  const [newRewardTitle, setNewRewardTitle] = useState("");
+  const [newRewardDesc, setNewRewardDesc] = useState("");
+  const [newRewardEmoji, setNewRewardEmoji] = useState("🎁");
+
   const [rewardPopup, setRewardPopup] = useState<{ id: string, emoji: string, title: string, desc: string } | null>(null);
 
   // ---------------- INTERACTIVE MINI-CALENDAR STATE ----------------
@@ -126,6 +191,104 @@ export function DigitalJournal({
   const [newTaskPriority, setNewTaskPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
   const [newTaskGoalId, setNewTaskGoalId] = useState("");
   const [showAddTask, setShowAddTask] = useState(false);
+
+  // ---------------- TODAY'S HABITS STATE & SYNC ----------------
+  // Synced from useFirebase context
+
+  const handleToggleHabitFromHome = (habitId: string) => {
+    const todayKey = new Date().toISOString().split("T")[0];
+    let triggeredReward = null;
+    let habitName = "";
+
+    const updatedHabits = habits.map(h => {
+      if (h.id === habitId) {
+        const dailyHistory = { ...(h.history[todayKey] || {}) };
+        const times = h.reminderTimes && h.reminderTimes.length > 0 ? h.reminderTimes : ["08:00"];
+        const someUnchecked = times.some((t: string) => !dailyHistory[t]);
+        habitName = h.name;
+        
+        times.forEach((t: string) => {
+          dailyHistory[t] = someUnchecked;
+        });
+
+        const updatedHistory = {
+          ...h.history,
+          [todayKey]: dailyHistory
+        };
+
+        let newStreak = h.streak;
+        let isCompletedToday = someUnchecked;
+        
+        if (isCompletedToday) {
+          newStreak = h.streak + 1;
+          triggeredReward = { type: "streak", streakVal: newStreak };
+        } else {
+          newStreak = Math.max(0, h.streak - 1);
+        }
+
+        return {
+          ...h,
+          history: updatedHistory,
+          streak: newStreak,
+          maxStreak: Math.max(h.maxStreak || 0, newStreak),
+          lastCompletedDate: isCompletedToday ? todayKey : h.lastCompletedDate
+        };
+      }
+      return h;
+    });
+
+    setHabits(updatedHabits);
+    localStorage.setItem("studyHub_habits", JSON.stringify(updatedHabits));
+
+    if (triggeredReward) {
+      const lockedRewards = customRewards.filter(r => !r.isUnlocked);
+      let selectedReward;
+      if (lockedRewards.length > 0) {
+        selectedReward = lockedRewards[Math.floor(Math.random() * lockedRewards.length)];
+        const updatedRewards = customRewards.map(r => r.id === selectedReward.id ? { ...r, isUnlocked: true, unlockedAt: new Date().toLocaleDateString("vi-VN") } : r);
+        setCustomRewards(updatedRewards);
+      } else {
+        selectedReward = customRewards[Math.floor(Math.random() * customRewards.length)];
+      }
+      if (selectedReward) {
+        setRewardPopup({
+          id: Date.now().toString() + "_" + selectedReward.id,
+          emoji: selectedReward.emoji,
+          title: `🔥 Chuỗi ${triggeredReward.streakVal} Ngày: ${selectedReward.title}`,
+          desc: `Tuyệt vời duy trì thói quen "${habitName}" liên tục! Phần thưởng của bạn: ${selectedReward.desc}`
+        });
+      }
+    }
+
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContext) {
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.08);
+        osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.16);
+        osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.24);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.5);
+      }
+    } catch (err) {}
+
+    try {
+      confetti({
+        particleCount: 120,
+        spread: 70,
+        origin: { y: 0.75 },
+        colors: ["#10b981", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6"]
+      });
+    } catch (e) {}
+  };
 
   // ---------------- PERSONAL TIPS & HACKS TABLE STATE ----------------
   const [isPersonalOpen, setIsPersonalOpen] = useState(true);
@@ -248,8 +411,18 @@ export function DigitalJournal({
       };
       setLogs(prev => [...prev, newLog]);
       
-      const randReward = CUSTOM_REWARDS[Math.floor(Math.random() * CUSTOM_REWARDS.length)];
-      setRewardPopup({ id: Date.now().toString(), ...randReward });
+      const lockedRewards = customRewards.filter(r => !r.isUnlocked);
+      let selectedReward;
+      if (lockedRewards.length > 0) {
+        selectedReward = lockedRewards[Math.floor(Math.random() * lockedRewards.length)];
+        const updatedRewards = customRewards.map(r => r.id === selectedReward.id ? { ...r, isUnlocked: true, unlockedAt: new Date().toLocaleDateString("vi-VN") } : r);
+        setCustomRewards(updatedRewards);
+      } else {
+        selectedReward = customRewards[Math.floor(Math.random() * customRewards.length)];
+      }
+      if (selectedReward) {
+        setRewardPopup({ id: Date.now().toString() + "_" + selectedReward.id, emoji: selectedReward.emoji, title: selectedReward.title, desc: selectedReward.desc });
+      }
     }
   };
 
@@ -352,102 +525,97 @@ export function DigitalJournal({
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 font-sans select-none space-y-8 animate-in fade-in duration-300">
       
-      {/* OVERRIDE GRID 1: WELCOME & TASKS (8 cols) and CALENDAR (4 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-2 border-b-2 border-ink/5">
-        
-        {/* LEFT COLUMN: WELCOME + TASKS */}
-        <div className="lg:col-span-8 space-y-6">
+      {/* 1. MOTIVATIONAL WELCOME HEADER - FULL WIDTH */}
+      <div className="bg-[#fffdf5] p-6 md:p-10 rounded-3xl sketch-border border-amber-200/80 relative overflow-hidden flex items-center justify-center shadow-sm min-h-[130px]">
+         <div className="absolute inset-0 opacity-40 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-100 via-transparent to-transparent"></div>
+         <h1 className="font-sans text-3xl md:text-5xl font-black uppercase tracking-widest text-amber-900/80 flex items-center gap-4 md:gap-6 relative z-10 drop-shadow-sm">
+           <Sparkles size={36} className="text-amber-500 animate-pulse" />
+           Welcome Home
+           <Sparkles size={36} className="text-amber-500 animate-pulse" />
+         </h1>
+      </div>
+
+      {/* THREE-COLUMN GRID: COMPACT TASKS (col-span-4), HABITS OVERVIEW (col-span-4), CALENDAR (col-span-4) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 pb-6 border-b-2 border-ink/5">
+
+        {/* COLUMN 1: COMPACT TASKS */}
+        <div className="lg:col-span-4 space-y-4">
           
-          {/* 1. MOTIVATIONAL WELCOME HEADER */}
-          <div className="bg-[#fffdf5] p-8 md:p-12 rounded-3xl sketch-border border-amber-200/80 relative overflow-hidden flex items-center justify-center shadow-sm min-h-[160px]">
-             <div className="absolute inset-0 opacity-40 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-100 via-transparent to-transparent"></div>
-             <h1 className="font-sans text-3xl md:text-5xl font-black uppercase tracking-widest text-amber-900/80 flex items-center gap-4 md:gap-6 relative z-10 drop-shadow-sm">
-               <Sparkles size={36} className="text-amber-500 animate-pulse" />
-               Welcome Home
-               <Sparkles size={36} className="text-amber-500 animate-pulse" />
-             </h1>
-          </div>
-          
-          {/* TASKS COMPONENT */}
-          <div className="bg-[#fffdf5] p-5 rounded-3xl sketch-border border-amber-200/80 space-y-4 shadow-sm min-h-[380px] relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-amber-200/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="bg-[#fffdf5] p-4.5 rounded-3xl sketch-border border-amber-200/80 space-y-3.5 shadow-sm relative overflow-hidden flex flex-col h-full min-h-[350px]">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-200/10 rounded-full blur-2xl pointer-events-none"></div>
             
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-3 border-amber-200/50 gap-2 relative z-10">
-              <span className="text-xs uppercase font-black tracking-widest text-amber-900 flex items-center gap-2 shrink-0">
-                <span className="p-1.5 bg-amber-100 rounded-lg text-amber-600">
-                  <Check size={16} className="stroke-[3]" />
+            <div className="flex items-center justify-between border-b pb-2.5 border-amber-200/50 gap-2 relative z-10 font-sans">
+              <span className="text-[10px] sm:text-xs uppercase font-black tracking-widest text-amber-900 flex items-center gap-1.5 shrink-0">
+                <span className="p-1 px-1.5 bg-amber-100 rounded-lg text-amber-600">
+                  <Check size={14} className="stroke-[3]" />
                 </span>
-                What's The Next Thing To Do?
+                Next To Do
               </span>
-              <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
-                <select
-                  value={taskFilter}
-                  onChange={(e) => setTaskFilter(e.target.value)}
-                  className="px-2 py-1.5 bg-white border border-amber-200 rounded-lg text-[9px] uppercase font-bold font-sans text-amber-900 outline-none tracking-widest cursor-pointer shadow-xs"
-                >
-                  <option value="All">Tất Cả</option>
-                  <option value="Priority:High">Ưu tiên Cao</option>
-                  <option value="Priority:Medium">Ưu tiên Trung</option>
-                  <option value="Priority:Low">Ưu tiên Thấp</option>
-                  {goals.map(g => <option key={g.id} value={"Goal:" + g.id}>Mục tiêu: {g.title}</option>)}
-                </select>
-                <button onClick={() => setShowAddTask(!showAddTask)} className="p-1.5 hover:bg-amber-500 hover:text-white rounded-lg border border-amber-300 text-amber-600 bg-white shadow-xs shrink-0 transition-colors">
-                  <Plus size={14} className={showAddTask ? "rotate-45" : ""} />
+              
+              <div className="flex items-center gap-1">
+                <button onClick={() => setShowAddTask(!showAddTask)} className="p-1 hover:bg-amber-500 hover:text-white rounded-lg border border-amber-300 text-amber-600 bg-white shadow-xs shrink-0 transition-colors">
+                  <Plus size={12} className={showAddTask ? "rotate-45" : ""} />
                 </button>
               </div>
             </div>
 
+            {/* Quick compact task filtering within card */}
+            <div className="relative z-10 font-sans">
+              <select
+                value={taskFilter}
+                onChange={(e) => setTaskFilter(e.target.value)}
+                className="w-full px-2.5 py-1 text-[9px] uppercase font-bold text-amber-900 bg-white border border-amber-200 rounded-md outline-none tracking-widest cursor-pointer hover:bg-amber-50 transition-colors"
+              >
+                <option value="All">Tất Cả Kế Hoạch</option>
+                <option value="Priority:High">⚠️ Ưu tiên Cao</option>
+                <option value="Priority:Medium">⚡ Ưu tiên Trung</option>
+                <option value="Priority:Low">🌱 Ưu tiên Thấp</option>
+                {goals.map(g => <option key={g.id} value={"Goal:" + g.id}>🎯 {g.title}</option>)}
+              </select>
+            </div>
+
             {showAddTask && (
-              <form onSubmit={handleAddTask} className="bg-amber-50/60 p-4 rounded-xl border border-amber-100 flex flex-col gap-3 relative z-10">
+              <form onSubmit={handleAddTask} className="bg-amber-50/60 p-3 rounded-xl border border-amber-100 flex flex-col gap-2 relative z-10 font-sans">
                 <input
                   type="text"
-                  placeholder="Tôi sẽ bắt tay vào làm việc gì?"
+                  placeholder="Tôi sẽ bắt tay làm gì..."
                   value={newTaskContent}
                   onChange={e => setNewTaskContent(e.target.value)}
-                  className="px-3 py-2 text-xs bg-white rounded-lg border border-amber-200 outline-none w-full font-bold text-amber-950 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                  className="px-2.5 py-1.5 text-xs bg-white rounded-lg border border-amber-200 outline-none w-full font-bold text-amber-950 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
                   required
                 />
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <select
-                    value={newTaskGoalId}
-                    onChange={e => setNewTaskGoalId(e.target.value)}
-                    className="flex-1 px-2 py-1.5 text-xs bg-white rounded-lg border border-amber-200 outline-none text-amber-900 font-medium"
-                  >
-                    <option value="">(Không có mục tiêu lớn)</option>
-                    {goals.map(g => (
-                      <option key={g.id} value={g.id}>{g.title}</option>
-                    ))}
-                  </select>
+                <div className="flex gap-1.5">
                   <select
                     value={newTaskPriority}
                     onChange={e => setNewTaskPriority(e.target.value as any)}
-                    className="flex-1 px-2 py-1.5 text-xs bg-white text-amber-900 font-bold rounded-lg border border-amber-200 outline-none uppercase"
+                    className="px-1.5 py-1 text-[9px] bg-white text-amber-900 font-bold rounded border border-amber-200 outline-none uppercase"
                   >
                     <option value="High">Cao</option>
-                    <option value="Medium">Trung Bình</option>
+                    <option value="Medium">Trung</option>
                     <option value="Low">Thấp</option>
                   </select>
-                  <button type="submit" className="flex-1 px-3 py-1.5 bg-amber-600 text-white font-black text-xs uppercase tracking-widest rounded-lg hover:bg-amber-700 shadow-md">
-                    Thêm Ngay
+                  <button type="submit" className="flex-1 py-1 bg-amber-600 text-white font-black text-[9px] uppercase tracking-widest rounded hover:bg-amber-700 shadow-xs transition-colors">
+                    Thêm
                   </button>
                 </div>
               </form>
             )}
 
-            {/* list display */}
-            <div className="relative z-10">
+            {/* Compact tasks list display with scrollbar */}
+            <div className="relative z-10 flex-1 overflow-y-auto max-h-[220px] custom-scrollbar pr-1 font-sans">
               {activeTasks.filter(t => {
                 if (taskFilter === "All") return true;
                 if (taskFilter.startsWith("Priority:")) return t.priority === taskFilter.split(":")[1];
                 if (taskFilter.startsWith("Goal:")) return t.goalId === taskFilter.split(":")[1];
                 return true;
               }).length === 0 ? (
-                <div className="text-center py-10 select-none">
-                  <span className="text-4xl block opacity-80">🌱</span>
-                  <p className="text-[11px] font-sans font-bold uppercase tracking-wider text-amber-800/50 mt-3">Sẵn sàng để bắt đầu kế hoạch mới.</p>
+                <div className="text-center py-8 select-none">
+                  <span className="text-2xl block opacity-80">🌱</span>
+                  <p className="text-[9px] font-sans font-bold uppercase tracking-wider text-amber-800/50 mt-1">Sẵn sàng bắt đầu việc mới.</p>
                 </div>
               ) : (
-                <div className="space-y-2.5 max-h-[350px] overflow-y-auto pr-1 pb-2">
+                <div className="space-y-1.5 pb-2">
                   {activeTasks.filter(t => {
                     if (taskFilter === "All") return true;
                     if (taskFilter.startsWith("Priority:")) return t.priority === taskFilter.split(":")[1];
@@ -463,33 +631,30 @@ export function DigitalJournal({
                     return (
                       <div 
                         key={task.id} 
-                        className="flex items-start justify-between bg-white px-3.5 py-3 rounded-xl border border-amber-100 hover:border-amber-300 hover:shadow-sm transition-all group"
+                        className="flex items-center justify-between bg-white px-2.5 py-2 rounded-xl border border-amber-100 hover:border-amber-200 transition-all group shadow-2xs"
                       >
-                        <div className="flex gap-3 min-w-0 flex-1 pr-2">
+                        <div className="flex gap-2 min-w-0 flex-1 pr-1 items-center">
                           <button
                             onClick={() => handleToggleTask(task.id)}
-                            className="w-5 h-5 rounded hover:border-emerald-500 bg-amber-50/50 border-2 border-amber-200 shrink-0 cursor-pointer flex items-center justify-center mt-0.5"
+                            className="w-4 h-4 rounded hover:border-emerald-500 bg-amber-50/50 border border-amber-200 shrink-0 cursor-pointer flex items-center justify-center"
                           ></button>
                           
                           <div className="min-w-0 text-left flex-1">
-                            <p className="font-bold text-xs text-amber-950 leading-snug break-words group-hover:text-amber-700 transition-colors">{task.content}</p>
-                            {targetGoal && (
-                              <span className="inline-flex mt-1 text-[9px] font-black text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 uppercase tracking-wider">
-                                🎯 {targetGoal.title}
-                              </span>
-                            )}
+                            <p className="font-bold text-[11px] text-amber-950 leading-tight truncate group-hover:text-amber-700 transition-colors" title={task.content}>
+                              {task.content}
+                            </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${priorityStyles} font-sans tracking-wider shrink-0`}>
-                            {task.priority}
+                        <div className="flex items-center gap-1.5 shrink-0 font-sans">
+                          <span className={`text-[7px] font-black uppercase px-1 py-0.2 rounded border ${priorityStyles} font-mono tracking-wider shrink-0`}>
+                            {task.priority[0]}
                           </span>
                           <button
                             onClick={() => handleDeleteTask(task.id)}
-                            className="p-1.5 hover:bg-rose-50 rounded-lg hover:text-crimson text-amber-900/30 cursor-pointer shrink-0 transition-colors opacity-0 group-hover:opacity-100"
+                            className="p-1 hover:bg-rose-50 rounded-md hover:text-crimson text-amber-900/30 cursor-pointer shrink-0 transition-colors opacity-0 group-hover:opacity-100"
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={10} />
                           </button>
                         </div>
                       </div>
@@ -500,15 +665,103 @@ export function DigitalJournal({
             </div>
           </div>
         </div>
-        
-        {/* RIGHT COLUMN: CALENDAR (4 Cols) */}
+
+        {/* COLUMN 2: DAILY HABITS */}
         <div className="lg:col-span-4 space-y-4">
-          <div ref={calendarContainerRef} className="bg-white/90 p-5 rounded-2xl sketch-border border-ink/60 space-y-4 shadow-sm relative">
+          <div className="bg-[#fffdfa] p-4.5 rounded-3xl sketch-border border-orange-200/80 space-y-3.5 shadow-sm relative overflow-hidden flex flex-col h-full min-h-[350px]">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100/10 rounded-full blur-2xl pointer-events-none"></div>
             
-            <div className="flex items-center justify-between border-b pb-2.5 border-ink/15">
+            <div className="flex items-center justify-between border-b pb-2.5 border-orange-200/50 gap-2 relative z-10 font-sans">
+              <span className="text-[10px] sm:text-xs uppercase font-black tracking-widest text-[#9a3412] flex items-center gap-1.5 shrink-0">
+                <span className="p-1 px-1.5 bg-orange-50 rounded-lg text-orange-600">
+                  <Flame size={14} className="stroke-[3] text-orange-500 animate-pulse" />
+                </span>
+                Thói Quen Mỗi Ngày
+              </span>
+
+              <span className="text-[9px] font-bold text-orange-700 bg-orange-100/50 rounded-full px-2 py-0.5 font-mono">
+                {(() => {
+                  const todayKey = new Date().toISOString().split("T")[0];
+                  const activeHabitsList = habits.filter(h => h.isActive);
+                  const doneCount = activeHabitsList.filter(h => {
+                    const dailyHistory = h.history[todayKey] || {};
+                    const times = h.reminderTimes && h.reminderTimes.length > 0 ? h.reminderTimes : ["08:00"];
+                    return times.every((t: string) => dailyHistory[t]);
+                  }).length;
+                  return `${doneCount}/${activeHabitsList.length}`;
+                })()} Đã Xong
+              </span>
+            </div>
+
+            <p className="text-[10px] text-orange-900/60 leading-normal relative z-10 font-sans">
+              Nhấp để hoàn thành nhanh thói quen ngày hôm nay.
+            </p>
+
+            {/* Habits checklist with custom active tracking */}
+            <div className="relative z-10 flex-1 overflow-y-auto max-h-[220px] custom-scrollbar pr-1 font-sans">
+              {habits.filter(h => h.isActive).length === 0 ? (
+                <div className="text-center py-8 select-none">
+                  <span className="text-2xl block opacity-80">☕</span>
+                  <p className="text-[9px] font-sans font-bold uppercase tracking-wider text-orange-850/50 mt-1">Chưa thiết lập thói quen nào.</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5 pb-2">
+                  {habits.filter(h => h.isActive).map(habit => {
+                    const todayKey = new Date().toISOString().split("T")[0];
+                    const dailyHistory = habit.history[todayKey] || {};
+                    const times = habit.reminderTimes && habit.reminderTimes.length > 0 ? habit.reminderTimes : ["08:00"];
+                    const isCompletedToday = times.every((t: string) => dailyHistory[t]);
+
+                    return (
+                      <div 
+                        key={habit.id}
+                        className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-all cursor-pointer group shadow-2xs ${
+                          isCompletedToday 
+                            ? "bg-emerald-50/70 border-emerald-200 text-emerald-950 font-medium font-sans" 
+                            : "bg-white border-orange-100 hover:border-orange-250 text-orange-950 font-sans"
+                        }`}
+                        onClick={() => handleToggleHabitFromHome(habit.id)}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <span className={`w-4 h-4 rounded-full flex items-center justify-center transition-all shrink-0 border-2 ${
+                            isCompletedToday 
+                              ? "bg-emerald-500 border-emerald-600 text-white" 
+                              : "bg-orange-50/50 border-orange-200 group-hover:border-orange-400"
+                          }`}>
+                            {isCompletedToday && <Check size={10} className="stroke-[4]" />}
+                          </span>
+
+                          <div className="truncate min-w-0 text-left">
+                            <span className="text-[11.5px] font-bold block truncate">
+                              {habit.icon} {habit.name}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 pl-1 font-sans">
+                          {habit.streak > 0 && (
+                            <span className="flex items-center gap-0.5 text-[9px] font-black text-orange-600 bg-orange-100/50 px-1.5 py-0.2 rounded-md font-mono" title={`Chuỗi tích lũy ${habit.streak} ngày!`}>
+                              🔥 {habit.streak}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* COLUMN 3: MINI CALENDAR */}
+        <div className="lg:col-span-4 space-y-4">
+          <div ref={calendarContainerRef} className="bg-white/90 p-4.5 rounded-3xl sketch-border border-ink shadow-sm relative flex flex-col h-full min-h-[350px]">
+            
+            <div className="flex items-center justify-between border-b pb-2.5 border-ink/15 font-sans">
               <span className="text-xs uppercase font-extrabold tracking-wider text-ink flex items-center gap-1.5">
                 <CalendarIcon className="w-4 h-4 text-crimson" /> 
-                Mini Calendar
+                Calendar
               </span>
               
               <div className="flex items-center gap-1">
@@ -650,6 +903,426 @@ export function DigitalJournal({
 
       </div>{/* End of top grid */}
 
+      {/* SECTION 2.2: CUSTOM GIFT CARDS & REWARDS POOL PANEL */}
+      <div className="bg-[#fffcf4] p-6 rounded-3xl sketch-border border-[3px] border-amber-300 shadow-sm text-left mb-6 mt-4 w-full animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b-2 border-amber-200 pb-4 gap-4">
+          <div className="flex items-center gap-3">
+            <span className="p-2 bg-amber-100 rounded-xl text-amber-700 border border-amber-250 shrink-0">
+              <Gift size={22} className="animate-bounce" />
+            </span>
+            <div>
+              <h3 className="text-base font-extrabold text-amber-950 uppercase tracking-wide font-sans">
+                Bể Thẻ Quà Tặng & Thẻ Tự Thưởng Tự Chọn 🎟️
+              </h3>
+              <p className="text-[11px] font-medium text-amber-800/80 mt-0.5 font-sans">
+                Tự thiết kế quà tặng của riêng bạn (Trà sữa, xem phim, nghỉ ngơi...). Mở khóa ngẫu nhiên khi hoàn thành nhiệm vụ hoặc tích chuỗi streak thói quen!
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              if (confirm("Reset danh mục quà tặng về mặc định ban đầu?")) {
+                localStorage.removeItem("studyHub_customRewardsList");
+                window.location.reload();
+              }
+            }}
+            className="px-2 py-1 text-[9px] font-bold text-amber-700 hover:text-white hover:bg-amber-700 bg-amber-50 border border-amber-250 transition-all rounded cursor-pointer"
+          >
+            Reset mẫu mặc định
+          </button>
+        </div>
+
+        {/* Action form to add a customized reward card */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!newRewardTitle.trim()) return;
+            const newCard = {
+              id: "custom_" + Date.now().toString(),
+              emoji: newRewardEmoji.trim() || "🎁",
+              title: newRewardTitle,
+              desc: newRewardDesc,
+              isUnlocked: false,
+              isRedeemed: false
+            };
+            setCustomRewards([...customRewards, newCard]);
+            setNewRewardTitle("");
+            setNewRewardDesc("");
+            setNewRewardEmoji("🎁");
+          }}
+          className="grid grid-cols-1 md:grid-cols-12 gap-3 mt-4 p-4.5 bg-amber-50/50 rounded-2xl border border-dashed border-amber-200 items-end"
+        >
+          <div className="md:col-span-2 col-span-12">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-amber-900/60 mb-1 font-sans">Emoji</label>
+            <input
+              type="text"
+              value={newRewardEmoji}
+              onChange={(e) => setNewRewardEmoji(e.target.value)}
+              placeholder="🎁"
+              className="w-full px-3 py-1.5 text-center text-xs bg-white rounded-lg border border-amber-200 focus:outline-none focus:border-amber-400 font-mono text-ink"
+              maxLength={4}
+            />
+          </div>
+          <div className="md:col-span-4 col-span-12">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-amber-900/60 mb-1 font-sans">Tên Quà Tặng / Quyền Lợi</label>
+            <input
+              type="text"
+              value={newRewardTitle}
+              onChange={(e) => setNewRewardTitle(e.target.value)}
+              placeholder="Ví dụ: Ly trà dâu tằm 40k"
+              className="w-full px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200 focus:outline-none focus:border-amber-400 font-sans text-ink"
+              required
+            />
+          </div>
+          <div className="md:col-span-4 col-span-12">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-amber-900/60 mb-1 font-sans">Mô tả chi tiết / Cách sử dụng</label>
+            <input
+              type="text"
+              value={newRewardDesc}
+              onChange={(e) => setNewRewardDesc(e.target.value)}
+              placeholder="Phần thưởng sau khi đạt chuỗi hoặc tắt máy lúc 11h..."
+              className="w-full px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200 focus:outline-none focus:border-amber-400 font-sans text-ink"
+            />
+          </div>
+          <div className="md:col-span-2 col-span-12">
+            <button
+              type="submit"
+              className="w-full py-2 bg-amber-655 bg-amber-700 hover:bg-amber-800 text-white font-extrabold text-xs uppercase tracking-widest rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1 shadow-sm"
+            >
+              <Plus size={12} /> Tạo thẻ mới
+            </button>
+          </div>
+        </form>
+
+        {/* Grid displays customizable certificates / coupons */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+          {customRewards.map((reward) => (
+            <div
+              key={reward.id}
+              className={`relative border-2 rounded-2xl p-4.5 flex flex-col justify-between overflow-hidden shadow-xs transition-all ${
+                reward.isRedeemed
+                  ? "bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60"
+                  : reward.isUnlocked
+                  ? "bg-white border-amber-400 text-amber-950 focus-within:ring-2 focus-within:ring-amber-400"
+                  : "bg-amber-50/15 border-dashed border-amber-200/50 text-amber-950/40"
+              }`}
+              style={{
+                backgroundImage: reward.isUnlocked && !reward.isRedeemed
+                  ? "radial-gradient(circle at top left, transparent 10px, transparent 10px), radial-gradient(circle at bottom right, transparent 10px, transparent 10px)"
+                  : undefined
+              }}
+            >
+              {/* Scissors Line Graphic to make it look like a nice ticket coupon */}
+              {reward.isUnlocked && !reward.isRedeemed && (
+                <div className="absolute right-3.5 top-0 bottom-0 w-0 border-r-2 border-dashed border-amber-200/80 pointer-events-none" />
+              )}
+
+              {/* Tag Header */}
+              <div className="flex items-start justify-between gap-2.5">
+                <span className="text-2xl select-none shrink-0" role="img" aria-label="gift icon">
+                  {reward.emoji}
+                </span>
+
+                <div className="text-left flex-1 min-w-0">
+                  <h4 className={`text-xs font-black font-sans leading-snug truncate ${reward.isUnlocked && !reward.isRedeemed ? 'text-amber-950' : 'text-amber-950/70'}`}>
+                    {reward.title}
+                  </h4>
+                  <p className={`text-[10px] leading-tight font-medium font-sans mt-1 line-clamp-2 ${reward.isUnlocked && !reward.isRedeemed ? 'text-amber-800/80' : 'text-zinc-500/50'}`}>
+                    {reward.desc || "Không có ghi chú thêm."}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm(`Xóa thẻ quà tặng "${reward.title}" khỏi bể thưởng?`)) {
+                      setCustomRewards(customRewards.filter((r) => r.id !== reward.id));
+                    }
+                  }}
+                  className="text-crimson hover:opacity-100 opacity-35 transition-all shrink-0 cursor-pointer p-0.5 hover:bg-rose-50 rounded"
+                  title="Xóa quà"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+
+              {/* Stamp or Footer elements */}
+              <div className="mt-4 pt-3.5 border-t border-dashed border-amber-200/55 flex items-center justify-between gap-2">
+                {reward.isRedeemed ? (
+                  <div className="flex items-center gap-1.5 text-zinc-500 font-mono">
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-zinc-100 border border-zinc-250 px-1.5 py-0.5 rounded italic">
+                      ĐÃ SỬ DỤNG 🎉
+                    </span>
+                  </div>
+                ) : reward.isUnlocked ? (
+                  <div className="flex flex-col text-left">
+                    <span className="text-[8px] uppercase tracking-widest font-black text-amber-600">Đã mở: {reward.unlockedAt || "Gần đây"}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = customRewards.map(r => r.id === reward.id ? { ...r, isRedeemed: true } : r);
+                        setCustomRewards(updated);
+                        try {
+                          confetti({ particleCount: 60, spread: 50, colors: ["#fbbf24", "#f59e0b"] });
+                        } catch(e){}
+                      }}
+                      className="mt-1 px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black uppercase tracking-widest rounded transition-all cursor-pointer shrink-0"
+                    >
+                      🎟️ Sử dụng quà
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col text-left">
+                    <span className="text-[8px] leading-none uppercase tracking-wider font-extrabold text-zinc-400 bg-zinc-100/50 border border-dashed border-zinc-200 px-1.5 py-0.5 rounded">
+                      🔒 CHƯA MỞ KHÓA
+                    </span>
+                  </div>
+                )}
+                
+                <span className="text-[9px] font-mono font-bold text-amber-900/30">
+                  {reward.isRedeemed ? "#REDEEMED" : reward.isUnlocked ? "#AVAILABLE" : "#LOCKED"}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* SALARY PROJECTION & BUDGET PLANNING ON HOME WINDOW */}
+      <div className="bg-paper p-6 rounded-2xl sketch-border border-ink shadow-sm space-y-4 text-left mb-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b-2 border-ink/10 pb-4 gap-4 font-sans">
+           <div className="flex items-center gap-3">
+              <span className="p-2 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-150">
+                <Briefcase size={18} />
+              </span>
+              <div className="text-left font-sans">
+                <h2 className="text-base font-black uppercase tracking-tight text-ink font-sans">Dự tính lương & Kế hoạch chi tiêu</h2>
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest font-sans">Lập ngân sách chủ động trước khi nhận lương</p>
+              </div>
+           </div>
+
+           {/* Quick Stats Badges */}
+           <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex items-center gap-2 bg-emerald-50 p-2 px-3 rounded-xl sketch-border border-emerald-200">
+                <div className="text-right">
+                  <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest">Dự tính lương</p>
+                  <div className="flex items-center gap-1.5 font-mono font-black text-xs text-emerald-700">
+                    <input
+                      type="text"
+                      value={salaryInput}
+                      onChange={e => {
+                        const valStr = e.target.value.replace(/[^0-9]/g, "");
+                        let formatted = "0";
+                        if (valStr) {
+                          const parsedVal = parseInt(valStr, 10);
+                          if (!isNaN(parsedVal)) {
+                            formatted = parsedVal.toLocaleString('en-US');
+                          }
+                        }
+                        setSalaryInput(formatted);
+                      }}
+                      className="w-24 text-right bg-white border border-emerald-300 font-mono font-bold rounded px-1 py-0.5 outline-none focus:border-emerald-600 text-xs shadow-inner"
+                      placeholder="0"
+                    />
+                    <span>đ</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-rose-50 p-2 px-3 rounded-xl sketch-border border-rose-200">
+                <div className="text-right">
+                  <p className="text-[8px] font-bold text-rose-600 uppercase tracking-widest font-sans">Tổng dự chi</p>
+                  <p className="text-xs font-black text-rose-700 font-mono">
+                    {totalPlannedOutflows.toLocaleString('vi-VN')} đ
+                  </p>
+                </div>
+              </div>
+
+              <div className={`flex items-center gap-2 p-2 px-3 rounded-xl sketch-border ${
+                remainingBalance >= 0 
+                  ? "bg-blue-50 border-blue-200 text-blue-700" 
+                  : "bg-red-50 border-red-200 text-red-600 animate-pulse"
+              }`}>
+                <div className="text-right">
+                  <p className="text-[8px] font-bold uppercase tracking-widest opacity-80 font-sans">Còn lại</p>
+                  <p className="text-xs font-black font-mono">
+                    {remainingBalance.toLocaleString('vi-VN')} đ
+                  </p>
+                </div>
+              </div>
+           </div>
+        </div>
+
+        {/* Visual Allocation Meter */}
+        <div className="bg-white sketch-border p-4 rounded-xl">
+          <div className="flex justify-between items-center text-xs mb-1.5 font-sans">
+            <span className="font-bold text-ink/70">Tỷ lệ phân bổ ngân sách dự tính:</span>
+            <span className={`font-mono font-black ${percentageSpent > 100 ? "text-rose-600" : "text-emerald-600"}`}>
+              {percentageSpent.toFixed(1)}% {percentageSpent > 100 ? "(Vượt hạn mức!)" : ""}
+            </span>
+          </div>
+          <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-ink/10 shadow-inner flex">
+            <div 
+              style={{ width: `${Math.min(percentageSpent, 100)}%` }} 
+              className={`h-full transition-all duration-500 ${
+                percentageSpent > 100 ? "bg-rose-500" :
+                percentageSpent > 80 ? "bg-amber-500" : "bg-emerald-500"
+              }`}
+            />
+          </div>
+          <p className="text-[10px] text-ink/50 mt-2 leading-relaxed italic">
+            * Khuyên dùng: Giữ tổng dự chi dưới 80% lương để dành từ 20% lương gửi tiết kiệm, đầu tư tài sản dài hạn.
+          </p>
+        </div>
+
+        {/* Expenses List Table */}
+        <div className="bg-white/70 sketch-border p-4 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto max-w-full">
+            <table className="min-w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-emerald-50 text-[9px] font-black uppercase tracking-widest text-emerald-800 border-b-2 border-emerald-200">
+                  <th className="px-4 py-3 font-black w-56">Khoản Mục Dự Chi</th>
+                  <th className="px-4 py-3 text-right font-black">Số Tiền (VND)</th>
+                  <th className="px-4 py-3 text-center font-black w-14">Xóa</th>
+                </tr>
+              </thead>
+              <tbody className="font-sans divide-y divide-emerald-100">
+                {plannedExpenses.map((item, idx) => (
+                  <tr key={item.id} className="transition-colors hover:bg-emerald-50/20">
+                    <td className="px-4 py-2 font-bold text-ink hover:bg-slate-50 border-r border-transparent focus-within:border-emerald-500">
+                      <input 
+                        type="text" 
+                        value={item.name} 
+                        onChange={e => {
+                          const newExp = [...plannedExpenses];
+                          newExp[idx].name = e.target.value;
+                          setPlannedExpenses(newExp);
+                        }} 
+                        className="w-full bg-transparent font-bold text-ink outline-none py-0.5 text-xs"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input 
+                        type="text" 
+                        value={
+                          item.amount === "-" 
+                            ? "-" 
+                            : item.amount 
+                              ? Number(item.amount.replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
+                              : ""
+                        } 
+                        onChange={e => {
+                          const cleanVal = e.target.value.replace(/[^0-9-]/g, "");
+                          if (!cleanVal) {
+                            const newExp = [...plannedExpenses];
+                            newExp[idx].amount = "";
+                            setPlannedExpenses(newExp);
+                            return;
+                          }
+                          const isNeg = cleanVal.startsWith("-");
+                          const digits = cleanVal.replace("-", "");
+                          const parsedVal = parseInt(digits, 10);
+                          if (!isNaN(parsedVal)) {
+                            const formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                            const newExp = [...plannedExpenses];
+                            newExp[idx].amount = formatted;
+                            setPlannedExpenses(newExp);
+                          }
+                        }} 
+                        placeholder="0"
+                        className="w-full text-right font-mono font-bold text-emerald-700 bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-emerald-600 text-xs shadow-inner"
+                      />
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <button
+                        onClick={() => handleRemovePlannedExpense(item.id)}
+                        className="p-1 text-rose-500 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                        title="Xóa khoản dự chi"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Inline adder row */}
+                <tr className="bg-slate-50 border-t-2 border-slate-200">
+                  <td className="px-4 py-2.5 font-semibold text-ink">
+                    <input 
+                      type="text" 
+                      value={newExpName} 
+                      onChange={e => setNewExpName(e.target.value)} 
+                      placeholder="Thêm khoản mới (Ví dụ: Tiệc tùng, mua sách...)"
+                      className="w-full bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-slate-500 text-xs shadow-inner font-sans font-medium"
+                    />
+                  </td>
+                  <td colSpan={2} className="px-4 py-2.5">
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={newExpAmount} 
+                        onChange={e => {
+                          const valStr = e.target.value.replace(/[^0-9]/g, "");
+                          let formatted = "";
+                          if (valStr) {
+                            const parsedVal = parseInt(valStr, 10);
+                            if (!isNaN(parsedVal)) {
+                              formatted = parsedVal.toLocaleString('en-US');
+                            }
+                          }
+                          setNewExpAmount(formatted);
+                        }} 
+                        placeholder="Số tiền (đ)"
+                        className="flex-1 text-right font-mono font-bold text-slate-700 bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-slate-500 text-xs shadow-inner"
+                      />
+                      <button
+                        onClick={handleAddPlannedExpense}
+                        disabled={!newExpName.trim()}
+                        className="p-1.5 bg-emerald-600 disabled:opacity-30 text-white rounded-lg hover:bg-emerald-700 transition-colors cursor-pointer flex items-center justify-center shrink-0"
+                        title="Xác nhận thêm khoản"
+                      >
+                        <Plus size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr className="bg-emerald-100 font-bold text-emerald-800 border-t-2 border-emerald-200">
+                  <td className="px-4 py-2.5 font-sans">
+                    <span className="uppercase text-[10px] tracking-widest font-black block">Tổng Dự Chi Tháng Này</span>
+                    <span className="text-emerald-950/50 text-[10px] font-medium italic">
+                      * Tổng {plannedExpenses.length} vị trí phân phối dòng tiền dự tính
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-xs" colSpan={2}>
+                    {totalPlannedOutflows.toLocaleString('vi-VN')} đ
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* Action button panel */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-emerald-50/20 sketch-border border-dashed border-emerald-200 rounded-xl">
+          <div className="text-center sm:text-left">
+            <p className="text-xs text-ink/75 leading-relaxed font-sans">
+              ℹ️ <strong>Mục Tiêu Tài Chính:</strong> Dự toán trước khi lương về ví sẽ hạn chế tối đa chi tiêu bừa bãi và xây dựng thói quen tích lũy tài sản dài hạn.
+            </p>
+          </div>
+          
+          <div className="flex gap-2 shrink-0">
+             <button 
+               onClick={handleResetSalaryPlanner}
+               className="sketch-button text-xs py-2 px-6 font-bold uppercase tracking-widest text-ink bg-white hover:bg-emerald-50 cursor-pointer transition-all border border-ink/10"
+             >
+               Reset Bảng Lương
+             </button>
+          </div>
+        </div>
+      </div>
+
       {/* SECTION 2.5: CREDIT CARD & REVENUE STATEMENTS (BẢNG KÊ CHI TIÊU & DOANH THU) */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-2">
         {/* LEFT CARD: BẢNG KÊ CHI TIÊU THẺ TÍN DỤNG */}
@@ -706,50 +1379,59 @@ export function DigitalJournal({
                 {bulkCardSpends.map((item, index) => (
                   <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
                     <td className="p-1 border border-blue-100/50">
-                      <div className="relative flex items-center justify-between group/date w-full min-h-[32px] px-2">
+                      <div className="flex items-center justify-between gap-1 px-2.5 py-1 text-left relative">
                         <span className="text-xs font-black text-blue-950 font-mono">
                           {formatDateDot(item.name)}
                         </span>
-                        <input
-                          type="date"
-                          value={item.name}
-                          onChange={(e) => {
-                            const updated = [...bulkCardSpends];
-                            updated[index].name = e.target.value;
-                            setBulkCardSpends(updated);
-                          }}
-                          className="absolute inset-0 opacity-0 cursor-pointer w-full text-xs"
-                        />
-                        <span className="text-[10px] text-blue-400 opacity-0 group-hover/date:opacity-100 transition-opacity pointer-events-none">
-                          ✏️
-                        </span>
+                        <div className="relative w-5 h-5 flex items-center justify-center shrink-0 hover:bg-blue-100 rounded transition-all cursor-pointer">
+                          <CalendarIcon size={12} className="text-blue-500 cursor-pointer" />
+                          <input
+                            type="date"
+                            value={item.name}
+                            onChange={(e) => {
+                              const updated = [...bulkCardSpends];
+                              updated[index].name = e.target.value;
+                              setBulkCardSpends(updated);
+                            }}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                          />
+                        </div>
                       </div>
                     </td>
                     <td className="p-1 border border-blue-100/50">
                       <input
                         type="text"
                         placeholder="Số tiền"
-                        value={item.amount ? Number(item.amount.replace(/,/g, "")).toLocaleString("vi-VN") : ""}
+                        value={
+                          item.amount === "-" 
+                            ? "-" 
+                            : item.amount 
+                              ? Number(item.amount.replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
+                              : ""
+                        }
                         onChange={(e) => {
-                          const valStr = e.target.value.replace(/,/g, '');
-                          if (!/^-?\d*$/.test(valStr)) return;
-                          
-                          let formatted = "";
-                          if (valStr === "-") {
-                            formatted = "-";
-                          } else if (valStr) {
-                            const isNeg = valStr.startsWith("-");
-                            const cleanDigits = valStr.replace('-', '');
-                            if (cleanDigits) {
-                              const parsedVal = parseInt(cleanDigits, 10);
-                              if (!isNaN(parsedVal)) {
-                                formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
-                              }
-                            }
+                          const cleanVal = e.target.value.replace(/[^0-9-]/g, "");
+                          if (!cleanVal) {
+                            const updated = [...bulkCardSpends];
+                            updated[index].amount = "";
+                            setBulkCardSpends(updated);
+                            return;
                           }
-                          const updated = [...bulkCardSpends];
-                          updated[index].amount = formatted;
-                          setBulkCardSpends(updated);
+                          if (cleanVal === "-") {
+                            const updated = [...bulkCardSpends];
+                            updated[index].amount = "-";
+                            setBulkCardSpends(updated);
+                            return;
+                          }
+                          const isNeg = cleanVal.startsWith("-");
+                          const digits = cleanVal.replace("-", "");
+                          const parsedVal = parseInt(digits, 10);
+                          if (!isNaN(parsedVal)) {
+                            const formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                            const updated = [...bulkCardSpends];
+                            updated[index].amount = formatted;
+                            setBulkCardSpends(updated);
+                          }
                         }}
                         className="w-full px-2 py-1.5 text-xs bg-transparent text-right font-bold text-indigo-950 focus:outline-none focus:bg-white rounded"
                       />
@@ -843,50 +1525,59 @@ export function DigitalJournal({
                   return (
                     <tr key={item.id} className="hover:bg-emerald-50/50 transition-colors">
                       <td className="p-1 border border-emerald-100/50">
-                        <div className="relative flex items-center justify-between group/date w-full min-h-[32px] px-2">
+                        <div className="flex items-center justify-between gap-1 px-2.5 py-1 text-left relative">
                           <span className="text-xs font-black text-emerald-950 font-mono">
                             {formatDateDot(item.name)}
                           </span>
-                          <input
-                            type="date"
-                            value={item.name}
-                            onChange={(e) => {
-                              const updated = [...bulkDebts];
-                              updated[index].name = e.target.value;
-                              setBulkDebts(updated);
-                            }}
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full text-xs"
-                          />
-                          <span className="text-[10px] text-emerald-400 opacity-0 group-hover/date:opacity-100 transition-opacity pointer-events-none">
-                            ✏️
-                          </span>
+                          <div className="relative w-5 h-5 flex items-center justify-center shrink-0 hover:bg-emerald-100 rounded transition-all cursor-pointer">
+                            <CalendarIcon size={12} className="text-emerald-500 cursor-pointer" />
+                            <input
+                              type="date"
+                              value={item.name}
+                              onChange={(e) => {
+                                const updated = [...bulkDebts];
+                                updated[index].name = e.target.value;
+                                setBulkDebts(updated);
+                              }}
+                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            />
+                          </div>
                         </div>
                       </td>
                       <td className="p-1 border border-emerald-100/50">
                         <input
                           type="text"
                           placeholder="Số tiền"
-                          value={item.amount}
+                          value={
+                            item.amount === "-" 
+                              ? "-" 
+                              : item.amount 
+                                ? Number(item.amount.replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
+                                : ""
+                          }
                           onChange={(e) => {
-                            const valStr = e.target.value.replace(/,/g, '');
-                            if (!/^-?\d*$/.test(valStr)) return;
-                            
-                            let formatted = "";
-                            if (valStr === "-") {
-                              formatted = "-";
-                            } else if (valStr) {
-                              const isNeg = valStr.startsWith("-");
-                              const cleanDigits = valStr.replace('-', '');
-                              if (cleanDigits) {
-                                const parsedVal = parseInt(cleanDigits, 10);
-                                if (!isNaN(parsedVal)) {
-                                  formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
-                                }
-                              }
+                            const cleanVal = e.target.value.replace(/[^0-9-]/g, "");
+                            if (!cleanVal) {
+                              const updated = [...bulkDebts];
+                              updated[index].amount = "";
+                              setBulkDebts(updated);
+                              return;
                             }
-                            const updated = [...bulkDebts];
-                            updated[index].amount = formatted;
-                            setBulkDebts(updated);
+                            if (cleanVal === "-") {
+                              const updated = [...bulkDebts];
+                              updated[index].amount = "-";
+                              setBulkDebts(updated);
+                              return;
+                            }
+                            const isNeg = cleanVal.startsWith("-");
+                            const digits = cleanVal.replace("-", "");
+                            const parsedVal = parseInt(digits, 10);
+                            if (!isNaN(parsedVal)) {
+                              const formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                              const updated = [...bulkDebts];
+                              updated[index].amount = formatted;
+                              setBulkDebts(updated);
+                            }
                           }}
                           className="w-full px-2 py-1.5 text-xs bg-transparent text-right font-bold text-emerald-950 focus:outline-none focus:bg-white rounded"
                         />

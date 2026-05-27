@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Plus, Trash2, Edit2, Wallet, Settings, Landmark, Car, MonitorSmartphone, Gem, PiggyBank, Briefcase, Bitcoin, Building, Home, Coins, CreditCard, TrendingUp, Smartphone, Laptop, Handshake, Users, Receipt, ChevronDown, ChevronUp } from "lucide-react";
+import { useFirebase } from "../context/FirebaseContext";
+import { Plus, Trash2, Edit2, Wallet, Settings, Landmark, Car, MonitorSmartphone, Gem, PiggyBank, Briefcase, Bitcoin, Building, Home, Coins, CreditCard, TrendingUp, Smartphone, Laptop, Handshake, Users, Receipt, ChevronDown, ChevronUp, Calendar as CalendarIcon } from "lucide-react";
 import type { FormEvent } from "react";
 import { cn, getAbsoluteUrl } from "@/lib/utils";
 import type { Asset, AssetCategory } from "@/types";
@@ -169,37 +170,11 @@ export function AssetsManager({
   // Rely on bulkDebts, bulkCardSpends, bulkCurrentCash passed from App.tsx
 
   // --- HỆ THỐNG DỰ TÍNH TIỀN LƯƠNG & DỰ CHI ---
-  const [salaryInput, setSalaryInput] = useState<string>(() => {
-    return localStorage.getItem("studyHub_salaryInput") || "15,000,000";
-  });
-
-  const [plannedExpenses, setPlannedExpenses] = useState<{ id: string; name: string; amount: string; notes: string }[]>(() => {
-    try {
-      const saved = localStorage.getItem("studyHub_plannedExpenses");
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return [
-      { id: "pe-1", name: "Tiền thuê nhà / phòng", amount: "3,500,000", notes: "Thanh toán cố định đầu tháng" },
-      { id: "pe-2", name: "Chi phí ăn uống sinh hoạt", amount: "3,000,000", notes: "Ngân sách ăn uống ước tính" },
-      { id: "pe-3", name: "Cước phí dịch vụ (Điện, nước, net)", amount: "800,000", notes: "Thanh toán hóa đơn hàng tháng" },
-      { id: "pe-4", name: "Học tập & Sách vở", amount: "1,200,000", notes: "Luyện tiếng Anh và phát triển cá nhân" },
-      { id: "pe-5", name: "Tích lũy tài sản / Tiết kiệm", amount: "3,000,000", notes: "Khoản để riêng đầu tư" }
-    ];
-  });
+  const { salaryInput, setSalaryInput, plannedExpenses, setPlannedExpenses } = useFirebase();
 
   const [newExpName, setNewExpName] = useState("");
   const [newExpAmount, setNewExpAmount] = useState("");
   const [newExpNotes, setNewExpNotes] = useState("");
-
-  useEffect(() => {
-    localStorage.setItem("studyHub_salaryInput", salaryInput);
-  }, [salaryInput]);
-
-  useEffect(() => {
-    localStorage.setItem("studyHub_plannedExpenses", JSON.stringify(plannedExpenses));
-  }, [plannedExpenses]);
 
   const handleResetSalaryPlanner = () => {
     setSalaryInput("15,000,000");
@@ -1853,50 +1828,59 @@ export function AssetsManager({
                 {bulkCardSpends.map((item, index) => (
                   <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
                     <td className="p-1 border border-blue-100/50">
-                      <div className="relative flex items-center justify-between group/date w-full min-h-[32px] px-2">
+                      <div className="flex items-center justify-between gap-1 px-2.5 py-1 text-left relative">
                         <span className="text-xs font-black text-blue-950 font-mono">
                           {formatDateDot(item.name)}
                         </span>
-                        <input
-                          type="date"
-                          value={item.name}
-                          onChange={(e) => {
-                            const updated = [...bulkCardSpends];
-                            updated[index].name = e.target.value;
-                            setBulkCardSpends(updated);
-                          }}
-                          className="absolute inset-0 opacity-0 cursor-pointer w-full text-xs"
-                        />
-                        <span className="text-[10px] text-blue-400 opacity-0 group-hover/date:opacity-100 transition-opacity pointer-events-none">
-                          ✏️
-                        </span>
+                        <div className="relative w-5 h-5 flex items-center justify-center shrink-0 hover:bg-blue-100 rounded transition-all cursor-pointer">
+                          <CalendarIcon size={12} className="text-blue-500 cursor-pointer" />
+                          <input
+                            type="date"
+                            value={item.name}
+                            onChange={(e) => {
+                              const updated = [...bulkCardSpends];
+                              updated[index].name = e.target.value;
+                              setBulkCardSpends(updated);
+                            }}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                          />
+                        </div>
                       </div>
                     </td>
                     <td className="p-1 border border-blue-100/50">
                       <input
                         type="text"
                         placeholder="Số tiền"
-                        value={item.amount ? Number(item.amount.replace(/,/g, "")).toLocaleString("vi-VN") : ""}
+                        value={
+                          item.amount === "-" 
+                            ? "-" 
+                            : item.amount 
+                              ? Number(item.amount.replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
+                              : ""
+                        }
                         onChange={(e) => {
-                          const valStr = e.target.value.replace(/,/g, '');
-                          if (!/^-?\d*$/.test(valStr)) return;
-                          
-                          let formatted = "";
-                          if (valStr === "-") {
-                            formatted = "-";
-                          } else if (valStr) {
-                            const isNeg = valStr.startsWith("-");
-                            const cleanDigits = valStr.replace('-', '');
-                            if (cleanDigits) {
-                              const parsedVal = parseInt(cleanDigits, 10);
-                              if (!isNaN(parsedVal)) {
-                                formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
-                              }
-                            }
+                          const cleanVal = e.target.value.replace(/[^0-9-]/g, "");
+                          if (!cleanVal) {
+                            const updated = [...bulkCardSpends];
+                            updated[index].amount = "";
+                            setBulkCardSpends(updated);
+                            return;
                           }
-                          const updated = [...bulkCardSpends];
-                          updated[index].amount = formatted;
-                          setBulkCardSpends(updated);
+                          if (cleanVal === "-") {
+                            const updated = [...bulkCardSpends];
+                            updated[index].amount = "-";
+                            setBulkCardSpends(updated);
+                            return;
+                          }
+                          const isNeg = cleanVal.startsWith("-");
+                          const digits = cleanVal.replace("-", "");
+                          const parsedVal = parseInt(digits, 10);
+                          if (!isNaN(parsedVal)) {
+                            const formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                            const updated = [...bulkCardSpends];
+                            updated[index].amount = formatted;
+                            setBulkCardSpends(updated);
+                          }
                         }}
                         className="w-full px-2 py-1.5 text-xs bg-transparent text-right font-bold text-indigo-950 focus:outline-none focus:bg-white rounded"
                       />
@@ -1990,50 +1974,59 @@ export function AssetsManager({
                   return (
                     <tr key={item.id} className="hover:bg-emerald-50/50 transition-colors">
                       <td className="p-1 border border-emerald-100/50">
-                        <div className="relative flex items-center justify-between group/date w-full min-h-[32px] px-2">
+                        <div className="flex items-center justify-between gap-1 px-2.5 py-1 text-left relative">
                           <span className="text-xs font-black text-emerald-950 font-mono">
                             {formatDateDot(item.name)}
                           </span>
-                          <input
-                            type="date"
-                            value={item.name}
-                            onChange={(e) => {
-                              const updated = [...bulkDebts];
-                              updated[index].name = e.target.value;
-                              setBulkDebts(updated);
-                            }}
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full text-xs"
-                          />
-                          <span className="text-[10px] text-emerald-400 opacity-0 group-hover/date:opacity-100 transition-opacity pointer-events-none">
-                            ✏️
-                          </span>
+                          <div className="relative w-5 h-5 flex items-center justify-center shrink-0 hover:bg-emerald-100 rounded transition-all cursor-pointer">
+                            <CalendarIcon size={12} className="text-emerald-500 cursor-pointer" />
+                            <input
+                              type="date"
+                              value={item.name}
+                              onChange={(e) => {
+                                const updated = [...bulkDebts];
+                                updated[index].name = e.target.value;
+                                setBulkDebts(updated);
+                              }}
+                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            />
+                          </div>
                         </div>
                       </td>
                       <td className="p-1 border border-emerald-100/50">
                         <input
                           type="text"
                           placeholder="Số tiền"
-                          value={item.amount}
+                          value={
+                            item.amount === "-" 
+                              ? "-" 
+                              : item.amount 
+                                ? Number(item.amount.replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
+                                : ""
+                          }
                           onChange={(e) => {
-                            const valStr = e.target.value.replace(/,/g, '');
-                            if (!/^-?\d*$/.test(valStr)) return;
-                            
-                            let formatted = "";
-                            if (valStr === "-") {
-                              formatted = "-";
-                            } else if (valStr) {
-                              const isNeg = valStr.startsWith("-");
-                              const cleanDigits = valStr.replace('-', '');
-                              if (cleanDigits) {
-                                const parsedVal = parseInt(cleanDigits, 10);
-                                if (!isNaN(parsedVal)) {
-                                  formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
-                                }
-                              }
+                            const cleanVal = e.target.value.replace(/[^0-9-]/g, "");
+                            if (!cleanVal) {
+                              const updated = [...bulkDebts];
+                              updated[index].amount = "";
+                              setBulkDebts(updated);
+                              return;
                             }
-                            const updated = [...bulkDebts];
-                            updated[index].amount = formatted;
-                            setBulkDebts(updated);
+                            if (cleanVal === "-") {
+                              const updated = [...bulkDebts];
+                              updated[index].amount = "-";
+                              setBulkDebts(updated);
+                              return;
+                            }
+                            const isNeg = cleanVal.startsWith("-");
+                            const digits = cleanVal.replace("-", "");
+                            const parsedVal = parseInt(digits, 10);
+                            if (!isNaN(parsedVal)) {
+                              const formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                              const updated = [...bulkDebts];
+                              updated[index].amount = formatted;
+                              setBulkDebts(updated);
+                            }
                           }}
                           className="w-full px-2 py-1.5 text-xs bg-transparent text-right font-bold text-emerald-950 focus:outline-none focus:bg-white rounded"
                         />
@@ -2074,15 +2067,15 @@ export function AssetsManager({
 
 
       {/* --- PHÂN KHÚC DỰ TÍNH TIỀN LƯƠNG & DỰ CHI --- */}
-      <div className="mt-16 animate-in fade-in slide-in-from-bottom-4 border-t-4 border-dashed border-emerald-600/30 pt-12">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 border-b-4 border-emerald-600/80 pb-2 gap-4">
+      <div className="mt-16 animate-in fade-in slide-in-from-bottom-4 border-t-2 border-dashed border-ink/20 pt-12 font-sans">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 border-b-2 border-ink/10 pb-4 gap-4 font-sans">
            <div className="flex items-center gap-3">
-              <button className="p-1.5 bg-emerald-600 text-white rounded-xl shadow-lg">
-                <Briefcase size={22} />
+              <button className="p-2 bg-ink/5 hover:bg-ink/10 text-ink rounded-xl border border-ink/15">
+                <Briefcase size={18} />
               </button>
-              <div>
-                <h2 className="text-xl font-black uppercase tracking-tight text-emerald-600">Dự tính lương & Kế hoạch chi tiêu</h2>
-                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">Lập ngân sách chủ động trước khi nhận lương</p>
+              <div className="text-left font-sans">
+                <h2 className="text-lg font-black uppercase tracking-tight text-ink font-sans">Dự tính lương & Kế hoạch chi tiêu</h2>
+                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest font-sans">Lập ngân sách chủ động trước khi nhận lương</p>
               </div>
            </div>
 

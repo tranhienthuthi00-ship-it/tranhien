@@ -45,7 +45,7 @@ service cloud.firestore {
       match /practiceParagraphs/{paraId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
-      match /data/tags {
+      match /data/{docId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }

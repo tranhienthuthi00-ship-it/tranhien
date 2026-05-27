@@ -76,6 +76,47 @@ export function useFirebaseSync() {
     { id: 'cat-tech', name: 'Công nghệ', icon: 'Laptop' }
   ]);
 
+  // Sync state for Salary Planner
+  const [salaryInput, setSalaryInput] = useState<string>(() => {
+    return localStorage.getItem("studyHub_salaryInput") || "15,000,000";
+  });
+  const [plannedExpenses, setPlannedExpenses] = useState<{ id: string; name: string; amount: string; notes: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_plannedExpenses");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      { id: "pe-1", name: "Tiền thuê nhà / phòng", amount: "3,500,000", notes: "Thanh toán cố định đầu tháng" },
+      { id: "pe-2", name: "Chi phí ăn uống sinh hoạt", amount: "3,000,000", notes: "Ngân sách ăn uống ước tính" },
+      { id: "pe-3", name: "Cước phí dịch vụ (Điện, nước, net)", amount: "800,000", notes: "Thanh toán hóa đơn hàng tháng" },
+      { id: "pe-4", name: "Học tập & Sách vở", amount: "1,200,000", notes: "Luyện tiếng Anh và phát triển cá nhân" },
+      { id: "pe-5", name: "Tích lũy tài sản / Tiết kiệm", amount: "3,000,000", notes: "Khoản để riêng đầu tư" }
+    ];
+  });
+
+  // Sync state for Habits
+  const [habits, setHabits] = useState<any[]>(() => {
+    const saved = localStorage.getItem("studyHub_habits");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Sync state for Custom Rewards
+  const [customRewards, setCustomRewards] = useState<{ id: string, emoji: string, title: string, desc: string, isUnlocked: boolean, unlockedAt?: string, isRedeemed?: boolean }[]>(() => {
+    const saved = localStorage.getItem("studyHub_customRewardsList");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [
+      { id: "r1", emoji: "🧋", title: "Cốc trà sữa tự thưởng", desc: "Được gọi một cốc trà sữa full topping yêu thích mà không lo lắng béo khỏe.", isUnlocked: false, isRedeemed: false },
+      { id: "r2", emoji: "🎮", title: "1 Tiếng chơi game thả ga", desc: "Tận hưởng 60 phút chơi game PC/Console hoàn toàn thư giãn không lo nghĩ.", isUnlocked: false, isRedeemed: false },
+      { id: "r3", emoji: "🍿", title: "Suất xem phim cuối tuần", desc: "Tự tin rủ bạn bè hoặc đi một mình xem bộ phim rạp bom tấn mới nhất.", isUnlocked: false, isRedeemed: false },
+      { id: "r4", emoji: "🛌", title: "Nghỉ ngơi lười biếng 30p", desc: "Được phép nằm ườn, lướt điện thoại vô điều kiện vào khung giờ học tập.", isUnlocked: false, isRedeemed: false },
+      { id: "r5", emoji: "🍵", title: "Trà đạo thong thả", desc: "Tự pha một tách ấm trà mật ong, vừa uống vừa lướt truyện tranh yên bình.", isUnlocked: false, isRedeemed: false }
+    ];
+  });
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -205,6 +246,34 @@ export function useFirebaseSync() {
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/tags`));
 
+    const unsubSalary = onSnapshot(doc(db, `users/${user.uid}/data/salaryPlanner`), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.salaryInput !== undefined) {
+          setSalaryInput(data.salaryInput);
+          localStorage.setItem("studyHub_salaryInput", data.salaryInput);
+        }
+        if (data.plannedExpenses !== undefined && Array.isArray(data.plannedExpenses)) {
+          setPlannedExpenses(data.plannedExpenses);
+          localStorage.setItem("studyHub_plannedExpenses", JSON.stringify(data.plannedExpenses));
+        }
+      }
+    }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/salaryPlanner`));
+
+    const unsubHabits = onSnapshot(doc(db, `users/${user.uid}/data/habits`), (docSnap) => {
+      if (docSnap.exists() && docSnap.data().habits) {
+        setHabits(docSnap.data().habits);
+        localStorage.setItem("studyHub_habits", JSON.stringify(docSnap.data().habits));
+      }
+    }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/habits`));
+
+    const unsubRewards = onSnapshot(doc(db, `users/${user.uid}/data/customRewards`), (docSnap) => {
+      if (docSnap.exists() && docSnap.data().customRewards) {
+        setCustomRewards(docSnap.data().customRewards);
+        localStorage.setItem("studyHub_customRewardsList", JSON.stringify(docSnap.data().customRewards));
+      }
+    }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/customRewards`));
+
     const timer = setTimeout(() => { setLoading(false); }, 1500);
 
     return () => {
@@ -212,6 +281,7 @@ export function useFirebaseSync() {
       unsubWords(); unsubTasks(); unsubWishlist(); unsubLogs(); unsubFood();
       unsubIdeas(); unsubAssets(); unsubCats(); unsubDictations(); unsubCustomSentences(); 
       unsubPracticeParagraphs(); unsubStudyGoals(); unsubAchievements(); unsubTags();
+      unsubSalary(); unsubHabits(); unsubRewards();
     };
   }, [user]);
 
@@ -229,8 +299,16 @@ export function useFirebaseSync() {
   const paragraphsRef = React.useRef(practiceParagraphs);
   const goalsRef = React.useRef(studyGoals);
   const achievementsRef = React.useRef(achievements);
+  const habitsRef = React.useRef(habits);
+  const customRewardsRef = React.useRef(customRewards);
+  const salaryInputRef = React.useRef(salaryInput);
+  const plannedExpensesRef = React.useRef(plannedExpenses);
 
   useEffect(() => { wordsRef.current = words; }, [words]);
+  useEffect(() => { habitsRef.current = habits; }, [habits]);
+  useEffect(() => { customRewardsRef.current = customRewards; }, [customRewards]);
+  useEffect(() => { salaryInputRef.current = salaryInput; }, [salaryInput]);
+  useEffect(() => { plannedExpensesRef.current = plannedExpenses; }, [plannedExpenses]);
   useEffect(() => { tasksRef.current = tasks; }, [tasks]);
   useEffect(() => { wishlistRef.current = wishlist; }, [wishlist]);
   useEffect(() => { logsRef.current = logs; }, [logs]);
@@ -322,5 +400,77 @@ export function useFirebaseSync() {
     studyGoals, setStudyGoals: createSyncSetter<StudyGoal>('studyGoals', goalsRef, setStudyGoals),
     achievements, setAchievements: createSyncSetter<Achievement>('achievements', achievementsRef, setAchievements),
     tags, setTags: createSyncSetter<any>('tags', React.createRef(), setTags as any, true),
+    salaryInput,
+    setSalaryInput: async (newVal: string) => {
+      setSalaryInput(newVal);
+      localStorage.setItem("studyHub_salaryInput", newVal);
+      if (user) {
+        try {
+          await setDoc(doc(db, `users/${user.uid}/data/salaryPlanner`), {
+            salaryInput: newVal,
+            plannedExpenses: plannedExpensesRef.current
+          }, { merge: true });
+        } catch (err) {
+          console.error("Salary sync error:", err);
+        }
+      }
+    },
+    plannedExpenses,
+    setPlannedExpenses: async (newValOrFunc: any) => {
+      let nextVal;
+      if (typeof newValOrFunc === 'function') {
+        nextVal = newValOrFunc(plannedExpensesRef.current);
+      } else {
+        nextVal = newValOrFunc;
+      }
+      setPlannedExpenses(nextVal);
+      localStorage.setItem("studyHub_plannedExpenses", JSON.stringify(nextVal));
+      if (user) {
+        try {
+          await setDoc(doc(db, `users/${user.uid}/data/salaryPlanner`), {
+            salaryInput: salaryInputRef.current,
+            plannedExpenses: nextVal
+          }, { merge: true });
+        } catch (err) {
+          console.error("Planned expenses sync error:", err);
+        }
+      }
+    },
+    habits,
+    setHabits: async (newValOrFunc: any) => {
+      let nextVal;
+      if (typeof newValOrFunc === 'function') {
+        nextVal = newValOrFunc(habitsRef.current);
+      } else {
+        nextVal = newValOrFunc;
+      }
+      setHabits(nextVal);
+      localStorage.setItem("studyHub_habits", JSON.stringify(nextVal));
+      if (user) {
+        try {
+          await setDoc(doc(db, `users/${user.uid}/data/habits`), { habits: nextVal });
+        } catch (err) {
+          console.error("Habits sync error:", err);
+        }
+      }
+    },
+    customRewards,
+    setCustomRewards: async (newValOrFunc: any) => {
+      let nextVal;
+      if (typeof newValOrFunc === 'function') {
+        nextVal = newValOrFunc(customRewardsRef.current);
+      } else {
+        nextVal = newValOrFunc;
+      }
+      setCustomRewards(nextVal);
+      localStorage.setItem("studyHub_customRewardsList", JSON.stringify(nextVal));
+      if (user) {
+        try {
+          await setDoc(doc(db, `users/${user.uid}/data/customRewards`), { customRewards: nextVal });
+        } catch (err) {
+          console.error("Custom rewards sync error:", err);
+        }
+      }
+    }
   };
 }
