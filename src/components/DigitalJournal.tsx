@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { LogEntry, Task, Achievement, StudyGoal, FoodPlace, AssetCategory } from "../types";
 import { 
@@ -79,6 +79,20 @@ export function DigitalJournal({
   // ---------------- INTERACTIVE MINI-CALENDAR STATE ----------------
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const [selectedDateStr, setSelectedDateStr] = useState(() => new Date().toISOString().split("T")[0]);
+  const [isCalendarDetailsOpen, setIsCalendarDetailsOpen] = useState(false);
+  const calendarContainerRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (calendarContainerRef.current && !calendarContainerRef.current.contains(event.target as Node)) {
+        setIsCalendarDetailsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
   
   // Quick Log entry state for interactive calendar
   const [quickLogContent, setQuickLogContent] = useState("");
@@ -343,17 +357,21 @@ export function DigitalJournal({
           </div>
           
           {/* TASKS COMPONENT */}
-          <div className="bg-white/90 p-5 rounded-2xl sketch-border border-ink/60 space-y-4 shadow-sm min-h-[380px]">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-2.5 border-ink/15 gap-2">
-              <span className="text-xs uppercase font-extrabold tracking-wider text-sky-850 flex items-center gap-1.5 shrink-0">
-                <Check size={16} className="text-emerald-500 stroke-[3]" />
+          <div className="bg-[#fffdf5] p-5 rounded-3xl sketch-border border-amber-200/80 space-y-4 shadow-sm min-h-[380px] relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-amber-200/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-3 border-amber-200/50 gap-2 relative z-10">
+              <span className="text-xs uppercase font-black tracking-widest text-amber-900 flex items-center gap-2 shrink-0">
+                <span className="p-1.5 bg-amber-100 rounded-lg text-amber-600">
+                  <Check size={16} className="stroke-[3]" />
+                </span>
                 What's The Next Thing To Do?
               </span>
               <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
                 <select
                   value={taskFilter}
                   onChange={(e) => setTaskFilter(e.target.value)}
-                  className="px-2 py-1 bg-ink/5 border border-ink/10 rounded-lg text-[10px] uppercase font-bold font-sans text-ink outline-none tracking-widest cursor-pointer"
+                  className="px-2 py-1.5 bg-white border border-amber-200 rounded-lg text-[9px] uppercase font-bold font-sans text-amber-900 outline-none tracking-widest cursor-pointer shadow-xs"
                 >
                   <option value="All">Tất Cả</option>
                   <option value="Priority:High">Ưu tiên Cao</option>
@@ -361,27 +379,27 @@ export function DigitalJournal({
                   <option value="Priority:Low">Ưu tiên Thấp</option>
                   {goals.map(g => <option key={g.id} value={"Goal:" + g.id}>Mục tiêu: {g.title}</option>)}
                 </select>
-                <button onClick={() => setShowAddTask(!showAddTask)} className="p-1 hover:bg-ink hover:text-paper rounded border border-ink/20 shrink-0">
+                <button onClick={() => setShowAddTask(!showAddTask)} className="p-1.5 hover:bg-amber-500 hover:text-white rounded-lg border border-amber-300 text-amber-600 bg-white shadow-xs shrink-0 transition-colors">
                   <Plus size={14} className={showAddTask ? "rotate-45" : ""} />
                 </button>
               </div>
             </div>
 
             {showAddTask && (
-              <form onSubmit={handleAddTask} className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex flex-col gap-2">
+              <form onSubmit={handleAddTask} className="bg-amber-50/60 p-4 rounded-xl border border-amber-100 flex flex-col gap-3 relative z-10">
                 <input
                   type="text"
                   placeholder="Tôi sẽ bắt tay vào làm việc gì?"
                   value={newTaskContent}
                   onChange={e => setNewTaskContent(e.target.value)}
-                  className="px-3 py-2 text-xs bg-white rounded-lg border border-blue-200 outline-none w-full font-bold text-ink"
+                  className="px-3 py-2 text-xs bg-white rounded-lg border border-amber-200 outline-none w-full font-bold text-amber-950 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
                   required
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <select
                     value={newTaskGoalId}
                     onChange={e => setNewTaskGoalId(e.target.value)}
-                    className="flex-1 px-2 py-1 text-xs bg-white rounded-lg border border-blue-200 outline-none max-w-[150px]"
+                    className="flex-1 px-2 py-1.5 text-xs bg-white rounded-lg border border-amber-200 outline-none text-amber-900 font-medium"
                   >
                     <option value="">(Không có mục tiêu lớn)</option>
                     {goals.map(g => (
@@ -391,13 +409,13 @@ export function DigitalJournal({
                   <select
                     value={newTaskPriority}
                     onChange={e => setNewTaskPriority(e.target.value as any)}
-                    className="flex-1 px-2 py-1 text-xs bg-white text-ink font-bold rounded-lg border border-blue-200 outline-none uppercase max-w-[100px]"
+                    className="flex-1 px-2 py-1.5 text-xs bg-white text-amber-900 font-bold rounded-lg border border-amber-200 outline-none uppercase"
                   >
                     <option value="High">Cao</option>
                     <option value="Medium">Trung Bình</option>
                     <option value="Low">Thấp</option>
                   </select>
-                  <button type="submit" className="flex-1 px-3 py-1 bg-ink text-white font-black text-xs uppercase tracking-widest rounded-lg">
+                  <button type="submit" className="flex-1 px-3 py-1.5 bg-amber-600 text-white font-black text-xs uppercase tracking-widest rounded-lg hover:bg-amber-700 shadow-md">
                     Thêm Ngay
                   </button>
                 </div>
@@ -405,73 +423,75 @@ export function DigitalJournal({
             )}
 
             {/* list display */}
-            {activeTasks.filter(t => {
-              if (taskFilter === "All") return true;
-              if (taskFilter.startsWith("Priority:")) return t.priority === taskFilter.split(":")[1];
-              if (taskFilter.startsWith("Goal:")) return t.goalId === taskFilter.split(":")[1];
-              return true;
-            }).length === 0 ? (
-              <div className="text-center py-10 select-none">
-                <span className="text-3xl block">🥳</span>
-                <p className="text-xs font-hand italic text-ink/50 mt-1">Hoàn hảo! Trống trải không còn nhiệm vụ nào.</p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
-                {activeTasks.filter(t => {
-                  if (taskFilter === "All") return true;
-                  if (taskFilter.startsWith("Priority:")) return t.priority === taskFilter.split(":")[1];
-                  if (taskFilter.startsWith("Goal:")) return t.goalId === taskFilter.split(":")[1];
-                  return true;
-                }).map(task => {
-                  const priorityStyles = 
-                    task.priority === "High" ? "bg-red-50 text-crimson border-red-200" :
-                    task.priority === "Medium" ? "bg-amber-50 text-amber-600 border-amber-200" :
-                    "bg-slate-50 text-slate-500 border-slate-200";
-                  const targetGoal = goals.find(g => g.id === task.goalId);
+            <div className="relative z-10">
+              {activeTasks.filter(t => {
+                if (taskFilter === "All") return true;
+                if (taskFilter.startsWith("Priority:")) return t.priority === taskFilter.split(":")[1];
+                if (taskFilter.startsWith("Goal:")) return t.goalId === taskFilter.split(":")[1];
+                return true;
+              }).length === 0 ? (
+                <div className="text-center py-10 select-none">
+                  <span className="text-4xl block opacity-80">🌱</span>
+                  <p className="text-[11px] font-sans font-bold uppercase tracking-wider text-amber-800/50 mt-3">Sẵn sàng để bắt đầu kế hoạch mới.</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-[350px] overflow-y-auto pr-1 pb-2">
+                  {activeTasks.filter(t => {
+                    if (taskFilter === "All") return true;
+                    if (taskFilter.startsWith("Priority:")) return t.priority === taskFilter.split(":")[1];
+                    if (taskFilter.startsWith("Goal:")) return t.goalId === taskFilter.split(":")[1];
+                    return true;
+                  }).map(task => {
+                    const priorityStyles = 
+                      task.priority === "High" ? "bg-red-50 text-crimson border-red-200" :
+                      task.priority === "Medium" ? "bg-amber-50 text-amber-600 border-amber-200" :
+                      "bg-emerald-50 text-emerald-700 border-emerald-200";
+                    const targetGoal = goals.find(g => g.id === task.goalId);
 
-                  return (
-                    <div 
-                      key={task.id} 
-                      className="flex items-start justify-between bg-white px-3.5 py-3 rounded-2xl border border-ink/10 hover:border-ink/20 hover:shadow-sm transition-all"
-                    >
-                      <div className="flex gap-3 min-w-0 flex-1 pr-2">
-                        <button
-                          onClick={() => handleToggleTask(task.id)}
-                          className="w-5 h-5 rounded hover:border-emerald-500 bg-emerald-50/30 border-2 border-ink/20 shrink-0 cursor-pointer flex items-center justify-center mt-0.5"
-                        ></button>
-                        
-                        <div className="min-w-0 text-left flex-1">
-                          <p className="font-bold text-xs text-ink leading-snug break-words">{task.content}</p>
-                          {targetGoal && (
-                            <span className="inline-flex mt-1 text-[10px] font-black text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-100 uppercase">
-                              🎯 Goal: {targetGoal.title}
-                            </span>
-                          )}
+                    return (
+                      <div 
+                        key={task.id} 
+                        className="flex items-start justify-between bg-white px-3.5 py-3 rounded-xl border border-amber-100 hover:border-amber-300 hover:shadow-sm transition-all group"
+                      >
+                        <div className="flex gap-3 min-w-0 flex-1 pr-2">
+                          <button
+                            onClick={() => handleToggleTask(task.id)}
+                            className="w-5 h-5 rounded hover:border-emerald-500 bg-amber-50/50 border-2 border-amber-200 shrink-0 cursor-pointer flex items-center justify-center mt-0.5"
+                          ></button>
+                          
+                          <div className="min-w-0 text-left flex-1">
+                            <p className="font-bold text-xs text-amber-950 leading-snug break-words group-hover:text-amber-700 transition-colors">{task.content}</p>
+                            {targetGoal && (
+                              <span className="inline-flex mt-1 text-[9px] font-black text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 uppercase tracking-wider">
+                                🎯 {targetGoal.title}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${priorityStyles} font-sans tracking-wider shrink-0`}>
+                            {task.priority}
+                          </span>
+                          <button
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="p-1.5 hover:bg-rose-50 rounded-lg hover:text-crimson text-amber-900/30 cursor-pointer shrink-0 transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${priorityStyles} font-mono shrink-0`}>
-                          {task.priority}
-                        </span>
-                        <button
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="p-1 hover:text-crimson text-ink/30 cursor-pointer shrink-0"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
         {/* RIGHT COLUMN: CALENDAR (4 Cols) */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white/90 p-5 rounded-2xl sketch-border border-ink/60 space-y-4 shadow-sm">
+          <div ref={calendarContainerRef} className="bg-white/90 p-5 rounded-2xl sketch-border border-ink/60 space-y-4 shadow-sm relative">
             
             <div className="flex items-center justify-between border-b pb-2.5 border-ink/15">
               <span className="text-xs uppercase font-extrabold tracking-wider text-ink flex items-center gap-1.5">
@@ -494,7 +514,7 @@ export function DigitalJournal({
             </div>
 
             {/* Days Grid */}
-            <div className="grid grid-cols-7 gap-1.5 text-center">
+            <div className="grid grid-cols-7 gap-1.5 text-center relative z-10">
               {calendarDays.map((cell, idx) => {
                 const isSelected = cell.dateStr === selectedDateStr;
                 const matchesToday = cell.dateStr === new Date().toISOString().split("T")[0];
@@ -505,7 +525,12 @@ export function DigitalJournal({
                   <button
                     key={idx}
                     disabled={!cell.day}
-                    onClick={() => { if (cell.dateStr) setSelectedDateStr(cell.dateStr); }}
+                    onClick={() => { 
+                      if (cell.dateStr) { 
+                        setSelectedDateStr(cell.dateStr); 
+                        setIsCalendarDetailsOpen(true);
+                      } 
+                    }}
                     className={`h-8 font-sans text-xs font-bold rounded-xl transition-all relative flex flex-col items-center justify-center cursor-pointer ${
                       !cell.day 
                         ? "opacity-0" 
@@ -526,7 +551,10 @@ export function DigitalJournal({
             </div>
 
             {/* Day Log Recap Detail Panel */}
-            <div className="p-4 bg-[#fffdf5]/80 rounded-xl border border-dashed border-amber-300 space-y-3">
+            <div 
+              className={`absolute left-0 right-0 z-50 bg-[#fffdf5] rounded-xl border border-dashed border-amber-400 shadow-xl space-y-3 transition-all duration-300 origin-top overflow-hidden p-4 ${isCalendarDetailsOpen ? 'opacity-100 scale-y-100 mt-2' : 'opacity-0 scale-y-0 h-0 p-0 m-0 border-0'}`}
+              style={{ top: '100%' }}
+            >
               <div className="flex items-center justify-between border-b border-amber-200/40 pb-1.5">
                 <span className="text-[10px] font-black uppercase text-amber-800 font-sans tracking-wide">
                   Chi tiết ngày: <strong className="text-ink">{selectedDateStr.split("-").reverse().join("/")}</strong>
@@ -628,70 +656,123 @@ export function DigitalJournal({
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => {
-                if (confirm("Đặt lại toàn bộ bảng kê chi tiêu thẻ tín dụng tuần này?")) {
-                  setBulkCardSpends(bulkCardSpends.map(item => ({ ...item, amount: "", notes: "" })));
-                }
-              }}
-              className="px-2.5 py-1 text-[10px] bg-red-50 text-crimson rounded-lg border border-red-200 uppercase font-black tracking-widest hover:bg-crimson hover:text-white transition-all cursor-pointer"
-            >
-              Reset tuần
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  setBulkCardSpends([...bulkCardSpends, {
+                    id: Date.now(),
+                    name: new Date().toISOString().split("T")[0],
+                    amount: "",
+                    notes: ""
+                  }]);
+                }}
+                className="px-2.5 py-1 text-[10px] bg-blue-50 text-blue-700 rounded-lg border border-blue-200 uppercase font-black tracking-widest hover:bg-[#1e40af] hover:text-white transition-all cursor-pointer flex items-center gap-1"
+              >
+                <Plus size={10} /> Thêm Dòng
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm("Reset toàn bộ bảng kê chi tiêu thẻ tín dụng?")) {
+                    setBulkCardSpends([]);
+                  }
+                }}
+                className="px-2.5 py-1 text-[10px] bg-red-50 text-crimson rounded-lg border border-red-200 uppercase font-black tracking-widest hover:bg-crimson hover:text-white transition-all cursor-pointer"
+              >
+                Reset
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-            {bulkCardSpends.map((item, index) => {
-              const dateObj = new Date(item.name);
-              const dayStr = isNaN(dateObj.getTime())
-                ? item.name
-                : dateObj.toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit" });
-
-              return (
-                <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-white p-2.5 rounded-xl border border-blue-100 hover:border-blue-300 transition-all">
-                  <div className="col-span-12 sm:col-span-4 text-left">
-                    <span className="text-xs font-black text-blue-950 font-sans truncate block capitalize">
-                      {dayStr}
-                    </span>
-                    <span className="text-[9px] font-mono text-blue-600 block">
-                      {item.name}
-                    </span>
-                  </div>
-
-                  <div className="col-span-12 sm:col-span-3">
-                    <div className="relative rounded-md shadow-xs">
+          <div className="w-full overflow-x-auto scrollbar-thin">
+            <table className="min-w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-blue-100/50 text-[#1e40af] font-bold uppercase tracking-wider text-[9px]">
+                  <th className="px-3 py-2 w-32 border border-blue-100">Ngày / Tên</th>
+                  <th className="px-3 py-2 w-40 border border-blue-100">Số Tiền (VND)</th>
+                  <th className="px-3 py-2 border border-blue-100">Ghi Chú</th>
+                  <th className="px-2 py-2 w-10 text-center border border-blue-100">Xóa</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bulkCardSpends.map((item, index) => (
+                  <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
+                    <td className="p-1 border border-blue-100/50">
+                      <input
+                        type="text"
+                        value={item.name}
+                        onChange={(e) => {
+                          const updated = [...bulkCardSpends];
+                          updated[index].name = e.target.value;
+                          setBulkCardSpends(updated);
+                        }}
+                        className="w-full px-2 py-1.5 text-xs bg-transparent text-blue-950 font-bold focus:outline-none focus:bg-white rounded"
+                      />
+                    </td>
+                    <td className="p-1 border border-blue-100/50">
                       <input
                         type="text"
                         placeholder="Số tiền"
                         value={item.amount ? Number(item.amount.replace(/,/g, "")).toLocaleString("vi-VN") : ""}
                         onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9]/g, "");
+                          const valStr = e.target.value.replace(/,/g, '');
+                          if (!/^-?\d*$/.test(valStr)) return;
+                          
+                          let formatted = "";
+                          if (valStr === "-") {
+                            formatted = "-";
+                          } else if (valStr) {
+                            const isNeg = valStr.startsWith("-");
+                            const cleanDigits = valStr.replace('-', '');
+                            if (cleanDigits) {
+                              const parsedVal = parseInt(cleanDigits, 10);
+                              if (!isNaN(parsedVal)) {
+                                formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                              }
+                            }
+                          }
                           const updated = [...bulkCardSpends];
-                          updated[index].amount = val;
+                          updated[index].amount = formatted;
                           setBulkCardSpends(updated);
                         }}
-                        className="w-full px-2.5 py-1.5 text-xs bg-white text-right font-bold text-indigo-950 rounded-lg border border-blue-200 focus:outline-none focus:border-blue-400 placeholder:text-blue-300 placeholder:font-normal"
+                        className="w-full px-2 py-1.5 text-xs bg-transparent text-right font-bold text-indigo-950 focus:outline-none focus:bg-white rounded"
                       />
-                      <span className="absolute right-2 top-2 text-[9px] text-blue-400/80 font-bold pointer-events-none">đ</span>
-                    </div>
-                  </div>
-
-                  <div className="col-span-12 sm:col-span-5">
-                    <input
-                      type="text"
-                      placeholder="Chi tiết chi tiêu..."
-                      value={item.notes || ""}
-                      onChange={(e) => {
-                        const updated = [...bulkCardSpends];
-                        updated[index].notes = e.target.value;
-                        setBulkCardSpends(updated);
-                      }}
-                      className="w-full px-2.5 py-1.5 text-xs bg-white text-left text-blue-900 rounded-lg border border-blue-200 focus:outline-none focus:border-blue-400 placeholder:text-blue-300"
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                    </td>
+                    <td className="p-1 border border-blue-100/50">
+                      <input
+                        type="text"
+                        placeholder="Chi tiết chi tiêu..."
+                        value={item.notes || ""}
+                        onChange={(e) => {
+                          const updated = [...bulkCardSpends];
+                          updated[index].notes = e.target.value;
+                          setBulkCardSpends(updated);
+                        }}
+                        className="w-full px-2 py-1.5 text-xs bg-transparent text-left text-blue-900 focus:outline-none focus:bg-white rounded"
+                      />
+                    </td>
+                    <td className="p-1 border border-blue-100/50 text-center">
+                      <button
+                        onClick={() => {
+                          const updated = bulkCardSpends.filter((_, i) => i !== index);
+                          setBulkCardSpends(updated);
+                        }}
+                        className="p-1.5 text-rose-300 hover:text-crimson hover:bg-rose-50 rounded transition-colors mx-auto"
+                        title="Xóa hàng"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {bulkCardSpends.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="text-center p-4 text-[10px] text-blue-400 italic">
+                      Dữ liệu trống. Nhấp "Thêm Dòng" để tạo bảng kê mới.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
 
           {/* Sum footer */}
@@ -734,73 +815,81 @@ export function DigitalJournal({
             </button>
           </div>
 
-          <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-            {bulkDebts.map((item, index) => {
-              const dateObj = new Date(item.name);
-              const dayStr = isNaN(dateObj.getTime())
-                ? item.name
-                : dateObj.toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit" });
+          <div className="w-full overflow-x-auto scrollbar-thin">
+            <table className="min-w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-emerald-100/50 text-[#065f46] font-bold uppercase tracking-wider text-[9px]">
+                  <th className="px-3 py-2 w-32 border border-emerald-100">Ngày / Tên</th>
+                  <th className="px-3 py-2 w-40 border border-emerald-100">Số Tiền (VND)</th>
+                  <th className="px-3 py-2 border border-emerald-100">Ghi Chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bulkDebts.map((item, index) => {
+                  const dateObj = new Date(item.name);
+                  const dayStr = isNaN(dateObj.getTime())
+                    ? item.name
+                    : dateObj.toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit" });
 
-              return (
-                <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-white p-2.5 rounded-xl border border-emerald-100 hover:border-emerald-300 transition-all">
-                  <div className="col-span-12 sm:col-span-4 text-left">
-                    <span className="text-xs font-black text-emerald-950 font-sans truncate block capitalize">
-                      {dayStr}
-                    </span>
-                    <span className="text-[9px] font-mono text-emerald-600 block">
-                      {item.name}
-                    </span>
-                  </div>
-
-                  <div className="col-span-12 sm:col-span-3">
-                    <div className="relative rounded-md shadow-xs">
-                      <input
-                        type="text"
-                        placeholder="Số tiền"
-                        value={item.amount}
-                        onChange={(e) => {
-                          const valStr = e.target.value.replace(/,/g, '');
-                          if (!/^-?\d*$/.test(valStr)) return;
-                          
-                          let formatted = "";
-                          if (valStr === "-") {
-                            formatted = "-";
-                          } else if (valStr) {
-                            const isNeg = valStr.startsWith("-");
-                            const cleanDigits = valStr.replace('-', '');
-                            if (cleanDigits) {
-                              const parsedVal = parseInt(cleanDigits, 10);
-                              if (!isNaN(parsedVal)) {
-                                formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                  return (
+                    <tr key={item.id} className="hover:bg-emerald-50/50 transition-colors">
+                      <td className="p-1 border border-emerald-100/50">
+                        <div className="px-2 py-1.5 flex flex-col">
+                          <span className="text-xs font-black text-emerald-950 font-sans truncate capitalize">
+                            {dayStr}
+                          </span>
+                          <span className="text-[9px] font-mono text-emerald-600 block">
+                            {item.name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-1 border border-emerald-100/50">
+                        <input
+                          type="text"
+                          placeholder="Số tiền"
+                          value={item.amount}
+                          onChange={(e) => {
+                            const valStr = e.target.value.replace(/,/g, '');
+                            if (!/^-?\d*$/.test(valStr)) return;
+                            
+                            let formatted = "";
+                            if (valStr === "-") {
+                              formatted = "-";
+                            } else if (valStr) {
+                              const isNeg = valStr.startsWith("-");
+                              const cleanDigits = valStr.replace('-', '');
+                              if (cleanDigits) {
+                                const parsedVal = parseInt(cleanDigits, 10);
+                                if (!isNaN(parsedVal)) {
+                                  formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
+                                }
                               }
                             }
-                          }
-                          const updated = [...bulkDebts];
-                          updated[index].amount = formatted;
-                          setBulkDebts(updated);
-                        }}
-                        className="w-full px-2.5 py-1.5 text-xs bg-white text-right font-bold text-emerald-950 rounded-lg border border-emerald-200 focus:outline-none focus:border-emerald-400 placeholder:text-emerald-300 placeholder:font-normal"
-                      />
-                      <span className="absolute right-2 top-2 text-[9px] text-emerald-400/80 font-bold pointer-events-none">đ</span>
-                    </div>
-                  </div>
-
-                  <div className="col-span-12 sm:col-span-5">
-                    <input
-                      type="text"
-                      placeholder="Nguồn thu / Tên khách nợ..."
-                      value={item.notes || ""}
-                      onChange={(e) => {
-                        const updated = [...bulkDebts];
-                        updated[index].notes = e.target.value;
-                        setBulkDebts(updated);
-                      }}
-                      className="w-full px-2.5 py-1.5 text-xs bg-white text-left text-emerald-900 rounded-lg border border-emerald-200 focus:outline-none focus:border-emerald-400 placeholder:text-emerald-300"
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                            const updated = [...bulkDebts];
+                            updated[index].amount = formatted;
+                            setBulkDebts(updated);
+                          }}
+                          className="w-full px-2 py-1.5 text-xs bg-transparent text-right font-bold text-emerald-950 focus:outline-none focus:bg-white rounded"
+                        />
+                      </td>
+                      <td className="p-1 border border-emerald-100/50">
+                        <input
+                          type="text"
+                          placeholder="Nguồn thu / Tên khách nợ..."
+                          value={item.notes || ""}
+                          onChange={(e) => {
+                            const updated = [...bulkDebts];
+                            updated[index].notes = e.target.value;
+                            setBulkDebts(updated);
+                          }}
+                          className="w-full px-2 py-1.5 text-xs bg-transparent text-left text-emerald-900 focus:outline-none focus:bg-white rounded"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
           {/* Sum footer */}

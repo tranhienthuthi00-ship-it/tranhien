@@ -203,7 +203,7 @@ export function TranslationPractice({
         finalTranscriptArray = transcriptData.transcript;
       }
 
-      setAnalyzingStep("Gemini 3.5 đang biên soạn bộ tư liệu 4YOU (Phụ đề, Luyện nói, Luyện nghe, Từ vựng, Trắc nghiệm)...");
+      setAnalyzingStep("Gemini đang biên soạn bộ tư liệu 4YOU (Phụ đề, Luyện nói, Luyện nghe, Từ vựng, Trắc nghiệm)...");
 
       // 2. Query Gemini 4You Package API to get full structured content
       const packageRes = await fetch(getAbsoluteUrl("/api/translation/generate-4you-package"), {

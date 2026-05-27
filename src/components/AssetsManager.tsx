@@ -369,7 +369,7 @@ export function AssetsManager({
   };
 
   const [bulkCash, setBulkCash] = useState<Record<number, number>>({});
-  const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000];
+  const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
 
   const [isManagingCats, setIsManagingCats] = useState(false);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
@@ -762,10 +762,10 @@ export function AssetsManager({
         </div>
       </div>
 
-      {/* Container for Scoreboard + Add Asset Form */}
-      <div className={cn("flex flex-col xl:flex-row gap-6 mb-8 items-start", isAddAssetOpen ? "" : "")}>
+      {/* Container for Scoreboard */}
+      <div className="flex flex-col gap-6 mb-8 items-start w-full">
         {/* STATE-OF-THE-ART FINANCIAL BENTO GRID SCOREBOARD */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 flex-1 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
           {/* Core Card: Vốn chủ sở hữu (Net Worth) - Spans 2 cols on tablet/desktop */}
           <div className="sm:col-span-2 bg-[#18181b] text-zinc-100 p-5 rounded-2xl shadow-xl border border-zinc-800 flex flex-col justify-between relative overflow-hidden min-h-[145px]">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
@@ -877,183 +877,12 @@ export function AssetsManager({
           </div>
 
         </div>
-
-        {isAddAssetOpen && (
-          <form onSubmit={addAsset} className={cn(
-            "bg-paper p-5 sm:p-6 sketch-border duration-300 transition-all select-none relative xl:w-[450px] shrink-0 w-full mt-4 xl:mt-0 xl:sticky xl:top-4 h-max",
-            editingId ? "border-amber-400 border-2 ring-4 ring-amber-400/20" : "border-dashed border-ink/30"
-          )}>
-            <div className="absolute -top-3 -left-3 rotate-[-5deg] z-10 transition-transform">
-              <span className={cn(
-                "text-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider",
-                editingId ? "bg-amber-500 animate-pulse" : "bg-crimson"
-              )}>
-                {editingId ? "✨ Đang Cập Nhật Tài Sản" : "＋ Thêm Tài Sản Mới"}
-              </span>
-            </div>
-          
-            <div className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Tên Tài Sản</label>
-                <input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Ví dụ: Sổ tiết kiệm, Xe máy..."
-                  className="sketch-input bg-white/50 py-2"
-                  required
-                />
-                
-                {/* AI Auto-Categorization Suggestion Box */}
-                {newName.trim() && !isNewMoney && (
-                  <div className="mt-1 flex flex-col gap-1 text-[11px] transition-all duration-300">
-                    {isCategorizing ? (
-                      <span className="text-crimson/80 flex items-center gap-1.5 animate-pulse font-sans ml-1">
-                        <span className="inline-block w-2 h-2 rounded-full bg-crimson border border-ink/20 animate-bounce"></span>
-                        ✨ AI đang phân tích gợi ý danh mục...
-                      </span>
-                    ) : aiSuggestion ? (
-                      <div className="bg-[#fff9f9] border border-dashed border-crimson/40 p-3 rounded-lg flex flex-col gap-1.5 shadow-2xs transition-all">
-                        <div className="flex items-center justify-between font-sans">
-                          <span className="flex items-center gap-1.5 text-ink">
-                            <span className="text-sm">💡</span> Gợi ý: <strong className="text-crimson font-extrabold uppercase tracking-wide">{aiSuggestion.name}</strong>
-                          </span>
-                          {newCategory === aiSuggestion.id ? (
-                            <span className="py-0.5 px-2 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded-full border border-emerald-200 uppercase tracking-wider shrink-0">
-                              Đã Đống Nhất ✓
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setNewCategory(aiSuggestion.id)}
-                              className="py-1 px-3 bg-crimson hover:bg-crimson/95 active:scale-95 text-white text-[9px] uppercase font-bold rounded-lg cursor-pointer transition-all shadow-2xs shrink-0"
-                            >
-                              Áp dụng
-                            </button>
-                          )}
-                        </div>
-                        {aiSuggestion.reasoning && (
-                          <p className="text-ink/65 italic font-sans leading-relaxed text-[10px] pl-5 border-l-2 border-crimson/20">
-                            {aiSuggestion.reasoning}
-                          </p>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Danh Mục</label>
-                  <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="sketch-input bg-white/50 py-2" required>
-                    <option value="" disabled>-- Chọn --</option>
-                    {categories.map(c => (
-                       <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">
-                    {isNewMoney 
-                      ? "Tên (Ví dụ: Tiền VNĐ)" 
-                      : (newCurrency === "GOLD" || newCurrency === "USD")
-                        ? "Số lượng & Đơn giá"
-                        : "Giá Trị"}
-                  </label>
-                  <div className="flex gap-2">
-                    {!isNewMoney ? (
-                      (newCurrency === "GOLD" || newCurrency === "USD") ? (
-                        <div className="flex gap-2 flex-1">
-                          <input
-                            value={newQuantity}
-                            onChange={(e) => setNewQuantity(e.target.value)}
-                            placeholder={newCurrency === "GOLD" ? "Số chỉ (vd: 5)" : "Số lượng (vd: 100)"}
-                            type="number"
-                            step="any"
-                            className="sketch-input bg-white/50 py-2 min-w-0 w-1/2 px-2"
-                            required
-                          />
-                          <input
-                            value={newExchangeRate}
-                            onChange={(e) => setNewExchangeRate(e.target.value)}
-                            placeholder={newCurrency === "GOLD" ? "Giá 1 chỉ (VND)" : "Tỷ giá (VND/USD)"}
-                            type="number"
-                            step="any"
-                            className="sketch-input bg-white/50 py-2 min-w-0 w-1/2 px-2"
-                            required
-                          />
-                        </div>
-                      ) : (
-                        <input
-                          value={newValue}
-                          onChange={(e) => setNewValue(e.target.value)}
-                          placeholder="0"
-                          type="number"
-                          className="sketch-input bg-white/50 py-2 min-w-0 flex-1 px-2"
-                          required
-                        />
-                      )
-                    ) : (
-                      <select value={newDenomination} onChange={e => setNewDenomination(Number(e.target.value))} className="sketch-input flex-1 py-2 text-sm font-bold bg-white/50 px-2 sm:px-4">
-                        {VND_DENOMINATIONS.map(den => (
-                           <option key={den} value={den}>{den.toLocaleString('vi-VN')} đ</option>
-                        ))}
-                      </select>
-                    )}
-                    
-                    {!isNewMoney && (
-                      <select value={newCurrency} onChange={(e) => setNewCurrency(e.target.value)} className="sketch-input bg-[#efefef] font-bold py-2 w-[80px] shrink-0 px-1 text-center">
-                        <option value="VND">VND</option>
-                        <option value="USD">USD</option>
-                        <option value="GOLD">VÀNG</option>
-                      </select>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Ghi Chú & Đặc Tính</label>
-                <input
-                  value={newNotes}
-                  onChange={(e) => setNewNotes(e.target.value)}
-                  placeholder="Ghi chú thêm (không bắt buộc)"
-                  className="sketch-input bg-white/50 py-2"
-                />
-                <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2 ml-1">
-                   <label className="flex items-center gap-1.5 cursor-pointer group">
-                     <input type="checkbox" checked={isDebt} onChange={e => setIsDebt(e.target.checked)} className="accent-crimson w-3.5 h-3.5" />
-                     <span className="text-[11px] font-bold text-ink/70 group-hover:text-ink transition-colors uppercase tracking-wider">Khoản Nợ Phải Trả</span>
-                   </label>
-                   <label className="flex items-center gap-1.5 cursor-pointer group">
-                     <input type="checkbox" checked={isNewMoney} onChange={e => setIsNewMoney(e.target.checked)} className="accent-amber-500 w-3.5 h-3.5" />
-                     <span className="text-[11px] font-bold text-ink/70 group-hover:text-ink transition-colors uppercase tracking-wider">Tiền Mới Nguyên</span>
-                   </label>
-                   {!isDebt && !isNewMoney && (
-                     <label className="flex items-center gap-1.5 cursor-pointer group">
-                        <input type="checkbox" checked={excludeFromNetWorth} onChange={e => setExcludeFromNetWorth(e.target.checked)} className="accent-blue-500 w-3.5 h-3.5" />
-                        <span className="text-[11px] font-bold text-ink/70 group-hover:text-ink transition-colors uppercase tracking-wider text-blue-800">Khoản Cho Vay (Gắn Tags Chuyên Dụng)</span>
-                     </label>
-                   )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-2 border-t border-ink/10">
-                {editingId && (
-                  <button type="button" onClick={cancelEdit} className="flex-1 sketch-button py-2.5 text-xs">Hủy</button>
-                )}
-                <button type="submit" className={cn(
-                  "flex-[2] sketch-button py-2.5 text-xs font-black uppercase tracking-wider",
-                  editingId ? "bg-amber-500 text-white shadow-xl shadow-amber-500/20" : "bg-emerald-600 text-white shadow-xl shadow-emerald-500/20 hover:scale-105"
-                )}>
-                  {editingId ? "✔️ Hoàn Tất Sửa" : "➕ Lưu Tài Sản"}
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
       </div>
+
+
+
+
+
 
       {isManagingCats && (
         <div className="bg-ink/5 p-4 rounded-xl mb-8 sketch-border border-dashed">
@@ -1129,46 +958,192 @@ export function AssetsManager({
         </div>
       )}
 
-      {(pieData.length > 0) && (
-        <div className="flex flex-col md:flex-row items-center gap-6 mb-10 bg-white/40 p-6 sketch-border">
-          <div className="h-48 w-48 shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                  stroke="#faf9f6"
-                  strokeWidth={2}
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <RechartsTooltip formatter={(value: number) => formatCurrency(value, 'VND')} contentStyle={{ borderRadius: '8px', border: '2px solid var(--color-ink)' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-2">
-             {pieData.map(d => (
-               <div key={d.id} className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.fill }} />
-                    <span className="text-[10px] font-bold uppercase tracking-tight text-ink/70 truncate">{d.name}</span>
-                  </div>
-                  <span className="text-xs font-bold pl-4 text-ink flex flex-col sm:flex-row sm:items-center gap-1">
-                    <span>{totalAssetsVND > 0 ? Math.round((d.value / totalAssetsVND) * 100) : 0}%</span>
-                    <span className="text-[10px] font-semibold text-ink/65">({formatCurrency(d.value, 'VND')})</span>
-                  </span>
-               </div>
-             ))}
-          </div>
+      <div className="flex flex-col xl:flex-row items-stretch gap-6 mb-10 w-full relative">
+        {/* CHARTS CONTAINER */}
+        <div className="flex-1 w-full bg-white/40 p-6 sketch-border flex flex-col md:flex-row items-center gap-6 relative">
+          {(pieData.length > 0) ? (
+            <>
+              <div className="h-48 w-48 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                      stroke="#faf9f6"
+                      strokeWidth={2}
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip formatter={(value: number) => formatCurrency(value, 'VND')} contentStyle={{ borderRadius: '8px', border: '2px solid var(--color-ink)' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-2">
+                 {pieData.map(d => (
+                   <div key={d.id} className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.fill }} />
+                        <span className="text-[10px] font-bold uppercase tracking-tight text-ink/70 truncate">{d.name}</span>
+                      </div>
+                      <span className="text-xs font-bold pl-4 text-ink flex flex-col sm:flex-row sm:items-center gap-1">
+                        <span>{totalAssetsVND > 0 ? Math.round((d.value / totalAssetsVND) * 100) : 0}%</span>
+                        <span className="text-[10px] font-semibold text-ink/65">({formatCurrency(d.value, 'VND')})</span>
+                      </span>
+                   </div>
+                 ))}
+              </div>
+            </>
+          ) : (
+            <div className="w-full text-center py-10 opacity-30 italic font-medium">Chưa có đủ dữ liệu để vẽ biểu đồ...</div>
+          )}
         </div>
-      )}
+
+        {/* THÊM TÀI SẢN MỚI FORM (ALIGNED WITH CHART) */}
+        {isAddAssetOpen && (
+          <form onSubmit={addAsset} className={cn(
+            "bg-paper p-5 sm:p-6 sketch-border duration-300 transition-all select-none relative xl:w-[350px] shrink-0 w-full h-max",
+            editingId ? "border-amber-400 border-2 ring-4 ring-amber-400/20" : "border-dashed border-ink/30"
+          )}>
+            <div className="absolute -top-3 -left-3 rotate-[-5deg] z-10 transition-transform">
+              <span className={cn(
+                "text-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider",
+                editingId ? "bg-amber-500 animate-pulse" : "bg-crimson"
+              )}>
+                {editingId ? "✨ Đang Cập Nhật Tài Sản" : "＋ Thêm Tài Sản Mới"}
+              </span>
+            </div>
+          
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Tên Tài Sản</label>
+                <input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Ví dụ: Sổ tiết kiệm..."
+                  className="sketch-input bg-white/50 py-2"
+                  required
+                />
+                
+                {/* AI Auto-Categorization Suggestion Box */}
+                {newName.trim() && !isNewMoney && (
+                  <div className="mt-1 flex flex-col gap-1 text-[11px] transition-all duration-300">
+                    {isCategorizing ? (
+                      <span className="text-crimson/80 flex items-center gap-1.5 animate-pulse font-sans ml-1">
+                        <span className="inline-block w-2 h-2 rounded-full bg-crimson border border-ink/20 animate-bounce"></span>
+                        ✨ Đang gợi ý...
+                      </span>
+                    ) : aiSuggestion ? (
+                      <div className="bg-[#fff9f9] border border-dashed border-crimson/40 p-2 rounded-lg flex flex-col gap-1.5 shadow-2xs transition-all">
+                        <div className="flex items-center justify-between font-sans">
+                          <span className="flex items-center gap-1.5 text-ink text-[10px]">
+                            <span>💡</span> <strong className="text-crimson uppercase tracking-wide">{aiSuggestion.name}</strong>
+                          </span>
+                          {newCategory === aiSuggestion.id ? (
+                            <span className="py-0.5 px-1 bg-emerald-100 text-emerald-800 text-[8px] font-bold rounded uppercase tracking-wider shrink-0">
+                              ✓
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setNewCategory(aiSuggestion.id)}
+                              className="py-1 px-2 bg-crimson hover:bg-crimson/95 active:scale-95 text-white text-[8px] uppercase font-bold rounded cursor-pointer transition-all shadow-2xs shrink-0"
+                            >
+                              Áp dụng
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Danh Mục</label>
+                  <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="sketch-input bg-white/50 py-2" required>
+                    <option value="" disabled>-- Chọn --</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{renderIcon(c.icon, 12)} {c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Số Tiền</label>
+                  <input
+                    value={newValue}
+                    onChange={(e) => setNewValue(e.target.value)}
+                    placeholder="0"
+                    type="text"
+                    inputMode="decimal"
+                    className="sketch-input bg-white/50 py-2 font-mono font-bold"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Advanced Options Group */}
+              <div className="bg-white/30 border border-ink/5 p-3 rounded-xl flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                   <label className="text-[10px] font-bold uppercase tracking-widest text-ink/70 flex items-center gap-1">
+                     <Wallet size={12} /> Tiền mới (Dự phòng)?
+                   </label>
+                   <input
+                     type="checkbox"
+                     checked={isNewMoney}
+                     onChange={(e) => setIsNewMoney(e.target.checked)}
+                     className="w-4 h-4 accent-amber-600 rounded cursor-pointer"
+                   />
+                </div>
+                
+                <div className="flex items-center justify-between gap-2">
+                   <label className="text-[10px] font-bold uppercase tracking-widest text-ink/70 flex items-center gap-1">
+                     <CreditCard size={12} /> Là Khoản Nợ?
+                   </label>
+                   <input
+                     type="checkbox"
+                     checked={isDebt}
+                     onChange={(e) => {
+                       setIsDebt(e.target.checked);
+                       if (e.target.checked) setIsNewMoney(false);
+                     }}
+                     className="w-4 h-4 accent-crimson rounded cursor-pointer"
+                   />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-ink/50 ml-1">Ghi Chú</label>
+                <textarea
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  placeholder="Thông tin thêm (nếu có)"
+                  className="sketch-input bg-white/50 py-2 resize-none custom-scrollbar h-16"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-ink/10">
+                {editingId && (
+                  <button type="button" onClick={cancelEdit} className="flex-1 sketch-button py-2 bg-zinc-100 border-none font-bold">
+                    Hủy
+                  </button>
+                )}
+                <button type="submit" className="flex-1 sketch-button bg-ink text-white py-2 font-black uppercase tracking-widest shadow-sm">
+                  {editingId ? "Ghi Nhận Thay Đổi" : "Tạo Mới"}
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+      </div>
 
       {/* Search and Filters */}
       <div className="flex justify-end mb-6">

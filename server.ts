@@ -489,7 +489,7 @@ Format the output strictly as a JSON array where each object has:
     console.log(`[Translation] Generating sentence for topic: ${topic}`);
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: `Generate one natural, medium-difficulty Vietnamese sentence for translation practice. Topic: ${topic}. Output ONLY the raw Vietnamese text. No quotes, no translation, no labels.`
       });
       
@@ -528,7 +528,7 @@ Format the output strictly as a JSON array where each object has:
 
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: `Analyze this Vietnamese to English translation.
 Original (VN): "${original}"
 Translation (EN): "${translation}"
@@ -587,7 +587,7 @@ Return ONLY a valid JSON object.
 
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: `Analyze this translation pair:
 Vietnamese: "${original}"
 English: "${reference}"
@@ -623,7 +623,7 @@ Example: ["Sử dụng 'Look forward to' khi...", "Cấu trúc 'It takes someone
 
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: `Analyze this English or Vietnamese word or phrase: "${word}".
 Provide its IPA pronunciation (if English), word type (must be one of: noun, verb, adj, adv, idiom, phrasal verb, phrase, sentence), a clear definition in Vietnamese, and an illustrative English sentence.
 
@@ -675,7 +675,7 @@ Return ONLY a valid JSON object:
 
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: `Translate the following English subtitle or line to natural, context-aware Vietnamese.
 We are translating a subtitle/caption line inside a video, so please keep the translation natural, human-like, brief, and matching the original sentence's style and emotion. Do NOT do literal/word-for-word translation.
 Return ONLY the raw translated text, without quotes, explanations, or markdown.
@@ -699,7 +699,7 @@ English: "${text}"`
 
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: `You are an expert English conversation coach. Evaluate a student's answer to a conversation question.
 Question: "${question}" ${questionVi ? `(Vietnamese version: "${questionVi}")` : ""}
 Student's Answer: "${userAnswer}"
@@ -827,7 +827,7 @@ Please produce a single JSON object containing ALL of the following 6 sections:
 CRITICAL: Return ONLY a raw JSON object. Do NOT wrap it in any formatting, explanation, or additional markdown text except the raw JSON string itself. Check your JSON brackets and make sure it is valid JSON.`;
 
       const result = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json"
@@ -912,7 +912,7 @@ Hãy phân tích và trả về một đối tượng JSON thuần túy chứa c
 Hãy trả về duy nhất chuỗi JSON thô, không nằm trong các khối mã markdown, không giải thích gì thêm ngoài cấu trúc JSON hợp lệ.`;
 
       const result = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json"
@@ -1027,7 +1027,7 @@ CRITICAL: Return ONLY a raw JSON object matching the requested schema. No markdo
       if (process.env.GEMINI_API_KEY) {
         try {
           const result = await ai.models.generateContent({
-            model: "gemini-3.5-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               responseMimeType: "application/json"

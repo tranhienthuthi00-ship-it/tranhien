@@ -325,11 +325,15 @@ function AppContent() {
         return;
       }
 
-      const catId = assetCategories.find(c => 
-        c.name.toLowerCase().includes("doanh thu") || 
-        c.name.toLowerCase().includes("nợ") || 
-        c.name.toLowerCase().includes("thu")
-      )?.id || (assetCategories.length > 0 ? assetCategories[0].id : '');
+      const isDebt = totalSum < 0;
+
+      // Ensure appropriate category is used
+      let catId = assetCategories.find(c => 
+        c.name.toLowerCase().includes(isDebt ? "nợ" : "tiền mặt") ||
+        c.name.toLowerCase().includes(isDebt ? "tín dụng" : "doanh thu")
+      )?.id;
+
+      if (!catId) catId = assetCategories.length > 0 ? assetCategories[0].id : '';
 
       const formatDateHelper = (ymd: string) => {
         try {
@@ -362,14 +366,14 @@ function AppContent() {
 
       const updatedDebtAsset: any = {
         id: "revenue-debt-auto-sync",
-        name: `Nợ tích lũy doanh thu${dateRangeText} (Tự động)`,
+        name: isDebt ? `Nợ doanh thu${dateRangeText} (Tự động)` : `Tiền mặt doanh thu${dateRangeText} (Tự động)`,
         category: catId,
         value: absTotalSum,
         currency: "VND",
-        notes: `Nợ doanh thu tích lũy tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
+        notes: `Tích lũy tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
         acquiredAt: Date.now(),
-        isDebt: true,
-        isNewMoney: false,
+        isDebt: isDebt,
+        isNewMoney: !isDebt,
         excludeFromNetWorth: false
       };
 
@@ -377,14 +381,11 @@ function AppContent() {
         setAssets([updatedDebtAsset, ...assets]);
       } else {
         const existing = assets[existingDebtIdx];
-        if (existing.value !== updatedDebtAsset.value || existing.notes !== updatedDebtAsset.notes || existing.name !== updatedDebtAsset.name || existing.category !== updatedDebtAsset.category) {
+        if (existing.value !== updatedDebtAsset.value || existing.notes !== updatedDebtAsset.notes || existing.name !== updatedDebtAsset.name || existing.category !== updatedDebtAsset.category || existing.isDebt !== updatedDebtAsset.isDebt) {
           const updatedList = [...assets];
           updatedList[existingDebtIdx] = {
             ...existing,
-            name: updatedDebtAsset.name,
-            value: updatedDebtAsset.value,
-            notes: updatedDebtAsset.notes,
-            category: updatedDebtAsset.category
+            ...updatedDebtAsset
           };
           setAssets(updatedList);
         }
@@ -398,7 +399,7 @@ function AppContent() {
   useEffect(() => {
     if (!setAssets || !assets) return;
     try {
-      const denominations = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000];
+      const denominations = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
       const totalSum = denominations.reduce((sum, den) => {
         const val = bulkCurrentCash[den] || 0;
         return sum + (den * val);
