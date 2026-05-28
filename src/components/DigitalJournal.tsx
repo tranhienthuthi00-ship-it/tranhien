@@ -756,7 +756,7 @@ export function DigitalJournal({
         
         {/* COLUMN 3: MINI CALENDAR */}
         <div className="lg:col-span-4 space-y-4">
-          <div ref={calendarContainerRef} className="bg-white/90 p-4.5 rounded-3xl sketch-border border-ink shadow-sm relative flex flex-col h-full min-h-[350px]">
+          <div ref={calendarContainerRef} className="bg-white/90 p-4.5 rounded-3xl sketch-border border-ink shadow-sm relative flex flex-col min-h-[350px]">
             
             <div className="flex items-center justify-between border-b pb-2.5 border-ink/15 font-sans">
               <span className="text-xs uppercase font-extrabold tracking-wider text-ink flex items-center gap-1.5">
