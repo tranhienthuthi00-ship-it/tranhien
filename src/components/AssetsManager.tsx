@@ -728,27 +728,36 @@ export function AssetsManager({
 
   return (
     <div className="max-w-4xl mx-auto px-4 font-sans pb-10">
-      {/* Dynamic Header and Controls Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div className="text-left">
-          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
-            SỔ QUẢN LÝ TÀI SẢN & NỢ
-          </span>
-          <h1 className="text-3xl font-black text-ink uppercase tracking-tight mt-1.5 font-sans">
+      {/* Hand-drawn Header Block styled like the Habit Tracker's Pink Banner */}
+      <div className="flex flex-col items-center justify-center text-center mb-8 mt-2">
+        <div className="bg-[#fbcfe8] rotate-[-1deg] px-6 py-3 border-[3px] border-ink shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] rounded-2xl tracking-wider relative sketch-border inline-block hover:rotate-0 transition-transform duration-200">
+          <h1 className="text-2xl md:text-3xl font-logo font-black uppercase text-ink flex items-center justify-center gap-2">
+            <Coins className="w-6 h-6 text-emerald-700 animate-[bounce_1.5s_infinite]" />
             Tài Sản & Công Nợ
           </h1>
-          <p className="text-xs text-ink/50 mt-1">
-            Theo dõi phân lớp dòng tài sản, tiền mặt dự phòng và nợ tự động trực quan
+        </div>
+        <p className="border-b-2 border-dashed border-ink/15 pb-3 w-full mt-4 text-xs font-semibold italic text-ink/70 max-w-lg">
+          "Kỷ luật là cầu nối giữa mục tiêu và sự thành công. Hãy lặp lại mỗi ngày!" 🎯
+        </p>
+      </div>
+
+      {/* Control Buttons row underneath */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 bg-[#e6f4ea]/30 p-4 rounded-2xl border-2 border-dashed border-ink/15 text-left w-full">
+        <div className="text-left">
+          <span className="text-[9px] font-black uppercase tracking-widest text-emerald-800 bg-[#e6f4ea] border border-emerald-300 px-2 py-0.5 rounded-md">
+            SỔ QUẢN LÝ FIN-APP
+          </span>
+          <p className="text-xs text-ink/60 mt-1">
+            Theo dõi dòng vốn chủ sở hữu, tiền mặt dự phòng tích lũy và nghĩa vụ nợ tự động
           </p>
         </div>
-        
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
           {/* Toggle Add form */}
           <button 
             onClick={() => setIsAddAssetOpen(!isAddAssetOpen)} 
             className={cn(
-              "sketch-button flex items-center gap-2 px-4 py-2 text-xs font-bold transition-all shrink-0",
-              isAddAssetOpen ? "bg-emerald-600 text-white hover:bg-emerald-700 font-black shadow-md" : "bg-white hover:bg-zinc-50 border border-ink/10 text-ink"
+              "sketch-button flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold transition-all shrink-0 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none bg-white",
+              isAddAssetOpen ? "bg-[#fbcfe8] text-ink font-black scale-[1.01]" : "hover:bg-neutral-50"
             )}
             id="btn-toggle-add-asset"
           >
@@ -758,8 +767,8 @@ export function AssetsManager({
           <button 
             onClick={() => setIsManagingCats(!isManagingCats)} 
             className={cn(
-              "sketch-button flex items-center gap-2 px-4 py-2 text-xs transition-all",
-              isManagingCats ? "bg-ink text-paper" : "bg-white hover:bg-zinc-50 border border-ink/10 text-ink"
+              "sketch-button flex items-center gap-2 px-3.5 py-1.5 text-xs transition-all shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none bg-white",
+              isManagingCats ? "bg-ink text-paper" : "hover:bg-neutral-50"
             )}
             id="btn-manage-categories"
           >
@@ -771,44 +780,44 @@ export function AssetsManager({
       {/* Container for Scoreboard */}
       <div className="flex flex-col gap-6 mb-8 items-start w-full">
         {/* CLEAN MINIMALIST SCOREBOARD WITH GORGEOUS GREEN-PINK GRADIENT */}
-        <div className="bg-gradient-to-r from-[#e6f4ea] via-[#fafbfc] to-[#fce8e6] p-6 rounded-3xl sketch-border border-[3px] flex flex-col sm:flex-row items-center justify-between w-full shadow-md gap-6 border-emerald-400">
+        <div className="bg-gradient-to-r from-[#e6f4ea] via-[#fafbfc] to-[#fce8e6] p-6 rounded-3xl sketch-border border-[3px] border-ink flex flex-col sm:flex-row items-center justify-between w-full shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] gap-6">
           <div className="flex items-center gap-4 border-b sm:border-b-0 sm:border-r border-ink/10 pb-4 sm:pb-0 sm:pr-8 w-full sm:w-auto text-center sm:text-left">
-            <div className="p-3 bg-white rounded-2xl border-2 border-emerald-400 text-emerald-700 shrink-0 mx-auto sm:mx-0 shadow-xs hover:scale-105 transition-transform">
-               <TrendingUp size={28} />
+            <div className="p-3 bg-white rounded-2xl border-2 border-ink text-emerald-700 shrink-0 mx-auto sm:mx-0 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:scale-105 transition-transform">
+               <TrendingUp size={28} className="text-emerald-600" />
             </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#065f46]">Vốn Chủ Sở Hữu (Net Worth)</p>
-              <h2 className="text-3xl font-black font-sans text-ink leading-none mt-1 drop-shadow-xs">
+            <div className="text-left">
+              <p className="text-[9px] font-black uppercase tracking-widest text-emerald-800 bg-[#e6f4ea] px-2 py-0.5 rounded-full border border-emerald-300 w-max">Net Worth (Vốn sở hữu)</p>
+              <h2 className="text-2xl font-black font-sans text-ink leading-none mt-1.5">
                 {formatCurrency(totalVND, 'VND')}
               </h2>
             </div>
           </div>
-          <div className="flex flex-wrap sm:flex-nowrap gap-5 w-full sm:w-auto justify-center sm:justify-start">
-            <div className="text-center sm:text-left bg-white/70 p-2.5 px-4 rounded-2xl border-2 border-emerald-350 shadow-2xs hover:scale-103 transition-transform">
-              <p className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-700 flex items-center justify-center sm:justify-start gap-1"><Wallet size={10}/> Tích lũy</p>
-              <p className="text-[13px] font-black text-emerald-800 font-sans mt-0.5">{formatCurrency(totalAssetsVND, 'VND')}</p>
+          <div className="flex flex-wrap sm:flex-nowrap gap-4 w-full sm:w-auto justify-center sm:justify-start">
+            <div className="text-left bg-white p-2.5 px-4 rounded-xl border-2 border-ink shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:scale-103 transition-transform">
+              <p className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-700 flex items-center gap-1"><Wallet size={10}/> Tích lũy</p>
+              <p className="text-[12px] font-black text-emerald-800 font-sans mt-0.5">{formatCurrency(totalAssetsVND, 'VND')}</p>
             </div>
-            <div className="text-center sm:text-left bg-white/70 p-2.5 px-3 rounded-2xl border-2 border-teal-350 shadow-2xs hover:scale-103 transition-transform">
-              <p className="text-[9px] font-extrabold uppercase tracking-widest text-teal-700 flex items-center justify-center sm:justify-start gap-1"><Handshake size={10}/> Phải Thu</p>
-              <p className="text-[13px] font-black text-teal-800 font-sans mt-0.5">{formatCurrency(totalLoansVND, 'VND')}</p>
+            <div className="text-left bg-white p-2.5 px-4 rounded-xl border-2 border-ink shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:scale-103 transition-transform">
+              <p className="text-[9px] font-extrabold uppercase tracking-widest text-[#0d9488] flex items-center gap-1"><Handshake size={10}/> Phải Thu</p>
+              <p className="text-[12px] font-black text-teal-800 font-sans mt-0.5">{formatCurrency(totalLoansVND, 'VND')}</p>
             </div>
-            <div className="text-center sm:text-left bg-white/70 p-2.5 px-4 rounded-2xl border-2 border-pink-350 shadow-2xs hover:scale-103 transition-transform">
-              <p className="text-[9px] font-extrabold uppercase tracking-widest text-pink-700 flex items-center justify-center sm:justify-start gap-1"><CreditCard size={10}/> Nghĩa vụ Nợ</p>
-              <p className="text-[13px] font-black text-pink-800 font-sans mt-0.5">{formatCurrency(totalDebtsVND, 'VND')}</p>
+            <div className="text-left bg-white p-2.5 px-4 rounded-xl border-2 border-ink shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:scale-103 transition-transform">
+              <p className="text-[9px] font-extrabold uppercase tracking-widest text-pink-700 flex items-center gap-1"><CreditCard size={10}/> Nghĩa vụ Nợ</p>
+              <p className="text-[12px] font-black text-pink-800 font-sans mt-0.5">{formatCurrency(totalDebtsVND, 'VND')}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* SUBTAB NAVIGATION SYSTEM FOR PROFESSIONAL fin-app FEEL */}
-      <div className="flex flex-wrap items-center gap-1.5 mb-8 bg-zinc-100/90 p-1.5 rounded-2xl border-2 border-ink shadow-sm w-full">
+      <div className="flex flex-wrap items-center gap-2 mb-8 bg-white p-2 rounded-2xl border-[3px] border-ink shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] w-full">
         <button
           onClick={() => setActiveTab2("register")}
           className={cn(
-            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border-2",
+            "flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border-2 border-transparent",
             activeTab === "register"
-              ? "bg-[#e6f4ea] text-emerald-800 border-emerald-500 shadow-xs scale-[1.01]"
-              : "bg-white text-ink/75 hover:bg-emerald-50/50 hover:text-emerald-800 border-zinc-200"
+              ? "bg-[#e6f4ea] text-emerald-800 border-ink shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] scale-[1.01]"
+              : "text-ink/75 hover:bg-emerald-50/50 hover:text-emerald-800"
           )}
         >
           <Wallet size={14} className="text-emerald-700 font-bold" />
@@ -817,10 +826,10 @@ export function AssetsManager({
         <button
           onClick={() => setActiveTab2("cards-liabilities")}
           className={cn(
-            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border-2",
+            "flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border-2 border-transparent",
             activeTab === "cards-liabilities"
-              ? "bg-[#fce8e6] text-pink-800 border-pink-500 shadow-xs scale-[1.01]"
-              : "bg-white text-ink/75 hover:bg-pink-50/50 hover:text-pink-800 border-zinc-200"
+              ? "bg-[#fce8e6] text-pink-800 border-ink shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] scale-[1.01]"
+              : "text-ink/75 hover:bg-pink-50/50 hover:text-pink-800"
           )}
         >
           <CreditCard size={14} className="text-pink-700 font-bold" />
@@ -829,10 +838,10 @@ export function AssetsManager({
         <button
           onClick={() => setActiveTab2("cash-audit")}
           className={cn(
-            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border-2",
+            "flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border-2 border-transparent",
             activeTab === "cash-audit"
-              ? "bg-[#e6f4ea] text-emerald-800 border-emerald-500 shadow-xs scale-[1.01]"
-              : "bg-white text-ink/75 hover:bg-emerald-50/50 hover:text-emerald-800 border-zinc-200"
+              ? "bg-[#e6f4ea] text-emerald-800 border-ink shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] scale-[1.01]"
+              : "text-ink/75 hover:bg-emerald-50/50 hover:text-emerald-800"
           )}
         >
           <Coins size={14} className="text-emerald-700 font-bold" />
@@ -841,10 +850,10 @@ export function AssetsManager({
         <button
           onClick={() => setActiveTab2("budget")}
           className={cn(
-            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border-2",
+            "flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border-2 border-transparent",
             activeTab === "budget"
-              ? "bg-[#fce8e6] text-pink-800 border-pink-500 shadow-xs scale-[1.01]"
-              : "bg-white text-ink/75 hover:bg-pink-50/50 hover:text-pink-800 border-zinc-200"
+              ? "bg-[#fce8e6] text-pink-800 border-ink shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] scale-[1.01]"
+              : "text-ink/75 hover:bg-pink-50/50 hover:text-pink-800"
           )}
         >
           <Briefcase size={14} className="text-pink-700 font-bold" />
@@ -1381,25 +1390,25 @@ export function AssetsManager({
             <div 
               key={catId} 
               className={cn(
-                "rounded-2xl border-2 p-5 shadow-sm hover:shadow-md transition-all animate-in fade-in slide-in-from-bottom-2 text-left",
+                "rounded-2xl border-[3px] border-ink p-5 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] animate-in fade-in slide-in-from-bottom-2 text-left",
                 catTotal < 0
-                  ? "bg-[#fce8e6]/25 border-pink-250 hover:border-pink-400"
-                  : "bg-[#e6f4ea]/25 border-emerald-250 hover:border-emerald-400"
+                  ? "bg-[#fce8e6]"
+                  : "bg-[#e6f4ea]"
               )}
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-ink/5 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b-2 border-dashed border-ink/15 mb-4">
                 <div className="flex items-center gap-3">
-                  <span className="p-2 px-2.5 text-white rounded-xl shadow-inner flex items-center justify-center shrink-0" style={{ backgroundColor: getCategoryColor(catId) }}>
+                  <span className="p-2.5 px-3 text-white rounded-xl shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] border-2 border-ink flex items-center justify-center shrink-0" style={{ backgroundColor: getCategoryColor(catId) }}>
                     {renderIcon(cat.icon, 20)}
                   </span>
-                  <div className="text-left">
-                    <h2 className="text-lg font-bold text-ink uppercase tracking-wide">{cat.name}</h2>
-                    <p className="text-[10px] font-black text-ink/30 uppercase tracking-widest">{items.length} hạng mục</p>
+                  <div className="text-left font-sans">
+                    <h2 className="text-lg font-black text-ink uppercase tracking-wide">{cat.name}</h2>
+                    <p className="text-[10px] font-black text-ink/40 uppercase tracking-widest">{items.length} hạng mục</p>
                   </div>
                 </div>
-                <div className="text-left sm:text-right border-l sm:border-l-0 sm:border-r border-ink/5 pl-3 sm:pl-0 sm:pr-4">
-                  <p className="text-[9px] font-bold text-ink/40 uppercase tracking-widest">Tổng số dư danh mục</p>
-                  <p className={cn("text-base font-extrabold font-sans", catTotal < 0 ? "text-pink-700" : "text-emerald-700")}>
+                <div className="text-left sm:text-right">
+                  <p className="text-[9px] font-bold text-ink/50 uppercase tracking-widest">Tổng số dư danh mục</p>
+                  <p className={cn("text-base font-black font-sans bg-white px-3 py-1 rounded-lg border-2 border-ink inline-block shadow-[1.5px_1.5px_0px_0px_rgba(26,26,26,1)]", catTotal < 0 ? "text-pink-800" : "text-emerald-800")}>
                     {catTotal < 0 ? "-" : ""}{formatCurrency(Math.abs(catTotal), 'VND')}
                   </p>
                 </div>
@@ -1412,10 +1421,10 @@ export function AssetsManager({
                     <div 
                       key={asset.id} 
                       className={cn(
-                        "flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-white hover:bg-zinc-50 border-2 rounded-xl transition-all relative group shadow-2xs",
+                        "flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-white hover:bg-neutral-50 border-2 border-ink rounded-xl transition-all relative group shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]",
                         asset.isDebt 
-                          ? "bg-[#fff6f6] hover:bg-[#ffeded] border-pink-100 text-pink-900" 
-                          : "bg-[#fbfdfb] hover:bg-[#effcf4] border-emerald-100 text-emerald-900"
+                          ? "bg-[#fff6f6]" 
+                          : "bg-[#fbfdfb]"
                       )}
                     >
                       <div className="flex flex-col gap-0.5 text-left max-w-sm">
