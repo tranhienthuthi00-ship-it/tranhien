@@ -154,6 +154,37 @@ export function PersonalGoals({
     }
   }, [tasks, goals, setGoals]);
 
+  // Automated cleanup of the "Hoàn thành niềng răng" achievement if requested
+  useEffect(() => {
+    if (achievements.length === 0) return;
+    const targets = achievements.filter(ach => 
+      ach.title.toLowerCase().includes("niềng răng")
+    );
+    if (targets.length > 0) {
+      const targetIds = targets.map(t => t.id);
+      const targetGoalIds = targets.map(t => t.goalId).filter(Boolean) as string[];
+
+      // 1. Remove matching achievements
+      const nextAchievements = achievements.filter(ach => !targetIds.includes(ach.id));
+      setAchievements(nextAchievements);
+
+      // 2. Clear completed status on corresponding goals if they exist
+      if (targetGoalIds.length > 0) {
+        const nextGoals = goals.map(g => {
+          if (targetGoalIds.includes(g.id)) {
+            return {
+              ...g,
+              isCompleted: false,
+              completedAt: undefined
+            };
+          }
+          return g;
+        });
+        setGoals(nextGoals);
+      }
+    }
+  }, [achievements, goals, setAchievements, setGoals]);
+
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTask.trim()) return;
@@ -309,8 +340,31 @@ export function PersonalGoals({
       await setAchievements([ach, ...achievements]);
       setSelectedAchievement(ach);
       setIsCelebration(true);
+    } else {
+      // Intentionally filter out associated achievements when goal is untoggled
+      await setAchievements(achievements.filter(ach => ach.goalId !== id));
     }
     await setGoals(updated);
+  };
+
+  const removeAchievement = async (achId: string) => {
+    if (confirm("Chắc chắn muốn xóa vinh danh này? Mục tiêu liên quan (nếu có) sẽ chuyển về chưa hoàn thành.")) {
+      const targetAch = achievements.find(a => a.id === achId);
+      if (targetAch?.goalId) {
+        const updatedGoals = goals.map(g => {
+          if (g.id === targetAch.goalId) {
+            return {
+              ...g,
+              isCompleted: false,
+              completedAt: undefined
+            };
+          }
+          return g;
+        });
+        await setGoals(updatedGoals);
+      }
+      await setAchievements(achievements.filter(a => a.id !== achId));
+    }
   };
 
   const updateDeadline = async (id: string, newDate: string) => {
@@ -1007,16 +1061,23 @@ export function PersonalGoals({
                             <div className="space-y-1 flex-1">
                               <div className="flex justify-between items-start">
                                 <h5 className="text-[14px] font-black uppercase tracking-tight leading-tight text-ink">{ach.title}</h5>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5">
                                   {linkedGoal && (
                                     <button 
                                       onClick={() => toggleGoalCompletion(linkedGoal.id)}
-                                      className="text-ink/10 hover:text-crimson transition-colors p-1"
-                                      title="Hủy hoàn thành"
+                                      className="text-ink/30 hover:text-rose-600 transition-colors p-1 cursor-pointer"
+                                      title="Đánh dấu chưa hoàn thành"
                                     >
                                       <X size={14} />
                                     </button>
                                   )}
+                                  <button 
+                                    onClick={() => removeAchievement(ach.id)}
+                                    className="text-ink/30 hover:text-red-700 transition-colors p-1 cursor-pointer"
+                                    title="Xóa vinh danh"
+                                  >
+                                    <Trash2 size={13.5} />
+                                  </button>
                                 </div>
                               </div>
                               <p className="text-[11px] text-ink/60 italic leading-relaxed">
