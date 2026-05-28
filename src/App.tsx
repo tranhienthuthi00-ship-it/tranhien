@@ -325,12 +325,14 @@ function AppContent() {
         return;
       }
 
-      const isDebt = totalSum < 0;
+      const isLoan = totalSum < 0;
+      const isDebt = totalSum > 0;
 
       // Ensure appropriate category is used
       let catId = assetCategories.find(c => 
-        c.name.toLowerCase().includes(isDebt ? "nợ" : "tiền mặt") ||
-        c.name.toLowerCase().includes(isDebt ? "tín dụng" : "doanh thu")
+        c.name.toLowerCase().includes(isLoan ? "cho vay" : "nợ") ||
+        c.name.toLowerCase().includes("tiền mặt") ||
+        c.name.toLowerCase().includes("doanh thu")
       )?.id;
 
       if (!catId) catId = assetCategories.length > 0 ? assetCategories[0].id : '';
@@ -366,14 +368,15 @@ function AppContent() {
 
       const updatedDebtAsset: any = {
         id: "revenue-debt-auto-sync",
-        name: isDebt ? `Nợ doanh thu${dateRangeText} (Tự động)` : `Tiền mặt doanh thu${dateRangeText} (Tự động)`,
+        name: isLoan ? `Cho vay doanh thu${dateRangeText} (Tự động)` : `Nợ doanh thu${dateRangeText} (Tự động)`,
         category: catId,
         value: absTotalSum,
         currency: "VND",
         notes: `Tích lũy tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
         acquiredAt: Date.now(),
         isDebt: isDebt,
-        isNewMoney: !isDebt,
+        isLoan: isLoan,
+        isNewMoney: false,
         excludeFromNetWorth: false
       };
 
@@ -381,7 +384,14 @@ function AppContent() {
         setAssets([updatedDebtAsset, ...assets]);
       } else {
         const existing = assets[existingDebtIdx];
-        if (existing.value !== updatedDebtAsset.value || existing.notes !== updatedDebtAsset.notes || existing.name !== updatedDebtAsset.name || existing.category !== updatedDebtAsset.category || existing.isDebt !== updatedDebtAsset.isDebt) {
+        if (
+          existing.value !== updatedDebtAsset.value || 
+          existing.notes !== updatedDebtAsset.notes || 
+          existing.name !== updatedDebtAsset.name || 
+          existing.category !== updatedDebtAsset.category || 
+          existing.isDebt !== updatedDebtAsset.isDebt ||
+          existing.isLoan !== updatedDebtAsset.isLoan
+        ) {
           const updatedList = [...assets];
           updatedList[existingDebtIdx] = {
             ...existing,

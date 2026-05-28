@@ -23,7 +23,8 @@ import {
   Receipt,
   Flame,
   Gift,
-  Briefcase
+  Briefcase,
+  X
 } from "lucide-react";
 import { useFirebase } from "../context/FirebaseContext";
 
@@ -510,6 +511,16 @@ export function DigitalJournal({
     }
   };
 
+  const getTodayVietnameseDate = () => {
+    const days = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+    const now = new Date();
+    const dayName = days[now.getDay()];
+    const date = now.getDate().toString().padStart(2, '0');
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const year = now.getFullYear();
+    return `${dayName}, ${date}/${month}/${year}`;
+  };
+
   // Derived arrays
   const selectedDateLogs = useMemo(() => {
     return logs.filter(l => l.date === selectedDateStr);
@@ -526,13 +537,68 @@ export function DigitalJournal({
     <div className="max-w-7xl mx-auto py-8 px-4 font-sans select-none space-y-8 animate-in fade-in duration-300">
       
       {/* 1. MOTIVATIONAL WELCOME HEADER - FULL WIDTH */}
-      <div className="bg-[#fffdf5] p-6 md:p-10 rounded-3xl sketch-border border-amber-200/80 relative overflow-hidden flex items-center justify-center shadow-sm min-h-[130px]">
-         <div className="absolute inset-0 opacity-40 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-100 via-transparent to-transparent"></div>
-         <h1 className="font-sans text-3xl md:text-5xl font-black uppercase tracking-widest text-amber-900/80 flex items-center gap-4 md:gap-6 relative z-10 drop-shadow-sm">
-           <Sparkles size={36} className="text-amber-500 animate-pulse" />
-           Welcome Home
-           <Sparkles size={36} className="text-amber-500 animate-pulse" />
-         </h1>
+      <div className="bg-[#fffdf5] p-6 md:p-8 rounded-3xl sketch-border border-amber-200/80 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+         <div className="absolute inset-0 opacity-40 pointer-events-none bg-[radial-gradient(circle_at_left,_var(--tw-gradient-stops))] from-amber-100 via-transparent to-transparent"></div>
+         
+         <div className="relative z-10 text-center md:text-left space-y-1.5 flex-1 min-w-0">
+           <span className="text-[10px] uppercase font-extrabold tracking-widest text-[#d97706] bg-amber-100/50 px-3 py-1 rounded-full border border-amber-200/30 inline-block font-sans">
+             {getTodayVietnameseDate()}
+           </span>
+           <h1 className="font-sans text-2xl md:text-3xl font-black uppercase tracking-wider text-amber-955 flex items-center justify-center md:justify-start gap-2.5 mt-1">
+             <Sparkles size={24} className="text-amber-500 animate-pulse shrink-0" />
+             Welcome Home
+           </h1>
+           <p className="text-xs font-medium text-amber-900/70 font-sans max-w-xl truncate sm:overflow-visible sm:whitespace-normal">
+             Chào mừng quay trở lại! Chúc bạn ngày mới năng lượng, giữ vững thói quen và hoàn thành mục tiêu đặt ra.
+           </p>
+         </div>
+
+         <div className="relative z-10 flex flex-wrap justify-center gap-3 shrink-0">
+           {/* Metric 1 */}
+           <div className="bg-white/80 border border-amber-200/50 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-sm text-left">
+             <span className="p-1 px-2 bg-rose-50 text-rose-600 rounded-lg text-xs font-mono font-black shrink-0">
+               {tasks.filter(t => !t.completed).length}
+             </span>
+             <div>
+               <p className="text-[9px] text-[#4b5563] uppercase font-black tracking-wider leading-none">Nhiệm vụ</p>
+               <p className="text-xs font-extrabold text-ink leading-tight mt-0.5">Cần xử lý</p>
+             </div>
+           </div>
+
+           {/* Metric 2 */}
+           <div className="bg-white/80 border border-amber-200/50 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-sm text-left">
+             <span className="p-1 px-2 bg-orange-50 text-orange-600 rounded-lg text-xs font-mono font-black shrink-0">
+               {(() => {
+                 const todayStr = new Date().toISOString().split("T")[0];
+                 const habitsDoneToday = habits.filter(h => h.isActive && h.history?.[todayStr]?.done).length;
+                 return habitsDoneToday;
+               })()}
+             </span>
+             <div>
+               <p className="text-[9px] text-[#4b5563] uppercase font-black tracking-wider leading-none">Thói quen</p>
+               <p className="text-xs font-extrabold text-ink leading-tight mt-0.5">Hoàn tất hôm nay</p>
+             </div>
+           </div>
+
+           {/* Metric 3 */}
+           <div className="bg-white/80 border border-amber-200/50 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-sm text-left">
+             <span className="p-1 px-2 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-mono font-black shrink-0">
+               {(() => {
+                 const totalVndValue = assets.reduce((sum, curr) => {
+                   if (curr.excludeFromNetWorth) return sum;
+                   const val = curr.value || 0;
+                   return curr.isDebt ? sum - val : sum + val;
+                 }, 0);
+                 const millionVal = Math.floor(totalVndValue / 1000000);
+                 return `${millionVal.toLocaleString()}M`;
+               })()}
+             </span>
+             <div>
+               <p className="text-[9px] text-[#4b5563] uppercase font-black tracking-wider leading-none">Tài sản ròng</p>
+               <p className="text-xs font-extrabold text-ink leading-tight mt-0.5">Giá trị VND</p>
+             </div>
+           </div>
+         </div>
       </div>
 
       {/* THREE-COLUMN GRID: COMPACT TASKS (col-span-4), HABITS OVERVIEW (col-span-4), CALENDAR (col-span-4) */}
@@ -817,16 +883,25 @@ export function DigitalJournal({
 
             {/* Day Log Recap Detail Panel */}
             <div 
-              className={`absolute left-0 right-0 z-50 bg-[#fffdf5] rounded-xl border border-dashed border-amber-400 shadow-xl space-y-3 transition-all duration-300 origin-top overflow-hidden p-4 ${isCalendarDetailsOpen ? 'opacity-100 scale-y-100 mt-2' : 'opacity-0 scale-y-0 h-0 p-0 m-0 border-0'}`}
-              style={{ top: '100%' }}
+              className={`bg-[#fffdf5] rounded-xl border border-dashed border-amber-400 space-y-3 transition-all duration-300 origin-top overflow-hidden ${isCalendarDetailsOpen ? 'opacity-100 scale-y-100 mt-4 p-4' : 'opacity-0 scale-y-0 h-0 p-0 m-0 border-0'}`}
             >
               <div className="flex items-center justify-between border-b border-amber-200/40 pb-1.5">
                 <span className="text-[10px] font-black uppercase text-amber-800 font-sans tracking-wide">
                   Chi tiết ngày: <strong className="text-ink">{selectedDateStr.split("-").reverse().join("/")}</strong>
                 </span>
-                <span className="text-[10px] font-black text-amber-700 font-mono bg-white px-1.5 py-0.5 rounded border border-amber-100">
-                  {selectedDateLogs.length} sự kiện
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black text-amber-700 font-mono bg-white px-1.5 py-0.5 rounded border border-amber-100">
+                    {selectedDateLogs.length} sự kiện
+                  </span>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsCalendarDetailsOpen(false)}
+                    className="p-1 hover:bg-amber-100 rounded text-amber-900 transition-colors cursor-pointer"
+                    title="Đóng"
+                  >
+                    <X size={12} strokeWidth={2.5} />
+                  </button>
+                </div>
               </div>
 
               {selectedDateLogs.length === 0 ? (

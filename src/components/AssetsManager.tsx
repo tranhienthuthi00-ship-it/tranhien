@@ -327,7 +327,11 @@ export function AssetsManager({
      const formattedDateRange = justDateRangeText;
      const calculatedSum = validDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
      const totalSum = Math.abs(calculatedSum);
-     const catId = categories.find(c => c.name.toLowerCase().includes("doanh thu") || c.name.toLowerCase().includes("thu") || c.name.toLowerCase().includes("tiền mặt"))?.id || defaultCatID;
+     
+     const isLoan = calculatedSum < 0;
+     const isDebt = calculatedSum > 0;
+
+     const catId = categories.find(c => c.name.toLowerCase().includes(isLoan ? "cho vay" : "nợ") || c.name.toLowerCase().includes("doanh thu") || c.name.toLowerCase().includes("tiền mặt"))?.id || defaultCatID;
 
      const formatDateHelper = (ymd: string) => {
        try {
@@ -346,19 +350,23 @@ export function AssetsManager({
 
      const aggregatedRevenue: Asset = {
         id: `rev-held-${now}`,
-        name: `Nợ tích lũy doanh thu ${formattedDateRange}`,
+        name: isLoan ? `Cho vay tích lũy doanh thu ${formattedDateRange}` : `Nợ tích lũy doanh thu ${formattedDateRange}`,
         category: catId,
         value: totalSum,
         currency: "VND",
-        notes: `Bảng kê chi tiết nợ doanh thu tuần:\n${detailNotesList}`,
+        notes: isLoan ? `Bảng kê chi tiết khoản cho vay doanh thu tuần:\n${detailNotesList}` : `Bảng kê chi tiết nợ doanh thu tuần:\n${detailNotesList}`,
         acquiredAt: now,
-        isDebt: true,
+        isDebt: isDebt,
+        isLoan: isLoan,
         isNewMoney: false,
         excludeFromNetWorth: false
      };
 
      setAssets([aggregatedRevenue, ...assets]);
-     alert(`Đã lưu tổng nợ doanh thu tuần trị giá +${totalSum.toLocaleString('vi-VN')}đ vào Sổ Tài Sản (Mục Nợ) thành công!`);
+     alert(isLoan 
+       ? `Đã lưu tổng khoản cho vay doanh thu tuần trị giá +${totalSum.toLocaleString('vi-VN')}đ vào Sổ Tài Sản (Mục Cho Vay) thành công!`
+       : `Đã lưu tổng nợ doanh thu tuần trị giá +${totalSum.toLocaleString('vi-VN')}đ vào Sổ Tài Sản (Mục Nợ) thành công!`
+     );
      handleResetBulkDebts();
   };
 
@@ -2052,14 +2060,41 @@ export function AssetsManager({
           </div>
 
           {/* Sum footer */}
-          <div className="flex items-center justify-between bg-emerald-50/50 p-3 rounded-xl border border-emerald-150">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-800">Tổng thu nhập / Nợ tuần:</span>
-            <span className="text-sm font-black text-[#065f46] font-mono">
+          <div className="flex flex-col gap-2 bg-[#f4fbf7] p-3 rounded-xl border border-emerald-150">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-800">Tổng thu tập số dư tuần:</span>
+              <span className={`text-sm font-black font-mono ${(() => {
+                const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                return total > 0 ? "text-amber-700" : total < 0 ? "text-emerald-700" : "text-slate-500";
+              })()}`}>
+                {(() => {
+                  const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                  return (total > 0 ? "+" : "") + total.toLocaleString("vi-VN");
+                })()} đ
+              </span>
+            </div>
+
+            <div className="text-[10px] text-emerald-800/80 border-t border-[#10b981]/20 pt-1.5 leading-relaxed font-sans">
               {(() => {
                 const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
-                return (total > 0 ? "+" : "") + total.toLocaleString("vi-VN");
-              })()} đ
-            </span>
+                if (total > 0) {
+                  return (
+                    <span className="text-amber-800 font-medium">
+                      ⚠️ <strong>Số dư dương (+{total.toLocaleString("vi-VN")} đ)</strong>: Hệ thống ghi nhận vào mục <strong>Nợ tích lũy doanh thu</strong> (giảm trừ tài sản ròng).
+                    </span>
+                  );
+                } else if (total < 0) {
+                  const abs = Math.abs(total);
+                  return (
+                    <span className="text-emerald-800 font-medium">
+                      📈 <strong>Số dư âm (-{abs.toLocaleString("vi-VN")} đ)</strong>: Chuyển thành khoản khách hàng mượn nợ <strong>Cho vay doanh thu</strong> trị giá <code>+{abs.toLocaleString("vi-VN")} đ</code> (cộng thêm tài sản ròng).
+                    </span>
+                  );
+                } else {
+                  return "💡 Nhập số tiền hàng ngày. Tiền dương là khoản nợ, tiền âm (-) là khoản cho vay.";
+                }
+              })()}
+            </div>
           </div>
         </div>
       </div>
