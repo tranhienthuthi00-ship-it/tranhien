@@ -154,34 +154,34 @@ export function PersonalGoals({
     }
   }, [tasks, goals, setGoals]);
 
-  // Automated cleanup of the "Hoàn thành niềng răng" achievement if requested
+  // Automated cleanup of the "Hoàn thành niềng răng" achievement because it's not completed yet
   useEffect(() => {
-    if (achievements.length === 0) return;
-    const targets = achievements.filter(ach => 
+    const hasNiengRangAch = achievements.some(ach => 
       ach.title.toLowerCase().includes("niềng răng")
     );
-    if (targets.length > 0) {
-      const targetIds = targets.map(t => t.id);
-      const targetGoalIds = targets.map(t => t.goalId).filter(Boolean) as string[];
+    const hasNiengRangCompletedGoal = goals.some(g => 
+      g.title.toLowerCase().includes("niềng răng") && g.isCompleted
+    );
 
-      // 1. Remove matching achievements
-      const nextAchievements = achievements.filter(ach => !targetIds.includes(ach.id));
-      setAchievements(nextAchievements);
-
-      // 2. Clear completed status on corresponding goals if they exist
-      if (targetGoalIds.length > 0) {
-        const nextGoals = goals.map(g => {
-          if (targetGoalIds.includes(g.id)) {
-            return {
-              ...g,
-              isCompleted: false,
-              completedAt: undefined
-            };
-          }
-          return g;
-        });
-        setGoals(nextGoals);
+    if (hasNiengRangAch || hasNiengRangCompletedGoal) {
+      if (hasNiengRangAch) {
+        const nextAchievements = achievements.filter(ach => 
+          !ach.title.toLowerCase().includes("niềng răng")
+        );
+        setAchievements(nextAchievements);
       }
+      
+      const nextGoals = goals.map(g => {
+        if (g.title.toLowerCase().includes("niềng răng") && g.isCompleted) {
+          return {
+            ...g,
+            isCompleted: false,
+            completedAt: undefined
+          };
+        }
+        return g;
+      });
+      setGoals(nextGoals);
     }
   }, [achievements, goals, setAchievements, setGoals]);
 

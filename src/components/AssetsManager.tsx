@@ -86,10 +86,10 @@ export function AssetsManager({
   // Toggle Collapse UI States now default to expanded (false) inside the tab view for instant desktop visibility, but are click-adjustable.
   const [activeTab, setActiveTab2] = useState<"register" | "cards-liabilities" | "cash-audit" | "budget">("register");
   const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
-  const [isNewMoneyCollapsed, setIsNewMoneyCollapsed] = useState(false);
-  const [isSalaryPlannerCollapsed, setIsSalaryPlannerCollapsed] = useState(false);
-  const [isBulkCardSpendsCollapsed, setIsBulkCardSpendsCollapsed] = useState(false);
-  const [isBulkDebtsCollapsed, setIsBulkDebtsCollapsed] = useState(false);
+  const [isNewMoneyCollapsed, setIsNewMoneyCollapsed] = useState(true);
+  const [isSalaryPlannerCollapsed, setIsSalaryPlannerCollapsed] = useState(true);
+  const [isBulkCardSpendsCollapsed, setIsBulkCardSpendsCollapsed] = useState(true);
+  const [isBulkDebtsCollapsed, setIsBulkDebtsCollapsed] = useState(true);
 
   const defaultCatID = categories.length > 0 ? categories[0].id : '';
   const [newName, setNewName] = useState("");
@@ -647,15 +647,16 @@ export function AssetsManager({
     setBulkCash(prev => ({ ...prev, [den]: qty }));
   };
 
+  // Replicating green (emerald) & pink (rose) themed custom colors like Habit tracker (xanh hồng)
   const COLORS = [
-    '#2a2a2a', // ink
-    '#d93838', // crimson
-    '#eab308', // amber
     '#10b981', // emerald
-    '#3b82f6', // blue
-    '#8b5cf6', // violet
-    '#ec4899', // pink
-    '#f97316', // orange
+    '#ec4899', // pink/rose
+    '#059669', // emerald dark
+    '#f43f5e', // rose/pink dark
+    '#14b8a6', // teal/green
+    '#db2777', // pink dark
+    '#34d399', // mint emerald
+    '#fda4af', // light rose/pink
   ];
 
   const getCategoryColor = (catId: string) => {
@@ -769,84 +770,84 @@ export function AssetsManager({
 
       {/* Container for Scoreboard */}
       <div className="flex flex-col gap-6 mb-8 items-start w-full">
-        {/* CLEAN MINIMALIST SCOREBOARD */}
-        <div className="bg-[#fffdf5] p-6 rounded-3xl sketch-border border-[3px] flex flex-col sm:flex-row items-center justify-between w-full shadow-md gap-6 border-amber-200/80">
+        {/* CLEAN MINIMALIST SCOREBOARD WITH GORGEOUS GREEN-PINK GRADIENT */}
+        <div className="bg-gradient-to-r from-[#e6f4ea] via-[#fafbfc] to-[#fce8e6] p-6 rounded-3xl sketch-border border-[3px] flex flex-col sm:flex-row items-center justify-between w-full shadow-md gap-6 border-emerald-400">
           <div className="flex items-center gap-4 border-b sm:border-b-0 sm:border-r border-ink/10 pb-4 sm:pb-0 sm:pr-8 w-full sm:w-auto text-center sm:text-left">
-            <div className="p-3 bg-amber-100/50 rounded-2xl border border-amber-200/50 text-amber-600 shrink-0 mx-auto sm:mx-0 shadow-inner">
+            <div className="p-3 bg-white rounded-2xl border-2 border-emerald-400 text-emerald-700 shrink-0 mx-auto sm:mx-0 shadow-xs hover:scale-105 transition-transform">
                <TrendingUp size={28} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-ink/40">Vốn Chủ Sở Hữu (Net Worth)</p>
-              <h2 className="text-3xl font-black font-sans text-ink leading-none mt-1 drop-shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#065f46]">Vốn Chủ Sở Hữu (Net Worth)</p>
+              <h2 className="text-3xl font-black font-sans text-ink leading-none mt-1 drop-shadow-xs">
                 {formatCurrency(totalVND, 'VND')}
               </h2>
             </div>
           </div>
-          <div className="flex flex-wrap sm:flex-nowrap gap-6 w-full sm:w-auto justify-center sm:justify-start">
-            <div className="text-center sm:text-left">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-600/60 flex items-center justify-center sm:justify-start gap-1"><Wallet size={10}/> Tích lũy</p>
-              <p className="text-[13px] font-bold text-emerald-700 font-sans mt-0.5">{formatCurrency(totalAssetsVND, 'VND')}</p>
+          <div className="flex flex-wrap sm:flex-nowrap gap-5 w-full sm:w-auto justify-center sm:justify-start">
+            <div className="text-center sm:text-left bg-white/70 p-2.5 px-4 rounded-2xl border-2 border-emerald-350 shadow-2xs hover:scale-103 transition-transform">
+              <p className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-700 flex items-center justify-center sm:justify-start gap-1"><Wallet size={10}/> Tích lũy</p>
+              <p className="text-[13px] font-black text-emerald-800 font-sans mt-0.5">{formatCurrency(totalAssetsVND, 'VND')}</p>
             </div>
-            <div className="text-center sm:text-left border-l border-ink/10 pl-6">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-blue-600/60 flex items-center justify-center sm:justify-start gap-1"><Handshake size={10}/> Phải Thu</p>
-              <p className="text-[13px] font-bold text-blue-700 font-sans mt-0.5">{formatCurrency(totalLoansVND, 'VND')}</p>
+            <div className="text-center sm:text-left bg-white/70 p-2.5 px-3 rounded-2xl border-2 border-teal-350 shadow-2xs hover:scale-103 transition-transform">
+              <p className="text-[9px] font-extrabold uppercase tracking-widest text-teal-700 flex items-center justify-center sm:justify-start gap-1"><Handshake size={10}/> Phải Thu</p>
+              <p className="text-[13px] font-black text-teal-800 font-sans mt-0.5">{formatCurrency(totalLoansVND, 'VND')}</p>
             </div>
-            <div className="text-center sm:text-left border-l border-[#e11d48]/10 pl-6">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-[#e11d48]/60 flex items-center justify-center sm:justify-start gap-1"><CreditCard size={10}/> Nghĩa vụ Nợ</p>
-              <p className="text-[13px] font-black text-[#e11d48] font-sans mt-0.5">{formatCurrency(totalDebtsVND, 'VND')}</p>
+            <div className="text-center sm:text-left bg-white/70 p-2.5 px-4 rounded-2xl border-2 border-pink-350 shadow-2xs hover:scale-103 transition-transform">
+              <p className="text-[9px] font-extrabold uppercase tracking-widest text-pink-700 flex items-center justify-center sm:justify-start gap-1"><CreditCard size={10}/> Nghĩa vụ Nợ</p>
+              <p className="text-[13px] font-black text-pink-800 font-sans mt-0.5">{formatCurrency(totalDebtsVND, 'VND')}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* SUBTAB NAVIGATION SYSTEM FOR PROFESSIONAL fin-app FEEL */}
-      <div className="flex flex-wrap items-center gap-1.5 mb-8 bg-zinc-100/80 dark:bg-zinc-800/20 p-1.5 rounded-2xl border border-ink/5 shadow-2xs w-full">
+      <div className="flex flex-wrap items-center gap-1.5 mb-8 bg-zinc-100/90 p-1.5 rounded-2xl border-2 border-ink shadow-sm w-full">
         <button
           onClick={() => setActiveTab2("register")}
           className={cn(
-            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border",
+            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border-2",
             activeTab === "register"
-              ? "bg-ink text-paper border-ink shadow-xs scale-[1.01]"
-              : "bg-transparent text-ink/70 hover:bg-zinc-200/50 hover:text-ink border-transparent"
+              ? "bg-[#e6f4ea] text-emerald-800 border-emerald-500 shadow-xs scale-[1.01]"
+              : "bg-white text-ink/75 hover:bg-emerald-50/50 hover:text-emerald-800 border-zinc-200"
           )}
         >
-          <Wallet size={14} />
+          <Wallet size={14} className="text-emerald-700 font-bold" />
           <span>Vốn & Tài sản</span>
         </button>
         <button
           onClick={() => setActiveTab2("cards-liabilities")}
           className={cn(
-            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border",
+            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border-2",
             activeTab === "cards-liabilities"
-              ? "bg-ink text-paper border-ink shadow-xs scale-[1.01]"
-              : "bg-transparent text-ink/70 hover:bg-zinc-200/50 hover:text-ink border-transparent"
+              ? "bg-[#fce8e6] text-pink-800 border-pink-500 shadow-xs scale-[1.01]"
+              : "bg-white text-ink/75 hover:bg-pink-50/50 hover:text-pink-800 border-zinc-200"
           )}
         >
-          <CreditCard size={14} />
+          <CreditCard size={14} className="text-pink-700 font-bold" />
           <span>Chi tiêu Thẻ & Nợ</span>
         </button>
         <button
           onClick={() => setActiveTab2("cash-audit")}
           className={cn(
-            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border",
+            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border-2",
             activeTab === "cash-audit"
-              ? "bg-ink text-paper border-ink shadow-xs scale-[1.01]"
-              : "bg-transparent text-ink/70 hover:bg-zinc-200/50 hover:text-ink border-transparent"
+              ? "bg-[#e6f4ea] text-emerald-800 border-emerald-500 shadow-xs scale-[1.01]"
+              : "bg-white text-ink/75 hover:bg-emerald-50/50 hover:text-emerald-800 border-zinc-200"
           )}
         >
-          <Coins size={14} />
+          <Coins size={14} className="text-emerald-700 font-bold" />
           <span>Kiểm kê Ví tiền</span>
         </button>
         <button
           onClick={() => setActiveTab2("budget")}
           className={cn(
-            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border",
+            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border-2",
             activeTab === "budget"
-              ? "bg-ink text-paper border-ink shadow-xs scale-[1.01]"
-              : "bg-transparent text-ink/70 hover:bg-zinc-200/50 hover:text-ink border-transparent"
+              ? "bg-[#fce8e6] text-pink-800 border-pink-500 shadow-xs scale-[1.01]"
+              : "bg-white text-ink/75 hover:bg-pink-50/50 hover:text-pink-800 border-zinc-200"
           )}
         >
-          <Briefcase size={14} />
+          <Briefcase size={14} className="text-pink-700 font-bold" />
           <span>Kế hoạch Lương</span>
         </button>
       </div>
@@ -1377,7 +1378,15 @@ export function AssetsManager({
           }, 0);
           
           return (
-            <div key={catId} className="bg-white/60 backdrop-blur-md rounded-2xl border border-ink/5 p-5 shadow-sm hover:shadow-md transition-all animate-in fade-in slide-in-from-bottom-2">
+            <div 
+              key={catId} 
+              className={cn(
+                "rounded-2xl border-2 p-5 shadow-sm hover:shadow-md transition-all animate-in fade-in slide-in-from-bottom-2 text-left",
+                catTotal < 0
+                  ? "bg-[#fce8e6]/25 border-pink-250 hover:border-pink-400"
+                  : "bg-[#e6f4ea]/25 border-emerald-250 hover:border-emerald-400"
+              )}
+            >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-ink/5 mb-4">
                 <div className="flex items-center gap-3">
                   <span className="p-2 px-2.5 text-white rounded-xl shadow-inner flex items-center justify-center shrink-0" style={{ backgroundColor: getCategoryColor(catId) }}>
@@ -1390,7 +1399,7 @@ export function AssetsManager({
                 </div>
                 <div className="text-left sm:text-right border-l sm:border-l-0 sm:border-r border-ink/5 pl-3 sm:pl-0 sm:pr-4">
                   <p className="text-[9px] font-bold text-ink/40 uppercase tracking-widest">Tổng số dư danh mục</p>
-                  <p className={cn("text-base font-extrabold font-sans", catTotal < 0 ? "text-crimson" : "text-emerald-700")}>
+                  <p className={cn("text-base font-extrabold font-sans", catTotal < 0 ? "text-pink-700" : "text-emerald-700")}>
                     {catTotal < 0 ? "-" : ""}{formatCurrency(Math.abs(catTotal), 'VND')}
                   </p>
                 </div>
@@ -1400,17 +1409,22 @@ export function AssetsManager({
                 {items.map(asset => {
                   const isAutoSynced = asset.id.includes("auto-sync") || asset.id.includes("card-held") || asset.id.includes("revenue-held");
                   return (
-                    <div key={asset.id} className={cn(
-                      "flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-white hover:bg-zinc-50/70 border border-ink/5 rounded-xl transition-all relative group shadow-sm",
-                      asset.isDebt ? "bg-red-50/30 hover:bg-red-50/50 border-red-100/70" : ""
-                    )}>
+                    <div 
+                      key={asset.id} 
+                      className={cn(
+                        "flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-white hover:bg-zinc-50 border-2 rounded-xl transition-all relative group shadow-2xs",
+                        asset.isDebt 
+                          ? "bg-[#fff6f6] hover:bg-[#ffeded] border-pink-100 text-pink-900" 
+                          : "bg-[#fbfdfb] hover:bg-[#effcf4] border-emerald-100 text-emerald-900"
+                      )}
+                    >
                       <div className="flex flex-col gap-0.5 text-left max-w-sm">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-extrabold text-ink text-sm tracking-tight">{asset.name}</span>
+                          <span className="font-extrabold text-[#111] text-sm tracking-tight">{asset.name}</span>
                           
                           {/* Sync badging */}
                           {isAutoSynced && (
-                            <span className="inline-flex items-center gap-1 bg-[#f0f9ff] text-[#0369a1] text-[9px] font-bold px-1.5 py-0.5 rounded-md border border-[#bae6fd] animate-pulse">
+                            <span className="inline-flex items-center gap-1 bg-white text-[#0369a1] text-[9px] font-bold px-1.5 py-0.5 rounded-md border border-[#bae6fd] animate-pulse shadow-2xs">
                               <span className="w-1.5 h-1.5 bg-current rounded-full"></span>
                               Tự Động Sync
                             </span>
@@ -1503,19 +1517,19 @@ export function AssetsManager({
       {/* Bảng Kê Tiền Mới - Specialized Section */}
       {activeTab === "cash-audit" && (
       <>
-      <div className="mt-2 animate-in fade-in slide-in-from-bottom-4 bg-amber-50/15 p-6 rounded-2xl border border-amber-500/10 hover:border-amber-550/25 transition-all">
+      <div className="mt-2 animate-in fade-in slide-in-from-bottom-4 bg-[#e6f4ea]/30 p-6 rounded-2xl border-2 border-emerald-300 hover:border-emerald-400 transition-all text-left">
         <div 
           onClick={() => setIsNewMoneyCollapsed(!isNewMoneyCollapsed)}
-          className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-4 border-b-2 border-amber-500/20 gap-4 cursor-pointer group select-none relative"
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-4 border-b-2 border-emerald-500/20 gap-4 cursor-pointer group select-none relative"
         >
            <div className="flex items-center gap-3">
-              <button className="p-2.5 bg-amber-500 text-white rounded-xl shadow-lg group-hover:scale-105 transition-transform">
+              <button className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-lg group-hover:scale-105 transition-transform border border-emerald-400">
                 <Coins size={22} />
               </button>
-              <div className="text-left">
-                <h2 className="text-xl font-bold uppercase tracking-tight text-amber-600 flex items-center gap-2">
+              <div className="text-left font-sans">
+                <h2 className="text-xl font-bold uppercase tracking-tight text-emerald-800 flex items-center gap-2">
                   Bảng Kê Tiền Mới
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100/60 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="text-[10px] font-bold text-emerald-700 bg-white border border-emerald-250 px-2 py-0.5 rounded-full uppercase tracking-wider">
                     {isNewMoneyCollapsed ? "Nhấp Để Mở" : "Thu Gọn"}
                   </span>
                 </h2>
@@ -1524,10 +1538,10 @@ export function AssetsManager({
            </div>
            
            <div className="flex flex-wrap gap-2 items-center">
-              <div className="flex items-center gap-2 bg-amber-100/50 p-2 px-3 rounded-xl border border-amber-200">
+              <div className="flex items-center gap-2 bg-emerald-100/50 p-2 px-3 rounded-xl border border-emerald-200 shadow-2xs">
                 <div className="text-right">
-                  <p className="text-[8px] font-bold text-amber-600 uppercase tracking-widest">Bộ quỹ dự phòng</p>
-                  <p className="text-sm font-black text-amber-800">{formatCurrency(totalNewMoneyVND, 'VND')}</p>
+                  <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest">Bộ quỹ dự phòng</p>
+                  <p className="text-sm font-black text-emerald-800">{formatCurrency(totalNewMoneyVND, 'VND')}</p>
                 </div>
               </div>
 
@@ -1540,7 +1554,7 @@ export function AssetsManager({
                 </div>
               )}
               
-              <div className="p-1 text-amber-600 bg-amber-50 rounded-lg group-hover:bg-amber-100 transition-all">
+              <div className="p-1 px-1.5 text-emerald-700 bg-[#e6f4ea] rounded-lg group-hover:bg-emerald-100 transition-all border border-emerald-250">
                 {isNewMoneyCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
               </div>
            </div>
@@ -1553,14 +1567,14 @@ export function AssetsManager({
           <div className="overflow-x-auto max-w-full">
             <table className="min-w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-amber-500/10 text-[9px] font-black uppercase tracking-widest text-amber-600 border-b-2 border-amber-500">
+                <tr className="bg-emerald-500/10 text-[9px] font-black uppercase tracking-widest text-[#065f46] border-b-2 border-emerald-500">
                   <th className="px-4 py-3 font-black">Mệnh giá VND</th>
                   <th className="px-4 py-3 text-center font-black w-44">Số lượng</th>
                   <th className="px-4 py-3 text-right font-black">Thành tiền</th>
                   <th className="px-4 py-3 text-center font-black w-24">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="font-sans divide-y divide-amber-500/10">
+              <tbody className="font-sans divide-y divide-emerald-500/10">
                 {VND_DENOMINATIONS.map(den => {
                   const currentAsset = assets.find(a => a.isNewMoney && a.denomination === den);
                   const isModifiedLocally = bulkCash[den] !== undefined;
@@ -1570,8 +1584,8 @@ export function AssetsManager({
                     <tr 
                       key={den} 
                       className={cn(
-                        "transition-colors hover:bg-amber-50/45", 
-                        val > 0 ? "bg-amber-50/15 font-bold" : "opacity-60"
+                        "transition-colors hover:bg-emerald-50/45", 
+                        val > 0 ? "bg-emerald-50/15 font-bold" : "opacity-60"
                       )}
                     >
                       <td className="px-4 py-3">
@@ -1604,7 +1618,7 @@ export function AssetsManager({
                             value={val || ""}
                             onChange={(e) => updateBulkQty(den, e.target.value)}
                             placeholder="0"
-                            className="w-16 text-center font-bold text-amber-600 bg-white border border-ink/15 rounded-lg py-1 outline-none focus:border-amber-500 text-xs shadow-inner"
+                            className="w-16 text-center font-bold text-emerald-700 bg-white border border-ink/15 rounded-lg py-1 outline-none focus:border-emerald-500 text-xs shadow-inner"
                           />
                           <button
                             type="button"
@@ -1618,7 +1632,7 @@ export function AssetsManager({
                           </button>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono font-black text-amber-600 text-sm whitespace-nowrap">
+                      <td className="px-4 py-3 text-right font-mono font-black text-emerald-700 text-sm whitespace-nowrap">
                         {formatCurrency(den * val, 'VND')}
                       </td>
                       <td className="px-4 py-3 text-center">
