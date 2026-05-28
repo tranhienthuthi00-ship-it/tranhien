@@ -83,12 +83,13 @@ export function AssetsManager({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"name" | "value" | "date">("date");
 
-  // Toggle Collapse UI States
+  // Toggle Collapse UI States now default to expanded (false) inside the tab view for instant desktop visibility, but are click-adjustable.
+  const [activeTab, setActiveTab2] = useState<"register" | "cards-liabilities" | "cash-audit" | "budget">("register");
   const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
-  const [isNewMoneyCollapsed, setIsNewMoneyCollapsed] = useState(true);
-  const [isSalaryPlannerCollapsed, setIsSalaryPlannerCollapsed] = useState(true);
-  const [isBulkCardSpendsCollapsed, setIsBulkCardSpendsCollapsed] = useState(true);
-  const [isBulkDebtsCollapsed, setIsBulkDebtsCollapsed] = useState(true);
+  const [isNewMoneyCollapsed, setIsNewMoneyCollapsed] = useState(false);
+  const [isSalaryPlannerCollapsed, setIsSalaryPlannerCollapsed] = useState(false);
+  const [isBulkCardSpendsCollapsed, setIsBulkCardSpendsCollapsed] = useState(false);
+  const [isBulkDebtsCollapsed, setIsBulkDebtsCollapsed] = useState(false);
 
   const defaultCatID = categories.length > 0 ? categories[0].id : '';
   const [newName, setNewName] = useState("");
@@ -790,20 +791,69 @@ export function AssetsManager({
               <p className="text-[9px] font-bold uppercase tracking-widest text-blue-600/60 flex items-center justify-center sm:justify-start gap-1"><Handshake size={10}/> Phải Thu</p>
               <p className="text-[13px] font-bold text-blue-700 font-sans mt-0.5">{formatCurrency(totalLoansVND, 'VND')}</p>
             </div>
-            <div className="text-center sm:text-left border-l border-ink/10 pl-6 border-l-crimson/20">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-crimson/60 flex items-center justify-center sm:justify-start gap-1"><CreditCard size={10}/> Nghĩa vụ Nợ</p>
-              <p className="text-[13px] font-black text-crimson font-sans mt-0.5">{formatCurrency(totalDebtsVND, 'VND')}</p>
+            <div className="text-center sm:text-left border-l border-[#e11d48]/10 pl-6">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-[#e11d48]/60 flex items-center justify-center sm:justify-start gap-1"><CreditCard size={10}/> Nghĩa vụ Nợ</p>
+              <p className="text-[13px] font-black text-[#e11d48] font-sans mt-0.5">{formatCurrency(totalDebtsVND, 'VND')}</p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* SUBTAB NAVIGATION SYSTEM FOR PROFESSIONAL fin-app FEEL */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-8 bg-zinc-100/80 dark:bg-zinc-800/20 p-1.5 rounded-2xl border border-ink/5 shadow-2xs w-full">
+        <button
+          onClick={() => setActiveTab2("register")}
+          className={cn(
+            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border",
+            activeTab === "register"
+              ? "bg-ink text-paper border-ink shadow-xs scale-[1.01]"
+              : "bg-transparent text-ink/70 hover:bg-zinc-200/50 hover:text-ink border-transparent"
+          )}
+        >
+          <Wallet size={14} />
+          <span>Vốn & Tài sản</span>
+        </button>
+        <button
+          onClick={() => setActiveTab2("cards-liabilities")}
+          className={cn(
+            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border",
+            activeTab === "cards-liabilities"
+              ? "bg-ink text-paper border-ink shadow-xs scale-[1.01]"
+              : "bg-transparent text-ink/70 hover:bg-zinc-200/50 hover:text-ink border-transparent"
+          )}
+        >
+          <CreditCard size={14} />
+          <span>Chi tiêu Thẻ & Nợ</span>
+        </button>
+        <button
+          onClick={() => setActiveTab2("cash-audit")}
+          className={cn(
+            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border",
+            activeTab === "cash-audit"
+              ? "bg-ink text-paper border-ink shadow-xs scale-[1.01]"
+              : "bg-transparent text-ink/70 hover:bg-zinc-200/50 hover:text-ink border-transparent"
+          )}
+        >
+          <Coins size={14} />
+          <span>Kiểm kê Ví tiền</span>
+        </button>
+        <button
+          onClick={() => setActiveTab2("budget")}
+          className={cn(
+            "flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-extrabold transition-all cursor-pointer flex-1 min-w-[130px] border",
+            activeTab === "budget"
+              ? "bg-ink text-paper border-ink shadow-xs scale-[1.01]"
+              : "bg-transparent text-ink/70 hover:bg-zinc-200/50 hover:text-ink border-transparent"
+          )}
+        >
+          <Briefcase size={14} />
+          <span>Kế hoạch Lương</span>
+        </button>
+      </div>
 
-
-
-
-
-      {isManagingCats && (
+      {activeTab === "register" && (
+        <>
+          {isManagingCats && (
         <div className="bg-ink/5 p-4 rounded-xl mb-8 sketch-border border-dashed">
           <h3 className="font-bold text-sm tracking-widest uppercase mb-4">Các danh mục hiện có</h3>
           <div className="flex flex-wrap gap-2 mb-4">
@@ -1448,9 +1498,12 @@ export function AssetsManager({
           );
         })}
       </div>
+      </>)}
 
       {/* Bảng Kê Tiền Mới - Specialized Section */}
-      <div className="mt-16 animate-in fade-in slide-in-from-bottom-4 bg-amber-50/15 p-6 rounded-2xl border border-amber-500/10 hover:border-amber-550/25 transition-all">
+      {activeTab === "cash-audit" && (
+      <>
+      <div className="mt-2 animate-in fade-in slide-in-from-bottom-4 bg-amber-50/15 p-6 rounded-2xl border border-amber-500/10 hover:border-amber-550/25 transition-all">
         <div 
           onClick={() => setIsNewMoneyCollapsed(!isNewMoneyCollapsed)}
           className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-4 border-b-2 border-amber-500/20 gap-4 cursor-pointer group select-none relative"
@@ -1781,9 +1834,11 @@ export function AssetsManager({
           </button>
         </div>
       </div>
+      </>)}
 
       {/* COMPONENT SYNC BẢNG KÊ CHI TIÊU & DOANH THU TỪ HOME */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-16 w-full animate-in fade-in slide-in-from-bottom-4 mb-8">
+      {activeTab === "cards-liabilities" && (
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-2 w-full animate-in fade-in slide-in-from-bottom-4 mb-8">
         {/* LEFT CARD: BẢNG KÊ CHI TIÊU THẺ TÍN DỤNG */}
         <div className="bg-gradient-to-tr from-[#fcfdff] to-[#f5f8ff] p-6 rounded-2xl sketch-border border-ink shadow-sm space-y-4 text-left">
           <div 
@@ -2159,11 +2214,11 @@ export function AssetsManager({
           )}
         </div>
       </div>
-
-
+      )}
 
       {/* --- PHÂN KHÚC DỰ TÍNH TIỀN LƯƠNG & DỰ CHI --- */}
-      <div className="mt-16 animate-in fade-in slide-in-from-bottom-4 border-t-2 border-dashed border-ink/20 pt-12 font-sans">
+      {activeTab === "budget" && (
+      <div className="mt-2 animate-in fade-in slide-in-from-bottom-4 border-t-2 border-dashed border-ink/20 pt-6 font-sans">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 border-b-2 border-ink/10 pb-4 gap-4 font-sans">
            <div className="flex items-center gap-3">
               <button className="p-2 bg-ink/5 hover:bg-ink/10 text-ink rounded-xl border border-ink/15">
@@ -2385,10 +2440,9 @@ export function AssetsManager({
           </div>
         </div>
       </div>
+      )}
 
-
-
-      {filteredAssets.length === 0 && (
+      {activeTab === "register" && filteredAssets.length === 0 && (
         <div className="text-center py-20 opacity-30">
           <Wallet size={48} className="mx-auto mb-4" />
           <p className="font-hand text-xl">Không tìm thấy tài sản nào</p>

@@ -117,6 +117,56 @@ export function useFirebaseSync() {
     ];
   });
 
+  // Cross-Device Synced inputs for AssetsManager
+  const getLast7Dates = () => {
+    const dates = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dates.push(d.toISOString().split("T")[0]);
+    }
+    return dates;
+  };
+
+  const DEFAULT_WEEK_DEBTS = getLast7Dates().map((dateStr, idx) => ({
+    id: idx + 1,
+    name: dateStr,
+    amount: "",
+    notes: ""
+  }));
+
+  const [bulkDebts, setBulkDebts] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_bulkDebts");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === 7) return parsed;
+      }
+    } catch (e) {}
+    return DEFAULT_WEEK_DEBTS.map(item => ({ ...item }));
+  });
+
+  const [bulkCardSpends, setBulkCardSpends] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_bulkCardSpends");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return DEFAULT_WEEK_DEBTS.map(item => ({ ...item, amount: "", notes: "" }));
+  });
+
+  const [bulkCurrentCash, setBulkCurrentCash] = useState<Record<number, number>>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_bulkCurrentCash");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {};
+  });
+
+  const [saveTrigger, setSaveTrigger] = useState(0);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -274,6 +324,30 @@ export function useFirebaseSync() {
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/customRewards`));
 
+    const unsubAssetsBulk = onSnapshot(doc(db, `users/${user.uid}/data/assetsBulk`), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.bulkDebts !== undefined && Array.isArray(data.bulkDebts)) {
+          if (JSON.stringify(bulkDebtsRef.current) !== JSON.stringify(data.bulkDebts)) {
+            setBulkDebts(data.bulkDebts);
+            localStorage.setItem("studyHub_bulkDebts", JSON.stringify(data.bulkDebts));
+          }
+        }
+        if (data.bulkCardSpends !== undefined && Array.isArray(data.bulkCardSpends)) {
+          if (JSON.stringify(bulkCardSpendsRef.current) !== JSON.stringify(data.bulkCardSpends)) {
+            setBulkCardSpends(data.bulkCardSpends);
+            localStorage.setItem("studyHub_bulkCardSpends", JSON.stringify(data.bulkCardSpends));
+          }
+        }
+        if (data.bulkCurrentCash !== undefined && typeof data.bulkCurrentCash === 'object') {
+          if (JSON.stringify(bulkCurrentCashRef.current) !== JSON.stringify(data.bulkCurrentCash)) {
+            setBulkCurrentCash(data.bulkCurrentCash);
+            localStorage.setItem("studyHub_bulkCurrentCash", JSON.stringify(data.bulkCurrentCash));
+          }
+        }
+      }
+    }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/assetsBulk`));
+
     const timer = setTimeout(() => { setLoading(false); }, 1500);
 
     return () => {
@@ -281,7 +355,7 @@ export function useFirebaseSync() {
       unsubWords(); unsubTasks(); unsubWishlist(); unsubLogs(); unsubFood();
       unsubIdeas(); unsubAssets(); unsubCats(); unsubDictations(); unsubCustomSentences(); 
       unsubPracticeParagraphs(); unsubStudyGoals(); unsubAchievements(); unsubTags();
-      unsubSalary(); unsubHabits(); unsubRewards();
+      unsubSalary(); unsubHabits(); unsubRewards(); unsubAssetsBulk();
     };
   }, [user]);
 
@@ -303,6 +377,9 @@ export function useFirebaseSync() {
   const customRewardsRef = React.useRef(customRewards);
   const salaryInputRef = React.useRef(salaryInput);
   const plannedExpensesRef = React.useRef(plannedExpenses);
+  const bulkDebtsRef = React.useRef(bulkDebts);
+  const bulkCardSpendsRef = React.useRef(bulkCardSpends);
+  const bulkCurrentCashRef = React.useRef(bulkCurrentCash);
 
   useEffect(() => { wordsRef.current = words; }, [words]);
   useEffect(() => { habitsRef.current = habits; }, [habits]);
@@ -321,6 +398,28 @@ export function useFirebaseSync() {
   useEffect(() => { paragraphsRef.current = practiceParagraphs; }, [practiceParagraphs]);
   useEffect(() => { goalsRef.current = studyGoals; }, [studyGoals]);
   useEffect(() => { achievementsRef.current = achievements; }, [achievements]);
+  useEffect(() => { bulkDebtsRef.current = bulkDebts; }, [bulkDebts]);
+  useEffect(() => { bulkCardSpendsRef.current = bulkCardSpends; }, [bulkCardSpends]);
+  useEffect(() => { bulkCurrentCashRef.current = bulkCurrentCash; }, [bulkCurrentCash]);
+
+  // Debounce saving assetsBulk to Firestore
+  useEffect(() => {
+    if (!user || saveTrigger === 0) return;
+
+    const t = setTimeout(async () => {
+      try {
+        await setDoc(doc(db, `users/${user.uid}/data/assetsBulk`), {
+          bulkDebts: bulkDebtsRef.current,
+          bulkCardSpends: bulkCardSpendsRef.current,
+          bulkCurrentCash: bulkCurrentCashRef.current
+        });
+      } catch (err) {
+        console.error("Error syncing assetsBulk to Firebase:", err);
+      }
+    }, 1000);
+
+    return () => clearTimeout(t);
+  }, [saveTrigger, user]);
 
   // Diff sync wrapper
   const createSyncSetter = <T extends { id: string }>(
@@ -400,6 +499,42 @@ export function useFirebaseSync() {
     studyGoals, setStudyGoals: createSyncSetter<StudyGoal>('studyGoals', goalsRef, setStudyGoals),
     achievements, setAchievements: createSyncSetter<Achievement>('achievements', achievementsRef, setAchievements),
     tags, setTags: createSyncSetter<any>('tags', React.createRef(), setTags as any, true),
+    bulkDebts,
+    setBulkDebts: async (valOrFunc: any) => {
+      let nextVal;
+      if (typeof valOrFunc === 'function') {
+        nextVal = valOrFunc(bulkDebtsRef.current);
+      } else {
+        nextVal = valOrFunc;
+      }
+      setBulkDebts(nextVal);
+      localStorage.setItem("studyHub_bulkDebts", JSON.stringify(nextVal));
+      setSaveTrigger(p => p + 1);
+    },
+    bulkCardSpends,
+    setBulkCardSpends: async (valOrFunc: any) => {
+      let nextVal;
+      if (typeof valOrFunc === 'function') {
+        nextVal = valOrFunc(bulkCardSpendsRef.current);
+      } else {
+        nextVal = valOrFunc;
+      }
+      setBulkCardSpends(nextVal);
+      localStorage.setItem("studyHub_bulkCardSpends", JSON.stringify(nextVal));
+      setSaveTrigger(p => p + 1);
+    },
+    bulkCurrentCash,
+    setBulkCurrentCash: async (valOrFunc: any) => {
+      let nextVal;
+      if (typeof valOrFunc === 'function') {
+        nextVal = valOrFunc(bulkCurrentCashRef.current);
+      } else {
+        nextVal = valOrFunc;
+      }
+      setBulkCurrentCash(nextVal);
+      localStorage.setItem("studyHub_bulkCurrentCash", JSON.stringify(nextVal));
+      setSaveTrigger(p => p + 1);
+    },
     salaryInput,
     setSalaryInput: async (newVal: string) => {
       setSalaryInput(newVal);
