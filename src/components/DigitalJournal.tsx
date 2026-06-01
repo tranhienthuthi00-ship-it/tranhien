@@ -1570,7 +1570,7 @@ export function DigitalJournal({
               </span>
               <div>
                 <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#065f46] font-sans">
-                  Doanh Thu / Khách Nợ Tuần Qua
+                  Doanh Thu
                 </h3>
               </div>
             </div>
@@ -1679,7 +1679,7 @@ export function DigitalJournal({
 
           {/* Sum footer */}
           <div className="flex items-center justify-between bg-emerald-50/50 p-3 rounded-xl border border-emerald-150">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-800">Tổng thu nhập / Nợ tuần:</span>
+            <span className="text-xs font-extrabold uppercase tracking-wider text-[#065f46]">Tổng:</span>
             <span className="text-sm font-black text-[#0f5132] font-mono">
               {(() => {
                 const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);

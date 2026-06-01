@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { NavBar, type Tab } from "./components/NavBar";
 import { Academy } from "./components/Academy";
 import { MyList } from "./components/MyList";
@@ -363,9 +364,18 @@ function AppContent() {
       </svg>
       <NavBar activeTab={activeTab} setActiveTab={setActiveTab} lastSaved={lastSaved} onLogout={handleLogout} dueCount={dueCount} />
       
-      <main className="mt-4 relative z-10 animate-in fade-in duration-500 overflow-x-clip w-full">
+      <main className="mt-4 relative z-10 overflow-x-clip w-full">
         <div className="max-w-[100vw] px-1 sm:px-2">
-          {activeTab === "English Hub" && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.15 }}
+              className="w-full"
+            >
+              {activeTab === "English Hub" && (
             <div className="flex flex-col gap-4">
               {/* GỘP ENGLISH HUB: TỪ VỰNG, LUYỆN TẬP, TRÒ CHƠI */}
               <div className="mx-auto max-w-2xl w-full px-2 mb-2">
@@ -503,8 +513,10 @@ function AppContent() {
             />
           )}
         </div>
-      </div>
-    </main>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </main>
   </div>
   );
 }

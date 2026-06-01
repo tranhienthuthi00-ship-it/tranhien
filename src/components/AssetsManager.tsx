@@ -803,8 +803,9 @@ export function AssetsManager({
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Control Buttons row underneath */}
+      {/* Control Buttons row underneath */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 my-6 bg-white p-4 rounded-xl border-2 border-dashed border-ink text-left w-full shadow-sm">
           <div className="text-left font-sans">
             <span className="text-[9px] font-black uppercase tracking-widest text-[#065f46] bg-[#e6f4ea] border border-emerald-300 px-2.5 py-1 rounded-md">
@@ -2520,7 +2521,6 @@ export function AssetsManager({
           <p className="font-hand text-xl">Không tìm thấy tài sản nào</p>
         </div>
       )}
-      </div>
     </div>
   );
 }
