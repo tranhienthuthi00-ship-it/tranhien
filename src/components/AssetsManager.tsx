@@ -1961,26 +1961,38 @@ export function AssetsManager({
 
           {!isBulkCardSpendsCollapsed && (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
-              <div className="w-full overflow-x-auto scrollbar-thin">
-                <table className="min-w-full text-left border-collapse text-xs">
+              <div className="w-full overflow-x-auto sm:overflow-visible scrollbar-none sm:scrollbar-thin">
+                <table className="w-full text-left border-collapse text-xs table-fixed sm:table-auto">
                   <thead>
                     <tr className="bg-blue-100/50 text-[#1e40af] font-bold uppercase tracking-wider text-[9px]">
-                      <th className="px-3 py-2 w-32 border border-blue-100">Ngày / Tên</th>
-                      <th className="px-3 py-2 w-40 border border-blue-100">Số Tiền (VND)</th>
-                      <th className="px-3 py-2 border border-blue-100">Ghi Chú</th>
-                      <th className="px-2 py-2 w-10 text-center border border-blue-100">Xóa</th>
+                      <th className="px-1.5 sm:px-3 py-2 w-[70px] sm:w-32 border border-blue-100">
+                        <span className="hidden sm:inline">Ngày / Tên</span>
+                        <span className="inline sm:hidden">Ngày</span>
+                      </th>
+                      <th className="px-1.5 sm:px-3 py-2 w-[100px] sm:w-40 border border-blue-100">
+                        <span className="hidden sm:inline">Số Tiền (VND)</span>
+                        <span className="inline sm:hidden">Số Tiền</span>
+                      </th>
+                      <th className="px-1.5 sm:px-3 py-2 border border-blue-100">Ghi Chú</th>
+                      <th className="px-1 sm:py-2 w-8 sm:w-10 text-center border border-blue-100">Xóa</th>
                     </tr>
                   </thead>
                   <tbody>
                     {bulkCardSpends.map((item, index) => (
                       <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
-                        <td className="p-1 border border-blue-100/50">
-                          <div className="flex items-center justify-between gap-1 px-2.5 py-1 text-left relative">
-                            <span className="text-xs font-black text-blue-950 font-mono">
+                        <td className="p-0.5 sm:p-1 border border-blue-100/50">
+                          <div className="flex items-center justify-between gap-0.5 px-1 sm:px-2.5 py-0.5 sm:py-1 text-left relative">
+                            <span className="text-[11px] sm:text-xs font-black text-blue-950 font-mono hidden sm:inline">
                               {formatDateDot(item.name)}
                             </span>
-                            <div className="relative w-5 h-5 flex items-center justify-center shrink-0 hover:bg-blue-100 rounded transition-all cursor-pointer">
-                              <CalendarIcon size={12} className="text-blue-500 cursor-pointer" />
+                            <span className="text-[11px] sm:text-xs font-black text-blue-950 font-mono inline sm:hidden">
+                              {(() => {
+                                const parts = item.name.split("-");
+                                return parts.length === 3 ? `${parts[2]}.${parts[1]}` : item.name;
+                              })()}
+                            </span>
+                            <div className="relative w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center shrink-0 hover:bg-blue-100 rounded transition-all cursor-pointer">
+                              <CalendarIcon className="text-blue-500 cursor-pointer w-3 h-3 sm:w-[12px] sm:h-[12px]" />
                               <input
                                 type="date"
                                 value={item.name}
@@ -1994,7 +2006,7 @@ export function AssetsManager({
                             </div>
                           </div>
                         </td>
-                        <td className="p-1 border border-blue-100/50">
+                        <td className="p-0.5 sm:p-1 border border-blue-100/50">
                           <input
                             type="text"
                             placeholder="Số tiền"
@@ -2029,10 +2041,10 @@ export function AssetsManager({
                                 setBulkCardSpends(updated);
                               }
                             }}
-                            className="w-full px-2 py-1.5 text-xs bg-transparent text-right font-bold text-indigo-950 focus:outline-none focus:bg-white rounded"
+                            className="w-full px-1 sm:px-2 py-1 sm:py-1.5 text-[11px] sm:text-xs bg-transparent text-right font-bold text-indigo-950 focus:outline-none focus:bg-white rounded"
                           />
                         </td>
-                        <td className="p-1 border border-blue-100/50">
+                        <td className="p-0.5 sm:p-1 border border-blue-100/50">
                           <input
                             type="text"
                             placeholder="Chi tiết chi tiêu..."
@@ -2042,16 +2054,16 @@ export function AssetsManager({
                               updated[index].notes = e.target.value;
                               setBulkCardSpends(updated);
                             }}
-                            className="w-full px-2 py-1.5 text-xs bg-transparent text-left text-blue-900 focus:outline-none focus:bg-white rounded"
+                            className="w-full px-1 sm:px-2 py-1 sm:py-1.5 text-[11px] sm:text-xs bg-transparent text-left text-blue-900 focus:outline-none focus:bg-white rounded"
                           />
                         </td>
-                        <td className="p-1 border border-blue-100/50 text-center">
+                        <td className="p-0.5 sm:p-1 border border-blue-100/50 text-center">
                           <button
                             onClick={() => {
                               const updated = bulkCardSpends.filter((_, i) => i !== index);
                               setBulkCardSpends(updated);
                             }}
-                            className="p-1.5 text-rose-300 hover:text-crimson hover:bg-rose-50 rounded transition-colors mx-auto"
+                            className="p-1 text-rose-300 hover:text-crimson hover:bg-rose-50 rounded transition-colors mx-auto"
                             title="Xóa hàng"
                           >
                             <Trash2 size={12} />
@@ -2084,7 +2096,7 @@ export function AssetsManager({
           )}
         </div>
 
-        {/* RIGHT CARD: BẢNG KÊ DOANH THU KHÁCH NỢ TUẦN QUA */}
+        {/* RIGHT CARD: DOANH THU */}
         <div className="bg-white p-6 rounded-2xl border-2 border-ink shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] space-y-4 text-left">
           <div 
             onClick={() => setIsBulkDebtsCollapsed(!isBulkDebtsCollapsed)}
@@ -2096,7 +2108,7 @@ export function AssetsManager({
               </span>
               <div>
                 <h3 className="text-sm font-extrabold uppercase tracking-tight text-[#065f46] font-sans flex flex-wrap items-center gap-1.5 leading-tight">
-                  <span>Doanh Thu / Khách Nợ Tuần Qua</span>
+                  <span>Doanh Thu</span>
                   <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100/60 border border-emerald-200 px-1.5 py-0.5 rounded tracking-wider whitespace-nowrap">
                     {isBulkDebtsCollapsed ? "Nhấp Để Mở" : "Thu Gọn"}
                   </span>
@@ -2108,7 +2120,7 @@ export function AssetsManager({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm("Đặt lại toàn bộ bảng kê doanh thu và khách nợ tuần này?")) {
+                    if (confirm("Đặt lại toàn bộ bảng kê doanh thu tuần này?")) {
                       setBulkDebts(bulkDebts.map(item => ({ ...item, amount: "", notes: "" })));
                     }
                   }}
@@ -2136,26 +2148,38 @@ export function AssetsManager({
 
           {!isBulkDebtsCollapsed && (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
-              <div className="w-full overflow-x-auto scrollbar-thin">
-                <table className="min-w-full text-left border-collapse text-xs">
+              <div className="w-full overflow-x-auto sm:overflow-visible scrollbar-none sm:scrollbar-thin">
+                <table className="w-full text-left border-collapse text-xs table-fixed sm:table-auto">
                   <thead>
                     <tr className="bg-emerald-100/50 text-[#065f46] font-bold uppercase tracking-wider text-[9px]">
-                      <th className="px-3 py-2 w-32 border border-emerald-100">Ngày / Tên</th>
-                      <th className="px-3 py-2 w-40 border border-emerald-100">Số Tiền (VND)</th>
-                      <th className="px-3 py-2 border border-emerald-100">Ghi Chú</th>
+                      <th className="px-1.5 sm:px-3 py-2 w-[70px] sm:w-32 border border-emerald-100">
+                        <span className="hidden sm:inline">Ngày / Tên</span>
+                        <span className="inline sm:hidden">Ngày</span>
+                      </th>
+                      <th className="px-1.5 sm:px-3 py-2 w-[100px] sm:w-40 border border-emerald-100">
+                        <span className="hidden sm:inline">Số Tiền (VND)</span>
+                        <span className="inline sm:hidden">Số Tiền</span>
+                      </th>
+                      <th className="px-1.5 sm:px-3 py-2 border border-emerald-100">Ghi Chú</th>
                     </tr>
                   </thead>
                   <tbody>
                     {bulkDebts.map((item, index) => {
                       return (
                         <tr key={item.id} className="hover:bg-emerald-50/50 transition-colors">
-                          <td className="p-1 border border-emerald-100/50">
-                            <div className="flex items-center justify-between gap-1 px-2.5 py-1 text-left relative">
-                              <span className="text-xs font-black text-emerald-950 font-mono">
+                          <td className="p-0.5 sm:p-1 border border-emerald-100/50">
+                            <div className="flex items-center justify-between gap-0.5 px-1 sm:px-2.5 py-0.5 sm:py-1 text-left relative">
+                              <span className="text-[11px] sm:text-xs font-black text-emerald-950 font-mono hidden sm:inline">
                                 {formatDateDot(item.name)}
                               </span>
-                              <div className="relative w-5 h-5 flex items-center justify-center shrink-0 hover:bg-emerald-100 rounded transition-all cursor-pointer">
-                                <CalendarIcon size={12} className="text-emerald-500 cursor-pointer" />
+                              <span className="text-[11px] sm:text-xs font-black text-emerald-950 font-mono inline sm:hidden">
+                                {(() => {
+                                  const parts = item.name.split("-");
+                                  return parts.length === 3 ? `${parts[2]}.${parts[1]}` : item.name;
+                                })()}
+                              </span>
+                              <div className="relative w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center shrink-0 hover:bg-emerald-100 rounded transition-all cursor-pointer">
+                                <CalendarIcon className="text-emerald-500 cursor-pointer w-3 h-3 sm:w-[12px] sm:h-[12px]" />
                                 <input
                                   type="date"
                                   value={item.name}
@@ -2169,7 +2193,7 @@ export function AssetsManager({
                               </div>
                             </div>
                           </td>
-                          <td className="p-1 border border-emerald-100/50">
+                          <td className="p-0.5 sm:p-1 border border-emerald-100/50">
                             <input
                               type="text"
                               placeholder="Số tiền"
@@ -2204,10 +2228,10 @@ export function AssetsManager({
                                   setBulkDebts(updated);
                                 }
                               }}
-                              className="w-full px-2 py-1.5 text-xs bg-transparent text-right font-bold text-emerald-950 focus:outline-none focus:bg-white rounded"
+                              className="w-full px-1 sm:px-2 py-1 sm:py-1.5 text-[11px] sm:text-xs bg-transparent text-right font-bold text-emerald-950 focus:outline-none focus:bg-white rounded"
                             />
                           </td>
-                          <td className="p-1 border border-emerald-100/50">
+                          <td className="p-0.5 sm:p-1 border border-emerald-100/50">
                             <input
                               type="text"
                               placeholder="Nội dung..."
@@ -2217,7 +2241,7 @@ export function AssetsManager({
                                 updated[index].notes = e.target.value;
                                 setBulkDebts(updated);
                               }}
-                              className="w-full px-2 py-1.5 text-xs bg-transparent text-left focus:outline-none focus:bg-white rounded"
+                              className="w-full px-1 sm:px-2 py-1 sm:py-1.5 text-[11px] sm:text-xs bg-transparent text-left focus:outline-none focus:bg-white rounded"
                             />
                           </td>
                         </tr>
