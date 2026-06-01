@@ -2230,7 +2230,7 @@ export function AssetsManager({
               {/* Sum footer */}
               <div className="flex flex-col gap-2 bg-[#f4fbf7] p-3 rounded-xl border border-emerald-150">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-800">Tổng thu tập số dư tuần:</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-800">Tổng:</span>
                   <span className={`text-sm font-black font-mono ${(() => {
                     const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
                     return total > 0 ? "text-amber-700" : total < 0 ? "text-emerald-700" : "text-slate-500";
@@ -2245,13 +2245,7 @@ export function AssetsManager({
                 <div className="text-[10px] text-emerald-800/80 border-t border-[#10b981]/20 pt-1.5 leading-relaxed font-sans">
                   {(() => {
                     const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
-                    if (total > 0) {
-                      return (
-                        <span className="text-amber-800 font-medium">
-                          ⚠️ <strong>Số dư dương (+{total.toLocaleString("vi-VN")} đ)</strong>: Hệ thống ghi nhận vào mục <strong>Nợ tích lũy doanh thu</strong> (giảm trừ tài sản ròng).
-                        </span>
-                      );
-                    } else if (total < 0) {
+                    if (total < 0) {
                       const abs = Math.abs(total);
                       return (
                         <span className="text-emerald-800 font-medium">
