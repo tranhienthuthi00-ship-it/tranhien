@@ -21,6 +21,10 @@ export interface Task {
   createdAt?: number;
   completedAt?: number;
   goalId?: string;
+  isShopping?: boolean;
+  wishlistId?: string;
+  price?: number;
+  link?: string;
 }
 
 export interface FoodPlace {

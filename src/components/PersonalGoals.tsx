@@ -3,11 +3,11 @@ import {
   Plus, Target, Calendar, Trash2, CheckCircle2, Edit2,
   TrendingUp, X, FileText, ChevronDown, ChevronUp,
   Medal, Square, History, Send, Clock, ClipboardList,
-  Check, Trophy, Sparkles
+  Check, Trophy, Sparkles, ShoppingBag, Link as LinkIcon
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { format } from "date-fns";
-import type { StudyGoal, Achievement, Task, LogEntry } from "../types";
+import type { StudyGoal, Achievement, Task, LogEntry, WishlistItem } from "../types";
 import { cn } from "../lib/utils";
 
 const cleanJourneyContent = (text: string): string => {
@@ -23,7 +23,9 @@ export function PersonalGoals({
   tasks,
   setTasks,
   logs,
-  setLogs
+  setLogs,
+  wishlist = [],
+  setWishlist
 }: { 
   goals: StudyGoal[], 
   setGoals: (goals: StudyGoal[]) => void,
@@ -32,7 +34,9 @@ export function PersonalGoals({
   tasks: Task[],
   setTasks: (tasks: Task[]) => void,
   logs?: LogEntry[],
-  setLogs?: React.Dispatch<React.SetStateAction<LogEntry[]>>
+  setLogs?: React.Dispatch<React.SetStateAction<LogEntry[]>>,
+  wishlist?: WishlistItem[],
+  setWishlist?: (list: WishlistItem[]) => void
 }) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -52,6 +56,13 @@ export function PersonalGoals({
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showAddTodo, setShowAddTodo] = useState(false);
   const [taskGoalId, setTaskGoalId] = useState("");
+
+  // Shopping task fields
+  const [isShoppingTask, setIsShoppingTask] = useState(false);
+  const [linkedWishlistId, setLinkedWishlistId] = useState("");
+  const [shoppingPrice, setShoppingPrice] = useState("");
+  const [shoppingLink, setShoppingLink] = useState("");
+  const [alsoAddToWishlist, setAlsoAddToWishlist] = useState(false);
 
   // Inline Task Editing states
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -200,17 +211,52 @@ export function PersonalGoals({
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTask.trim()) return;
-    setTasks([{ 
-      id: Date.now().toString(), 
-      content: newTask, 
+
+    const taskId = Date.now().toString();
+    const finalPrice = shoppingPrice ? parseFloat(shoppingPrice) : undefined;
+    const finalLink = shoppingLink ? shoppingLink.trim() : undefined;
+
+    let finalWishlistId = linkedWishlistId || undefined;
+
+    // Optional: If alsoAddToWishlist is checked and there's no linked item yet
+    if (isShoppingTask && alsoAddToWishlist && !linkedWishlistId && setWishlist) {
+      const newWishId = `wish-${Date.now()}`;
+      const newWishItem: WishlistItem = {
+        id: newWishId,
+        content: newTask.trim(),
+        addedDate: new Date().toISOString(),
+        price: finalPrice,
+        necessity: newTaskPriority,
+        link: finalLink,
+        isWorthBuying: true,
+        isPurchased: false
+      };
+      setWishlist([newWishItem, ...wishlist]);
+      finalWishlistId = newWishId;
+    }
+
+    const newTaskObj: Task = { 
+      id: taskId, 
+      content: newTask.trim(), 
       completed: false, 
       priority: newTaskPriority,
       goalId: taskGoalId || undefined,
-      createdAt: Date.now()
-    }, ...tasks]);
+      createdAt: Date.now(),
+      isShopping: isShoppingTask,
+      wishlistId: finalWishlistId,
+      price: isShoppingTask ? finalPrice : undefined,
+      link: isShoppingTask ? finalLink : undefined
+    };
+
+    setTasks([newTaskObj, ...tasks]);
     setNewTask("");
     setNewTaskPriority("Medium");
     setTaskGoalId("");
+    setIsShoppingTask(false);
+    setLinkedWishlistId("");
+    setShoppingPrice("");
+    setShoppingLink("");
+    setAlsoAddToWishlist(false);
     setShowAddTodo(false);
   };
 
@@ -225,6 +271,9 @@ export function PersonalGoals({
 
   const toggleTask = (id: string) => {
     let completedTask: Task | null = null;
+    let targetWishlistIdToMarkPurchased: string | undefined;
+    let targetWishlistIdToMarkActive: string | undefined;
+
     const nextTasks = tasks.map(t => {
       if (t.id === id) {
         const nextCompleted = !t.completed;
@@ -232,12 +281,26 @@ export function PersonalGoals({
         const updated = { ...t, completed: nextCompleted, completedAt: nextCompleted ? now : undefined };
         if (nextCompleted) {
           completedTask = updated;
+          if (t.wishlistId) {
+            targetWishlistIdToMarkPurchased = t.wishlistId;
+          }
+        } else {
+          if (t.wishlistId) {
+            targetWishlistIdToMarkActive = t.wishlistId;
+          }
         }
         return updated;
       }
       return t;
     });
     setTasks(nextTasks);
+
+    // Sync waitlist/wishlist if there's a link
+    if (targetWishlistIdToMarkPurchased && setWishlist) {
+      setWishlist(wishlist.map(w => w.id === targetWishlistIdToMarkPurchased ? { ...w, isPurchased: true } : w));
+    } else if (targetWishlistIdToMarkActive && setWishlist) {
+      setWishlist(wishlist.map(w => w.id === targetWishlistIdToMarkActive ? { ...w, isPurchased: false } : w));
+    }
 
     // Write to goal journey structure and daily journal (Vietnamese localization)
     if (completedTask) {
@@ -599,6 +662,105 @@ export function PersonalGoals({
                 </select>
               </div>
 
+              {/* INTEGRATED SHOPPING SECTION */}
+              <div className="bg-white/80 p-4 sketch-border border-dashed border-amber-900/25 space-y-4 rounded-xl">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isShoppingTask}
+                    onChange={(e) => {
+                      setIsShoppingTask(e.target.checked);
+                      if (!e.target.checked) {
+                        setLinkedWishlistId("");
+                        setShoppingPrice("");
+                        setShoppingLink("");
+                        setAlsoAddToWishlist(false);
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-amber-300 accent-amber-600 focus:ring-amber-500 cursor-pointer"
+                  />
+                  <span className="text-xs font-black uppercase text-amber-950 tracking-wider flex items-center gap-1.5">
+                    🛍️ Đây là món đồ / thứ cần mua (Shopping Item)
+                  </span>
+                </label>
+
+                {isShoppingTask && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="space-y-4 pt-3 border-t border-amber-200/40 overflow-hidden"
+                  >
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-ink/40 tracking-widest block">
+                        Liên kết với Waitlist / Wishlist có sẵn:
+                      </label>
+                      <select
+                        value={linkedWishlistId}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setLinkedWishlistId(val);
+                          if (val) {
+                            const matched = wishlist.find(w => w.id === val);
+                            if (matched) {
+                              setNewTask(`Mua ${matched.content}`);
+                              setShoppingPrice(matched.price ? matched.price.toString() : "");
+                              setShoppingLink(matched.link || "");
+                              setNewTaskPriority(matched.necessity);
+                            }
+                          }
+                        }}
+                        className="w-full bg-[#fdfaf2] sketch-border-sm p-3 text-xs font-sans focus:outline-none focus:border-ink cursor-pointer font-bold leading-normal"
+                      >
+                        <option value="">(Tạo món mới hoặc nhập thủ công)</option>
+                        {wishlist.filter(w => !w.isPurchased).map(w => (
+                          <option key={w.id} value={w.id}>
+                            🛍️ {w.content} {w.price ? `(${w.price.toLocaleString('vi-VN')} đ)` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {!linkedWishlistId && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="checkbox"
+                          checked={alsoAddToWishlist}
+                          onChange={(e) => setAlsoAddToWishlist(e.target.checked)}
+                          className="w-3.5 h-3.5 rounded border-amber-300 accent-amber-600 focus:ring-amber-500 cursor-pointer"
+                          id="also-add-wishlist"
+                        />
+                        <label htmlFor="also-add-wishlist" className="text-[10px] font-bold text-amber-900 cursor-pointer select-none">
+                          ➕ Đồng thời lưu vào Waitlist / Wishlist chi tiêu cá nhân
+                        </label>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-ink/40 tracking-widest block">Giá dự kiến (VND)</label>
+                        <input
+                          type="number"
+                          value={shoppingPrice}
+                          onChange={(e) => setShoppingPrice(e.target.value)}
+                          placeholder="Ví dụ: 150000"
+                          className="w-full bg-white sketch-border-sm p-3 text-xs font-sans focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-ink/40 tracking-widest block font-sans">Đường dẫn sản phẩm (URL)</label>
+                        <input
+                          type="url"
+                          value={shoppingLink}
+                          onChange={(e) => setShoppingLink(e.target.value)}
+                          placeholder="https://example.com/item..."
+                          className="w-full bg-white sketch-border-sm p-3 text-xs font-sans focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex gap-2 items-center">
                   <span className="text-[10px] font-black uppercase tracking-widest text-ink/40">Ưu tiên:</span>
@@ -718,7 +880,7 @@ export function PersonalGoals({
                           >
                             {task.content}
                           </p>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                             <span className={cn(
                               "text-[7px] uppercase font-black tracking-widest px-1.5 py-0.5 rounded shadow-sm border",
                               task.completed ? "bg-ink/5 text-ink/20 border-transparent" :
@@ -731,11 +893,35 @@ export function PersonalGoals({
                               const associatedGoal = goals.find(g => g.id === task.goalId);
                               if (!associatedGoal) return null;
                               return (
-                                <span className="text-[7px] uppercase font-black bg-sky-55 text-sky-600 border border-sky-250 px-1.5 py-0.5 rounded shadow-sm">
+                                <span className="text-[7px] uppercase font-black bg-sky-50 text-sky-600 border border-sky-100 px-1.5 py-0.5 rounded shadow-sm">
                                   🎯 {associatedGoal.title}
                                 </span>
                               );
                             })()}
+                            {task.isShopping && (
+                              <span className="text-[7px] uppercase font-black bg-amber-50 text-amber-700 border border-amber-200/60 px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1">
+                                <ShoppingBag size={8} /> Cần mua{task.price ? `: ${task.price.toLocaleString('vi-VN')} đ` : ""}
+                              </span>
+                            )}
+                            {task.wishlistId && (() => {
+                              const linkedWish = wishlist.find(w => w.id === task.wishlistId);
+                              return (
+                                <span className="text-[7px] uppercase font-black bg-rose-50 text-rose-600 border border-rose-200/60 px-1.5 py-0.5 rounded shadow-sm">
+                                  💝 Waitlist: {linkedWish ? (linkedWish.isPurchased ? "Đã mua ✓" : "Chờ mua") : "Liên kết"}
+                                </span>
+                              );
+                            })()}
+                            {task.link && (
+                              <a
+                                href={task.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[7px] uppercase font-black bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-250/30 px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 transition-colors cursor-pointer select-none"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <LinkIcon size={8} className="translate-y-[0.5px]" /> Mua ngay
+                              </a>
+                            )}
                           </div>
                         </>
                       )}

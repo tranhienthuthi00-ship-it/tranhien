@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, Plus, Trash2, Heart, HeartPulse, Star } from "lucide-react";
+import { Check, Plus, Trash2, Heart, HeartPulse, Star, ClipboardList } from "lucide-react";
 import { format } from "date-fns";
 import type { Task, WishlistItem } from "@/types";
 import { cn } from "@/lib/utils";
@@ -7,9 +7,13 @@ import { cn } from "@/lib/utils";
 export function MyList({
   wishlist,
   setWishlist,
+  tasks = [],
+  setTasks,
 }: {
   wishlist: WishlistItem[];
   setWishlist: (list: WishlistItem[]) => void;
+  tasks?: Task[];
+  setTasks?: (list: Task[]) => void;
 }) {
   const [newWish, setNewWish] = useState("");
   const [newPrice, setNewPrice] = useState("");
@@ -336,7 +340,47 @@ export function MyList({
                    )}>
                      {wish.necessity} Need {wish.isPurchased && "✅"}
                    </span>
-                 </div>
+                   {(() => {
+                     const linkedTodo = tasks.find(t => t.wishlistId === wish.id);
+                     if (linkedTodo) {
+                       return (
+                         <span className={cn(
+                           "text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full border flex items-center gap-1",
+                           linkedTodo.completed 
+                             ? "bg-emerald-50 text-emerald-700 border-emerald-400" 
+                             : "bg-amber-50 text-amber-900 border-amber-300"
+                         )}>
+                           <ClipboardList size={10} /> To-Do: {linkedTodo.completed ? "Đã mua" : "Chờ mua"}
+                         </span>
+                       );
+                     } else if (!wish.isPurchased && setTasks) {
+                       return (
+                         <button
+                           type="button"
+                           onClick={() => {
+                             const taskId = Date.now().toString();
+                             const newTaskItem: Task = {
+                               id: taskId,
+                               content: `Mua ${wish.content}`,
+                               completed: false,
+                               priority: wish.necessity,
+                               createdAt: Date.now(),
+                               isShopping: true,
+                               wishlistId: wish.id,
+                               price: wish.price,
+                               link: wish.link
+                             };
+                             setTasks([newTaskItem, ...tasks]);
+                           }}
+                           className="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full border bg-white border-[#e5e7eb] hover:bg-gray-50 text-amber-900 hover:text-amber-950 transition-colors cursor-pointer flex items-center gap-1 shrink-0 shadow-xs"
+                         >
+                           <Plus size={8} /> 📋 Lập việc cần mua
+                         </button>
+                       );
+                     }
+                     return null;
+                   })()}
+                  </div>
                  <span className="text-[10px] opacity-40 uppercase font-sans font-bold">{format(new Date(wish.addedDate), 'dd/MM/yyyy')}</span>
                </div>
                

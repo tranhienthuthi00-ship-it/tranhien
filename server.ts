@@ -959,6 +959,106 @@ Hãy trả về duy nhất chuỗi JSON thô, không nằm trong các khối mã
     };
   }
 
+  // API route for improving English journal entries
+  app.post("/api/journal/improve-english", async (req, res) => {
+    try {
+      const { content } = req.body;
+      if (!content || !content.trim()) {
+        return res.status(400).json({ error: "Nội dung trống" });
+      }
+
+      if (!process.env.GEMINI_API_KEY) {
+        console.warn("GEMINI_API_KEY is not defined. Using local fallback for Improve English.");
+        return res.json(getFallbackImprovement(content));
+      }
+
+      const prompt = `You are an encouraging and professional English teacher. Analyze the following English journal entry or writing.
+Identify grammatical mistakes, spelling errors, awkward phrasing, or ways to improve readability, and suggest a fully polished, natural version.
+
+Journal Entry: "${content}"
+
+Return a valid JSON object matching this schema:
+{
+  "improved": "The completely improved, natural, and grammar-checked English version of the text",
+  "corrections": [
+    {
+      "originalPart": "The specific phrase or word with error or awkwardness",
+      "correctedPart": "The corrected/improved word or phrase",
+      "explanation": "Brief, helpful explanation in Vietnamese explaining why this is corrected and the rule behind it"
+    }
+  ],
+  "overallFeedback": "An encouraging feedback in Vietnamese on their English writing, highlighting areas of strength and areas where they can improve, in a warm, friendly tone."
+}
+
+Ensure the output is strictly valid JSON with no markdown wrapping. Do not include any other text except the valid JSON string.`;
+
+      const result = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const responseText = result.text.trim();
+      const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
+      const payload = JSON.parse(cleanJson);
+      res.json(payload);
+    } catch (error: any) {
+      console.error("Gemini Error (Improve English):", error);
+      res.json(getFallbackImprovement(req.body.content || ""));
+    }
+  });
+
+  function getFallbackImprovement(content: string) {
+    const trimmed = content.trim();
+    let improved = trimmed;
+    const corrections: any[] = [];
+    
+    // Rule 1: capitalize first letter of sentences
+    if (trimmed.length > 0 && trimmed[0] !== trimmed[0].toUpperCase()) {
+      const firstLetter = trimmed[0].toUpperCase();
+      improved = firstLetter + trimmed.slice(1);
+      corrections.push({
+        originalPart: trimmed[0],
+        correctedPart: firstLetter,
+        explanation: "Nên viết hoa chữ cái đầu tiên của câu để đúng quy tắc chính tả tiếng Anh."
+      });
+    }
+
+    // Rule 2: common lowercase 'i' to 'I'
+    if (/\bi\b/.test(improved)) {
+      improved = improved.replace(/\bi\b/g, "I");
+      corrections.push({
+        originalPart: "i",
+        correctedPart: "I",
+        explanation: "Chữ nhân xưng 'I' (tôi) luôn luôn phải viết hoa trong tiếng Anh."
+      });
+    }
+
+    // Rule 3: common spacing after periods/commas if missing
+    if (/,([^\s])/.test(improved)) {
+      improved = improved.replace(/,([^\s])/g, ", $1");
+      corrections.push({
+        originalPart: ",",
+        correctedPart: ", ",
+        explanation: "Nên thêm khoảng trắng sau dấu phẩy để văn bản rõ ràng hơn."
+      });
+    }
+
+    return {
+      improved,
+      corrections: corrections.length > 0 ? corrections : [
+        {
+          originalPart: "Keep writing!",
+          correctedPart: "Keep writing!",
+          explanation: "Bài viết của bạn cơ bản đã rất ổn, không phát hiện lỗi ngữ pháp rõ rệt bằng thuật toán ngoại tuyến."
+        }
+      ],
+      overallFeedback: "Hiện tại hệ thống AI đang ở chế độ dự phòng ngoại tuyến. Bài viết tiếng Anh của bạn nhìn chung rất dễ hiểu. Hãy tiếp tục duy trì thói quen viết tâm bút ngoại ngữ hàng ngày nhé! You are doing a wonderful job!"
+    };
+  }
+
   // Helper for rule-based matching when Gemini is offline or not configured
   function getLocalCategoryMatch(itemName: string, categories: { id: string, name: string }[]) {
     const lowerName = itemName.toLowerCase().trim();

@@ -472,9 +472,16 @@ function AppContent() {
                     setTasks={setTasks}
                     logs={logs}
                     setLogs={setLogs}
+                    wishlist={wishlist}
+                    setWishlist={setWishlist}
                   />
                   <div className="sketch-border-sm border-t-8 border-ink/5 pt-12">
-                    <MyList wishlist={wishlist} setWishlist={setWishlist} />
+                    <MyList 
+                      wishlist={wishlist} 
+                      setWishlist={setWishlist} 
+                      tasks={tasks}
+                      setTasks={setTasks}
+                    />
                   </div>
                 </div>
               )}

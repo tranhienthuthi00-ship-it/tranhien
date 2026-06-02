@@ -190,6 +190,41 @@ export function DigitalJournal({
   const [quickLogType, setQuickLogType] = useState<'Reflection' | 'Event'>('Reflection');
   const [quickLogEmoji, setQuickLogEmoji] = useState("📝5");
 
+  // AI-powered 'Improve English' states and handler
+  const [isImproving, setIsImproving] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<{
+    improved: string;
+    corrections: Array<{ originalPart: string; correctedPart: string; explanation: string }>;
+    overallFeedback: string;
+  } | null>(null);
+  const [aiError, setAiError] = useState("");
+
+  const handleImproveEnglish = async () => {
+    if (!quickLogContent.trim()) return;
+    setIsImproving(true);
+    setAiError("");
+    setAiSuggestions(null);
+    try {
+      const res = await fetch("/api/journal/improve-english", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: quickLogContent })
+      });
+      if (!res.ok) {
+        throw new Error("Không thể kết nối đến máy chủ AI.");
+      }
+      const data = await res.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      setAiSuggestions(data);
+    } catch (err: any) {
+      setAiError(err.message || "Đã xảy ra lỗi khi tối ưu hóa tiếng Anh.");
+    } finally {
+      setIsImproving(false);
+    }
+  };
+
   // ---------------- COMPACT TASK ADD STATE ----------------
   const [newTaskContent, setNewTaskContent] = useState("");
   const [newTaskPriority, setNewTaskPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
@@ -373,6 +408,8 @@ export function DigitalJournal({
 
     setLogs(prev => [...prev, newLog]);
     setQuickLogContent("");
+    setAiSuggestions(null);
+    setAiError("");
   };
 
   const handleDeleteLog = (id: string) => {
@@ -1037,24 +1074,122 @@ export function DigitalJournal({
                   ))}
                 </div>
 
-                <form onSubmit={handleAddQuickLog} className="flex gap-1.5">
-                  <input
-                    type="text"
-                    value={quickLogContent}
-                    onChange={(e) => setQuickLogContent(e.target.value)}
-                    placeholder={quickLogType === 'Event' ? "Thêm nhanh một sự kiện của ngày đã chọn..." : "Ghi nhanh suy ngẫm / học được hôm nay..."}
-                    className="flex-1 px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200/60 focus:outline-none focus:border-amber-400 font-sans text-ink"
-                    required
-                  />
-                  
-                  <button
-                    type="submit"
-                    disabled={!quickLogContent.trim()}
-                    className="px-3 py-1.5 bg-ink text-white font-extrabold text-[10px] rounded-lg hover:bg-amber-600 disabled:opacity-40 uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1 shrink-0"
-                  >
-                    <Plus size={10} /> Lưu
-                  </button>
-                </form>
+                <div className="flex flex-col gap-2">
+                  <form onSubmit={handleAddQuickLog} className="flex gap-1.5">
+                    <input
+                      type="text"
+                      value={quickLogContent}
+                      onChange={(e) => setQuickLogContent(e.target.value)}
+                      placeholder={quickLogType === 'Event' ? "Thêm nhanh một sự kiện của ngày đã chọn..." : "Ghi nhanh suy ngẫm / học được hôm nay..."}
+                      className="flex-1 px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200/60 focus:outline-none focus:border-amber-400 font-sans text-ink"
+                      required
+                    />
+                    
+                    {quickLogType === 'Reflection' && (
+                      <button
+                        type="button"
+                        onClick={handleImproveEnglish}
+                        disabled={isImproving || !quickLogContent.trim()}
+                        className="py-1.5 px-2 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 disabled:from-gray-300 disabled:to-gray-400 text-white font-extrabold text-[10px] rounded-lg cursor-pointer transition-all flex items-center gap-1 shrink-0 uppercase tracking-wider shadow-sm"
+                        title="Tối ưu hóa và sửa ngữ pháp Tiếng Anh bằng AI"
+                      >
+                        <Sparkles size={11} className={isImproving ? "animate-spin" : ""} />
+                        {isImproving ? "Đang quét..." : "Sửa Tiếng Anh"}
+                      </button>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={!quickLogContent.trim()}
+                      className="px-3 py-1.5 bg-ink text-white font-extrabold text-[10px] rounded-lg hover:bg-amber-600 disabled:opacity-40 uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1 shrink-0 shadow-sm"
+                    >
+                      <Plus size={10} /> Lưu
+                    </button>
+                  </form>
+
+                  {/* AI Improvement Result Panel */}
+                  <AnimatePresence>
+                    {aiSuggestions && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="mt-2 p-3.5 bg-gradient-to-br from-amber-50/90 to-rose-50/70 rounded-2xl border-2 border-amber-200 text-left space-y-3 shadow-md relative overflow-hidden z-10"
+                      >
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full -mr-10 -mt-10 pointer-events-none" />
+                        
+                        <div className="flex items-center justify-between border-b border-amber-200/50 pb-2">
+                          <div className="flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
+                            <span className="text-[10px] font-black uppercase text-amber-950 tracking-wider">Gợi ý từ Giáo viên bản xứ AI</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAiSuggestions(null)}
+                            className="text-amber-900/40 hover:text-rose-600 transition-colors p-0.5 rounded-lg hover:bg-amber-100/50 cursor-pointer"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="text-[9px] uppercase font-bold text-amber-950/60 tracking-wider">Bản viết hoàn thiện đề xuất:</div>
+                          <p className="text-xs font-semibold text-ink bg-white/95 p-2.5 rounded-xl border border-amber-250/30 shadow-xs font-sans italic selection:bg-rose-100">
+                            "{aiSuggestions.improved}"
+                          </p>
+                          
+                          <div className="flex justify-end pt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setQuickLogContent(aiSuggestions.improved);
+                                setAiSuggestions(null);
+                              }}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[9px] uppercase tracking-wider rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-xs border border-emerald-700"
+                            >
+                              <Check size={10} className="stroke-[3px]" /> Áp dụng bản chỉnh sửa
+                            </button>
+                          </div>
+                        </div>
+
+                        {aiSuggestions.corrections && aiSuggestions.corrections.length > 0 && (
+                          <div className="space-y-1.5 border-t border-dashed border-amber-200 pt-2.5">
+                            <div className="text-[9px] uppercase font-bold text-amber-950/60 tracking-wider">Chi tiết sửa lỗi & nâng cấp:</div>
+                            <div className="max-h-28 overflow-y-auto space-y-1.5 font-sans pr-1 custom-scrollbar">
+                              {aiSuggestions.corrections.map((corr, idx) => (
+                                <div key={idx} className="p-2 bg-white/70 rounded-xl border border-amber-100 text-[11px] leading-relaxed space-y-1">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="line-through text-red-600 bg-red-50 px-1 rounded-sm">{corr.originalPart}</span>
+                                    <span className="text-amber-800 font-extrabold">→</span>
+                                    <span className="font-bold text-emerald-700 bg-emerald-50 px-1 rounded-sm">{corr.correctedPart}</span>
+                                  </div>
+                                  <p className="text-[10px] text-ink/75 italic leading-snug">
+                                    💡 {corr.explanation}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {aiSuggestions.overallFeedback && (
+                          <div className="bg-amber-100/20 p-2.5 rounded-xl border border-amber-200/30">
+                            <div className="text-[9px] uppercase font-semibold text-rose-800 tracking-wider mb-0.5">Lời khuyên của Giáo viên:</div>
+                            <p className="text-[10px] text-ink/80 leading-snug italic font-sans">
+                              {aiSuggestions.overallFeedback}
+                            </p>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {aiError && (
+                    <div className="mt-2 text-[10px] text-red-600 bg-red-50 p-2 rounded-lg border border-red-100">
+                      ⚠️ {aiError}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
