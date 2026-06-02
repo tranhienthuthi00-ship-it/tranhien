@@ -590,8 +590,15 @@ export function CalendarView({
                   
                   {/* Visual Markers Section */}
                   <div className="flex gap-1 items-center">
-                    {dayLogs.map((_, idx) => (
-                      <div key={idx} className="w-1.5 h-1.5 rounded-full bg-crimson shadow-sm" />
+                    {dayLogs.map((log, idx) => (
+                      <div 
+                        key={idx} 
+                        className={cn(
+                          "w-1.5 h-1.5 rounded-full shadow-sm",
+                          log.type === 'Event' ? "bg-crimson" : "bg-amber-400"
+                        )}
+                        title={log.type === 'Event' ? "Sự kiện" : "Suy ngẫm / ghi chép"}
+                      />
                     ))}
                   </div>
                 </div>

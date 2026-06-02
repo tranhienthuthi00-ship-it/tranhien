@@ -27,6 +27,7 @@ import {
   X
 } from "lucide-react";
 import { useFirebase } from "../context/FirebaseContext";
+import { cn } from "../lib/utils";
 
 
 const formatDateDot = (dateStr: string) => {
@@ -933,7 +934,7 @@ export function DigitalJournal({
                 </span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-black text-amber-700 font-mono bg-white px-1.5 py-0.5 rounded border border-amber-100">
-                    {selectedDateLogs.length} sự kiện
+                    {selectedDateLogs.length} mục
                   </span>
                   <button 
                     type="button" 
@@ -946,52 +947,115 @@ export function DigitalJournal({
                 </div>
               </div>
 
-              {selectedDateLogs.length === 0 ? (
-                <p className="text-[11px] text-ink/45 font-hand italic leading-tight text-center py-2 select-none">
-                  Chưa ghi ghép sự kiện gì vào ngày này. Hãy lưu nhanh ở dưới!
-                </p>
-              ) : (
-                <div className="space-y-2 max-h-[145px] overflow-y-auto pr-1">
-                  {selectedDateLogs.map(l => (
-                    <div key={l.id} className="flex justify-between items-start text-xs bg-white/70 p-2 rounded-lg border border-amber-200/50 group/log line-clamp-3 leading-relaxed">
-                      <div className="flex items-start gap-1.5 text-left min-w-0 flex-1">
-                        <span className="shrink-0">{l.emoji || "📝"}</span>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-ink break-words">{l.content}</p>
-                          {l.time && <span className="font-mono text-[9px] text-[#0369a1] bg-[#e0f2fe] px-1 rounded block w-fit mt-0.5">{l.time}</span>}
+              {(() => {
+                const dayEvents = selectedDateLogs.filter(l => l.type === 'Event');
+                const dayReflections = selectedDateLogs.filter(l => l.type === 'Reflection' || !l.type);
+
+                return selectedDateLogs.length === 0 ? (
+                  <p className="text-[11px] text-ink/45 font-hand italic leading-tight text-center py-2 select-none">
+                    Chưa ghi ghép sự kiện gì vào ngày này. Hãy lưu nhanh ở dưới!
+                  </p>
+                ) : (
+                  <div className="space-y-3 max-h-[165px] overflow-y-auto pr-1">
+                    {dayEvents.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-black uppercase text-rose-600 tracking-wider flex items-center gap-1 mb-1.5 bg-rose-50 px-1.5 py-0.5 rounded w-fit">
+                          <span>📅 Sự kiện ({dayEvents.length})</span>
+                        </p>
+                        <div className="space-y-1.5">
+                          {dayEvents.map(l => (
+                            <div key={l.id} className="flex justify-between items-start text-xs bg-rose-50/20 p-2 rounded-lg border border-rose-250/30 group/log leading-relaxed">
+                              <div className="flex items-start gap-1.5 text-left min-w-0 flex-1">
+                                <span className="shrink-0">{l.emoji || "🔔"}</span>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-rose-950 break-words font-sans">{l.content}</p>
+                                  {l.time && <span className="font-mono text-[9px] text-[#0369a1] bg-[#e0f2fe] px-1 rounded block w-fit mt-0.5">{l.time}</span>}
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => handleDeleteLog(l.id)}
+                                className="p-1 hover:text-crimson opacity-0 group-hover/log:opacity-100 transition-opacity ml-1.5 cursor-pointer text-ink/40 w-auto"
+                                title="Xóa"
+                              >
+                                <Trash2 size={10} />
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <button 
-                        onClick={() => handleDeleteLog(l.id)}
-                        className="p-1 hover:text-crimson opacity-0 group-hover/log:opacity-100 transition-opacity ml-1.5 cursor-pointer"
-                        title="Xóa"
-                      >
-                        <Trash2 size={10} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    )}
+
+                    {dayReflections.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-black uppercase text-amber-700 tracking-wider flex items-center gap-1 mb-1.5 bg-amber-50 px-1.5 py-0.5 rounded w-fit">
+                          <span>💭 Ghi ghép / Suy ngẫm ({dayReflections.length})</span>
+                        </p>
+                        <div className="space-y-1.5">
+                          {dayReflections.map(l => (
+                            <div key={l.id} className="flex justify-between items-start text-xs bg-white/70 p-2 rounded-lg border border-amber-200/50 group/log leading-relaxed">
+                              <div className="flex items-start gap-1.5 text-left min-w-0 flex-1">
+                                <span className="shrink-0">{l.emoji || "💭"}</span>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-amber-950 break-words font-sans">{l.content}</p>
+                                  {l.time && <span className="font-mono text-[9px] text-amber-600 bg-amber-50 px-1 rounded block w-fit mt-0.5">{l.time}</span>}
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => handleDeleteLog(l.id)}
+                                className="p-1 hover:text-crimson opacity-0 group-hover/log:opacity-100 transition-opacity ml-1.5 cursor-pointer text-ink/40 w-auto"
+                                title="Xóa"
+                              >
+                                <Trash2 size={10} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Quick Inline Log add Form */}
-              <form onSubmit={handleAddQuickLog} className="flex gap-1.5 pt-2 border-t border-amber-200/30">
-                <input
-                  type="text"
-                  value={quickLogContent}
-                  onChange={(e) => setQuickLogContent(e.target.value)}
-                  placeholder="Thêm nhanh ghi ghép/reflection cho ngày đã chọn..."
-                  className="flex-1 px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200/60 focus:outline-none focus:border-amber-400 font-sans text-ink"
-                  required
-                />
-                
-                <button
-                  type="submit"
-                  disabled={!quickLogContent.trim()}
-                  className="px-3 py-1.5 bg-ink text-white font-extrabold text-[10px] rounded-lg hover:bg-amber-600 disabled:opacity-40 uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1 shrink-0"
-                >
-                  <Plus size={10} /> Lưu
-                </button>
-              </form>
+              <div className="pt-2 border-t border-amber-200/30">
+                {/* Type Switcher */}
+                <div className="flex gap-1.5 mb-2 mt-0.5 border-b border-amber-100/50 pb-1.5">
+                  {(['Reflection', 'Event'] as const).map(type => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setQuickLogType(type)}
+                      className={cn(
+                        "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1",
+                        quickLogType === type 
+                          ? "bg-amber-100 text-amber-950 border border-amber-300" 
+                          : "text-amber-800/60 hover:bg-amber-50 border border-transparent"
+                      )}
+                    >
+                      {type === 'Reflection' ? '💭 Ghi ghép / Suy ngẫm' : '🔔 Sự kiện'}
+                    </button>
+                  ))}
+                </div>
+
+                <form onSubmit={handleAddQuickLog} className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={quickLogContent}
+                    onChange={(e) => setQuickLogContent(e.target.value)}
+                    placeholder={quickLogType === 'Event' ? "Thêm nhanh một sự kiện của ngày đã chọn..." : "Ghi nhanh suy ngẫm / học được hôm nay..."}
+                    className="flex-1 px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200/60 focus:outline-none focus:border-amber-400 font-sans text-ink"
+                    required
+                  />
+                  
+                  <button
+                    type="submit"
+                    disabled={!quickLogContent.trim()}
+                    className="px-3 py-1.5 bg-ink text-white font-extrabold text-[10px] rounded-lg hover:bg-amber-600 disabled:opacity-40 uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1 shrink-0"
+                  >
+                    <Plus size={10} /> Lưu
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
 
