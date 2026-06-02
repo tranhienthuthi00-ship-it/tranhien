@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { VideoDictation, Word } from '../types';
 import { cn, getAbsoluteUrl } from '../lib/utils';
-import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, Type, Headphones, Download, Loader2, Mic, Library, PlayCircle, Star, MicOff, RotateCcw, Languages, Sparkles, BookOpen, Search, Volume2, X, Sparkle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Video, ChevronLeft, ChevronRight, Type, Headphones, Download, Loader2, Mic, Library, PlayCircle, Star, MicOff, RotateCcw, Languages, Sparkles, BookOpen, Search, Volume2, X, Sparkle, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { YoutubeTranscript } from 'youtube-transcript';
 import YouTube from 'react-youtube';
@@ -38,6 +38,26 @@ export function YouTubeDictation({
   const [isSavedToWordbook, setIsSavedToWordbook] = useState<boolean>(false);
   const [translatingIndex, setTranslatingIndex] = useState<number | null>(null);
   const [isTranslatingAll, setIsTranslatingAll] = useState(false);
+
+  const [playerMode, setPlayerMode] = useState<'video' | 'audio'>('video');
+  const [revealAll, setRevealAll] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showSentenceList, setShowSentenceList] = useState(false);
+  const [revealedWordIndices, setRevealedWordIndices] = useState<Set<number>>(new Set());
+
+  const toggleRevealWord = (index: number) => {
+    setRevealedWordIndices(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
 
   const formatTime = (sec: number) => {
     if (isNaN(sec)) return "00:00";
@@ -720,6 +740,13 @@ export function YouTubeDictation({
   }, [activeSubtitleIndex, autoScrollSubtitles]);
 
   useEffect(() => {
+    setUserInput('');
+    setRevealAll(false);
+    setShowTranslation(false);
+    setRevealedWordIndices(new Set());
+  }, [activeSessionId, activeSession?.progress]);
+
+  useEffect(() => {
     if (activeSession && mode === 'practice') {
       const sentences = getSentences(activeSession.content);
       const currentIndex = activeSession.progress || 0;
@@ -754,6 +781,514 @@ export function YouTubeDictation({
     const sentences = getSentences(activeSession.content);
     const progressIndex = activeSession.progress || 0;
     const isCompleted = sentences.length > 0 && progressIndex >= sentences.length;
+
+    const getCurrentTranslation = () => {
+      if (!activeSession || !activeSession.transcriptItems) return "";
+      const currentSentence = sentences[progressIndex];
+      if (!currentSentence) return "";
+      const cleanProgSentence = normalizeString(currentSentence);
+      
+      const matched = activeSession.transcriptItems.find(item => {
+        const cleanItemText = normalizeString(item.text);
+        return cleanProgSentence.includes(cleanItemText) || cleanItemText.includes(cleanProgSentence) || stringSimilarity.compareTwoStrings(cleanProgSentence, cleanItemText) > 0.6;
+      });
+      return matched?.translation || "";
+    };
+    const translation = getCurrentTranslation();
+
+    const handlePlayPause = () => {
+      if (!playerRef.current) return;
+      try {
+        const state = playerRef.current.getPlayerState();
+        if (state === 1) {
+          playerRef.current.pauseVideo();
+          setIsPlaying(false);
+        } else {
+          playerRef.current.playVideo();
+          setIsPlaying(true);
+        }
+      } catch (e) {
+        if (isPlaying) {
+          playerRef.current.pauseVideo();
+          setIsPlaying(false);
+        } else {
+          playerRef.current.playVideo();
+          setIsPlaying(true);
+        }
+      }
+    };
+
+    const handleReplaySentence = () => {
+      if (!activeSession) return;
+      playSentence(progressIndex);
+    };
+
+    const changeSpeed = (rate: number) => {
+      setPlaybackSpeed(rate);
+      if (playerRef.current && typeof playerRef.current.setPlaybackRate === 'function') {
+        try {
+          playerRef.current.setPlaybackRate(rate);
+        } catch (err) {}
+      }
+    };
+
+    if (mode === 'practice') {
+      return (
+        <div className="max-w-7xl mx-auto p-1.5 md:p-3 font-sans h-[calc(100dvh-220px)] md:h-[calc(100vh-180px)] flex flex-col overflow-hidden bg-[#070708] mt-2 mb-2 rounded-[28px] border border-neutral-900 shadow-2xl">
+          <div className="flex justify-between items-center mb-3 shrink-0 px-2 lg:px-0 gap-2">
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => setActiveSessionId(null)}
+                className="flex items-center gap-0.5 text-neutral-400 hover:text-white transition-colors font-bold text-[9px] uppercase tracking-widest shrink-0 cursor-pointer"
+              >
+                <ChevronLeft size={14} /> Quay lại
+              </button>
+            </div>
+            
+            <div className="flex-1 max-w-xs mx-1">
+               <input 
+                 type="text" 
+                 value={activeSession.title}
+                 onChange={(e) => updateSession(activeSession.id, 'title', e.target.value)}
+                 className="w-full bg-transparent border-b border-dashed border-neutral-800 text-neutral-400 focus:border-neutral-700 outline-none text-xs font-bold text-center py-0.5 transition-colors"
+                 placeholder="Tiêu đề..."
+               />
+            </div>
+            
+            <div className="flex gap-1 shrink-0">
+              <button 
+                onClick={() => setMode('subtitles')}
+                className="p-1.5 text-[9px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 border border-neutral-800 cursor-pointer"
+              >
+                <Languages size={10} /> <span className="hidden xs:inline">Subtitles</span>
+              </button>
+              <button 
+                onClick={() => setMode('transcript')}
+                className="p-1.5 text-[9px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 border border-neutral-800 cursor-pointer"
+              >
+                <Type size={10} /> <span className="hidden xs:inline">Transcript</span>
+              </button>
+              <button 
+                onClick={() => setMode('practice')}
+                className="p-1.5 text-[9px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1 bg-white text-black font-extrabold cursor-pointer"
+              >
+                <Headphones size={10} /> <span className="hidden xs:inline">Practice</span>
+              </button>
+              <button 
+                onClick={() => setMode('shadowing')}
+                className="p-1.5 text-[9px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 border border-neutral-800 cursor-pointer"
+              >
+                <Video size={10} /> <span className="hidden xs:inline">Shadowing</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 w-full max-w-2xl mx-auto flex flex-col min-h-0 bg-[#0d0d0f] text-neutral-200 p-3 md:p-6 rounded-[24px] border border-neutral-800/80 shadow-2xl relative overflow-hidden font-sans">
+            {sentences.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-neutral-400">
+                <Type size={32} className="mb-2 opacity-50 text-amber-500" />
+                <p className="mb-2 text-sm font-semibold">Chưa có Transcript cho bài học này.</p>
+                <button onClick={() => setMode('transcript')} className="px-4 py-2 bg-neutral-800 text-white rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-neutral-700 cursor-pointer">Thêm Transcript</button>
+              </div>
+            ) : isCompleted ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-6 animate-in zoom-in-95 duration-500 space-y-4">
+                <div className="w-20 h-20 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mb-2 border border-emerald-500/30 shadow-lg">
+                  <Check size={40} />
+                </div>
+                <h3 className="text-2xl font-black uppercase tracking-tight text-white animate-pulse">Hoàn thành bài tập!</h3>
+                <p className="text-sm text-neutral-400 max-w-sm font-medium leading-relaxed">Tuyệt vời! Bạn đã nghe và viết chính xác tất cả {sentences.length} câu của bài học.</p>
+                <div className="flex gap-4 pt-4 justify-center">
+                  <button onClick={() => updateSession(activeSession.id, 'progress', 0)} className="px-6 py-2.5 bg-white text-black font-extrabold uppercase text-xs tracking-wider rounded-xl hover:bg-neutral-100 transition-all shadow-md cursor-pointer">Luyện lại</button>
+                  <button onClick={() => setActiveSessionId(null)} className="px-6 py-2.5 bg-neutral-800 text-white font-extrabold uppercase text-xs tracking-wider rounded-xl hover:bg-neutral-700 transition-all border border-neutral-700 cursor-pointer">Bài khác</button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col h-full flex-1 justify-between min-h-0 gap-3">
+                <div className="flex justify-between items-center mb-1 shrink-0 gap-2">
+                  <div className="flex items-center gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => setMode('subtitles')}
+                      className="w-8 h-8 rounded-full bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-inner"
+                      title="Quay lại"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    
+                    <div className="bg-neutral-900 border border-neutral-850 px-3 py-1.5 rounded-full text-[11px] font-bold text-neutral-300 tracking-wide font-mono flex items-center justify-center gap-1.5 shadow-md">
+                      #{progressIndex + 1} <span className="opacity-30">•</span> {progressIndex}/{sentences.length}
+                    </div>
+                  </div>
+
+                  <div className="flex bg-[#161619] border border-neutral-800/80 p-0.5 rounded-full shadow-inner">
+                    <button 
+                      type="button"
+                      onClick={() => setPlayerMode('video')}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer",
+                        playerMode === 'video' 
+                          ? "bg-white text-black shadow-md font-black" 
+                          : "text-neutral-400 hover:text-white"
+                      )}
+                    >
+                      <Video size={11} className={playerMode === 'video' ? "text-black fill-current" : "text-neutral-400"} />
+                      <span>Video</span>
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setPlayerMode('audio')}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer",
+                        playerMode === 'audio' 
+                          ? "bg-white text-black shadow-md font-black" 
+                          : "text-neutral-400 hover:text-white"
+                      )}
+                    >
+                      <Headphones size={11} className={playerMode === 'audio' ? "text-black" : "text-neutral-400"} />
+                      <span>Audio</span>
+                    </button>
+                  </div>
+
+                  <button 
+                    type="button"
+                    onClick={() => setShowSentenceList(!showSentenceList)}
+                    className={cn(
+                      "w-8 h-8 rounded-full bg-neutral-900 border text-neutral-300 hover:text-white flex items-center justify-center transition-all cursor-pointer",
+                      showSentenceList ? "border-amber-500/50 text-amber-400 bg-amber-500/10" : "border-neutral-800 hover:border-neutral-700"
+                    )}
+                    title="Mở danh sách câu"
+                  >
+                    <Library size={13} />
+                  </button>
+                </div>
+
+                <div className="relative shrink-0 w-full mb-1">
+                  {playerMode === 'video' ? (
+                    <div className="w-full aspect-[1.58] sm:aspect-video bg-black relative shadow-2xl overflow-hidden rounded-[24px] border border-neutral-800/80 shrink-0">
+                      <YouTube 
+                        videoId={activeSession.youtubeId} 
+                        onReady={(e) => {
+                          playerRef.current = e.target;
+                          setIsPlayerReady(true);
+                          setVideoError('');
+                          try {
+                            e.target.setPlaybackRate(playbackSpeed);
+                          } catch (err) {}
+                        }}
+                        onStateChange={(e) => {
+                          setIsPlaying(e.data === 1);
+                        }}
+                        onError={() => {
+                          setVideoError("Lỗi kết nối hoặc nhúng video.");
+                        }}
+                        opts={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          playerVars: { 
+                            autoplay: 1, 
+                            rel: 0, 
+                            modestbranding: 1, 
+                            playsinline: 1,
+                            origin: window.location.origin,
+                            controls: 0,
+                            showinfo: 0,
+                          } 
+                        }}
+                        className="w-full h-full" 
+                      />
+                      {videoError && (
+                        <div className="absolute inset-0 bg-neutral-950 flex flex-col items-center justify-center p-3 text-center z-20">
+                          <Video size={24} className="text-red-500 mb-1.5" />
+                          <p className="text-white text-xs font-bold mb-3">{videoError}</p>
+                          <button onClick={() => { setVideoError(''); }} className="text-xs uppercase font-bold text-white/60 hover:text-white underline cursor-pointer">Thử lại</button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-full aspect-[1.58] sm:aspect-video rounded-[24px] bg-[#111113] border border-neutral-800/80 flex items-center justify-center p-4 relative overflow-hidden shadow-2xl shrink-0">
+                      <div className="absolute w-[1px] h-[1px] -left-[9999px] opacity-0 pointer-events-none">
+                        <YouTube 
+                          videoId={activeSession.youtubeId}
+                          onReady={(e) => {
+                            playerRef.current = e.target;
+                            setIsPlayerReady(true);
+                            try {
+                              e.target.setPlaybackRate(playbackSpeed);
+                            } catch (err) {}
+                          }}
+                          onStateChange={(e) => {
+                            setIsPlaying(e.data === 1);
+                          }}
+                          opts={{
+                            width: '1',
+                            height: '1',
+                            playerVars: { autoplay: 1, rel: 0, modestbranding: 1, playsinline: 1 }
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center text-center space-y-3">
+                        <div className="relative">
+                          <div className={cn(
+                            "w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-neutral-950 via-neutral-900 to-neutral-950 border-[3px] border-neutral-850 flex items-center justify-center shadow-2xl relative transition-transform duration-500",
+                            isPlaying ? "animate-[spin_10s_linear_infinite]" : ""
+                          )}>
+                            <div className="absolute inset-1.5 rounded-full border border-neutral-800/20" />
+                            <div className="absolute inset-3 rounded-full border border-neutral-800/20" />
+                            <div className="absolute inset-6 rounded-full border border-neutral-850" />
+                            
+                            <div className="w-9 h-9 bg-amber-500 rounded-full border-2 border-neutral-950 flex items-center justify-center shadow-inner relative">
+                              <Headphones size={12} className="text-neutral-950" />
+                            </div>
+                          </div>
+                          
+                          <div className={cn(
+                            "absolute right-[-8px] top-[-6px] w-10 h-16 origin-top-right transition-transform duration-700 pointer-events-none",
+                            isPlaying ? "rotate-[10deg]" : "rotate-0"
+                          )}>
+                            <div className="h-12 w-[2px] bg-neutral-600/70 shadow ml-5 rounded-full" />
+                            <div className="h-2 w-2.5 bg-neutral-500 ml-4.5" />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-center space-y-0.5">
+                          <p className="text-[10px] font-mono font-bold text-amber-500 tracking-widest animate-pulse">
+                            {isPlaying ? "🎙️ ĐANG PHÁT ÂM THANH" : "⏸️ ĐANG TẠM DỪNG"}
+                          </p>
+                          <div className="flex items-end gap-0.5 h-4 pt-1">
+                            {Array.from({ length: 12 }).map((_, i) => (
+                              <div
+                                key={i}
+                                className={cn(
+                                  "w-[2px] bg-neutral-800 rounded-full transition-all duration-300",
+                                  isPlaying ? "bg-amber-500/80" : ""
+                                )}
+                                style={{
+                                  height: isPlaying ? `${Math.floor(Math.random() * 12) + 3}px` : '3px',
+                                  animationDelay: `${i * 60}ms`
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative w-full shrink-0">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={userInput}
+                    onChange={(e) => setUserInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') e.preventDefault();
+                      else if (e.code === 'Space' && e.ctrlKey) {
+                        e.preventDefault();
+                        handlePlayPause();
+                      }
+                    }}
+                    placeholder="Nhập câu ở đây..."
+                    className="w-full bg-[#141416] text-white placeholder-neutral-600 outline-none text-sm md:text-base py-3.5 px-5 rounded-2xl border border-neutral-850 focus:border-neutral-700 focus:ring-1 focus:ring-neutral-800 transition-all font-sans text-left"
+                    spellCheck={false}
+                    autoComplete="off"
+                    autoFocus
+                  />
+                  {userInput && (
+                    <button
+                      onClick={() => setUserInput('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <X size={15} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-center text-[11px] font-bold text-neutral-400 select-none px-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowTranslation(!showTranslation)}
+                    className={cn(
+                      "flex items-center gap-1 cursor-pointer transition-colors hover:text-white",
+                      showTranslation ? "text-amber-500 hover:text-amber-400" : ""
+                    )}
+                  >
+                    <Languages size={12} />
+                    <span>👁 Chạm để hiện nghĩa</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRevealAll(!revealAll)}
+                    className={cn(
+                      "flex items-center gap-1 cursor-pointer transition-colors hover:text-white",
+                      revealAll ? "text-amber-500 hover:text-amber-400" : ""
+                    )}
+                  >
+                    <Sparkles size={11} />
+                    <span>👁 {revealAll ? "Che và ẩn đáp án" : "Hiện tất cả"}</span>
+                  </button>
+                </div>
+
+                {showTranslation && (
+                  <div className="px-4 py-2.5 rounded-xl bg-neutral-900/50 border border-neutral-850 text-xs md:text-sm text-neutral-300 text-center animate-in fade-in leading-relaxed select-none shrink-0 font-sans text-left">
+                    {translation || "Chưa có bản dịch cho dòng này. Bạn có thể dịch tự động ở tab Subtitles."}
+                  </div>
+                )}
+
+                <div className="flex-1 overflow-y-auto min-h-[60px] flex flex-wrap justify-center items-center content-center gap-1.5 md:gap-2 px-1 py-1 custom-scrollbar">
+                  {sentences[progressIndex].split(/\s+/).filter(Boolean).map((word, wIdx) => {
+                    const cleanTarget = normalizeString(word);
+                    const userWords = userInput.trim().split(/\s+/).filter(Boolean);
+                    const cleanUser = userWords[wIdx] ? normalizeString(userWords[wIdx]) : undefined;
+                    
+                    const isWordCorrect = cleanUser === cleanTarget;
+                    const isRevealed = revealAll || revealedWordIndices.has(wIdx) || isWordCorrect;
+                    
+                    const displayWord = isRevealed ? word : word.replace(/[a-zA-Z0-9À-ỹ]/g, '•');
+                    
+                    return (
+                      <button
+                        key={wIdx}
+                        type="button"
+                        onClick={() => {
+                          speakWord(cleanTarget);
+                          toggleRevealWord(wIdx);
+                        }}
+                        className={cn(
+                          "px-3.5 py-2 font-mono rounded-xl border text-xs md:text-sm font-bold transition-all duration-200 cursor-pointer flex items-center justify-center relative touch-manipulation hover:scale-[1.02] active:scale-95 shadow-md",
+                          isWordCorrect
+                            ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400 animate-in zoom-in-95"
+                            : isRevealed
+                              ? "bg-neutral-800 border-neutral-700 text-neutral-200"
+                              : "bg-[#141416]/90 border-neutral-800 text-neutral-500 hover:border-neutral-700"
+                        )}
+                        title="Bấm để phát âm"
+                      >
+                        {displayWord}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-1 border-t border-neutral-900 mt-2 gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const p = Math.max(0, progressIndex - 1);
+                      updateSession(activeSession.id, 'progress', p);
+                      playSentence(p);
+                    }}
+                    disabled={progressIndex === 0}
+                    className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-850 text-neutral-400 hover:text-white hover:border-neutral-700 disabled:opacity-20 disabled:pointer-events-none flex items-center justify-center transition-all cursor-pointer shadow-md"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleReplaySentence}
+                    className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-850 text-neutral-400 hover:text-white hover:border-neutral-700 flex items-center justify-center transition-all cursor-pointer shadow-md"
+                    title="Nghe lại câu này (Ctrl+Space)"
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handlePlayPause}
+                    className="w-12 h-12 rounded-full bg-white text-black hover:bg-neutral-100 flex items-center justify-center shadow-lg transform hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  >
+                    {isPlaying ? (
+                      <svg className="w-5 h-5 text-black animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-black pl-0.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    )}
+                  </button>
+
+                  <div className="flex bg-neutral-900/90 border border-neutral-800 p-0.5 rounded-full ring-1 ring-neutral-950 text-[10px] items-center font-mono shadow-md">
+                    {([0.75, 1, 1.25]).map((rate) => {
+                      const isSelected = playbackSpeed === rate;
+                      return (
+                        <button
+                          key={rate}
+                          type="button"
+                          onClick={() => changeSpeed(rate)}
+                          className={cn(
+                            "px-2.5 py-1 rounded-full font-bold transition-all cursor-pointer",
+                            isSelected 
+                              ? "bg-white text-black font-black" 
+                              : "text-neutral-400 hover:text-white"
+                          )}
+                        >
+                          {rate}x
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const p = Math.min(sentences.length - 1, progressIndex + 1);
+                      updateSession(activeSession.id, 'progress', p);
+                      playSentence(p);
+                    }}
+                    disabled={progressIndex === sentences.length - 1}
+                    className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-850 text-neutral-400 hover:text-white hover:border-neutral-700 disabled:opacity-20 disabled:pointer-events-none flex items-center justify-center transition-all cursor-pointer shadow-md"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {showSentenceList && (
+              <div className="absolute inset-y-0 right-0 w-80 bg-[#121215] border-l border-neutral-800 text-white z-50 p-4 flex flex-col shadow-2xl animate-in slide-in-from-right duration-350">
+                <div className="flex justify-between items-center pb-3 border-b border-neutral-800 mb-3">
+                  <h3 className="font-extrabold text-xs uppercase tracking-widest text-[#a8a8af]">Danh sách câu ({sentences.length})</h3>
+                  <button onClick={() => setShowSentenceList(false)} className="p-1 rounded bg-[#1c1c20] hover:bg-neutral-800 text-neutral-400 hover:text-white cursor-pointer transition-colors shadow">
+                    <X size={15} />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                  {sentences.map((sentence, idx) => {
+                    const isCurrent = idx === progressIndex;
+                    const isCompleted = idx < progressIndex;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          updateSession(activeSession.id, 'progress', idx);
+                          playSentence(idx);
+                          setShowSentenceList(false);
+                        }}
+                        className={cn(
+                          "w-full text-left p-2.5 rounded-xl text-xs transition-all flex items-start gap-2 border cursor-pointer",
+                          isCurrent 
+                            ? "bg-amber-500/10 border-amber-500/40 text-amber-300 font-bold" 
+                            : isCompleted 
+                              ? "bg-emerald-500/5 border-emerald-500/15 text-emerald-400 font-semibold" 
+                              : "bg-transparent border-transparent text-neutral-400 hover:bg-neutral-950"
+                        )}
+                      >
+                        <span className="font-mono text-[10px] opacity-50 mt-0.5 text-neutral-500">#{idx + 1}</span>
+                        <span className="flex-1 line-clamp-2 leading-tight text-neutral-300">{sentence}</span>
+                        {isCompleted && <span className="text-[10px] text-emerald-400 shrink-0 font-bold self-center">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="max-w-7xl mx-auto p-1.5 md:p-3 font-sans h-[calc(100dvh-220px)] md:h-[calc(100vh-180px)] flex flex-col overflow-hidden bg-white/50 sketch-border-sm mt-2 mb-2">
