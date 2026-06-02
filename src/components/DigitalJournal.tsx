@@ -580,26 +580,26 @@ export function DigitalJournal({
     <div className="max-w-7xl mx-auto py-8 px-4 font-sans select-none space-y-8 animate-in fade-in duration-300">
       
       {/* 1. MOTIVATIONAL WELCOME HEADER - FULL WIDTH */}
-      <div className="bg-[#fffdf5] p-6 md:p-8 rounded-3xl sketch-border border-amber-200/80 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-         <div className="absolute inset-0 opacity-40 pointer-events-none bg-[radial-gradient(circle_at_left,_var(--tw-gradient-stops))] from-amber-100 via-transparent to-transparent"></div>
+      <div className="bg-[#fffdf5] p-6 md:p-8 rounded-3xl sketch-border border-ink relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-[4px_4px_0px_0px_#1a1a1a]">
+         <div className="absolute inset-0 opacity-45 pointer-events-none bg-[radial-gradient(circle_at_left,_var(--tw-gradient-stops))] from-amber-100 via-transparent to-transparent"></div>
          
          <div className="relative z-10 text-center md:text-left space-y-1.5 flex-1 min-w-0">
-           <span className="text-[10px] uppercase font-extrabold tracking-widest text-[#d97706] bg-amber-100/50 px-3 py-1 rounded-full border border-amber-200/30 inline-block font-sans">
+           <span className="text-[10px] uppercase font-extrabold tracking-widest text-[#d97706] bg-amber-100/60 px-3 py-1 rounded-full border border-amber-350 inline-block font-sans">
              {getTodayVietnameseDate()}
            </span>
-           <h1 className="font-sans text-2xl md:text-3xl font-black uppercase tracking-wider text-amber-955 flex items-center justify-center md:justify-start gap-2.5 mt-1">
+           <h1 className="font-sans text-2xl md:text-3xl font-black uppercase tracking-wider text-ink flex items-center justify-center md:justify-start gap-2.5 mt-1">
              <Sparkles size={24} className="text-amber-500 animate-pulse shrink-0" />
              Welcome Home
            </h1>
-           <p className="text-xs font-medium text-amber-900/70 font-sans max-w-xl truncate sm:overflow-visible sm:whitespace-normal">
+           <p className="text-xs font-bold text-ink/75 font-sans max-w-xl truncate sm:overflow-visible sm:whitespace-normal">
               Chào mừng quay trở lại! Chúc bạn ngày mới năng lượng, giữ vững thói quen và hoàn thành mục tiêu đặt ra.
             </p>
           </div>
 
           <div className="relative z-10 flex flex-wrap justify-center gap-3 shrink-0">
             {/* Metric 1 */}
-            <div className="bg-white/95 border border-rose-200/60 hover:border-rose-450 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-xs hover:shadow-sm hover:scale-[1.03] transition-all duration-200 text-left cursor-pointer group" title="Nhiệm vụ cần xử lý">
-              <span className="p-1 px-2 bg-rose-50 text-rose-600 rounded-lg text-xs font-mono font-black shrink-0 group-hover:bg-rose-100 transition-colors">
+            <div className="bg-white border-2 border-ink hover:bg-rose-50/10 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-[2px_2px_0px_0px_#1a1a1a] hover:shadow-[4px_4px_0px_0px_#1a1a1a] hover:translate-y-[-2px] transition-all duration-200 text-left cursor-pointer group" title="Nhiệm vụ cần xử lý">
+              <span className="p-1 px-2.5 bg-rose-100 text-rose-700 rounded-lg text-xs font-mono font-black shrink-0">
                 {tasks.filter(t => !t.completed).length}
               </span>
               <div>
@@ -609,8 +609,8 @@ export function DigitalJournal({
             </div>
 
             {/* Metric 2 */}
-            <div className="bg-white/95 border border-orange-200/60 hover:border-orange-450 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-xs hover:shadow-sm hover:scale-[1.03] transition-all duration-200 text-left cursor-pointer group" title="Thói quen rèn luyện hôm nay">
-              <span className="p-1 px-2 bg-orange-50 text-orange-600 rounded-lg text-xs font-mono font-black shrink-0 group-hover:bg-orange-100 transition-colors">
+            <div className="bg-white border-2 border-ink hover:bg-orange-50/10 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-[2px_2px_0px_0px_#1a1a1a] hover:shadow-[4px_4px_0px_0px_#1a1a1a] hover:translate-y-[-2px] transition-all duration-200 text-left cursor-pointer group" title="Thói quen rèn luyện hôm nay">
+              <span className="p-1 px-2.5 bg-orange-100 text-orange-700 rounded-lg text-xs font-mono font-black shrink-0">
                 {(() => {
                   const todayStr = new Date().toISOString().split("T")[0];
                   const habitsDoneToday = habits.filter(h => h.isActive && h.history?.[todayStr]?.done).length;
@@ -624,8 +624,8 @@ export function DigitalJournal({
             </div>
 
             {/* Metric 3 */}
-            <div className="bg-white/95 border border-emerald-200/60 hover:border-emerald-450 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-xs hover:shadow-sm hover:scale-[1.03] transition-all duration-200 text-left cursor-pointer group" title="Tổng tài sản lưu lũy">
-              <span className="p-1 px-2 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-mono font-black shrink-0 group-hover:bg-emerald-100 transition-colors">
+            <div className="bg-white border-2 border-ink hover:bg-emerald-50/10 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-[2px_2px_0px_0px_#1a1a1a] hover:shadow-[4px_4px_0px_0px_#1a1a1a] hover:translate-y-[-2px] transition-all duration-200 text-left cursor-pointer group" title="Tổng tài sản lưu lũy">
+              <span className="p-1 px-2.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-mono font-black shrink-0">
                 {(() => {
                   const totalVndValue = assets.reduce((sum, curr) => {
                     if (curr.excludeFromNetWorth) return sum;
@@ -651,7 +651,7 @@ export function DigitalJournal({
         <div className="lg:col-span-4 space-y-4">
           
 
-          <div className="bg-[#fffdf5] p-4.5 rounded-3xl sketch-border border-amber-200/80 space-y-3.5 shadow-sm relative overflow-hidden flex flex-col h-full min-h-[350px]">
+          <div className="bg-[#fffdf5] p-5 rounded-3xl sketch-border border-ink space-y-3.5 shadow-[4px_4px_0px_0px_#1a1a1a] relative overflow-hidden flex flex-col h-full min-h-[350px]">
             <div className="absolute top-0 right-0 w-32 h-32 bg-amber-200/10 rounded-full blur-2xl pointer-events-none"></div>
             
             <div className="flex items-center justify-between border-b pb-2.5 border-amber-200/50 gap-2 relative z-10 font-sans">
@@ -777,7 +777,7 @@ export function DigitalJournal({
 
         {/* COLUMN 2: DAILY HABITS */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-[#fffdfa] p-4.5 rounded-3xl sketch-border border-orange-200/80 space-y-3.5 shadow-sm relative overflow-hidden flex flex-col h-full min-h-[350px]">
+          <div className="bg-[#fffdfa] p-5 rounded-3xl sketch-border border-ink space-y-3.5 shadow-[4px_4px_0px_0px_#1a1a1a] relative overflow-hidden flex flex-col h-full min-h-[350px]">
             <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100/10 rounded-full blur-2xl pointer-events-none"></div>
             
             <div className="flex items-center justify-between border-b pb-2.5 border-orange-200/50 gap-2 relative z-10 font-sans">
@@ -865,7 +865,7 @@ export function DigitalJournal({
         
         {/* COLUMN 3: MINI CALENDAR */}
         <div className="lg:col-span-4 space-y-4">
-          <div ref={calendarContainerRef} className="bg-white/90 p-4.5 rounded-3xl sketch-border border-ink shadow-sm relative flex flex-col min-h-[350px]">
+          <div ref={calendarContainerRef} className="bg-white p-5 rounded-3xl sketch-border border-ink shadow-[4px_4px_0px_0px_#1a1a1a] relative flex flex-col min-h-[350px]">
             
             <div className="flex items-center justify-between border-b pb-2.5 border-ink/15 font-sans">
               <span className="text-xs uppercase font-extrabold tracking-wider text-ink flex items-center gap-1.5">
@@ -1060,7 +1060,7 @@ export function DigitalJournal({
           </div>
 
           {/* UPCOMING EVENTS */}
-          <div className="bg-white/90 p-5 rounded-2xl sketch-border border-ink/60 shadow-sm mt-4">
+          <div className="bg-white p-5 rounded-3xl border-2 border-ink shadow-[4px_4px_0px_0px_#1a1a1a] mt-4">
             <span className="text-xs uppercase font-extrabold tracking-wider text-rose-700 flex items-center gap-1.5 border-b pb-2.5 border-rose-200 mb-3">
               <Sparkles className="w-4 h-4 text-rose-500" />
               Sự Kiện Sắp Tới
@@ -1085,7 +1085,7 @@ export function DigitalJournal({
       </div>{/* End of top grid */}
 
       {/* SECTION 2.2: CUSTOM GIFT CARDS & REWARDS POOL PANEL */}
-      <div className="bg-[#fffcf4] p-6 rounded-3xl sketch-border border-[3px] border-amber-300 shadow-sm text-left mb-6 mt-4 w-full animate-in fade-in slide-in-from-bottom-4">
+      <div className="bg-[#fffcf4] p-6 rounded-3xl sketch-border border-ink shadow-[4px_4px_0px_0px_#1a1a1a] text-left mb-6 mt-6 w-full animate-in fade-in slide-in-from-bottom-4">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b-2 border-amber-200 pb-4 gap-4">
           <div className="flex items-center gap-3">
             <span className="p-2 bg-amber-100 rounded-xl text-amber-700 border border-amber-250 shrink-0">
@@ -1180,12 +1180,12 @@ export function DigitalJournal({
           {customRewards.map((reward) => (
             <div
               key={reward.id}
-              className={`relative border-2 rounded-2xl p-4.5 flex flex-col justify-between overflow-hidden shadow-xs transition-all ${
+              className={`relative border-2 rounded-2xl p-4.5 flex flex-col justify-between overflow-hidden transition-all ${
                 reward.isRedeemed
-                  ? "bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60"
+                  ? "bg-zinc-100/60 border-zinc-300 text-zinc-400 opacity-60 scale-[0.98]"
                   : reward.isUnlocked
-                  ? "bg-white border-amber-400 text-amber-950 focus-within:ring-2 focus-within:ring-amber-400"
-                  : "bg-amber-50/15 border-dashed border-amber-200/50 text-amber-950/40"
+                  ? "bg-white border-2 border-ink text-[#1a1a1a] shadow-[3px_3px_0px_0px_#1a1a1a] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_#1a1a1a] cursor-pointer"
+                  : "bg-amber-50/5 border-2 border-dashed border-zinc-200 text-zinc-400 filter grayscale"
               }`}
               style={{
                 backgroundImage: reward.isUnlocked && !reward.isRedeemed
@@ -1507,7 +1507,7 @@ export function DigitalJournal({
       {/* SECTION 2.5: CREDIT CARD & REVENUE STATEMENTS (BẢNG KÊ CHI TIÊU & DOANH THU) */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-2">
         {/* LEFT CARD: BẢNG KÊ CHI TIÊU THẺ TÍN DỤNG */}
-        <div className="bg-gradient-to-tr from-[#fcfdff] to-[#f5f8ff] p-6 rounded-2xl sketch-border border-ink shadow-sm space-y-4 text-left">
+        <div className="bg-gradient-to-tr from-[#fcfdff] to-[#f5f8ff] p-6 rounded-3xl sketch-border border-ink shadow-[4px_4px_0px_0px_#1a1a1a] space-y-4 text-left">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-[#3b82f6] pb-2.5 gap-2">
             <div className="flex items-center gap-2 text-left">
               <span className="p-2 bg-[#dbeafe] rounded-xl text-[#1e40af] border border-blue-250">
@@ -1668,7 +1668,7 @@ export function DigitalJournal({
         </div>
 
         {/* RIGHT CARD: BẢNG KÊ DOANH THU KHÁCH NỢ TUẦN QUA */}
-        <div className="bg-gradient-to-tr from-[#fdfdfc] to-[#f4fbf7] p-6 rounded-2xl sketch-border border-ink shadow-sm space-y-4 text-left">
+        <div className="bg-gradient-to-tr from-[#fdfdfc] to-[#f4fbf7] p-6 rounded-3xl sketch-border border-ink shadow-[4px_4px_0px_0px_#1a1a1a] space-y-4 text-left">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-[#10b981] pb-2.5 gap-2">
             <div className="flex items-center gap-2 text-left">
               <span className="p-2 bg-[#d1fae5] rounded-xl text-[#065f46] border border-emerald-250">

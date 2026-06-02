@@ -40,6 +40,7 @@ export function PersonalGoals({
   const [showAdd, setShowAdd] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<string[]>([]);
   const [expandedJourney, setExpandedJourney] = useState<string[]>([]);
+  const [expandedGoals, setExpandedGoals] = useState<string[]>([]);
   const [journeyInput, setJourneyInput] = useState<{ [key: string]: string }>({});
   const [editingJourneyId, setEditingJourneyId] = useState<string | null>(null);
   const [editJourneyContent, setEditJourneyContent] = useState("");
@@ -68,6 +69,12 @@ export function PersonalGoals({
 
   const toggleJourney = (id: string) => {
     setExpandedJourney(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleGoalExpand = (id: string) => {
+    setExpandedGoals(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
@@ -774,258 +781,346 @@ export function PersonalGoals({
                   <p className="text-ink/30 italic text-sm">Mọi thứ đã xong, hãy đặt thêm mục tiêu mới!</p>
                 </div>
               ) : (
-                goals.filter(g => !g.isCompleted).map(goal => (
-                  <div key={goal.id} className="sketch-border bg-white p-6 flex flex-col gap-4 transition-all hover:bg-paper/10 relative group shadow-sm hover:shadow-md">
-                    <div className="flex items-start gap-4">
-                      <button 
-                        onClick={() => toggleGoalCompletion(goal.id)}
-                        className="mt-1 w-8 h-8 sketch-border-sm rounded-lg flex items-center justify-center text-ink/20 hover:text-emerald-600 hover:border-emerald-500 transition-all shrink-0 bg-white group-hover:border-ink/20 shadow-sm"
-                      >
-                        <Square size={20} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                      </button>
-                      <div className="flex-1 space-y-2">
-                        <div className="flex justify-between items-start gap-4">
-                          <div className="space-y-1">
-                            <h4 className="text-xl font-bold text-ink leading-tight group-hover:text-crimson transition-colors">{goal.title}</h4>
-                            <div className="flex flex-wrap gap-3">
+                goals.filter(g => !g.isCompleted).map(goal => {
+                  const isExpanded = expandedGoals.includes(goal.id);
+                  const goalTasks = tasks.filter(t => t.goalId === goal.id);
+                  const completedTasksCount = goalTasks.filter(t => t.completed).length;
+                  const totalTasksCount = goalTasks.length;
+                  const taskPercent = totalTasksCount > 0 ? Math.round((completedTasksCount / totalTasksCount) * 100) : 0;
+
+                  return (
+                    <div 
+                      key={goal.id} 
+                      className={cn(
+                        "sketch-border bg-white p-4.5 flex flex-col transition-all relative group shadow-[2px_2px_0px_0px_#1a1a1a] hover:shadow-[4px_4px_0px_0px_#1a1a1a] border-2 border-ink hover:translate-y-[-1px]",
+                        isExpanded ? "bg-[#fdfaf2]/40" : "hover:bg-paper/5"
+                      )}
+                    >
+                      {/* Compact Title and Metadata Header */}
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                          {/* Complete Checkbox */}
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleGoalCompletion(goal.id);
+                            }}
+                            className="w-7 h-7 sketch-border-sm rounded-lg flex items-center justify-center text-ink/20 hover:text-emerald-500 hover:border-emerald-500 transition-all shrink-0 bg-white shadow-sm cursor-pointer"
+                            title="Hoàn thành mục tiêu"
+                          >
+                            <Square size={16} />
+                          </button>
+
+                          {/* Clickable Header for Collapsing and Expanding */}
+                          <div 
+                            onClick={() => toggleGoalExpand(goal.id)}
+                            className="flex-1 cursor-pointer min-w-0"
+                          >
+                            <h4 className="text-base sm:text-[17px] font-black text-ink leading-tight hover:text-crimson transition-colors truncate">
+                              {goal.title}
+                            </h4>
+
+                            {/* Micro indicators below title */}
+                            <div className="flex flex-wrap gap-2 mt-1.5 items-center">
+                              {totalTasksCount === 0 ? (
+                                <span className="text-[9px] font-bold text-ink/40 bg-ink/5 px-2 py-0.5 rounded flex items-center gap-1 font-sans">
+                                  <ClipboardList size={10} /> Chưa có việc
+                                </span>
+                              ) : (
+                                <span className={cn(
+                                  "text-[9px] font-black px-2 py-0.5 rounded border flex items-center gap-1 font-sans",
+                                  taskPercent === 100 
+                                    ? "text-emerald-800 bg-emerald-50 border-emerald-100" 
+                                    : "text-sky-850 bg-sky-50 border-sky-100"
+                                )}>
+                                  <ClipboardList size={11} /> {completedTasksCount}/{totalTasksCount} việc ({taskPercent}%)
+                                </span>
+                              )}
+
+                              {goal.journey && goal.journey.length > 0 && (
+                                <span className="text-[9px] font-black text-crimson bg-rose-50 px-2 py-0.5 rounded border border-rose-150 flex items-center gap-1 font-sans">
+                                  <History size={11} /> {goal.journey.length} nhật trình
+                                </span>
+                              )}
+
                               {goal.deadline && (
-                                <div className="flex flex-col gap-1">
-                                  <div className="flex items-center gap-1 text-[10px] font-bold text-crimson uppercase tracking-widest">
-                                    <Calendar size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                                    Deadline:
-                                  </div>
+                                <span className="text-[9px] font-black text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-150 flex items-center gap-1 font-sans">
+                                  <Clock size={11} /> Còn {getTimeRemaining(goal.deadline)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions buttons on the right */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeGoal(goal.id);
+                            }} 
+                            className="text-ink/15 hover:text-crimson hover:bg-rose-50 transition-all p-1.5 rounded-lg cursor-pointer"
+                            title="Xóa mục tiêu"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+
+                          <button
+                            onClick={() => toggleGoalExpand(goal.id)}
+                            className="p-1.5 rounded-lg hover:bg-ink/5 text-ink/40 hover:text-ink transition-all cursor-pointer"
+                            title={isExpanded ? "Thu gọn chi tiết" : "Xem chi tiết"}
+                          >
+                            <motion.div
+                              animate={{ rotate: isExpanded ? 180 : 0 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <ChevronDown size={18} />
+                            </motion.div>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Smooth animation for Detailed content */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden mt-4 pt-4 border-t border-ink/15 space-y-4"
+                          >
+                            {/* Editable Deadline form */}
+                            {goal.deadline && (
+                              <div className="flex flex-col gap-1 bg-amber-50/20 p-3 rounded-2xl border border-amber-100">
+                                <span className="text-[9px] uppercase font-black text-amber-900 tracking-wider flex items-center gap-1.5">
+                                  <Calendar size={12} /> Cập nhật Deadline / Hạn chót:
+                                </span>
+                                <div className="flex flex-wrap items-center gap-3 mt-1">
                                   <input 
                                     type="date"
                                     value={new Date(goal.deadline).toISOString().split('T')[0]}
                                     onChange={(e) => updateDeadline(goal.id, e.target.value)}
-                                    className="bg-crimson/5 border-none p-1 text-[10px] font-bold text-crimson focus:outline-none w-fit cursor-pointer hover:bg-crimson/10 rounded transition-colors"
+                                    className="bg-white border-2 border-ink py-1.5 px-3 text-xs font-black text-ink focus:outline-none rounded-xl cursor-pointer shadow-sm"
                                   />
-                                  <div className="text-[10px] font-black text-crimson bg-crimson/5 px-2 py-0.5 rounded-full w-fit mt-1">
-                                    {getTimeRemaining(goal.deadline)}
-                                  </div>
+                                  <span className="text-[10px] uppercase font-extrabold text-amber-700 bg-amber-100/50 px-2.5 py-1 rounded-lg">
+                                    Thời gian còn lại: {getTimeRemaining(goal.deadline)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Subtask progress bar */}
+                            <div className="p-4 bg-sky-50/20 rounded-2xl border border-sky-100/40 space-y-3 font-sans">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] uppercase font-black text-sky-800 tracking-wider">Tiến trình triển khai:</span>
+                                {totalTasksCount > 0 ? (
+                                  <span className="font-mono font-black text-[11px] text-sky-900 bg-sky-100 px-2 py-0.5 rounded-lg">
+                                    {completedTasksCount}/{totalTasksCount} công việc hoàn tất ({taskPercent}%)
+                                  </span>
+                                ) : (
+                                  <span className="font-sans font-bold text-[10px] text-sky-700 bg-sky-100 px-2 py-0.5 rounded-lg">Tự do đánh giá mục tiêu</span>
+                                )}
+                              </div>
+
+                              {totalTasksCount > 0 && (
+                                <div className="w-full h-3 bg-white rounded-full border-2 border-ink overflow-hidden p-[2px] relative shadow-xs">
+                                  <div 
+                                    className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                                    style={{ width: `${taskPercent}%` }}
+                                  />
                                 </div>
                               )}
-                            </div>
-                          </div>
-                          <button onClick={() => removeGoal(goal.id)} className="text-ink/10 hover:text-crimson transition-colors p-1"><Trash2 size={18} style={{ filter: 'url(#hand-drawn-filter)' }} /></button>
-                        </div>
 
-                        {/* Task Progress Tracking Info for the Goal */}
-                        {(() => {
-                          const goalTasks = tasks.filter(t => t.goalId === goal.id);
-                          if (goalTasks.length === 0) {
-                            return (
-                              <div className="mt-4 p-3 bg-ink/5 rounded-xl border border-dashed border-ink/10 space-y-1">
-                                <span className="text-[10px] uppercase font-black text-ink/40 tracking-wider block">Tiến độ mục tiêu:</span>
-                                <div className="flex items-center justify-between text-xs text-ink/65 font-sans">
-                                  <span>Tự đánh giá hoàn tất nhãn dán</span>
-                                  <span className="font-bold text-[10px] bg-ink/10 px-1.5 py-0.5 rounded font-mono">Chưa gán việc</span>
-                                </div>
-                              </div>
-                            );
-                          }
+                              {/* Small Subtask list */}
+                              {totalTasksCount > 0 ? (
+                                <div className="pt-2 border-t border-dashed border-sky-200/40 space-y-1.5">
+                                  <span className="text-[8px] uppercase font-black text-sky-700/60 block">Danh mục công việc liên kết:</span>
+                                  <div className="space-y-1.5">
+                                    {goalTasks.map(t => (
+                                      <div key={t.id} className="flex items-center justify-between py-1 px-2 rounded-xl bg-white hover:bg-sky-50/30 border border-ink/5 transition-all">
+                                        <div className="flex items-center gap-2 text-xs text-ink/80 font-sans">
+                                          <button
+                                            onClick={() => toggleTask(t.id)}
+                                            className={`w-4.5 h-4.5 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                                              t.completed ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white border-ink/20 hover:border-ink/40 shadow-xs"
+                                            }`}
+                                          >
+                                            {t.completed && <Check size={11} strokeWidth={4} />}
+                                          </button>
+                                          <span className={cn(
+                                            "font-medium",
+                                            t.completed ? "line-through text-ink/35" : ""
+                                          )}>
+                                            {t.content}
+                                          </span>
+                                        </div>
 
-                          const completedCount = goalTasks.filter(t => t.completed).length;
-                          const totalCount = goalTasks.length;
-                          const percent = Math.round((completedCount / totalCount) * 100);
-
-                          return (
-                            <div className="mt-4 p-3.5 bg-sky-50/25 rounded-xl border border-sky-100/30 space-y-2 font-sans">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] uppercase font-black text-sky-800 tracking-wider block">Tiến độ mục tiêu:</span>
-                                <span className="font-mono font-black text-xs text-sky-900 bg-sky-100 px-1.5 py-0.5 rounded">
-                                  {completedCount}/{totalCount} việc hoàn thành ({percent}%)
-                                </span>
-                              </div>
-
-                              {/* Realistic sketch-like progress bar wrapper */}
-                              <div className="w-full h-3 bg-paper rounded-full border-2 border-ink overflow-hidden p-[2px] relative">
-                                <div 
-                                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                                  style={{ width: `${percent}%` }}
-                                />
-                              </div>
-
-                              {/* Listing subtasks linked to this goal under the goal card */}
-                              <div className="pt-2 border-t border-dashed border-sky-200/40 space-y-1.5">
-                                <span className="text-[8px] uppercase font-black text-sky-700/60 block">Danh sách nhiệm vụ nhỏ:</span>
-                                <div className="space-y-1">
-                                  {goalTasks.map(t => (
-                                    <div key={t.id} className="flex items-center justify-between py-0.5">
-                                      <div className="flex items-center gap-2 text-xs text-ink/75">
-                                        <button
-                                          onClick={() => toggleTask(t.id)}
-                                          className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
-                                            t.completed ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white border-ink/20 hover:border-ink/40"
-                                          }`}
-                                        >
-                                          {t.completed && <Check size={10} strokeWidth={4} />}
-                                        </button>
-                                        <span className={t.completed ? "line-through text-ink/40" : "font-medium"}>
-                                          {t.content}
+                                        <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow-sm border ${
+                                          t.priority === 'High' ? "bg-crimson/10 text-crimson border-crimson" :
+                                          t.priority === 'Medium' ? "bg-yellow-105 text-yellow-700 border-yellow-300" : "bg-gray-100 text-gray-500 border-gray-200"
+                                        }`}>
+                                          Ưu tiên: {t.priority}
                                         </span>
                                       </div>
-
-                                      <span className={`text-[8px] font-bold px-1 rounded ${
-                                        t.priority === 'High' ? "bg-crimson/10 text-crimson" :
-                                        t.priority === 'Medium' ? "bg-yellow-105 text-yellow-700" : "bg-gray-100 text-gray-500"
-                                      }`}>
-                                        {t.priority}
-                                      </span>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
-                          );
-                        })()}
-
-                        {goal.notes && (
-                          <div className="pt-2 border-t border-ink/5">
-                            <button 
-                              onClick={() => toggleNotes(goal.id)}
-                              className="flex items-center gap-1 text-[9px] font-black uppercase text-ink/30 hover:text-ink transition-colors"
-                            >
-                              {expandedNotes.includes(goal.id) ? <ChevronUp size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> : <ChevronDown size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />}
-                              {expandedNotes.includes(goal.id) ? "Thu gọn ghi chú" : "Xem ghi chú"}
-                            </button>
-                            <AnimatePresence>
-                              {expandedNotes.includes(goal.id) && (
-                                <motion.div 
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: "auto", opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  className="overflow-hidden"
-                                >
-                                  <p className="text-sm text-ink/70 bg-paper/10 p-3 rounded mt-2 border-l-2 border-ink/20 italic whitespace-pre-wrap">
-                                    {goal.notes}
-                                  </p>
-                                </motion.div>
+                              ) : (
+                                <div className="pt-1.5 text-center text-xs text-zinc-400 italic">
+                                  Chưa có việc nào được liên kết với mục tiêu này. Bạn có thể chọn mục tiêu này khi tạo việc mới ở phía trên!
+                                </div>
                               )}
-                            </AnimatePresence>
-                          </div>
-                        )}
+                            </div>
 
-                        {/* Journey Section */}
-                        <div className="pt-2">
-                          <button 
-                            onClick={() => toggleJourney(goal.id)}
-                            className="flex items-center gap-1.5 text-[9px] font-black uppercase text-crimson transition-all"
-                          >
-                            <History size={14} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                            Ghi lại hành trình ({goal.journey?.length || 0})
-                          </button>
-
-                          <AnimatePresence>
-                            {expandedJourney.includes(goal.id) && (
-                              <motion.div 
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="overflow-hidden space-y-4 mt-3"
-                              >
-                                <div className="flex gap-2">
-                                  <input 
-                                    type="text" 
-                                    value={journeyInput[goal.id] || ""}
-                                    onChange={e => setJourneyInput(prev => ({ ...prev, [goal.id]: e.target.value }))}
-                                    placeholder="Hôm nay bạn làm gì? (Ví dụ: Hôm nay tôi niềng răng...)"
-                                    onKeyDown={e => e.key === 'Enter' && addJourneyEntry(goal.id)}
-                                    className="flex-1 bg-paper/10 sketch-border-sm p-3 text-sm font-sans focus:outline-none focus:bg-white transition-all h-10 italic"
-                                  />
-                                  <button 
-                                    onClick={() => addJourneyEntry(goal.id)}
-                                    className="w-10 h-10 sketch-border-sm bg-ink text-white flex items-center justify-center hover:bg-crimson transition-colors"
-                                  >
-                                    <Send size={16} />
-                                  </button>
-                                </div>
-
-                                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-none">
-                                  {Object.entries(
-                                    (goal.journey || []).reduce((acc, entry) => {
-                                      const date = format(new Date(entry.timestamp), 'dd/MM/yyyy');
-                                      if (!acc[date]) acc[date] = [];
-                                      acc[date].push(entry);
-                                      return acc;
-                                    }, {} as { [key: string]: any[] })
-                                  ).sort((a,b) => new Date(b[0].split('/').reverse().join('-')).getTime() - new Date(a[0].split('/').reverse().join('-')).getTime()).map(([date, entries]) => (
-                                    <div key={date} className="space-y-2">
-                                      <div className="flex items-center gap-2">
-                                        <div className="h-px bg-crimson/10 flex-1" />
-                                        <span className="text-[8px] font-black text-crimson uppercase tracking-widest bg-white px-2 border border-crimson/10 rounded-full">{date}</span>
-                                        <div className="h-px bg-crimson/10 flex-1" />
-                                      </div>
-                                      <div className="space-y-3">
-                                        {entries.map((entry) => (
-                                          <motion.div 
-                                            key={entry.id}
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            className="flex gap-3 items-start group/entry"
-                                          >
-                                            <div className="w-1.5 h-1.5 rounded-full bg-crimson/30 mt-2 shrink-0 group-hover/entry:scale-150 transition-transform" />
-                                            <div className="flex-1">
-                                              <div className="flex items-center justify-between gap-2">
-                                                <div className="text-[8px] font-bold text-ink/20 uppercase tracking-widest mb-0.5">
-                                                  {new Date(entry.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                  <button 
-                                                    onClick={() => startEditJourney(entry)}
-                                                    className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-ink transition-all p-0.5"
-                                                  >
-                                                    <Edit2 size={10} />
-                                                  </button>
-                                                  <button 
-                                                    onClick={() => removeJourneyEntry(goal.id, entry.id)}
-                                                    className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-crimson transition-all p-0.5"
-                                                  >
-                                                    <X size={10} />
-                                                  </button>
-                                                </div>
-                                              </div>
-                                              {editingJourneyId === entry.id ? (
-                                                <div className="flex gap-2 mt-1">
-                                                  <input 
-                                                    type="text" 
-                                                    value={editJourneyContent}
-                                                    onChange={e => setEditJourneyContent(e.target.value)}
-                                                    onKeyDown={e => {
-                                                      if (e.key === 'Enter') addJourneyEntry(goal.id);
-                                                      if (e.key === 'Escape') setEditingJourneyId(null);
-                                                    }}
-                                                    autoFocus
-                                                    className="flex-1 bg-white sketch-border-sm p-1 text-xs font-sans focus:outline-none"
-                                                  />
-                                                  <button 
-                                                    onClick={() => addJourneyEntry(goal.id)}
-                                                    className="text-emerald-600 hover:text-emerald-700"
-                                                  >
-                                                    <CheckCircle2 size={14} />
-                                                  </button>
-                                                </div>
-                                              ) : (
-                                                <p className="text-sm text-ink/80 leading-relaxed font-sans">{cleanJourneyContent(entry.content)}</p>
-                                              )}
-                                            </div>
-                                          </motion.div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  ))}
-                                  {(!goal.journey || goal.journey.length === 0) && (
-                                    <p className="text-[10px] text-ink/30 text-center py-4 italic">Chưa có hành trình nào được ghi lại.</p>
+                            {/* Description Notes section */}
+                            {goal.notes && (
+                              <div className="pt-2.5 border-t border-ink/5">
+                                <button 
+                                  onClick={() => toggleNotes(goal.id)}
+                                  className="flex items-center gap-1.5 text-[9px] font-black uppercase text-ink/35 hover:text-ink transition-colors cursor-pointer"
+                                >
+                                  {expandedNotes.includes(goal.id) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                  {expandedNotes.includes(goal.id) ? "Thu gọn thuyết minh thô" : "Xem thuyết minh & ghi chú"}
+                                </button>
+                                <AnimatePresence>
+                                  {expandedNotes.includes(goal.id) && (
+                                    <motion.div 
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: "auto", opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      className="overflow-hidden"
+                                    >
+                                      <p className="text-sm text-ink/75 bg-paper/10 p-3.5 rounded-2xl mt-2 border-l-3 border-amber-400 italic whitespace-pre-wrap font-sans leading-relaxed shadow-xs">
+                                        {goal.notes}
+                                      </p>
+                                    </motion.div>
                                   )}
-                                </div>
-                              </motion.div>
+                                </AnimatePresence>
+                              </div>
                             )}
-                          </AnimatePresence>
-                        </div>
-                      </div>
+
+                            {/* Journey Event Recorder section */}
+                            <div className="pt-2.5 border-t border-ink/5">
+                              <button 
+                                onClick={() => toggleJourney(goal.id)}
+                                className="flex items-center gap-1.5 text-[9px] font-black uppercase text-crimson transition-all cursor-pointer"
+                              >
+                                <History size={14} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                                Ghi nhận lịch trình hành trình ({goal.journey?.length || 0})
+                              </button>
+
+                              <AnimatePresence>
+                                {expandedJourney.includes(goal.id) && (
+                                  <motion.div 
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: "auto", opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden space-y-4 mt-3"
+                                  >
+                                    <div className="flex gap-2">
+                                      <input 
+                                        type="text" 
+                                        value={journeyInput[goal.id] || ""}
+                                        onChange={e => setJourneyInput(prev => ({ ...prev, [goal.id]: e.target.value }))}
+                                        placeholder="Ghi lại tiến trình hôm nay (ví dụ: Mua sắm sách, tham gia hội thảo...)"
+                                        onKeyDown={e => e.key === 'Enter' && addJourneyEntry(goal.id)}
+                                        className="flex-1 bg-paper/10 sketch-border-sm p-3 text-sm font-sans focus:outline-none focus:bg-white transition-all h-10 italic"
+                                      />
+                                      <button 
+                                        onClick={() => addJourneyEntry(goal.id)}
+                                        className="w-10 h-10 sketch-border-sm bg-ink text-white flex items-center justify-center hover:bg-crimson transition-colors cursor-pointer"
+                                      >
+                                        <Send size={16} />
+                                      </button>
+                                    </div>
+
+                                    <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-none font-sans">
+                                      {Object.entries(
+                                        (goal.journey || []).reduce((acc, entry) => {
+                                          const date = format(new Date(entry.timestamp), 'dd/MM/yyyy');
+                                          if (!acc[date]) acc[date] = [];
+                                          acc[date].push(entry);
+                                          return acc;
+                                        }, {} as { [key: string]: any[] })
+                                      ).sort((a,b) => b[0].localeCompare(a[0])).map(([date, entries]) => (
+                                        <div key={date} className="space-y-2 font-sans">
+                                          <div className="flex items-center gap-2">
+                                            <div className="h-px bg-crimson/10 flex-1" />
+                                            <span className="text-[8px] font-black text-crimson uppercase tracking-widest bg-white px-2.5 py-0.5 border border-crimson/15 rounded-full font-sans">{date}</span>
+                                            <div className="h-px bg-crimson/10 flex-1" />
+                                          </div>
+                                          <div className="space-y-3">
+                                            {entries.map((entry) => (
+                                              <motion.div 
+                                                key={entry.id}
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                className="flex gap-3 items-start group/entry"
+                                              >
+                                                <div className="w-1.5 h-1.5 rounded-full bg-crimson/30 mt-2 shrink-0 group-hover/entry:scale-150 transition-transform" />
+                                                <div className="flex-1 min-w-0">
+                                                  <div className="flex items-center justify-between gap-2">
+                                                    <div className="text-[8px] font-bold text-ink/20 uppercase tracking-widest mb-0.5">
+                                                      {new Date(entry.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                      <button 
+                                                        onClick={() => startEditJourney(entry)}
+                                                        className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-ink transition-all p-0.5 cursor-pointer"
+                                                      >
+                                                        <Edit2 size={10} />
+                                                      </button>
+                                                      <button 
+                                                        onClick={() => removeJourneyEntry(goal.id, entry.id)}
+                                                        className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-crimson transition-all p-0.5 cursor-pointer"
+                                                      >
+                                                        <X size={10} />
+                                                      </button>
+                                                    </div>
+                                                  </div>
+                                                  {editingJourneyId === entry.id ? (
+                                                    <div className="flex gap-2 mt-1">
+                                                      <input 
+                                                        type="text" 
+                                                        value={editJourneyContent}
+                                                        onChange={e => setEditJourneyContent(e.target.value)}
+                                                        onKeyDown={e => {
+                                                          if (e.key === 'Enter') addJourneyEntry(goal.id);
+                                                          if (e.key === 'Escape') setEditingJourneyId(null);
+                                                        }}
+                                                        autoFocus
+                                                        className="flex-1 bg-white sketch-border-sm p-1 text-xs font-sans focus:outline-none"
+                                                      />
+                                                      <button 
+                                                        onClick={() => addJourneyEntry(goal.id)}
+                                                        className="text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                                                      >
+                                                        <CheckCircle2 size={14} />
+                                                      </button>
+                                                    </div>
+                                                  ) : (
+                                                    <p className="text-sm text-ink/80 leading-relaxed font-sans break-words">{cleanJourneyContent(entry.content)}</p>
+                                                  )}
+                                                </div>
+                                              </motion.div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ))}
+                                      {(!goal.journey || goal.journey.length === 0) && (
+                                        <p className="text-[10px] text-ink/30 text-center py-4 italic">Chưa có hành trình nào được ghi lại.</p>
+                                      )}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </section>
