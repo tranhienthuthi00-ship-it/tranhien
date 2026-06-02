@@ -257,16 +257,17 @@ export function PersonalGoals({
       // 2. Add log entry into the Goal's internal journey tracking array
       if (parentGoal) {
         const journeyItem = {
-          id: `j_${now}`,
+          id: `j_task_${(completedTask as Task).id}`,
           timestamp: now,
-          content: `Hoàn tất nhiệm vụ: ${(completedTask as Task).content}`
+          content: `${(completedTask as Task).content}`
         };
         const updatedGoals = goals.map(g => {
           if (g.id === parentGoal.id) {
             const currentJourney = g.journey || [];
+            if (currentJourney.some(e => e.id === journeyItem.id)) return g;
             return {
               ...g,
-              journey: [...currentJourney, journeyItem]
+              journey: [journeyItem, ...currentJourney]
             };
           }
           return g;
@@ -277,6 +278,20 @@ export function PersonalGoals({
       // If task is unmarked, clean up the task completed log from daily logs
       if (setLogs) {
         setLogs(prev => prev.filter(l => l.id !== `log_task_${id}`));
+      }
+      // Clean up the task completion entry from the Goal's internal journey tracking array
+      const taskObj = tasks.find(t => t.id === id);
+      if (taskObj && taskObj.goalId) {
+        const updatedGoals = goals.map(g => {
+          if (g.id === taskObj.goalId) {
+            return {
+              ...g,
+              journey: (g.journey || []).filter(e => e.id !== `j_task_${id}`)
+            };
+          }
+          return g;
+        });
+        setGoals(updatedGoals);
       }
     }
   };

@@ -62,6 +62,7 @@ interface DigitalJournalProps {
   setTasks?: (tasks: Task[]) => void;
   achievements?: Achievement[];
   goals?: StudyGoal[];
+  setGoals?: (goals: StudyGoal[]) => void;
   setLogs?: React.Dispatch<React.SetStateAction<LogEntry[]>>;
   
   bulkDebts: {id: number, name: string, amount: string, notes: string}[];
@@ -80,6 +81,7 @@ export function DigitalJournal({
   setTasks,
   achievements = [], 
   goals = [], 
+  setGoals,
   setLogs,
   assets = [],
   setAssets,
@@ -383,12 +385,12 @@ export function DigitalJournal({
   const handleToggleTask = (id: string) => {
     if (!setTasks || !tasks) return;
     const taskObj = tasks.find(t => t.id === id);
-    let shouldAddLog = false;
+    if (!taskObj) return;
+
+    const nextCompleted = !taskObj.completed;
 
     const updated = tasks.map(t => {
       if (t.id === id) {
-        const nextCompleted = !t.completed;
-        if (nextCompleted) shouldAddLog = true;
         return {
           ...t,
           completed: nextCompleted,
@@ -400,18 +402,44 @@ export function DigitalJournal({
 
     setTasks(updated);
 
-    if (shouldAddLog && taskObj && setLogs) {
-      const isGoalTask = !!taskObj.goalId;
-      const associatedGoal = goals.find(g => g.id === taskObj.goalId);
-      const newLog: LogEntry = {
-        id: "task_complete_" + Date.now(),
-        date: new Date().toISOString().split("T")[0],
-        type: "Event",
-        content: `Đã hoàn thành: "${taskObj.content}"${associatedGoal ? ` (${associatedGoal.title})` : ""}`,
-        emoji: "🚀"
-      };
-      setLogs(prev => [...prev, newLog]);
-      
+    if (nextCompleted) {
+      if (setLogs) {
+        const associatedGoal = goals.find(g => g.id === taskObj.goalId);
+        const newLog: LogEntry = {
+          id: "task_complete_" + Date.now(),
+          date: new Date().toISOString().split("T")[0],
+          type: "Event",
+          content: `Đã hoàn thành: "${taskObj.content}"${associatedGoal ? ` (${associatedGoal.title})` : ""}`,
+          emoji: "🚀"
+        };
+        setLogs(prev => [...prev, newLog]);
+      }
+
+      // Add task completion to the Goal's internal journey tracking array
+      if (taskObj.goalId && setGoals && goals) {
+        const associatedGoal = goals.find(g => g.id === taskObj.goalId);
+        if (associatedGoal) {
+          const now = Date.now();
+          const journeyItem = {
+            id: `j_task_${taskObj.id}`,
+            timestamp: now,
+            content: `${taskObj.content}`
+          };
+          const updatedGoals = goals.map(g => {
+            if (g.id === associatedGoal.id) {
+              const currentJourney = g.journey || [];
+              if (currentJourney.some(e => e.id === journeyItem.id)) return g;
+              return {
+                ...g,
+                journey: [journeyItem, ...currentJourney]
+              };
+            }
+            return g;
+          });
+          setGoals(updatedGoals);
+        }
+      }
+
       const lockedRewards = customRewards.filter(r => !r.isUnlocked);
       let selectedReward;
       if (lockedRewards.length > 0) {
@@ -423,6 +451,20 @@ export function DigitalJournal({
       }
       if (selectedReward) {
         setRewardPopup({ id: Date.now().toString() + "_" + selectedReward.id, emoji: selectedReward.emoji, title: selectedReward.title, desc: selectedReward.desc });
+      }
+    } else {
+      // Remove task completion from the Goal's internal journey tracking array when unchecked
+      if (taskObj.goalId && setGoals && goals) {
+        const updatedGoals = goals.map(g => {
+          if (g.id === taskObj.goalId) {
+            return {
+              ...g,
+              journey: (g.journey || []).filter(e => e.id !== `j_task_${taskObj.id}`)
+            };
+          }
+          return g;
+        });
+        setGoals(updatedGoals);
       }
     }
   };

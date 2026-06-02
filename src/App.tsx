@@ -504,6 +504,7 @@ function AppContent() {
               setTasks={setTasks} 
               achievements={achievements} 
               goals={studyGoals} 
+              setGoals={setStudyGoals}
               bulkDebts={bulkDebts}
               setBulkDebts={setBulkDebts}
               bulkCardSpends={bulkCardSpends}
