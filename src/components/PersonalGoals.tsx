@@ -10,6 +10,11 @@ import { format } from "date-fns";
 import type { StudyGoal, Achievement, Task, LogEntry } from "../types";
 import { cn } from "../lib/utils";
 
+const cleanJourneyContent = (text: string): string => {
+  if (!text) return "";
+  return text.replace(/^(Hoàn tất nhiệm vụ|Hoàn thành nhiệm vụ|Hoàn tất):\s*/gi, "");
+};
+
 export function PersonalGoals({ 
   goals, 
   setGoals, 
@@ -103,7 +108,7 @@ export function PersonalGoals({
 
   const startEditJourney = (entry: { id: string, content: string }) => {
     setEditingJourneyId(entry.id);
-    setEditJourneyContent(entry.content);
+    setEditJourneyContent(cleanJourneyContent(entry.content));
   };
 
   const removeJourneyEntry = async (goalId: string, entryId: string) => {
@@ -1001,7 +1006,7 @@ export function PersonalGoals({
                                                   </button>
                                                 </div>
                                               ) : (
-                                                <p className="text-sm text-ink/80 leading-relaxed font-sans">{entry.content}</p>
+                                                <p className="text-sm text-ink/80 leading-relaxed font-sans">{cleanJourneyContent(entry.content)}</p>
                                               )}
                                             </div>
                                           </motion.div>
@@ -1173,7 +1178,7 @@ export function PersonalGoals({
                                         <div className="text-[7px] font-bold text-ink/20 uppercase">
                                           {format(new Date(entry.timestamp), 'dd/MM/yyyy')}
                                         </div>
-                                        <p className="text-[11px] text-ink/70 leading-snug">{entry.content}</p>
+                                        <p className="text-[11px] text-ink/70 leading-snug">{cleanJourneyContent(entry.content)}</p>
                                       </div>
                                     ))}
                                   </div>
@@ -1393,7 +1398,7 @@ export function PersonalGoals({
                               <div className="text-[8px] font-bold text-ink/30 uppercase tracking-wider">
                                 {format(new Date(entry.timestamp), 'dd/MM/yyyy HH:mm')}
                               </div>
-                              <p className="text-xs text-ink/75 leading-relaxed">{entry.content}</p>
+                              <p className="text-xs text-ink/75 leading-relaxed">{cleanJourneyContent(entry.content)}</p>
                             </div>
                           ))}
                         </div>

@@ -591,57 +591,57 @@ export function DigitalJournal({
              Welcome Home
            </h1>
            <p className="text-xs font-medium text-amber-900/70 font-sans max-w-xl truncate sm:overflow-visible sm:whitespace-normal">
-             Chào mừng quay trở lại! Chúc bạn ngày mới năng lượng, giữ vững thói quen và hoàn thành mục tiêu đặt ra.
-           </p>
-         </div>
+              Chào mừng quay trở lại! Chúc bạn ngày mới năng lượng, giữ vững thói quen và hoàn thành mục tiêu đặt ra.
+            </p>
+          </div>
 
-         <div className="relative z-10 flex flex-wrap justify-center gap-3 shrink-0">
-           {/* Metric 1 */}
-           <div className="bg-white/80 border border-amber-200/50 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-sm text-left">
-             <span className="p-1 px-2 bg-rose-50 text-rose-600 rounded-lg text-xs font-mono font-black shrink-0">
-               {tasks.filter(t => !t.completed).length}
-             </span>
-             <div>
-               <p className="text-[9px] text-[#4b5563] uppercase font-black tracking-wider leading-none">Nhiệm vụ</p>
-               <p className="text-xs font-extrabold text-ink leading-tight mt-0.5">Cần xử lý</p>
-             </div>
-           </div>
+          <div className="relative z-10 flex flex-wrap justify-center gap-3 shrink-0">
+            {/* Metric 1 */}
+            <div className="bg-white/95 border border-rose-200/60 hover:border-rose-450 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-xs hover:shadow-sm hover:scale-[1.03] transition-all duration-200 text-left cursor-pointer group" title="Nhiệm vụ cần xử lý">
+              <span className="p-1 px-2 bg-rose-50 text-rose-600 rounded-lg text-xs font-mono font-black shrink-0 group-hover:bg-rose-100 transition-colors">
+                {tasks.filter(t => !t.completed).length}
+              </span>
+              <div>
+                <p className="text-[9px] text-[#4b5563] uppercase font-black tracking-wider leading-none">Nhiệm vụ</p>
+                <p className="text-xs font-extrabold text-ink leading-tight mt-0.5">Cần xử lý</p>
+              </div>
+            </div>
 
-           {/* Metric 2 */}
-           <div className="bg-white/80 border border-amber-200/50 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-sm text-left">
-             <span className="p-1 px-2 bg-orange-50 text-orange-600 rounded-lg text-xs font-mono font-black shrink-0">
-               {(() => {
-                 const todayStr = new Date().toISOString().split("T")[0];
-                 const habitsDoneToday = habits.filter(h => h.isActive && h.history?.[todayStr]?.done).length;
-                 return habitsDoneToday;
-               })()}
-             </span>
-             <div>
-               <p className="text-[9px] text-[#4b5563] uppercase font-black tracking-wider leading-none">Thói quen</p>
-               <p className="text-xs font-extrabold text-ink leading-tight mt-0.5">Hoàn tất hôm nay</p>
-             </div>
-           </div>
+            {/* Metric 2 */}
+            <div className="bg-white/95 border border-orange-200/60 hover:border-orange-450 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-xs hover:shadow-sm hover:scale-[1.03] transition-all duration-200 text-left cursor-pointer group" title="Thói quen rèn luyện hôm nay">
+              <span className="p-1 px-2 bg-orange-50 text-orange-600 rounded-lg text-xs font-mono font-black shrink-0 group-hover:bg-orange-100 transition-colors">
+                {(() => {
+                  const todayStr = new Date().toISOString().split("T")[0];
+                  const habitsDoneToday = habits.filter(h => h.isActive && h.history?.[todayStr]?.done).length;
+                  return habitsDoneToday;
+                })()}
+              </span>
+              <div>
+                <p className="text-[9px] text-[#4b5563] uppercase font-black tracking-wider leading-none">Thói quen</p>
+                <p className="text-xs font-extrabold text-ink leading-tight mt-0.5">Hoàn tất hôm nay</p>
+              </div>
+            </div>
 
-           {/* Metric 3 */}
-           <div className="bg-white/80 border border-amber-200/50 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-sm text-left">
-             <span className="p-1 px-2 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-mono font-black shrink-0">
-               {(() => {
-                 const totalVndValue = assets.reduce((sum, curr) => {
-                   if (curr.excludeFromNetWorth) return sum;
-                   const val = curr.value || 0;
-                   return curr.isDebt ? sum - val : sum + val;
-                 }, 0);
-                 const millionVal = Math.floor(totalVndValue / 1000000);
-                 return `${millionVal.toLocaleString()}M`;
-               })()}
-             </span>
-             <div>
-               <p className="text-[9px] text-[#4b5563] uppercase font-black tracking-wider leading-none">Tài sản ròng</p>
-               <p className="text-xs font-extrabold text-ink leading-tight mt-0.5">Giá trị VND</p>
-             </div>
-           </div>
-         </div>
-      </div>
+            {/* Metric 3 */}
+            <div className="bg-white/95 border border-emerald-200/60 hover:border-emerald-450 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-xs hover:shadow-sm hover:scale-[1.03] transition-all duration-200 text-left cursor-pointer group" title="Tổng tài sản lưu lũy">
+              <span className="p-1 px-2 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-mono font-black shrink-0 group-hover:bg-emerald-100 transition-colors">
+                {(() => {
+                  const totalVndValue = assets.reduce((sum, curr) => {
+                    if (curr.excludeFromNetWorth) return sum;
+                    const val = curr.value || 0;
+                    return curr.isDebt ? sum - val : sum + val;
+                  }, 0);
+                  const millionVal = Math.floor(totalVndValue / 1000000);
+                  return `${millionVal.toLocaleString()}M`;
+                })()}
+              </span>
+              <div>
+                <p className="text-[9px] text-[#4b5563] uppercase font-black tracking-wider leading-none">Tài sản ròng</p>
+                <p className="text-xs font-extrabold text-ink leading-tight mt-0.5">Giá trị VND</p>
+              </div>
+            </div>
+          </div>
+       </div>
 
       {/* THREE-COLUMN GRID: COMPACT TASKS (col-span-4), HABITS OVERVIEW (col-span-4), CALENDAR (col-span-4) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 pb-6 border-b-2 border-ink/5">
@@ -1616,16 +1616,31 @@ export function DigitalJournal({
                 </h3>
               </div>
             </div>
-            <button
-              onClick={() => {
-                if (confirm("Đặt lại toàn bộ bảng kê doanh thu và khách nợ tuần này?")) {
-                  setBulkDebts(bulkDebts.map(item => ({ ...item, amount: "", notes: "" })));
-                }
-              }}
-              className="px-2.5 py-1 text-[10px] bg-red-50 text-crimson rounded-lg border border-red-200 uppercase font-black tracking-widest hover:bg-crimson hover:text-white transition-all cursor-pointer"
-            >
-              Reset tuần
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  setBulkDebts([...bulkDebts, {
+                    id: Date.now(),
+                    name: new Date().toISOString().split("T")[0],
+                    amount: "",
+                    notes: ""
+                  }]);
+                }}
+                className="px-2.5 py-1 text-[10px] bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 uppercase font-black tracking-widest hover:bg-emerald-700 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+              >
+                <Plus size={10} /> Thêm Dòng
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm("Đặt lại toàn bộ bảng kê doanh thu và khách nợ tuần này?")) {
+                    setBulkDebts(bulkDebts.map(item => ({ ...item, amount: "", notes: "" })));
+                  }
+                }}
+                className="px-2.5 py-1 text-[10px] bg-red-50 text-crimson rounded-lg border border-red-200 uppercase font-black tracking-widest hover:bg-crimson hover:text-white transition-all cursor-pointer"
+              >
+                Reset tuần
+              </button>
+            </div>
           </div>
 
           <div className="w-full overflow-x-auto scrollbar-thin">
@@ -1635,6 +1650,7 @@ export function DigitalJournal({
                   <th className="px-3 py-2 w-32 border border-emerald-100">Ngày / Tên</th>
                   <th className="px-3 py-2 w-40 border border-emerald-100">Số Tiền (VND)</th>
                   <th className="px-3 py-2 border border-emerald-100">Ghi Chú</th>
+                  <th className="px-2 py-2 w-10 text-center border border-emerald-100">Xóa</th>
                 </tr>
               </thead>
               <tbody>
@@ -1712,9 +1728,28 @@ export function DigitalJournal({
                           className="w-full px-2 py-1.5 text-xs bg-transparent text-left text-emerald-900 focus:outline-none focus:bg-white rounded"
                         />
                       </td>
+                      <td className="p-1 border border-emerald-100/50 text-center">
+                        <button
+                          onClick={() => {
+                            const updated = bulkDebts.filter((_, i) => i !== index);
+                            setBulkDebts(updated);
+                          }}
+                          className="p-1.5 text-rose-300 hover:text-crimson hover:bg-rose-50 rounded transition-colors mx-auto"
+                          title="Xóa hàng"
+                        >
+                          <Trash2 size={12} style={{ filter: 'url(#hand-drawn-filter)' }} />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
+                {bulkDebts.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="text-center p-4 text-[10px] text-emerald-400 italic">
+                      Dữ liệu trống. Nhấp "Thêm Dòng" để tạo bảng kê mới.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
