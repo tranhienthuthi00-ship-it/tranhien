@@ -76,30 +76,90 @@ async function startServer() {
     next();
   });
 
+  function getCookiesHeader(): string {
+    if (process.env.YOUTUBE_COOKIE) {
+      return process.env.YOUTUBE_COOKIE.trim();
+    }
+    
+    const pathsToTry = [
+      path.join(process.cwd(), 'cookies.txt'),
+      path.join(__dirname, 'cookies.txt'),
+      'cookies.txt'
+    ];
+    
+    for (const p of pathsToTry) {
+      try {
+        if (fs.existsSync(p)) {
+          const content = fs.readFileSync(p, 'utf8');
+          if (content.includes('\t') && !content.startsWith('# Netscape')) {
+            const lines = content.split('\n');
+            const cookieParams: string[] = [];
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed || trimmed.startsWith('#')) continue;
+              const parts = trimmed.split('\t');
+              if (parts.length >= 7) {
+                const name = parts[5];
+                const value = parts[6];
+                cookieParams.push(`${name}=${value}`);
+              }
+            }
+            if (cookieParams.length > 0) {
+              return cookieParams.join('; ');
+            }
+          }
+          return content.trim();
+        }
+      } catch (e) {
+        // silent
+      }
+    }
+    return '';
+  }
+
   // Helper for fetching caption tracks directly bypassing standard library limitations and blocks
   async function fetchCaptionsCustom(videoId: string): Promise<any[] | null> {
+    const cookieHeader = getCookiesHeader();
+    const headers: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    };
+    if (cookieHeader) {
+      headers['Cookie'] = cookieHeader;
+    }
+
     try {
       const url = `https://www.youtube.com/watch?v=${videoId}`;
       console.log(`[Custom Scraper] Fetching video watch page for ID: ${videoId}`);
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
+      const response = await fetch(url, { headers });
 
       if (!response.ok) {
-        console.warn(`[Custom Scraper] Failed to fetch watch page: ${response.status} ${response.statusText}`);
-        return null;
+        if (response.status === 403 || response.status === 429) {
+          throw new Error("Lỗi cấu hình mạng hoặc YouTube đã chặn IP của Server (403/429). Hãy thử cài đặt file cookies.txt của bạn vào ứng dụng.");
+        }
+        throw new Error(`Không thể kết nối tới YouTube (HTTP ${response.status}: ${response.statusText})`);
       }
 
       const html = await response.text();
+      
+      if (html.includes("This video is private") || html.includes("Video này là riêng tư") || (html.includes('"status":"UNPLAYABLE"') && html.includes("private"))) {
+        throw new Error("Video này là riêng tư hoặc không được công khai (Private Video). Vui lòng đổi sang video Công khai (Public).");
+      }
+      if (html.includes("Video không khả dụng") || html.includes("Video unavailable") || html.includes('"status":"ERROR"')) {
+        throw new Error("Video này không tồn tại hoặc không khả dụng (Video Unavailable).");
+      }
+      if (html.includes("is not available in your country") || html.includes("không hỗ trợ quốc gia") || html.includes("The uploader has not made this video available")) {
+        throw new Error("Video này bị giới hạn khu vực địa lý hoặc quốc gia (Geoblock).");
+      }
+      if (html.includes("disallowed_by_policy") || html.includes("embedding is disabled")) {
+        throw new Error("Video này bị tắt tính năng nhúng / chia sẻ hoặc chính sách phát lại không hỗ trợ.");
+      }
+
       let captionTracks: any[] | null = null;
       
-      // Attempt 1: Regular regex match for captionTracks in html page JSON
       let match = html.match(/"captionTracks":\s*(\[.*?\])/);
       if (match) {
         try {
@@ -110,7 +170,6 @@ async function startServer() {
         }
       }
 
-      // Attempt 2: Escaped captionTracks under playerResponse
       if (!captionTracks) {
         match = html.match(/&quot;captionTracks&quot;:\s*(&quot;\[.*?\]&quot;|\[.*?\])/);
         if (match) {
@@ -124,56 +183,66 @@ async function startServer() {
         }
       }
 
-      // Attempt 3: ytInitialPlayerResponse content extract
       if (!captionTracks) {
         const playerResponseMatch = html.match(/ytInitialPlayerResponse\s*=\s*({.*?});/);
         if (playerResponseMatch) {
           try {
             const parsed = JSON.parse(playerResponseMatch[1]);
+            const status = parsed?.playabilityStatus;
+            if (status && status.status === "UNPLAYABLE") {
+              throw new Error(`Video không playable: ${status.reason || "Bị hạn chế bởi YouTube"}`);
+            }
             const tracks = parsed?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
             if (tracks && Array.isArray(tracks)) {
               captionTracks = tracks;
               console.log(`[Custom Scraper] Found captionTracks in ytInitialPlayerResponse.`);
             }
-          } catch (err) {
-            // silent
+          } catch (err: any) {
+            if (err.message?.includes("Video không playable")) {
+              throw err;
+            }
           }
         }
       }
 
       if (!captionTracks || !Array.isArray(captionTracks) || captionTracks.length === 0) {
-        console.warn(`[Custom Scraper] No captionTracks found inside video HTML page.`);
-        return null;
+        throw new Error("Video này không có bất kỳ phụ đề (captions/subtitles) nào có sẵn trên YouTube.");
       }
 
-      // Priority: (1) manual English (no "a."), (2) speech-to-text / auto-generated English ("a.en"), (3) first English, (4) first track
-      let selectedTrack = captionTracks.find((t: any) => t.languageCode === "en" && !t.vssId?.startsWith("a."));
-      if (!selectedTrack) selectedTrack = captionTracks.find((t: any) => t.languageCode === "en" || t.vssId === "en");
-      if (!selectedTrack) selectedTrack = captionTracks.find((t: any) => t.vssId?.includes("en") || t.languageCode?.includes("en"));
-      if (!selectedTrack) selectedTrack = captionTracks[0];
+      // Language Priority: 1st manual en, 1st manual vi, auto en, auto vi, contains en, contains vi, first
+      let selectedTrack = captionTracks.find((t: any) => (t.languageCode === "en" || t.vssId === "en") && !t.vssId?.startsWith("a."));
+      if (!selectedTrack) {
+        selectedTrack = captionTracks.find((t: any) => (t.languageCode === "vi" || t.vssId === "vi") && !t.vssId?.startsWith("a."));
+      }
+      if (!selectedTrack) {
+        selectedTrack = captionTracks.find((t: any) => t.languageCode === "en");
+      }
+      if (!selectedTrack) {
+        selectedTrack = captionTracks.find((t: any) => t.languageCode === "vi");
+      }
+      if (!selectedTrack) {
+        selectedTrack = captionTracks.find((t: any) => t.languageCode?.toLowerCase().includes("en") || t.vssId?.toLowerCase().includes("en"));
+      }
+      if (!selectedTrack) {
+        selectedTrack = captionTracks.find((t: any) => t.languageCode?.toLowerCase().includes("vi") || t.vssId?.toLowerCase().includes("vi"));
+      }
+      if (!selectedTrack) {
+        selectedTrack = captionTracks[0];
+      }
 
       const baseUrl = selectedTrack.baseUrl;
       if (!baseUrl) {
-        console.warn(`[Custom Scraper] Base caption track URL is undefined.`);
-        return null;
+        throw new Error("Không thể lấy đường dẫn phụ đề của track được chọn.");
       }
 
       console.log(`[Custom Scraper] Chosen track: ${selectedTrack.languageCode} (${selectedTrack.vssId || "unknown ID"}). Fetching raw subtitles...`);
 
-      const xmlResponse = await fetch(baseUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9'
-        }
-      });
+      const xmlResponse = await fetch(baseUrl, { headers });
       if (!xmlResponse.ok) {
-        console.warn(`[Custom Scraper] XML caption fetch failed: ${xmlResponse.status}`);
-        return null;
+        throw new Error(`Đầu đọc XML của YouTube từ chối tải phụ đề (HTTP ${xmlResponse.status})`);
       }
 
       const xmlText = await xmlResponse.text();
-
-      // Robust regex that extracts all attributes of <text ...> tag and its inner XML body
       const regex = /<text\s+([^>]*?)>([\s\S]*?)<\/text>/gi;
       let matchText;
       const segments = [];
@@ -199,7 +268,7 @@ async function startServer() {
 
         if (startMatch) {
           const start = parseFloat(startMatch[1]);
-          const duration = durMatch ? parseFloat(durMatch[1]) : 5.0; // Fallback to 5.0 seconds
+          const duration = durMatch ? parseFloat(durMatch[1]) : 5.0;
           segments.push({
             text: body,
             offset: Math.round(start * 1000),
@@ -209,10 +278,13 @@ async function startServer() {
       }
 
       console.log(`[Custom Scraper] Custom scraper parsed ${segments.length} segments successfully!`);
-      return segments.length > 0 ? segments : null;
+      if (segments.length === 0) {
+        throw new Error("Phụ đề của video này rỗng hoặc không thể phân tích.");
+      }
+      return segments;
     } catch (e: any) {
       console.warn(`[Custom Scraper] Exception in custom scraper: ${e.message}`);
-      return null;
+      throw e;
     }
   }
 
@@ -244,6 +316,16 @@ async function startServer() {
     } catch (e: any) {
       lastError = e.message;
       console.warn(`[Transcript] Custom Scraper Failed: ${e.message}`);
+      // Structural block, abort immediately and notify client
+      if (
+        e.message.includes("riêng tư") || 
+        e.message.includes("không tồn tại") || 
+        e.message.includes("tắt tính năng") || 
+        e.message.includes("giới hạn") ||
+        e.message.includes("không có bất kỳ phụ đề")
+      ) {
+        return res.status(400).json({ error: e.message });
+      }
     }
 
     // Method 1: YouTubei.js

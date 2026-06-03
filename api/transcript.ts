@@ -2,8 +2,221 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from "@google/genai";
 import fetch from "node-fetch";
 import { YoutubeTranscript } from 'youtube-transcript';
+import fs from 'fs';
+import path from 'path';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "empty" });
+
+function getCookiesHeader(): string {
+  if (process.env.YOUTUBE_COOKIE) {
+    return process.env.YOUTUBE_COOKIE.trim();
+  }
+  
+  const pathsToTry = [
+    path.join(process.cwd(), 'cookies.txt'),
+    path.join(__dirname, 'cookies.txt'),
+    'cookies.txt'
+  ];
+  
+  for (const p of pathsToTry) {
+    try {
+      if (fs.existsSync(p)) {
+        const content = fs.readFileSync(p, 'utf8');
+        if (content.includes('\t') && !content.startsWith('# Netscape')) {
+          const lines = content.split('\n');
+          const cookieParams: string[] = [];
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) continue;
+            const parts = trimmed.split('\t');
+            if (parts.length >= 7) {
+              const name = parts[5];
+              const value = parts[6];
+              cookieParams.push(`${name}=${value}`);
+            }
+          }
+          if (cookieParams.length > 0) {
+            return cookieParams.join('; ');
+          }
+        }
+        return content.trim();
+      }
+    } catch (e) {
+      // silent
+    }
+  }
+  return '';
+}
+
+async function fetchCaptionsCustom(videoId: string): Promise<any[] | null> {
+  const cookieHeader = getCookiesHeader();
+  const headers: Record<string, string> = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache'
+  };
+  if (cookieHeader) {
+    headers['Cookie'] = cookieHeader;
+  }
+
+  try {
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    console.log(`[Custom Scraper] Fetching video watch page for ID: ${videoId}`);
+    const response = await fetch(url, { headers });
+
+    if (!response.ok) {
+      if (response.status === 403 || response.status === 429) {
+        throw new Error("Lỗi cấu hình mạng hoặc YouTube đã chặn IP của Server (403/429). Hãy thử cài đặt file cookies.txt của bạn vào ứng dụng.");
+      }
+      throw new Error(`Không thể kết nối tới YouTube (HTTP ${response.status}: ${response.statusText})`);
+    }
+
+    const html = await response.text();
+    
+    if (html.includes("This video is private") || html.includes("Video này là riêng tư") || (html.includes('"status":"UNPLAYABLE"') && html.includes("private"))) {
+      throw new Error("Video này là riêng tư hoặc không được công khai (Private Video). Vui lòng đổi sang video Công khai (Public).");
+    }
+    if (html.includes("Video không khả dụng") || html.includes("Video unavailable") || html.includes('"status":"ERROR"')) {
+      throw new Error("Video này không tồn tại hoặc không khả dụng (Video Unavailable).");
+    }
+    if (html.includes("is not available in your country") || html.includes("không hỗ trợ quốc gia") || html.includes("The uploader has not made this video available")) {
+      throw new Error("Video này bị giới hạn khu vực địa lý hoặc quốc gia (Geoblock).");
+    }
+    if (html.includes("disallowed_by_policy") || html.includes("embedding is disabled")) {
+      throw new Error("Video này bị tắt tính năng nhúng / chia sẻ hoặc chính sách phát lại không hỗ trợ.");
+    }
+
+    let captionTracks: any[] | null = null;
+    
+    let match = html.match(/"captionTracks":\s*(\[.*?\])/);
+    if (match) {
+      try {
+        captionTracks = JSON.parse(match[1]);
+        console.log(`[Custom Scraper] Found captionTracks JSON under standard regex.`);
+      } catch (err) {
+        console.warn(`[Custom Scraper] Failed to parse captionTracks match[1]:`, err);
+      }
+    }
+
+    if (!captionTracks) {
+      match = html.match(/&quot;captionTracks&quot;:\s*(&quot;\[.*?\]&quot;|\[.*?\])/);
+      if (match) {
+        try {
+          const rawTrack = match[1].replace(/&quot;/g, '"');
+          captionTracks = JSON.parse(rawTrack);
+          console.log(`[Custom Scraper] Found captionTracks JSON under escaped regex.`);
+        } catch (err) {
+          console.warn(`[Custom Scraper] Failed to parse escaped captionTracks`, err);
+        }
+      }
+    }
+
+    if (!captionTracks) {
+      const playerResponseMatch = html.match(/ytInitialPlayerResponse\s*=\s*({.*?});/);
+      if (playerResponseMatch) {
+        try {
+          const parsed = JSON.parse(playerResponseMatch[1]);
+          const status = parsed?.playabilityStatus;
+          if (status && status.status === "UNPLAYABLE") {
+            throw new Error(`Video không playable: ${status.reason || "Bị hạn chế bởi YouTube"}`);
+          }
+          const tracks = parsed?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+          if (tracks && Array.isArray(tracks)) {
+            captionTracks = tracks;
+            console.log(`[Custom Scraper] Found captionTracks in ytInitialPlayerResponse.`);
+          }
+        } catch (err: any) {
+          if (err.message?.includes("Video không playable")) {
+            throw err;
+          }
+        }
+      }
+    }
+
+    if (!captionTracks || !Array.isArray(captionTracks) || captionTracks.length === 0) {
+      throw new Error("Video này không có bất kỳ phụ đề (captions/subtitles) nào có sẵn trên YouTube.");
+    }
+
+    // Language Priority: 1st manual en, 1st manual vi, auto en, auto vi, contains en, contains vi, first
+    let selectedTrack = captionTracks.find((t: any) => (t.languageCode === "en" || t.vssId === "en") && !t.vssId?.startsWith("a."));
+    if (!selectedTrack) {
+      selectedTrack = captionTracks.find((t: any) => (t.languageCode === "vi" || t.vssId === "vi") && !t.vssId?.startsWith("a."));
+    }
+    if (!selectedTrack) {
+      selectedTrack = captionTracks.find((t: any) => t.languageCode === "en");
+    }
+    if (!selectedTrack) {
+      selectedTrack = captionTracks.find((t: any) => t.languageCode === "vi");
+    }
+    if (!selectedTrack) {
+      selectedTrack = captionTracks.find((t: any) => t.languageCode?.toLowerCase().includes("en") || t.vssId?.toLowerCase().includes("en"));
+    }
+    if (!selectedTrack) {
+      selectedTrack = captionTracks.find((t: any) => t.languageCode?.toLowerCase().includes("vi") || t.vssId?.toLowerCase().includes("vi"));
+    }
+    if (!selectedTrack) {
+      selectedTrack = captionTracks[0];
+    }
+
+    const baseUrl = selectedTrack.baseUrl;
+    if (!baseUrl) {
+      throw new Error("Không thể lấy đường dẫn phụ đề của track được chọn.");
+    }
+
+    console.log(`[Custom Scraper] Chosen track: ${selectedTrack.languageCode} (${selectedTrack.vssId || "unknown ID"}). Fetching raw subtitles...`);
+
+    const xmlResponse = await fetch(baseUrl, { headers });
+    if (!xmlResponse.ok) {
+      throw new Error(`Đầu đọc XML của YouTube từ chối tải phụ đề (HTTP ${xmlResponse.status})`);
+    }
+
+    const xmlText = await xmlResponse.text();
+    const regex = /<text\s+([^>]*?)>([\s\S]*?)<\/text>/gi;
+    let matchText;
+    const segments = [];
+
+    function decodeHtmlEntities(str: string) {
+      return str
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&apos;/g, "'")
+        .replace(/&#x2F;/g, "/")
+        .replace(/\n/g, " ");
+    }
+
+    while ((matchText = regex.exec(xmlText)) !== null) {
+      const attributes = matchText[1];
+      const body = decodeHtmlEntities(matchText[2]);
+
+      const startMatch = attributes.match(/start="([\d.]+)"/i) || attributes.match(/start='([\d.]+)'/i);
+      const durMatch = attributes.match(/dur="([\d.]+)"/i) || attributes.match(/dur='([\d.]+)'/i);
+
+      if (startMatch) {
+        const start = parseFloat(startMatch[1]);
+        const duration = durMatch ? parseFloat(durMatch[1]) : 5.0;
+        segments.push({
+          text: body,
+          offset: Math.round(start * 1000),
+          duration: Math.round(duration * 1000)
+        });
+      }
+    }
+
+    console.log(`[Custom Scraper] Custom scraper parsed ${segments.length} segments successfully!`);
+    if (segments.length === 0) {
+      throw new Error("Phụ đề của video này rỗng hoặc không thể phân tích.");
+    }
+    return segments;
+  } catch (e: any) {
+    console.warn(`[Custom Scraper] Exception in custom scraper: ${e.message}`);
+    throw e;
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -16,9 +229,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   let transcriptData = null;
+  let lastError = "";
 
+  // Method 0: Custom Scraper with cookie block-avoidance & automatic English/Vietnamese / private-blocked checks
   try {
-    const transcript = await YoutubeTranscript.fetchTranscript(videoId);
+    transcriptData = await fetchCaptionsCustom(videoId);
+  } catch (e: any) {
+    lastError = e.message;
+    // Structural block, abort immediately and notify client
+    if (
+      e.message.includes("riêng tư") || 
+      e.message.includes("không tồn tại") || 
+      e.message.includes("tắt tính năng") || 
+      e.message.includes("giới hạn") ||
+      e.message.includes("không có bất kỳ phụ đề")
+    ) {
+      return res.status(400).json({ error: e.message });
+    }
+  }
+
+  // Method 1: youtube-transcript standard
+  if (!transcriptData) {
+    try {
+      const transcript = await YoutubeTranscript.fetchTranscript(videoId);
     
     if (transcript && transcript.length > 0) {
       transcriptData = transcript.map(t => ({
@@ -242,6 +475,7 @@ Format the output strictly as a JSON array where each object has:
       }
     }
   }
+}
 
   if (!transcriptData) {
     transcriptData = [

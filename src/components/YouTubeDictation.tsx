@@ -1714,7 +1714,38 @@ export function YouTubeDictation({
                       Tự động lấy
                     </button>
                   </div>
-                  {transcriptError && <div className="mb-2 p-1.5 bg-crimson/5 text-crimson text-[9px] leading-relaxed rounded border border-crimson/20 italic shrink-0">⚠️ {transcriptError}</div>}
+                  {transcriptError && (
+                    <div className="mb-2 shrink-0 flex flex-col gap-1.5">
+                      <div className="p-1.5 bg-crimson/5 text-crimson text-[9px] leading-relaxed rounded border border-crimson/20 italic">
+                        ⚠️ {transcriptError}
+                      </div>
+                      <details className="text-[9px] bg-paper border border-ink/10 rounded overflow-hidden select-none cursor-pointer">
+                        <summary className="p-1.5 font-bold uppercase tracking-widest text-ink/60 hover:bg-ink/[0.02]">
+                          💡 Gợi ý phương án Transcribe từ File Audio bằng Gemini API
+                        </summary>
+                        <div className="p-2 border-t border-ink/10 bg-ink/[0.01] text-ink/70 space-y-1.5 font-sans leading-relaxed">
+                          <p>Nếu YouTube tiếp tục chặn việc cào phụ đề trực tiếp, bạn có thể tự động chuyển đổi file âm thanh (Audio) thành văn bản một cách cực kỳ chính xác bằng Gemini API qua các bước sau:</p>
+                          <ol className="list-decimal list-inside space-y-1 pl-1">
+                            <li><strong>Tách Audio:</strong> Sử dụng công cụ YouTube-to-MP3 hoặc các tiện ích máy chủ như <code className="bg-ink/5 px-0.5 rounded font-mono text-[8px]">ytdl-core</code> hoặc <code className="bg-ink/5 px-0.5 rounded font-mono text-[8px]">yt-dlp</code> để tách file âm thanh của video dưới dạng <code className="font-mono text-[8px]">.mp3</code>, <code className="font-mono text-[8px]">.m4a</code> hoặc <code className="font-mono text-[8px]">.wav</code>.</li>
+                            <li><strong>Upload qua File API:</strong> Sử dụng phương thức <code className="bg-ink/5 px-0.5 rounded font-mono text-[8px]">ai.files.upload()</code> của SDK để gửi tệp âm thanh lên Google.</li>
+                            <li><strong>Gửi Prompt Lắng nghe kèm JSON:</strong> Sử dụng mô hình <code className="bg-ink/5 px-0.5 rounded font-mono text-[8px]">gemini-3.5-flash</code> kèm prompt yêu cầu xuất dữ liệu dạng cấu trúc JSON mảng các câu chữ kèm mốc thời gian (<code className="font-mono text-[8px]">offset</code> và <code className="font-mono text-[8px]">duration</code> tính bằng mili-giây):</li>
+                          </ol>
+                          <pre className="p-1.5 bg-ink/95 text-paper font-mono text-[7px] leading-relaxed rounded overflow-x-auto select-all">
+{`const response = await ai.models.generateContent({
+  model: 'gemini-3.5-flash',
+  contents: [
+    fileUri, // Đường dẫn URI của file audio sau upload
+    'Trích xuất phụ đề của đoạn âm thanh này, trả về mảng JSON dạng [{"text": string, "offset": number, "duration": number}]. Tất cả offset/duration tính bằng mili-giây.'
+  ],
+  config: {
+    responseMimeType: 'application/json'
+  }
+});`}
+                          </pre>
+                        </div>
+                      </details>
+                    </div>
+                  )}
                   <div className="flex-1 min-h-0 p-0.5 sketch-border border-dashed bg-ink/[0.02] overflow-hidden">
                     <textarea value={activeSession.content} onChange={(e) => updateSession(activeSession.id, 'content', e.target.value)} placeholder="Dán phụ đề hoặc bấm lấy tự động..." className="w-full h-full resize-none bg-transparent outline-none font-sans text-xs md:text-sm leading-relaxed p-2 custom-scrollbar" spellCheck="false" />
                   </div>
