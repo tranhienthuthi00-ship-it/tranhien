@@ -29,6 +29,74 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   } catch (e: any) {
     if (!transcriptData) {
+      const invidiousInstances = [
+        "https://inv.thepixora.com",
+        "https://yewtu.be",
+        "https://vid.puffyan.us",
+        "https://inv.tux.pizza"
+      ];
+      for (const instance of invidiousInstances) {
+        if (transcriptData) break;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const res = await fetch(`${instance}/api/v1/captions/${videoId}`, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (!res.ok) continue;
+          
+          const data = await res.json() as any;
+          if (data && data.captions && Array.isArray(data.captions) && data.captions.length > 0) {
+            let selected = data.captions.find((c: any) => c.languageCode === "en" && !c.label?.toLowerCase().includes("auto-generated"));
+            if (!selected) selected = data.captions.find((c: any) => c.languageCode === "en");
+            if (!selected) selected = data.captions[0];
+            
+            if (selected) {
+              let trackUrl = selected.url;
+              if (trackUrl.startsWith("/")) {
+                trackUrl = instance + trackUrl;
+              }
+              const trackRes = await fetch(trackUrl);
+              if (trackRes.ok) {
+                const vttText = await trackRes.text();
+                const parsed = [];
+                const vttLines = vttText.split('\n');
+                let currentOffset = 0;
+                let currentDuration = 0;
+                
+                for (let i = 0; i < vttLines.length; i++) {
+                  const line = vttLines[i].trim();
+                  if (line.includes('-->')) {
+                     const parts = line.split('-->');
+                     const parseTime = (t: string) => {
+                       const p = t.split(':');
+                       if (p.length === 3) return (parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2])) * 1000;
+                       if (p.length === 2) return (parseFloat(p[0]) * 60 + parseFloat(p[1])) * 1000;
+                       return 0;
+                     };
+                     currentOffset = parseTime(parts[0].trim());
+                     currentDuration = parseTime(parts[1].trim()) - currentOffset;
+                  } else if (line && !line.includes('WEBVTT') && !line.match(/^[\d]+$/)) {
+                     if (currentOffset > 0) {
+                        parsed.push({
+                           text: line.replace(/<[^>]+>/g, ''),
+                           offset: currentOffset,
+                           duration: currentDuration > 0 ? currentDuration : 3000
+                        });
+                        currentOffset = 0;
+                     }
+                  }
+                }
+                if (parsed.length > 0) {
+                  transcriptData = parsed;
+                }
+              }
+            }
+          }
+        } catch (err: any) {}
+      }
+    }
+
+    if (!transcriptData) {
       const pipedInstances = [
         "https://pipedapi.moomoo.me",
         "https://pipedapi.kavin.rocks",
@@ -103,7 +171,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!transcriptData) {
     try {
       const searchResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: `Search Google for the YouTube video with ID "${videoId}". Retrieve its title, description, and any available transcript, subtitles, or captions. Write down all details you can find or can confidently infer about the dialogue or topic/content of this video.`,
         config: {
           tools: [{ googleSearch: {} }]
@@ -113,7 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const searchResultText = searchResponse.text?.trim() || "";
 
       const structureResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: `Below is some retrieved web-search information for a YouTube video of ID "${videoId}":
 ---
 ${searchResultText}
@@ -150,7 +218,7 @@ Example output format:
     } catch (e: any) {
       try {
         const normalResponse = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.5-flash",
           contents: `Generate a list of 10-15 beautiful, natural, conversational English learning dialogue sentences on the topic of standard daily communication.
 Format the output strictly as a JSON array where each object has:
 - text: string (English sentence)

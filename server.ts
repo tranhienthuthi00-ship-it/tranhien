@@ -310,6 +310,80 @@ async function startServer() {
       }
     }
 
+    // Method 3.5: Invidious API Fallback (Privacy front-end for YouTube)
+    if (!transcriptData) {
+      const invidiousInstances = [
+        "https://inv.thepixora.com",
+        "https://yewtu.be",
+        "https://vid.puffyan.us",
+        "https://inv.tux.pizza"
+      ];
+      for (const instance of invidiousInstances) {
+        if (transcriptData) break;
+        try {
+          console.log(`[Transcript] Method: Invidious API - Trying ${instance}`);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          
+          const res = await fetch(`${instance}/api/v1/captions/${videoId}`, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (!res.ok) continue;
+          
+          const data = await res.json() as any;
+          if (data && data.captions && Array.isArray(data.captions) && data.captions.length > 0) {
+            let selected = data.captions.find((c: any) => c.languageCode === "en" && !c.label?.toLowerCase().includes("auto-generated"));
+            if (!selected) selected = data.captions.find((c: any) => c.languageCode === "en");
+            if (!selected) selected = data.captions[0];
+            
+            if (selected) {
+              let trackUrl = selected.url;
+              if (trackUrl.startsWith("/")) {
+                trackUrl = instance + trackUrl;
+              }
+              const trackRes = await fetch(trackUrl);
+              if (trackRes.ok) {
+                const vttText = await trackRes.text();
+                const parsed = [];
+                const vttLines = vttText.split('\n');
+                let currentOffset = 0;
+                let currentDuration = 0;
+                
+                for (let i = 0; i < vttLines.length; i++) {
+                  const line = vttLines[i].trim();
+                  if (line.includes('-->')) {
+                     const parts = line.split('-->');
+                     const parseTime = (t: string) => {
+                       const p = t.split(':');
+                       if (p.length === 3) return (parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2])) * 1000;
+                       if (p.length === 2) return (parseFloat(p[0]) * 60 + parseFloat(p[1])) * 1000;
+                       return 0;
+                     };
+                     currentOffset = parseTime(parts[0].trim());
+                     currentDuration = parseTime(parts[1].trim()) - currentOffset;
+                  } else if (line && !line.includes('WEBVTT') && !line.match(/^[\d]+$/)) {
+                     if (currentOffset > 0) {
+                        parsed.push({
+                           text: line.replace(/<[^>]+>/g, ''),
+                           offset: currentOffset,
+                           duration: currentDuration > 0 ? currentDuration : 3000
+                        });
+                        currentOffset = 0;
+                     }
+                  }
+                }
+                if (parsed.length > 0) {
+                  transcriptData = parsed;
+                  console.log(`[Transcript] Invidious API Success: ${parsed.length} segments`);
+                }
+              }
+            }
+          }
+        } catch (e: any) {
+          console.warn(`[Transcript] Invidious API ${instance} Failed: ${e.message}`);
+        }
+      }
+    }
+
     // Method 4: Piped API Fallback (Privacy front-end for YouTube)
     if (!transcriptData) {
       const pipedInstances = [
@@ -394,7 +468,7 @@ async function startServer() {
       try {
         console.log(`[Transcript] Method 4: Gemini Search Grounding (Step A - Search) - Video ID: ${videoId}`);
         const searchResponse = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.5-flash",
           contents: `Search Google for the YouTube video with ID "${videoId}". Retrieve its title, description, and any available transcript, subtitles, or captions. Write down all details you can find or can confidently infer about the dialogue or topic/content of this video.`,
           config: {
             tools: [{ googleSearch: {} }]
@@ -405,7 +479,7 @@ async function startServer() {
         console.log(`[Transcript] Step A Search complete. Length: ${searchResultText.length}. Proceeding to Step B (Structuring JSON)...`);
 
         const structureResponse = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.5-flash",
           contents: `Below is some retrieved web-search information for a YouTube video of ID "${videoId}":
 ---
 ${searchResultText}
@@ -448,7 +522,7 @@ Example output format:
         try {
           console.log(`[Transcript] Method 4b: Normal Gemini Generation Fallback`);
           const normalResponse = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3.5-flash",
             contents: `Generate a list of 10-15 beautiful, natural, conversational English learning dialogue sentences on the topic of standard daily communication.
 Format the output strictly as a JSON array where each object has:
 - text: string (English sentence)
@@ -489,7 +563,7 @@ Format the output strictly as a JSON array where each object has:
     console.log(`[Translation] Generating sentence for topic: ${topic}`);
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: `Generate one natural, medium-difficulty Vietnamese sentence for translation practice. Topic: ${topic}. Output ONLY the raw Vietnamese text. No quotes, no translation, no labels.`
       });
       
@@ -528,7 +602,7 @@ Format the output strictly as a JSON array where each object has:
 
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: `Analyze this Vietnamese to English translation.
 Original (VN): "${original}"
 Translation (EN): "${translation}"
@@ -587,7 +661,7 @@ Return ONLY a valid JSON object.
 
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: `Analyze this translation pair:
 Vietnamese: "${original}"
 English: "${reference}"
@@ -623,7 +697,7 @@ Example: ["Sử dụng 'Look forward to' khi...", "Cấu trúc 'It takes someone
 
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: `Analyze this English or Vietnamese word or phrase: "${word}".
 Provide its IPA pronunciation (if English), word type (must be one of: noun, verb, adj, adv, idiom, phrasal verb, phrase, sentence), a clear definition in Vietnamese, and an illustrative English sentence.
 
@@ -675,7 +749,7 @@ Return ONLY a valid JSON object:
 
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: `Translate the following English subtitle or line to natural, context-aware Vietnamese.
 We are translating a subtitle/caption line inside a video, so please keep the translation natural, human-like, brief, and matching the original sentence's style and emotion. Do NOT do literal/word-for-word translation.
 Return ONLY the raw translated text, without quotes, explanations, or markdown.
@@ -699,7 +773,7 @@ English: "${text}"`
 
     try {
       const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: `You are an expert English conversation coach. Evaluate a student's answer to a conversation question.
 Question: "${question}" ${questionVi ? `(Vietnamese version: "${questionVi}")` : ""}
 Student's Answer: "${userAnswer}"
@@ -827,7 +901,7 @@ Please produce a single JSON object containing ALL of the following 6 sections:
 CRITICAL: Return ONLY a raw JSON object. Do NOT wrap it in any formatting, explanation, or additional markdown text except the raw JSON string itself. Check your JSON brackets and make sure it is valid JSON.`;
 
       const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json"
@@ -912,7 +986,7 @@ Hãy phân tích và trả về một đối tượng JSON thuần túy chứa c
 Hãy trả về duy nhất chuỗi JSON thô, không nằm trong các khối mã markdown, không giải thích gì thêm ngoài cấu trúc JSON hợp lệ.`;
 
       const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json"
@@ -1127,7 +1201,7 @@ CRITICAL: Return ONLY a raw JSON object matching the requested schema. No markdo
       if (process.env.GEMINI_API_KEY) {
         try {
           const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3.5-flash",
             contents: prompt,
             config: {
               responseMimeType: "application/json"
