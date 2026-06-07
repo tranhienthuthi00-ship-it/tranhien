@@ -1966,7 +1966,7 @@ export function AssetsManager({
                 <table className="w-full text-left border-collapse text-xs table-fixed sm:table-auto">
                   <thead>
                     <tr className="bg-blue-100/50 text-[#1e40af] font-bold uppercase tracking-wider text-[9px]">
-                      <th className="px-1.5 sm:px-3 py-2 w-[70px] sm:w-32 border border-blue-100">
+                      <th className="px-1.5 sm:px-3 py-2 w-[95px] sm:w-32 border border-blue-100">
                         <span className="hidden sm:inline">Ngày / Tên</span>
                         <span className="inline sm:hidden">Ngày</span>
                       </th>
@@ -1983,14 +1983,8 @@ export function AssetsManager({
                       <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
                         <td className="p-0.5 sm:p-1 border border-blue-100/50">
                           <div className="flex items-center justify-between gap-0.5 px-1 sm:px-2.5 py-0.5 sm:py-1 text-left relative">
-                            <span className="text-[11px] sm:text-xs font-black text-blue-950 font-mono hidden sm:inline">
+                            <span className="text-[11px] sm:text-xs font-black text-blue-950 font-mono">
                               {formatDateDot(item.name)}
-                            </span>
-                            <span className="text-[11px] sm:text-xs font-black text-blue-950 font-mono inline sm:hidden">
-                              {(() => {
-                                const parts = item.name.split("-");
-                                return parts.length === 3 ? `${parts[2]}.${parts[1]}` : item.name;
-                              })()}
                             </span>
                             <div className="relative w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center shrink-0 hover:bg-blue-100 rounded transition-all cursor-pointer">
                               <CalendarIcon className="text-blue-500 cursor-pointer w-3 h-3 sm:w-[12px] sm:h-[12px]" />
@@ -2153,7 +2147,7 @@ export function AssetsManager({
                 <table className="w-full text-left border-collapse text-xs table-fixed sm:table-auto">
                   <thead>
                     <tr className="bg-emerald-100/50 text-[#065f46] font-bold uppercase tracking-wider text-[9px]">
-                      <th className="px-1.5 sm:px-3 py-2 w-[70px] sm:w-32 border border-emerald-100">
+                      <th className="px-1.5 sm:px-3 py-2 w-[95px] sm:w-32 border border-emerald-100">
                         <span className="hidden sm:inline">Ngày / Tên</span>
                         <span className="inline sm:hidden">Ngày</span>
                       </th>
@@ -2170,14 +2164,8 @@ export function AssetsManager({
                         <tr key={item.id} className="hover:bg-emerald-50/50 transition-colors">
                           <td className="p-0.5 sm:p-1 border border-emerald-100/50">
                             <div className="flex items-center justify-between gap-0.5 px-1 sm:px-2.5 py-0.5 sm:py-1 text-left relative">
-                              <span className="text-[11px] sm:text-xs font-black text-emerald-950 font-mono hidden sm:inline">
+                              <span className="text-[11px] sm:text-xs font-black text-emerald-950 font-mono">
                                 {formatDateDot(item.name)}
-                              </span>
-                              <span className="text-[11px] sm:text-xs font-black text-emerald-950 font-mono inline sm:hidden">
-                                {(() => {
-                                  const parts = item.name.split("-");
-                                  return parts.length === 3 ? `${parts[2]}.${parts[1]}` : item.name;
-                                })()}
                               </span>
                               <div className="relative w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center shrink-0 hover:bg-emerald-100 rounded transition-all cursor-pointer">
                                 <CalendarIcon className="text-emerald-500 cursor-pointer w-3 h-3 sm:w-[12px] sm:h-[12px]" />
