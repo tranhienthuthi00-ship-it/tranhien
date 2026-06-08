@@ -109,7 +109,44 @@ export function DigitalJournal({
     }
   });
 
+  const [localRenamedDefaultGoals, setLocalRenamedDefaultGoals] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_localBucketListRenamed");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [editingGoalText, setEditingGoalText] = useState("");
+
   const [newBucketGoalTitle, setNewBucketGoalTitle] = useState("");
+
+  const saveRename = async (id: string, isReal: boolean) => {
+    const trimmed = editingGoalText.trim();
+    if (!trimmed) {
+      setEditingGoalId(null);
+      return;
+    }
+
+    if (isReal) {
+      if (goals && setGoals) {
+        const updated = goals.map(g => {
+          if (g.id === id) {
+            return { ...g, title: trimmed };
+          }
+          return g;
+         });
+         await setGoals(updated);
+      }
+    } else {
+      const updatedRenamed = { ...localRenamedDefaultGoals, [id]: trimmed };
+      setLocalRenamedDefaultGoals(updatedRenamed);
+      localStorage.setItem("studyHub_localBucketListRenamed", JSON.stringify(updatedRenamed));
+    }
+    setEditingGoalId(null);
+  };
 
   const toggleLocalDefaultGoal = (id: string) => {
     const updated = { ...localCompletedDefaultGoals, [id]: !localCompletedDefaultGoals[id] };
@@ -824,22 +861,40 @@ export function DigitalJournal({
 
       {/* EXTREMELY POLISHED SUMMER BUCKET LIST STYLE QUICK GOALS VIEW */}
       <div 
-        className="w-full bg-[#f6ebdc] p-3 sm:p-6 md:p-8 rounded-[2.5rem] border-4 border-[#3D0A0F] shadow-[10px_10px_0px_#3D0A0F] relative overflow-hidden animate-in fade-in slide-in-from-top-6 duration-500"
+        className="w-full bg-[#f6ebdc] p-3 sm:p-6 md:p-8 rounded-[2.5rem] border-4 border-[#3D0A0F] shadow-[10px_10px_0px_#3D0A0F] relative overflow-hidden animate-in fade-in slide-in-from-top-6 duration-500 font-hand"
         style={{
           backgroundImage: "repeating-linear-gradient(90deg, #8A1E2B, #8A1E2B 24px, #E59FB0 24px, #E59FB0 48px)"
         }}
       >
-        <div className="max-w-4xl mx-auto bg-[#FAF3EB] border-[6px] border-[#3D0A0F] rounded-[2rem] p-6 md:p-10 text-[#5C0612] font-sans shadow-lg relative">
+        <div className="max-w-4xl mx-auto bg-[#FAF3EB] border-[6px] border-[#3D0A0F] rounded-[2rem] p-6 md:p-10 text-[#5C0612] font-hand shadow-lg relative">
           
-          {/* Starburst Doodle decoration */}
-          <div className="absolute right-5 top-5 text-[#ED7CB8] animate-pulse pointer-events-none">
-            <svg className="w-12 h-12 md:w-16 md:h-16 drop-shadow-sm" viewBox="0 0 100 100" fill="currentColor">
-              <path d="M50 15 L55 35 L75 30 L62 46 L82 58 L59 62 L66 82 L50 68 L34 82 L41 62 L18 58 L38 46 L25 30 L45 35 Z" />
+          {/* Handdrawn Zigzag Pink Sticker in upper-right */}
+          <div className="absolute right-4 top-4 md:right-7 md:top-7 select-none animate-pulse pointer-events-none">
+            <svg className="w-16 h-16 md:w-20 md:h-20 drop-shadow-sm rotate-12" viewBox="0 0 100 100">
+              {/* First sketchy pass (slightly offset) */}
+              <path 
+                d="M25,45 Q35,22 42,20 Q44,38 45,40 Q58,15 63,16 Q58,42 57,43 Q76,32 78,33 Q67,54 66,55 Q82,65 80,68 Q56,66 55,67 Q59,85 57,86 Q46,70 45,71 Q34,84 32,82 Q36,59 35,58 Q15,58 16,55 Z" 
+                fill="none" 
+                stroke="#EFAEBB" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                opacity="0.8"
+              />
+              {/* Second main pass */}
+              <path 
+                d="M26,46 Q34,24 41,21 Q44,37 46,39 Q57,16 62,17 Q59,41 58,42 Q75,33 77,34 Q66,53 67,54 Q81,64 79,67 Q57,65 56,66 Q58,84 56,85 Q47,69 46,70 Q35,82 33,81 Q35,58 34,57 Q16,57 17,54 Z"
+                fill="none" 
+                stroke="#ED7CB8" 
+                strokeWidth="3.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
 
           <div className="relative text-center mb-10 select-none">
-            <h2 className="text-[#5C0612] font-sans font-black uppercase text-3xl md:text-5xl tracking-normal leading-none rotate-[-1.5deg] select-none flex flex-col items-center">
+            <h2 className="text-[#5C0612] font-hand font-black uppercase text-3xl md:text-5xl tracking-normal leading-none rotate-[-1.5deg] select-none flex flex-col items-center">
               <span className="text-xl md:text-2xl block tracking-[0.2em] text-[#7D1E2B]/85 font-extrabold rotate-[2deg] opacity-95">🍉 SUMMER</span>
               <span className="text-4xl md:text-6.5xl font-black block mt-2 tracking-tighter filter drop-shadow-[3px_3px_0px_#E59FB0]">BUCKET LIST</span>
             </h2>
@@ -847,7 +902,7 @@ export function DigitalJournal({
           </div>
 
           {/* Combined Custom and Default Bucket List Core Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 md:gap-y-5.5 text-left font-sans text-[#5C0612] pl-2 pr-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 md:gap-y-5.5 text-left font-hand text-[#5C0612] pl-2 pr-2">
             
             {/* Column 1 and Column 2 rendering */}
             {(() => {
@@ -881,6 +936,7 @@ export function DigitalJournal({
                 { id: "def-18", text: "EXPLORE A NEW CITY'S BEST LOCAL SPOTS", isReal: false }
               ].map(d => ({
                 ...d,
+                text: localRenamedDefaultGoals[d.id] || d.text,
                 isCompleted: !!localCompletedDefaultGoals[d.id]
               }));
 
@@ -893,29 +949,58 @@ export function DigitalJournal({
               const rightColItems = allBucketItems.slice(halfCount);
 
               const renderItem = (item: any) => {
+                const isEditing = editingGoalId === item.id;
                 return (
                   <div 
                     key={item.id}
-                    onClick={() => item.isReal ? handleToggleRealGoal(item.id) : toggleLocalDefaultGoal(item.id)}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setEditingGoalId(item.id);
+                      setEditingGoalText(item.text);
+                    }}
                     className="flex items-start gap-3.5 group cursor-pointer"
+                    title="Nhấn đúp chuột để đổi tên mục tiêu!"
                   >
                     <button
                       type="button"
-                      className="w-[17px] h-[17px] rounded-full border-2 border-[#5C0612] shrink-0 mt-0.5 transition-all flex items-center justify-center relative bg-transparent"
-                      title="Nhấp để hoàn thành!"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        item.isReal ? handleToggleRealGoal(item.id) : toggleLocalDefaultGoal(item.id);
+                      }}
+                      className="w-[18px] h-[18px] rounded-full border-2 border-[#5C0612] shrink-0 mt-0.5 transition-all flex items-center justify-center relative bg-transparent hover:scale-105"
+                      title={item.isCompleted ? "Đánh dấu chứa hoàn thành" : "Nhấp để hoàn thành!"}
                     >
                       {item.isCompleted && (
                         <div className="w-2.5 h-2.5 rounded-full bg-[#5C0612] absolute" />
                       )}
                     </button>
                     
-                    <span className={`font-sans font-black uppercase text-[11px] sm:text-xs tracking-wider leading-snug transition-all text-[#5C0612] select-none ${
-                      item.isCompleted 
-                        ? "line-through opacity-45 text-[#5C0612]/70 decoration-[#5C0612] decoration-2" 
-                        : "group-hover:text-red-700"
-                    }`}>
-                      {item.isReal ? `🎯 ${item.text}` : item.text}
-                    </span>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editingGoalText}
+                        onChange={(e) => setEditingGoalText(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onBlur={() => saveRename(item.id, item.isReal)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            saveRename(item.id, item.isReal);
+                          } else if (e.key === "Escape") {
+                            setEditingGoalId(null);
+                          }
+                        }}
+                        autoFocus
+                        className="flex-1 bg-white/95 border-2 border-[#5C0612] px-2 py-0.5 rounded text-xs sm:text-sm md:text-base font-hand font-bold text-[#5C0612] outline-none shadow-sm"
+                      />
+                    ) : (
+                      <span className={`font-hand font-bold uppercase text-xs sm:text-sm md:text-[15px] tracking-wide leading-snug transition-all text-[#5C0612] select-none ${
+                        item.isCompleted 
+                          ? "line-through opacity-45 text-[#5C0612]/70 decoration-[#5C0612] decoration-2" 
+                          : "group-hover:text-red-700"
+                      }`}>
+                        {item.isReal ? `🎯 ${item.text}` : item.text}
+                      </span>
+                    )}
                   </div>
                 );
               };
@@ -935,20 +1020,20 @@ export function DigitalJournal({
           </div>
 
           {/* Quick handwritten goals creator inline inside the poster */}
-          <form onSubmit={handleAddBucketGoal} className="mt-10 pt-8 border-t-[3px] border-dashed border-[#5C0612]/20 flex flex-col sm:flex-row gap-3 items-center justify-center font-sans">
-            <span className="text-xs font-black uppercase tracking-wider text-[#5C0612] shrink-0">✨ THÊM MỤC TIÊU VÀO BUCKET LIST:</span>
+          <form onSubmit={handleAddBucketGoal} className="mt-10 pt-8 border-t-[3px] border-dashed border-[#5C0612]/20 flex flex-col sm:flex-row gap-3 items-center justify-center font-hand">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#5C0612] shrink-0">✨ THÊM MỤC TIÊU VÀO BUCKET LIST:</span>
             <div className="flex w-full sm:w-auto flex-1 max-w-md bg-white/70 border-2 border-[#5C0612] rounded-full overflow-hidden px-1 py-1 shadow-sm focus-within:border-red-700 focus-within:bg-white transition-all">
               <input
                 type="text"
                 placeholder="Ví dụ: Đọc xong 3 cuốn sách tiếng Anh..."
                 value={newBucketGoalTitle}
                 onChange={e => setNewBucketGoalTitle(e.target.value)}
-                className="flex-1 px-4 py-1.5 text-xs font-bold text-[#5C0612] bg-transparent outline-none placeholder-[#5C0612]/40 uppercase font-sans"
+                className="flex-1 px-4 py-1.5 text-xs font-bold text-[#5C0612] bg-transparent outline-none placeholder-[#5C0612]/40 uppercase font-hand"
                 required
               />
               <button 
                 type="submit" 
-                className="px-5 py-1.5 bg-[#5C0612] hover:bg-red-800 text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer shrink-0"
+                className="px-5 py-1.5 bg-[#5C0612] hover:bg-red-800 text-white rounded-full text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer shrink-0 font-hand"
               >
                 GHI LẠI
               </button>
