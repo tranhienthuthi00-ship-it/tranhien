@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useFirebase } from "../context/FirebaseContext";
 import { cn } from "../lib/utils";
+import { LifeDashboard } from "./LifeDashboard";
 
 
 const formatDateDot = (dateStr: string) => {
@@ -622,9 +623,9 @@ export function DigitalJournal({
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/70 backdrop-blur-md p-3.5 rounded-2xl border-2 border-ink shadow-[3px_3px_0px_#1a1a1a]">
         <div className="flex items-center gap-2.5">
           <Sparkles className="w-5 h-5 text-amber-500 animate-[spin_4s_linear_infinite]" />
-          <div className="text-left">
+          <div className="text-left font-sans">
             <span className="text-xs font-black uppercase tracking-wider text-ink block">Life Dashboard & Sổ Tay Cá Nhân</span>
-            <span className="text-[10px] text-ink/50 block font-medium">Bản phục dựng nguyên mẫu Notion Life Dashboard tinh tế từ ảnh chụp thiết kế</span>
+            <span className="text-[10px] text-ink/65 block font-extrabold font-sans">Đồng hành cùng sự sáng tạo, năng lượng và phát triển lành mạnh</span>
           </div>
         </div>
         <div className="flex bg-[#fcfcfb] border border-ink/10 p-1 rounded-xl shadow-inner shrink-0">
@@ -632,7 +633,7 @@ export function DigitalJournal({
             onClick={() => setHomeMode("lifedashboard")}
             className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 ${
               homeMode === "lifedashboard"
-                ? "bg-amber-500 text-white shadow-sm"
+                ? "bg-amber-550 text-white shadow-sm"
                 : "text-ink/60 hover:text-ink hover:bg-amber-100/50"
             }`}
           >
@@ -642,7 +643,7 @@ export function DigitalJournal({
             onClick={() => setHomeMode("journal")}
             className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 ${
               homeMode === "journal"
-                ? "bg-amber-500 text-white shadow-sm"
+                ? "bg-amber-550 text-white shadow-sm"
                 : "text-ink/60 hover:text-ink hover:bg-amber-100/50"
             }`}
           >
@@ -652,41 +653,8 @@ export function DigitalJournal({
       </div>
 
       {homeMode === "lifedashboard" && (
-        <div className="space-y-4 animate-in fade-in duration-350">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-amber-50/50 p-3 rounded-xl border border-amber-200 text-xs font-sans text-amber-900 leading-snug">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">💡</span>
-              <p className="text-left">
-                Đây là bản độc lập <strong>Life Dashboard</strong> tối giản phục dựng từ thiết kế nguyên bản, đồng bộ thời gian thực mốc thời gian, outfits cá nhân và nhiệm vụ của bạn.
-              </p>
-            </div>
-            <div className="flex gap-2 shrink-0">
-              <a
-                href="/life_dashboard.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white border border-amber-300 text-amber-950 font-black px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors uppercase tracking-wider text-[10px]"
-              >
-                Mở Tab Lớn ↗
-              </a>
-              <a
-                href="/life_dashboard.html"
-                download="life_dashboard.html"
-                className="bg-amber-600 text-white font-black px-3 py-1.5 rounded-lg hover:bg-amber-700 transition-colors uppercase tracking-wider text-[10px]"
-              >
-                Tải Bảng Vẽ HTML ↓
-              </a>
-            </div>
-          </div>
-          
-          <div className="bg-[#fcfcfb] rounded-3xl border-2 border-ink shadow-[4px_4px_0px_#1a1a1a] overflow-hidden relative">
-            <iframe
-              src="/life_dashboard.html"
-              title="Life Dashboard Prototype"
-              className="w-full min-h-[960px] border-none"
-              sandbox="allow-scripts allow-same-origin allow-modals"
-            />
-          </div>
+        <div className="animate-in fade-in duration-300">
+          <LifeDashboard />
         </div>
       )}
 
