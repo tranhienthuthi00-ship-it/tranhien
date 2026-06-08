@@ -7,9 +7,9 @@
 }
 
 @theme {
-  --font-sans: 'Patrick Hand', 'Itim', 'Mali', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-hand: 'Patrick Hand', 'Caveat', 'Crimson Pro', cursive, sans-serif;
-  --font-handwriting: 'Patrick Hand', 'Caveat', cursive;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-hand: 'Patrick Hand', 'Itim', 'Mali', 'Caveat', cursive, sans-serif;
+  --font-handwriting: 'Patrick Hand', 'Itim', 'Mali', 'Caveat', cursive;
   --font-logo: 'Baloo 2', cursive;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --color-paper: #FDFBF7;
