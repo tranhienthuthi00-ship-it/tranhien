@@ -1,14 +1,13 @@
 import { cn } from "@/lib/utils";
 
-export type Tab = "English Hub" | "Calendar" | "Collections" | "Dashboard" | "Journal";
+export type Tab = "English Hub" | "Calendar" | "Collections" | "Journal";
 
 export function NavBar({ activeTab, setActiveTab, lastSaved, onLogout, dueCount = 0 }: { activeTab: Tab; setActiveTab: (tab: Tab) => void, lastSaved?: string, onLogout: () => void, dueCount?: number }) {
-  const tabs: Tab[] = ["Journal", "English Hub", "Calendar", "Collections", "Dashboard"];
+  const tabs: Tab[] = ["Journal", "English Hub", "Calendar", "Collections"];
 
   const getTabLabel = (tab: Tab) => {
     switch (tab) {
       case "English Hub": return "ENG";
-      case "Dashboard": return "DASH";
       case "Collections": return "HUB";
       case "Calendar": return "CAL";
       case "Journal": return "HOME";

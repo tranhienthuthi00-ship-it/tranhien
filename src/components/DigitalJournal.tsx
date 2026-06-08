@@ -31,7 +31,6 @@ import {
 } from "lucide-react";
 import { useFirebase } from "../context/FirebaseContext";
 import { cn } from "../lib/utils";
-import { LifeDashboard } from "./LifeDashboard";
 import { PolaroidPreset, STICKER_PRESETS } from "./CalendarView";
 
 
@@ -100,8 +99,70 @@ export function DigitalJournal({
   setBulkCurrentCash
 }: DigitalJournalProps) {
   
-  // ---------------- GLOBAL SYNCED CONTEXT ----------------
-  const [homeMode, setHomeMode] = useState<"journal" | "lifedashboard">("lifedashboard");
+  // ---------------- BUCKET LIST PREVIEW STATE ----------------
+  const [localCompletedDefaultGoals, setLocalCompletedDefaultGoals] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_localBucketListDefaultDone");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [newBucketGoalTitle, setNewBucketGoalTitle] = useState("");
+
+  const toggleLocalDefaultGoal = (id: string) => {
+    const updated = { ...localCompletedDefaultGoals, [id]: !localCompletedDefaultGoals[id] };
+    setLocalCompletedDefaultGoals(updated);
+    localStorage.setItem("studyHub_localBucketListDefaultDone", JSON.stringify(updated));
+    try {
+      if (updated[id]) {
+        confetti({ particleCount: 50, spread: 50, colors: ["#5C0612", "#EFAEBB", "#ED7CB8"] });
+      }
+    } catch (e) {}
+  };
+
+  const handleToggleRealGoal = async (id: string) => {
+    if (!goals || !setGoals) return;
+    let completedGoal: StudyGoal | undefined;
+    const updated = goals.map(g => {
+      if (g.id === id) {
+        const isCompleted = !g.isCompleted;
+        const now = Date.now();
+        const completedAt = isCompleted ? now : undefined;
+        const updatedGoal = { ...g, isCompleted, completedAt, currentValue: isCompleted ? g.targetValue : 0 };
+        if (isCompleted) completedGoal = updatedGoal;
+        return updatedGoal;
+      }
+      return g;
+    });
+
+    if (completedGoal && completedGoal.completedAt) {
+      try {
+        confetti({ particleCount: 70, spread: 60, colors: ["#5C0612", "#EFAEBB", "#ED7CB8", "#fbbf24"] });
+      } catch(e){}
+    }
+    await setGoals(updated);
+  };
+
+  const handleAddBucketGoal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBucketGoalTitle.trim() || !goals || !setGoals) return;
+    const newGoal: StudyGoal = {
+      id: `goal-${Date.now()}`,
+      title: newBucketGoalTitle.trim(),
+      type: 'custom',
+      targetValue: 1,
+      currentValue: 0,
+      createdAt: Date.now(),
+      isCompleted: false
+    };
+    await setGoals([newGoal, ...goals]);
+    setNewBucketGoalTitle("");
+    try {
+      confetti({ particleCount: 30, spread: 40, colors: ["#EFAEBB", "#5C0612"] });
+    } catch(e){}
+  };
 
   const { 
     habits, 
@@ -696,49 +757,8 @@ export function DigitalJournal({
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 font-sans select-none space-y-8 animate-in fade-in duration-300">
       
-      {/* 0. HOME MODE CONTROLLER SUB-BAR */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/70 backdrop-blur-md p-3.5 rounded-2xl border-2 border-ink shadow-[3px_3px_0px_#1a1a1a]">
-        <div className="flex items-center gap-2.5">
-          <Sparkles className="w-5 h-5 text-amber-500 animate-[spin_4s_linear_infinite]" />
-          <div className="text-left font-sans">
-            <span className="text-xs font-black uppercase tracking-wider text-ink block">Life Dashboard & Sổ Tay Cá Nhân</span>
-            <span className="text-[10px] text-ink/65 block font-extrabold font-sans">Đồng hành cùng sự sáng tạo, năng lượng và phát triển lành mạnh</span>
-          </div>
-        </div>
-        <div className="flex bg-[#fcfcfb] border border-ink/10 p-1 rounded-xl shadow-inner shrink-0">
-          <button
-            onClick={() => setHomeMode("lifedashboard")}
-            className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 ${
-              homeMode === "lifedashboard"
-                ? "bg-amber-550 text-white shadow-sm"
-                : "text-ink/60 hover:text-ink hover:bg-amber-100/50"
-            }`}
-          >
-            ✨ Life Dashboard
-          </button>
-          <button
-            onClick={() => setHomeMode("journal")}
-            className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 ${
-              homeMode === "journal"
-                ? "bg-amber-550 text-white shadow-sm"
-                : "text-ink/60 hover:text-ink hover:bg-amber-100/50"
-            }`}
-          >
-            📓 Sổ Tay Nhật Ký
-          </button>
-        </div>
-      </div>
-
-      {homeMode === "lifedashboard" && (
-        <div className="animate-in fade-in duration-300">
-          <LifeDashboard />
-        </div>
-      )}
-
-      {homeMode === "journal" && (
-        <>
-          {/* 1. MOTIVATIONAL WELCOME HEADER - FULL WIDTH */}
-          <div className="bg-[#fffdf5] p-6 md:p-8 rounded-3xl sketch-border border-ink relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-[4px_4px_0px_0px_#1a1a1a]">
+      {/* 1. MOTIVATIONAL WELCOME HEADER - FULL WIDTH */}
+      <div className="bg-[#fffdf5] p-6 md:p-8 rounded-3xl sketch-border border-ink relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-[4px_4px_0px_0px_#1a1a1a]">
          <div className="absolute inset-0 opacity-45 pointer-events-none bg-[radial-gradient(circle_at_left,_var(--tw-gradient-stops))] from-amber-100 via-transparent to-transparent"></div>
          
          <div className="relative z-10 text-center md:text-left space-y-1.5 flex-1 min-w-0">
@@ -801,6 +821,142 @@ export function DigitalJournal({
             </div>
           </div>
        </div>
+
+      {/* EXTREMELY POLISHED SUMMER BUCKET LIST STYLE QUICK GOALS VIEW */}
+      <div 
+        className="w-full bg-[#f6ebdc] p-3 sm:p-6 md:p-8 rounded-[2.5rem] border-4 border-[#3D0A0F] shadow-[10px_10px_0px_#3D0A0F] relative overflow-hidden animate-in fade-in slide-in-from-top-6 duration-500"
+        style={{
+          backgroundImage: "repeating-linear-gradient(90deg, #8A1E2B, #8A1E2B 24px, #E59FB0 24px, #E59FB0 48px)"
+        }}
+      >
+        <div className="max-w-4xl mx-auto bg-[#FAF3EB] border-[6px] border-[#3D0A0F] rounded-[2rem] p-6 md:p-10 text-[#5C0612] font-sans shadow-lg relative">
+          
+          {/* Starburst Doodle decoration */}
+          <div className="absolute right-5 top-5 text-[#ED7CB8] animate-pulse pointer-events-none">
+            <svg className="w-12 h-12 md:w-16 md:h-16 drop-shadow-sm" viewBox="0 0 100 100" fill="currentColor">
+              <path d="M50 15 L55 35 L75 30 L62 46 L82 58 L59 62 L66 82 L50 68 L34 82 L41 62 L18 58 L38 46 L25 30 L45 35 Z" />
+            </svg>
+          </div>
+
+          <div className="relative text-center mb-10 select-none">
+            <h2 className="text-[#5C0612] font-sans font-black uppercase text-3xl md:text-5xl tracking-normal leading-none rotate-[-1.5deg] select-none flex flex-col items-center">
+              <span className="text-xl md:text-2xl block tracking-[0.2em] text-[#7D1E2B]/85 font-extrabold rotate-[2deg] opacity-95">🍉 SUMMER</span>
+              <span className="text-4xl md:text-6.5xl font-black block mt-2 tracking-tighter filter drop-shadow-[3px_3px_0px_#E59FB0]">BUCKET LIST</span>
+            </h2>
+            <div className="w-24 h-1.5 bg-[#5C0612] mx-auto mt-2 rounded-full rotate-[-0.5deg]" />
+          </div>
+
+          {/* Combined Custom and Default Bucket List Core Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 md:gap-y-5.5 text-left font-sans text-[#5C0612] pl-2 pr-2">
+            
+            {/* Column 1 and Column 2 rendering */}
+            {(() => {
+              // Prepare custom active goals from database
+              const activeCustomGoals = goals.map(g => ({
+                id: g.id,
+                text: g.title,
+                isCompleted: g.isCompleted,
+                isReal: true
+              }));
+
+              // Setup static default goals from the image
+              const defaultGoals = [
+                { id: "def-1", text: "GIVE A STRANGER A COMPLIMENT", isReal: false },
+                { id: "def-2", text: "WALK THROUGH GRASS BAREFOOT", isReal: false },
+                { id: "def-3", text: "TRY A NEW RECIPE & SHARE IT WITH SOMEONE", isReal: false },
+                { id: "def-4", text: "HOST A DINNER PARTY", isReal: false },
+                { id: "def-5", text: "LEARN A NEW GAME", isReal: false },
+                { id: "def-6", text: "START A SCRAPBOOK & STICK WITH IT!", isReal: false },
+                { id: "def-7", text: "HAVE A BUBBLY DRINK BY A POOL", isReal: false },
+                { id: "def-8", text: "WATCH A FILM THAT GIVES YOU NEW PERSPECTIVE", isReal: false },
+                { id: "def-9", text: "MAKE A BOUQUET OF FLOWERS", isReal: false },
+                { id: "def-10", text: "SOAK IN SUNSHINE", isReal: false },
+                { id: "def-11", text: "CALL SOMEONE YOU SUSPECT MAY BE LONELY", isReal: false },
+                { id: "def-12", text: "TAKE PHOTOS OF THINGS THAT MADE YOU SMILE", isReal: false },
+                { id: "def-13", text: "MAKE A CHANGE YOU NEED TO MAKE", isReal: false },
+                { id: "def-14", text: "DANCE (IN ANY CAPACITY)", isReal: false },
+                { id: "def-15", text: "JUMP IN A COLD POOL", isReal: false },
+                { id: "def-16", text: "FLOAT IN AN INNER TUBE", isReal: false },
+                { id: "def-17", text: "EAT FRENCH FRIES IN THE SUN", isReal: false },
+                { id: "def-18", text: "EXPLORE A NEW CITY'S BEST LOCAL SPOTS", isReal: false }
+              ].map(d => ({
+                ...d,
+                isCompleted: !!localCompletedDefaultGoals[d.id]
+              }));
+
+              // Merge custom goals first, then defaults
+              const allBucketItems = [...activeCustomGoals, ...defaultGoals];
+              
+              // Slice into two halves evenly
+              const halfCount = Math.ceil(allBucketItems.length / 2);
+              const leftColItems = allBucketItems.slice(0, halfCount);
+              const rightColItems = allBucketItems.slice(halfCount);
+
+              const renderItem = (item: any) => {
+                return (
+                  <div 
+                    key={item.id}
+                    onClick={() => item.isReal ? handleToggleRealGoal(item.id) : toggleLocalDefaultGoal(item.id)}
+                    className="flex items-start gap-3.5 group cursor-pointer"
+                  >
+                    <button
+                      type="button"
+                      className="w-[17px] h-[17px] rounded-full border-2 border-[#5C0612] shrink-0 mt-0.5 transition-all flex items-center justify-center relative bg-transparent"
+                      title="Nhấp để hoàn thành!"
+                    >
+                      {item.isCompleted && (
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#5C0612] absolute" />
+                      )}
+                    </button>
+                    
+                    <span className={`font-sans font-black uppercase text-[11px] sm:text-xs tracking-wider leading-snug transition-all text-[#5C0612] select-none ${
+                      item.isCompleted 
+                        ? "line-through opacity-45 text-[#5C0612]/70 decoration-[#5C0612] decoration-2" 
+                        : "group-hover:text-red-700"
+                    }`}>
+                      {item.isReal ? `🎯 ${item.text}` : item.text}
+                    </span>
+                  </div>
+                );
+              };
+
+              return (
+                <>
+                  <div className="space-y-4 md:space-y-5">
+                    {leftColItems.map(renderItem)}
+                  </div>
+                  <div className="space-y-4 md:space-y-5">
+                    {rightColItems.map(renderItem)}
+                  </div>
+                </>
+              );
+            })()}
+
+          </div>
+
+          {/* Quick handwritten goals creator inline inside the poster */}
+          <form onSubmit={handleAddBucketGoal} className="mt-10 pt-8 border-t-[3px] border-dashed border-[#5C0612]/20 flex flex-col sm:flex-row gap-3 items-center justify-center font-sans">
+            <span className="text-xs font-black uppercase tracking-wider text-[#5C0612] shrink-0">✨ THÊM MỤC TIÊU VÀO BUCKET LIST:</span>
+            <div className="flex w-full sm:w-auto flex-1 max-w-md bg-white/70 border-2 border-[#5C0612] rounded-full overflow-hidden px-1 py-1 shadow-sm focus-within:border-red-700 focus-within:bg-white transition-all">
+              <input
+                type="text"
+                placeholder="Ví dụ: Đọc xong 3 cuốn sách tiếng Anh..."
+                value={newBucketGoalTitle}
+                onChange={e => setNewBucketGoalTitle(e.target.value)}
+                className="flex-1 px-4 py-1.5 text-xs font-bold text-[#5C0612] bg-transparent outline-none placeholder-[#5C0612]/40 uppercase font-sans"
+                required
+              />
+              <button 
+                type="submit" 
+                className="px-5 py-1.5 bg-[#5C0612] hover:bg-red-800 text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer shrink-0"
+              >
+                GHI LẠI
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
 
       {/* THREE-COLUMN GRID: COMPACT TASKS (col-span-4), HABITS OVERVIEW (col-span-4), CALENDAR (col-span-4) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 pb-6 border-b-2 border-ink/5">
@@ -2567,8 +2723,6 @@ export function DigitalJournal({
           </div>
         )}
       </div>
-    </>
-  )}
 
       {/* Thẻ Quà Tặng Overlay */}
       <AnimatePresence>
