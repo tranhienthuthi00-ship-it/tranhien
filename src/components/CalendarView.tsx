@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, MouseEvent } from "react";
+import React, { useState, useEffect, MouseEvent } from "react";
 import { 
   format, 
   startOfMonth, 
@@ -7,22 +7,13 @@ import {
   isSameDay, 
   addMonths, 
   subMonths, 
-  getDay,
-  parseISO
+  getDay
 } from "date-fns";
 import { 
   ChevronLeft, 
   ChevronRight, 
   Sparkles, 
-  Plus, 
-  Trash2, 
   Camera, 
-  Check, 
-  X, 
-  Sliders, 
-  Heart, 
-  MapPin, 
-  RotateCcw,
   BookOpen,
   Edit,
   CircleDot
@@ -129,7 +120,6 @@ export function HandDrawnIcon({ type, className, style }: { type: string, classN
   }
 }
 
-// Preset Colored SVG Doodles that look handdrawn to overlay on specific calendar days
 function PolaroidPreset({ type, className }: { type: string, className?: string }) {
   switch (type) {
     case 'notebook':
@@ -146,7 +136,7 @@ function PolaroidPreset({ type, className }: { type: string, className?: string 
       return (
         <svg className={cn("w-7 h-7 text-amber-800/95", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
           <path d="M 30 45 L 35 85 Q 50 92 65 85 L 70 45 Z" fill="#FEF3C7" />
-          <path d="M 42 45 Q 52 28 46 12 Q 58 10 56 22 L 48 45" strokeWidth="7" stroke="currentColor"/> {/* Bread baguette */}
+          <path d="M 42 45 Q 52 28 46 12 Q 58 10 56 22 L 48 45" strokeWidth="7" stroke="currentColor"/>
           <path d="M 38 65 Q 50 72 62 65" strokeWidth="4" />
           <circle cx="55" cy="55" r="5" fill="#10B981" stroke="none" />
         </svg>
@@ -155,7 +145,6 @@ function PolaroidPreset({ type, className }: { type: string, className?: string 
       return (
         <svg className={cn("w-7 h-7 text-rose-600/90", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M 50 85 L 38 52 Q 50 42 62 52 Z" fill="#FDF2F8" />
-          {/* Flower buds */}
           <circle cx="42" cy="36" r="10" fill="#FECDD3" stroke="currentColor" strokeWidth="4" />
           <circle cx="58" cy="36" r="10" fill="#FECDD3" stroke="currentColor" strokeWidth="4" />
           <circle cx="50" cy="22" r="11" fill="#FDA4AF" stroke="currentColor" strokeWidth="4" />
@@ -207,7 +196,6 @@ function PolaroidPreset({ type, className }: { type: string, className?: string 
           <path d="M 50 40 L 35 58 H 65 Z" fill="#D1FAE5" />
           <path d="M 50 16 L 25 40 H 75 Z" fill="#D1FAE5" />
           <rect x="46" y="58" width="8" height="25" fill="#78350F" stroke="none" />
-          {/* ground log */}
           <line x1="30" y1="83" x2="70" y2="83" strokeWidth="5" />
         </svg>
       );
@@ -231,7 +219,7 @@ function PolaroidPreset({ type, className }: { type: string, className?: string 
 const STICKER_PRESETS = [
   { id: "none", label: "❌ Không Sticker" },
   { id: "notebook", label: "📔 Sổ Mở", visual: "notebook" },
-  { id: "grocery", label: "🥖 Túi Đồ Ăn", visual: "grocery" },
+  { id: "grocery", label: "🥖 Túi Đỏ An", visual: "grocery" },
   { id: "flowers", label: "💐 Bó Hoa", visual: "flowers" },
   { id: "journal", label: "📕 Tập Nhật Ký", visual: "journal" },
   { id: "closet", label: "👗 Váy Xinh", visual: "closet" },
@@ -249,13 +237,12 @@ interface CalendarViewProps {
 export function CalendarView({ logs, setLogs }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-  const [viewMode, setViewMode] = useState<'Month' | 'Year'>('Month');
 
   // Input states
   const [logText, setLogText] = useState("");
   const [logType, setLogType] = useState<'Reflection' | 'Event'>('Reflection');
-  const [selectedIcon, setSelectedIcon] = useState('document');
-  const [eventTime, setEventTime] = useState("");
+  const [selectedIcon] = useState('document');
+  const [eventLocation, setEventLocation] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Month-Specific visual assets saved in LocalStorage
@@ -268,8 +255,8 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
   const [isEditingTagline, setIsEditingTagline] = useState(false);
   const [taglineDraft, setTaglineDraft] = useState(themeTagline);
 
-  // Responsive panel toggle for mobile drawer
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  // Responsive unified modal popup state for both desktop & mobile
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   // Bottom Notes section data - 3 intention statements
   const [notesList, setNotesList] = useState<string[]>(() => {
@@ -310,8 +297,6 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
     }
     return {};
   });
-
-  const ICONS = ['document', 'star', 'heart', 'anchor', 'coffee', 'moon', 'sun', 'cloud', 'book', 'gift'];
 
   // Handle month selection load changes
   useEffect(() => {
@@ -434,7 +419,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
         content: logText,
         type: logType,
         icon: selectedIcon,
-        time: eventTime || undefined
+        time: eventLocation || undefined
       } : log));
       setEditingId(null);
     } else {
@@ -444,13 +429,13 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
         content: logText,
         type: logType,
         icon: selectedIcon,
-        time: eventTime || undefined
+        time: eventLocation || undefined
       };
       setLogs([...logs, newLog]);
     }
 
     setLogText("");
-    setEventTime("");
+    setEventLocation("");
   };
 
   const handleDeleteLog = (id: string, e: MouseEvent) => {
@@ -459,7 +444,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
     if (editingId === id) {
       setEditingId(null);
       setLogText("");
-      setEventTime("");
+      setEventLocation("");
     }
   };
 
@@ -467,8 +452,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
     setEditingId(log.id);
     setLogText(log.content);
     setLogType(log.type);
-    setSelectedIcon(log.icon || 'document');
-    setEventTime(log.time || "");
+    setEventLocation(log.time || "");
   };
 
   const getLogsForDate = (date: Date) => {
@@ -477,10 +461,10 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
   };
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto p-1 md:p-4 flex flex-col xl:flex-row gap-5 items-start text-ink">
+    <div className="w-full max-w-[1240px] mx-auto p-1 md:p-4 flex flex-col gap-5 text-ink animate-fade-in">
       
-      {/* LEFT PORTION: THE CALENDAR JOURNAL SPREAD PAGE */}
-      <div className="w-full xl:w-[70%] bg-paper sketch-border p-4 md:p-6 space-y-6 shadow-xl relative min-h-[500px]">
+      {/* THE CALENDAR JOURNAL SPREAD PAGE */}
+      <div className="w-full bg-paper sketch-border p-4 md:p-6 space-y-6 shadow-xl relative min-h-[500px]">
         
         {/* JOURNAL HEADBAND RULINGS */}
         <div className="absolute top-0 left-10 right-10 h-[5px] bg-[#af1e2d]/6 opacity-20 border-b border-dashed border-ink/15 pointer-events-none" />
@@ -488,7 +472,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
         {/* TOP LEVEL NAVIGATION HEADER & VIBES SUBTITLE */}
         <div className="flex flex-col items-center border-b-2 border-ink pb-4 gap-2">
           
-          {/* Logo Brand Title like "THE SELF OBSESSED JOURNAL" */}
+          {/* Logo Brand Title */}
           <div className="text-[9px] font-sans font-black tracking-[0.25em] text-[#af1e2d] uppercase text-center block">
             THE DIGITAL WELLNESS JOURNAL
           </div>
@@ -506,7 +490,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
             <button onClick={onNextMonth} className="sketch-button p-2 text-xs hover:bg-[#af1e2d]/5"><ChevronRight className="w-4 h-4" /></button>
           </div>
 
-          {/* EDITABLE VIBE SUBTITLE (e.g., "GLOW UP SEASON") */}
+          {/* EDITABLE VIBE SUBTITLE */}
           <div className="mt-1 flex items-center justify-center gap-2">
             {isEditingTagline ? (
               <div className="flex items-center gap-1.5 animate-in zoom-in-95">
@@ -545,7 +529,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
             {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day, idx) => {
               const headerColor = idx === 0 ? "text-[#af1e2d] font-bold" : idx === 6 ? "text-[#b45309] font-bold" : "text-ink/60";
               return (
-                <div key={day} className={cn("text-center font-sans text-[10px] md:text-xs tracking-wider opacity-90 py-1.5 border-b border-ink/10", headerColor)}>
+                <div key={day} className={cn("text-center font-sans text-[10px] md:text-sm tracking-wider opacity-90 py-1.5 border-b border-ink/10", headerColor)}>
                   {day}
                 </div>
               );
@@ -574,18 +558,18 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
                   key={day.toISOString()}
                   onClick={() => {
                     setSelectedDate(day);
-                    setIsMobileDrawerOpen(true);
+                    setIsPopupOpen(true);
                   }}
                   className={cn(
                     "min-h-[85px] md:min-h-[115px] p-1.5 cursor-pointer relative overflow-hidden group border-r border-b border-ink/10 flex flex-col justify-between transition-all hover:bg-amber-50/20 bg-white/40",
-                    isSelected ? "bg-amber-100/15 border-2 border-indigo-950 z-20 shadow-lg scale-[1.01]" : ""
+                    isSelected ? "bg-amber-100/15 border-2 border-[#af1e2d] z-20 shadow-lg scale-[1.01]" : ""
                   )}
                 >
                   {/* Top Day Number Row */}
                   <div className="flex justify-between items-start relative z-10">
                     <span className="relative inline-block w-6 h-6 flex items-center justify-center shrink-0">
                       
-                      {/* OPTIONAL ORGANISED SCRIBBLE highlight RED CIRCLE around date */}
+                      {/* OPTIONAL RED CIRCLE highlights around date */}
                       {isRinged && (
                         <span className="absolute inset-x-[-4px] inset-y-[-4px] pointer-events-none z-0">
                           <svg className="w-full h-full text-red-600/70" viewBox="0 0 100 100" fill="none">
@@ -593,22 +577,22 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
                           </svg>
                         </span>
                       )}
-
+                      
                       <span className={cn(
-                        "font-sans font-extrabold text-[13px] md:text-base relative z-10",
-                        isToday ? "text-[#af1e2d] bg-red-100/80 px-1 py-0.5 rounded font-black border border-red-200" : "text-ink/60"
+                        "relative z-10 font-sans text-xs md:text-sm font-black select-none rounded-full w-5 h-5 flex items-center justify-center",
+                        isToday ? "bg-ink text-white shadow" : "text-ink/75"
                       )}>
                         {format(day, "d")}
                       </span>
                     </span>
 
-                    {/* Compact Icon indicator for Event vs log */}
-                    <div className="flex gap-0.5">
+                    {/* Indicators indicating total Events vs reflections inside cell */}
+                    <div className="flex gap-0.5 items-center">
                       {dayLogs.map((log) => (
                         <div 
                           key={log.id} 
                           className={cn(
-                            "w-1 h-1 rounded-full",
+                            "w-1.5 h-1.5 rounded-full",
                             log.type === 'Event' ? "bg-indigo-600" : "bg-[#af1e2d]"
                           )} 
                         />
@@ -616,21 +600,21 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
                     </div>
                   </div>
 
-                  {/* CELL BODY: INLINE HANDWRITTEN RECAP TEXT DIRECTLY (Exact request match) */}
-                  <div className="flex-1 mt-1.5 overflow-hidden text-left relative z-10 max-h-[48px] md:max-h-[64px]">
+                  {/* CELL BODY: INLINE HANDWRITTEN RECAP TEXT */}
+                  <div className="flex-1 mt-1 overflow-hidden text-left relative z-10 max-h-[48px] md:max-h-[64px]">
                     {dayLogs.slice(0, 2).map((log) => (
                       <p 
                         key={log.id} 
-                        className="text-[9px] md:text-[11px] leading-tight font-hand italic text-indigo-900/90 truncate pl-0.5 border-l-2 border-indigo-200/50 mb-0.5"
+                        className="text-[9px] md:text-[11px] leading-tight font-hand italic text-indigo-950/85 truncate pl-0.5 border-l-2 border-indigo-200/50 mb-0.5"
                         title={log.content}
                       >
-                        {log.time && <span className="font-sans font-bold pr-0.5">{log.time}</span>}
-                        {log.content}
+                        {log.time && <span className="font-sans font-bold text-red-700/85 mr-0.5 inline-flex items-center gap-0.5">📍{log.time}</span>}
+                        <span>{log.content}</span>
                       </p>
                     ))}
                   </div>
 
-                  {/* CALENDAR EMBED POLAROID PIC OR PRESSED STICKER ON DESKTOP */}
+                  {/* CALENDAR EMBED POLAROID PIC OR PRESSED STICKER */}
                   {sticker && (
                     <div 
                       className="absolute bottom-1 right-1 pointer-events-none z-15 shadow-sm border border-black/5 bg-white p-0.5 rotate-6 hover:rotate-0 transition-transform origin-bottom-right"
@@ -638,12 +622,12 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
                     >
                       <div className="w-full h-[25px] bg-ink/5 overflow-hidden flex items-center justify-center">
                         {sticker.type === 'upload' ? (
-                          <img src={sticker.data} alt="" className="w-full h-full object-cover" />
+                          <img src={sticker.data} referrerPolicy="no-referrer" alt="" className="w-full h-full object-cover" />
                         ) : (
                           <PolaroidPreset type={sticker.data} className="w-4 h-4" />
                         )}
                       </div>
-                      <div className="h-[5px] bg-white" /> {/* spacer mimicking real polaroid bezel */}
+                      <div className="h-[5px] bg-white" />
                     </div>
                   )}
 
@@ -651,440 +635,272 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
               );
             })}
           </div>
-        </div>
 
-        {/* BOTTOM NOTES SECTION: EDIT INTENT DETAILS ON PAPER GRIDS (matches May 2026 photo lines) */}
-        <div className="border-t-2 border-ink pt-5 mt-4">
-          <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[#af1e2d] mb-3">
-            <BookOpen className="w-4 h-4" /> 🗒️ SỔ TAY MỤC TIÊU THÁNG / MONTH DECLARATIONS (NOTES)
-          </div>
-
-          <div className="relative bg-paper py-3 px-4 rounded-xl border border-dashed border-ink/20 space-y-3.5">
-            {/* notebook grid spacing overlay effects */}
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.04)_1px,transparent_1.5px)] bg-[size:100%_28px] pointer-events-none rounded-xl" />
-            
-            {notesList.map((note, index) => {
-              const isEditing = editingNoteIndex === index;
-              return (
-                <div key={index} className="flex gap-4 items-start relative z-10">
-                  <span className="text-sm font-black font-sans text-indigo-950/40 w-5 shrink-0 pt-0.5">{index + 1}</span>
-                  
-                  {isEditing ? (
-                    <div className="flex-1 flex gap-2 animate-in slide-in-from-top-1">
-                      <input
-                        type="text"
-                        value={noteEditVal}
-                        onChange={e => setNoteEditVal(e.target.value)}
-                        className="flex-1 px-2 py-0.5 font-hand text-base text-ink outline-none border-b-2 border-indigo-900 bg-white"
-                        autoFocus
-                      />
-                      <button 
-                        onClick={() => handleSaveNoteLine(index)}
-                        className="text-xs bg-emerald-600 text-white rounded px-2.5 py-0.5 font-bold hover:bg-emerald-700 transition"
-                      >
-                        Lưu
-                      </button>
-                      <button 
-                        onClick={() => setEditingNoteIndex(null)}
-                        className="text-xs text-ink/40 font-bold hover:underline"
-                      >
-                        Hủy
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex justify-between items-start group/note">
-                      <p 
-                        onClick={() => {
-                          setNoteEditVal(note);
-                          setEditingNoteIndex(index);
-                        }}
-                        className="font-hand italic text-base text-indigo-950/85 hover:text-indigo-900 cursor-pointer select-text flex-1"
-                      >
-                        {note}
-                      </p>
-                      <button
-                        onClick={() => {
-                          setNoteEditVal(note);
-                          setEditingNoteIndex(index);
-                        }}
-                        className="opacity-0 group-hover/note:opacity-100 text-[10px] text-indigo-900/40 hover:text-[#af1e2d] uppercase font-sans font-black tracking-wider ml-2 transition-all cursor-pointer"
-                      >
-                        [Sửa]
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-      </div>
-
-      {/* RIGHT PORTION: EDITOR CONTROL PANEL (STILL VISIBLE SIDEWAYS ON WIDE SCREEN) */}
-      <div className="hidden xl:flex w-full xl:w-[30%] flex-col gap-5 sticky top-4">
-        
-        {/* Editor panel Container */}
-        {selectedDate ? (
-          <div className="sketch-border bg-white p-5 flex flex-col gap-4 shadow-xl">
-            <div className="flex justify-between items-center border-b border-ink/5 pb-2">
-              <h3 className="text-md font-black uppercase tracking-wider text-ink flex items-center gap-1.5">
-                <Edit className="w-4 h-4 text-crimson" /> {format(selectedDate, "do MMMM yyyy")}
-              </h3>
-              <button 
-                onClick={() => setSelectedDate(null)}
-                className="text-xs font-mono opacity-40 hover:opacity-100"
-              >
-                Đóng
-              </button>
+          {/* Bottom Intention Statements */}
+          <div className="mt-8 space-y-2">
+            <div className="flex justify-between items-center pb-1 border-b border-dashed border-ink/15">
+              <span className="text-[10px] font-sans font-black tracking-widest text-[#af1e2d] uppercase flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" /> THREE MAIN FOCUS STATEMENTS / NHỮNG ĐIỀU CẦN TẬP TRUNG
+              </span>
+              <span className="text-[8px] font-mono text-ink/30 italic uppercase">Double click to revise</span>
             </div>
 
-            {/* STICKER PICKER BLOCK (The crucial photo embedding request) */}
-            <div className="space-y-2 border-b border-ink/5 pb-3">
-              <span className="text-[10px] font-black uppercase tracking-wider text-ink/50 block">🖼️ Dán Ảnh Polaroid & Sticker Ngày Này</span>
+            <div className="relative bg-paper py-3 px-4 rounded-xl border border-dashed border-ink/20 space-y-3.5">
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.04)_1px,transparent_1.5px)] bg-[size:100%_28px] pointer-events-none rounded-xl" />
               
-              {/* Preset grids */}
-              <div className="grid grid-cols-4 gap-1.5">
-                {STICKER_PRESETS.map(preset => {
-                  const dStr = format(selectedDate, 'yyyy-MM-dd');
-                  const activeSticker = dayStickers[dStr];
-                  const isSelected = activeSticker?.type === 'preset' && activeSticker?.data === preset.id;
-                  const isNoneSelected = preset.id === "none" && !activeSticker;
-
-                  return (
-                    <button
-                      key={preset.id}
-                      onClick={() => setDayStickerValue(dStr, preset.id)}
-                      className={cn(
-                        "p-1 border text-[9px] rounded flex flex-col items-center gap-0.5 bg-paper/5 transition-all text-center leading-tight truncate justify-center h-[42px]",
-                        isSelected || isNoneSelected
-                          ? "border-[#af1e2d] bg-pink-50/20 font-bold text-red-700" 
-                          : "border-ink/10 hover:border-ink/30"
-                      )}
-                      title={preset.label}
-                    >
-                      {preset.visual ? (
-                        <PolaroidPreset type={preset.visual} className="w-4 h-4" />
-                      ) : (
-                        <span className="text-[14px]">🚫</span>
-                      )}
-                      <span className="text-[7.5px] font-sans truncate w-full">{preset.label.split(" ")[1] || preset.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Upload custom sticker image */}
-              <div className="pt-1.5">
-                <label className="text-[9.5px] font-black uppercase text-[#af1e2d] tracking-widest block mb-1">
-                  🏞️ HOẶC GHÉP ẢNH TỰ CHỌN (POLAROID CLIP)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="file"
-                    id="sticker-file"
-                    accept="image/*"
-                    onChange={(e) => handleStickerFileChange(format(selectedDate, 'yyyy-MM-dd'), e)}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => document.getElementById("sticker-file")?.click()}
-                    className="flex-1 py-1 px-3 border border-dashed border-ink/20 rounded text-[10px] bg-amber-50/10 hover:border-ink/50 transition flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Camera className="w-3.5 h-3.5" /> Ghép ảnh lên Polaroid
-                  </button>
-                  
-                  {dayStickers[format(selectedDate, 'yyyy-MM-dd')] && (
-                    <button
-                      onClick={() => setDayStickerValue(format(selectedDate, 'yyyy-MM-dd'), "none")}
-                      className="p-1 px-2 border border-red-200 text-crimson bg-red-50 hover:bg-red-100 rounded text-[10px] cursor-pointer"
-                      title="Gỡ ảnh dán"
-                    >
-                      Gỡ
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* CIRCLE OUTLINE TOGGLER (Highlights day with hand-drawn red ring) */}
-            <div className="flex items-center justify-between border-b border-ink/5 pb-3">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-ink/50 block">⭕ Tô Điểm Vòng Tròn Đỏ (Highlights)</span>
-                <span className="text-[8.5px] text-ink/40 block leading-tight">Vẽ viền đỏ xung quanh ngày này (như May 30 trong ảnh)</span>
-              </div>
-              <button
-                onClick={() => toggleDayRing(format(selectedDate, 'yyyy-MM-dd'))}
-                className={cn(
-                  "p-1.5 rounded border text-xs font-bold transition flex items-center gap-1 cursor-pointer",
-                  dayRings[format(selectedDate, 'yyyy-MM-dd')]
-                    ? "bg-red-600 text-white border-red-600"
-                    : "bg-red-50 text-[#af1e2d] border-red-200 hover:border-[#af1e2d]"
-                )}
-              >
-                <CircleDot className="w-3.5 h-3.5" /> Vẽ/Xóa viền
-              </button>
-            </div>
-
-            {/* ADD AND REMOVE ACTUAL TEXT ENTRIES TIMELINE */}
-            <div className="space-y-3">
-              <span className="text-[10px] font-black uppercase tracking-wider text-ink/50 block">✍️ Ghi Chú & Sự Kiện Ngày Này</span>
-
-              {/* Time specification */}
-              <div className="flex gap-2 items-center text-xs">
-                <span className="text-xs font-semibold text-ink/60 shrink-0">Giờ (Tùy chọn):</span>
-                <input 
-                  type="time" 
-                  value={eventTime}
-                  onChange={e => setEventTime(e.target.value)}
-                  className="sketch-input max-w-[120px] py-0.5 text-xs inline border-ink/15 bg-paper/20"
-                />
-              </div>
-
-              {/* Type selector */}
-              <div className="flex gap-2">
-                {(['Reflection', 'Event'] as const).map(type => (
-                  <button
-                    key={type}
-                    onClick={() => setLogType(type)}
-                    className={cn(
-                      "flex-1 text-[10px] font-bold uppercase tracking-wider py-1 rounded border transition-colors cursor-pointer",
-                      logType === type 
-                        ? "bg-ink text-white border-ink" 
-                        : "text-ink/60 border-ink/15 hover:border-ink/30 bg-[#FAF8F5]/30"
+              {notesList.map((note, index) => {
+                const isEditing = editingNoteIndex === index;
+                return (
+                  <div key={index} className="flex gap-4 items-start relative z-10">
+                    <span className="text-sm font-black font-sans text-indigo-950/40 w-5 shrink-0 pt-0.5">{index + 1}</span>
+                    
+                    {isEditing ? (
+                      <div className="flex-1 flex gap-2 animate-in slide-in-from-top-1">
+                        <input
+                          type="text"
+                          value={noteEditVal}
+                          onChange={e => setNoteEditVal(e.target.value)}
+                          className="flex-1 px-2 py-0.5 font-hand text-base text-ink outline-none border-b-2 border-indigo-900 bg-white"
+                          autoFocus
+                        />
+                        <button 
+                          onClick={() => handleSaveNoteLine(index)}
+                          className="text-xs bg-emerald-600 text-white rounded px-2.5 py-0.5 font-bold hover:bg-emerald-700 transition"
+                        >
+                          Lưu
+                        </button>
+                        <button 
+                          onClick={() => setEditingNoteIndex(null)}
+                          className="text-xs text-ink/40 font-bold hover:underline"
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex justify-between items-start group/note">
+                        <p 
+                          onClick={() => {
+                            setNoteEditVal(note);
+                            setEditingNoteIndex(index);
+                          }}
+                          className="font-hand italic text-base text-indigo-950/85 hover:text-indigo-900 cursor-pointer select-text flex-1"
+                        >
+                          {note}
+                        </p>
+                        <button
+                          onClick={() => {
+                            setNoteEditVal(note);
+                            setEditingNoteIndex(index);
+                          }}
+                          className="opacity-0 group-hover/note:opacity-100 text-[10px] text-indigo-900/40 hover:text-[#af1e2d] uppercase font-sans font-black tracking-wider ml-2 transition-all cursor-pointer"
+                        >
+                          [Sửa]
+                        </button>
+                      </div>
                     )}
-                  >
-                    {type === 'Reflection' ? '✍️ Suy Nghĩ' : '📅 Sự Kiện'}
-                  </button>
-                ))}
-              </div>
-
-              {/* Text Input area */}
-              <textarea 
-                value={logText}
-                onChange={(e) => setLogText(e.target.value)}
-                placeholder="VD: Đi dạo công viên ngắm cảnh, học từ vựng mới..."
-                className="w-full min-h-[60px] p-2 text-xs sketch-input bg-paper/10 resize-y"
-                rows={2.5}
-              />
-
-              <button 
-                onClick={handleSaveLog} 
-                className="w-full py-2 bg-indigo-950 text-white hover:bg-crimson uppercase text-xs font-black tracking-widest cursor-pointer shadow border border-white/10"
-              >
-                {editingId ? "Cập Nhật" : "Lưu Nhật Ký"}
-              </button>
-
-              {/* LISTS OF DAILY LOGS */}
-              <div className="mt-3 space-y-2 max-h-[170px] overflow-y-auto pr-1">
-                {getLogsForDate(selectedDate).map(log => (
-                  <div 
-                    key={log.id} 
-                    onClick={() => startEditLog(log)}
-                    className={cn(
-                      "p-2 bg-paper sketch-border border-dashed border-ink/20 relative mt-2.5 cursor-pointer transition-colors group",
-                      editingId === log.id ? "bg-amber-100/10 border-[#af1e2d]" : "hover:border-ink/40"
-                    )}
-                  >
-                    <button 
-                      onClick={(e) => handleDeleteLog(log.id, e)}
-                      className="absolute top-1 right-1 w-4 h-4 bg-red-600 text-white rounded-full flex items-center justify-center text-[10px] opacity-40 group-hover:opacity-100 transition-opacity z-10"
-                    >
-                      ×
-                    </button>
-                    {log.time && <span className="text-[9px] font-sans font-bold bg-indigo-50 border border-indigo-100 px-1 py-0.1 select-none text-indigo-800 rounded mr-1 inline-block">{log.time}</span>}
-                    <span className="text-[10px] font-sans font-bold text-ink/40">[{log.type === 'Reflection' ? 'Nhật ký' : 'Sự kiện'}]</span>
-                    <p className="font-hand italic text-sm mt-0.5 text-indigo-950/80 leading-snug whitespace-pre-wrap">
-                      {log.content}
-                    </p>
                   </div>
-                ))}
-              </div>
-
+                );
+              })}
             </div>
+          </div>
 
-          </div>
-        ) : (
-          <div className="p-5 sketch-border border-dashed border-ink/20 text-center opacity-60 bg-white">
-            <p className="hand-text text-lg">Bấm chọn một ngày bất kỳ trên lịch để viết nhật ký, tô vòng tròn đỏ hoặc dán Sticker Polaroid!</p>
-          </div>
-        )}
+        </div>
 
       </div>
 
-      {/* MOBILE FULL DRAWER COMPONENT: SLIDEOUT TOUCH PANEL SPECIFICALLY OPTIMIZED FOR MOBILE PHONE SIZES (Crucial request) */}
-      {selectedDate && isMobileDrawerOpen && (
-        <div className="xl:hidden fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-2 animate-in fade-in duration-200 animate-out fade-out">
-          {/* Backdrop Click */}
-          <div className="absolute inset-0 z-40" onClick={() => setIsMobileDrawerOpen(false)} />
+      {/* CENTRAL BEAUTIFUL TRANSITION OVERLAY MODAL */}
+      {selectedDate && isPopupOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-40 transition-opacity" onClick={() => setIsPopupOpen(false)} />
           
-          {/* Slider content */}
-          <div className="w-full bg-[#FAF8F5] rounded-t-2xl shadow-2xl relative z-50 max-h-[90vh] overflow-y-auto p-4 md:p-5 flex flex-col gap-4 border-t-4 border-indigo-950 animate-in slide-in-from-bottom duration-300">
-            {/* Grabber bar styling */}
-            <div className="w-12 h-1 bg-ink/20 rounded-full mx-auto" />
-
-            <div className="flex justify-between items-center border-b border-ink/5 pb-2">
-              <h3 className="text-sm font-black uppercase tracking-wider text-ink flex items-center gap-1.5">
-                <Edit className="w-4 h-4 text-crimson" /> CHI TIẾT NGÀY: {format(selectedDate, "dd/MM/yyyy")}
+          <div className="w-full max-w-2xl bg-[#FAF8F5] rounded-2xl shadow-2xl relative z-50 max-h-[92vh] overflow-y-auto p-5 md:p-6 flex flex-col gap-4 border-2 border-indigo-950 animate-in zoom-in-95 duration-200">
+            
+            <div className="flex justify-between items-center border-b border-ink/15 pb-2.5">
+              <h3 className="text-sm md:text-base font-black uppercase tracking-wider text-indigo-950 flex items-center gap-1.5 font-sans">
+                <Edit className="w-4 h-4 text-rose-600" /> CHI TIẾT NGÀY: {format(selectedDate, "dd/MM/yyyy")}
               </h3>
               <button 
-                onClick={() => setIsMobileDrawerOpen(false)}
-                className="bg-ink text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold cursor-pointer hover:bg-crimson"
+                onClick={() => setIsPopupOpen(false)}
+                className="bg-indigo-950 hover:bg-[#af1e2d] text-white rounded-full w-7 h-7 flex items-center justify-center text-xs font-bold cursor-pointer transition-colors shadow"
               >
-                X
+                ✕
               </button>
             </div>
 
-            {/* STICKER PICKER BLOCK */}
-            <div className="space-y-2 border-b border-ink/5 pb-3">
-              <span className="text-[10px] font-black uppercase tracking-wider text-ink/50 block">🖼️ Dán Sticker Polaroid Nghệ Thuật</span>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
               
-              <div className="grid grid-cols-5 gap-1.5">
-                {STICKER_PRESETS.map(preset => {
-                  const dStr = format(selectedDate, 'yyyy-MM-dd');
-                  const activeSticker = dayStickers[dStr];
-                  const isSelected = activeSticker?.type === 'preset' && activeSticker?.data === preset.id;
-                  const isNoneSelected = preset.id === "none" && !activeSticker;
+              {/* Left Side: Stickers and red circular highlights */}
+              <div className="md:col-span-5 space-y-4 md:border-r md:border-ink/10 md:pr-4">
+                
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-900 block">🖼️ Dán Sticker Polaroid Nghệ Thuật</span>
+                  
+                  <div className="grid grid-cols-5 gap-1">
+                    {STICKER_PRESETS.map(preset => {
+                      const dStr = format(selectedDate, 'yyyy-MM-dd');
+                      const activeSticker = dayStickers[dStr];
+                      const isSelected = activeSticker?.type === 'preset' && activeSticker?.data === preset.id;
+                      const isNoneSelected = preset.id === "none" && !activeSticker;
 
-                  return (
-                    <button
-                      key={preset.id}
-                      onClick={() => setDayStickerValue(dStr, preset.id)}
-                      className={cn(
-                        "p-1 border text-[9px] rounded flex flex-col items-center gap-0.5 bg-paper/5 transition-all text-center justify-center h-[42px]",
-                        isSelected || isNoneSelected
-                          ? "border-[#af1e2d] bg-pink-50/20 font-bold text-red-700" 
-                          : "border-ink/10 hover:border-ink/30"
-                      )}
-                    >
-                      {preset.visual ? (
-                        <PolaroidPreset type={preset.visual} className="w-3.5 h-3.5" />
-                      ) : (
-                        <span className="text-[11px]">🚫</span>
-                      )}
-                      <span className="text-[7.5px] truncate w-full">{preset.label.split(" ")[1] || preset.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+                      return (
+                        <button
+                          key={preset.id}
+                          onClick={() => setDayStickerValue(dStr, preset.id)}
+                          className={cn(
+                            "p-1 border text-[9px] rounded flex flex-col items-center gap-0.5 bg-paper/5 transition-all text-center justify-center h-[42px] cursor-pointer",
+                            isSelected || isNoneSelected
+                              ? "border-[#af1e2d] bg-pink-50/20 font-bold text-red-700" 
+                              : "border-ink/10 hover:border-ink/30"
+                          )}
+                          title={preset.label}
+                        >
+                          {preset.visual ? (
+                            <PolaroidPreset type={preset.visual} className="w-3.5 h-3.5" />
+                          ) : (
+                            <span className="text-[11px]">🚫</span>
+                          )}
+                          <span className="text-[7.5px] truncate w-full">{preset.label.split(" ")[1] || preset.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
 
-              {/* Upload custom sticker image */}
-              <div className="pt-1.5">
-                <input
-                  type="file"
-                  id="sticker-file-mobile"
-                  accept="image/*"
-                  onChange={(e) => handleStickerFileChange(format(selectedDate, 'yyyy-MM-dd'), e)}
-                  className="hidden"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => document.getElementById("sticker-file-mobile")?.click()}
-                    className="flex-1 py-1.5 px-3 border border-dashed border-ink/20 rounded text-[10px] bg-amber-50/10 hover:border-ink/50 flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Camera className="w-3.5 h-3.5" /> Ghép ảnh lên Polaroid
-                  </button>
-                  {dayStickers[format(selectedDate, 'yyyy-MM-dd')] && (
-                    <button
-                      onClick={() => setDayStickerValue(format(selectedDate, 'yyyy-MM-dd'), "none")}
-                      className="p-1 px-2 border border-red-200 text-crimson bg-red-50 text-[10px] rounded"
-                    >
-                      Xóa ảnh
-                    </button>
-                  )}
+                  {/* Upload customized snapshot */}
+                  <div className="pt-2">
+                    <input
+                      type="file"
+                      id="sticker-file-modal"
+                      accept="image/*"
+                      onChange={(e) => handleStickerFileChange(format(selectedDate, 'yyyy-MM-dd'), e)}
+                      className="hidden"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => document.getElementById("sticker-file-modal")?.click()}
+                        className="flex-1 py-1.5 px-2 border border-dashed border-ink/20 rounded text-[10px] bg-amber-50/10 hover:border-ink/50 flex items-center justify-center gap-1.5 cursor-pointer font-bold uppercase tracking-wider text-indigo-950"
+                      >
+                        <Camera className="w-3.5 h-3.5 text-rose-600" /> Ghép ảnh Polaroid
+                      </button>
+                      {dayStickers[format(selectedDate, 'yyyy-MM-dd')] && (
+                        <button
+                          onClick={() => setDayStickerValue(format(selectedDate, 'yyyy-MM-dd'), "none")}
+                          className="p-1 px-2 border border-red-200 text-crimson bg-red-50 text-[10px] rounded cursor-pointer"
+                        >
+                          Xóa
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* CIRCLE OUTLINE TOGGLER */}
-            <div className="flex items-center justify-between border-b border-ink/5 pb-3">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-ink/50 block">⭕ Vòng Tròn Đỏ (Highlights)</span>
-                <span className="text-[8px] text-ink/40 block leading-tight">Gạch khoanh đỏ (giống ngày 30 trong ảnh mẫu)</span>
-              </div>
-              <button
-                onClick={() => toggleDayRing(format(selectedDate, 'yyyy-MM-dd'))}
-                className={cn(
-                  "p-1.5 rounded border text-xs font-bold transition flex items-center gap-1",
-                  dayRings[format(selectedDate, 'yyyy-MM-dd')]
-                    ? "bg-red-600 text-white border-red-600"
-                    : "bg-red-50 text-[#af1e2d] border-red-200"
-                )}
-              >
-                Khoanh tròn đỏ
-              </button>
-            </div>
-
-            {/* NOTING AND EVENT WRITING FORM */}
-            <div className="space-y-3">
-              <span className="text-[10px] font-black uppercase tracking-wider text-ink/50 block">✍️ Nhật Ký Ghi Chép</span>
-
-              <div className="flex gap-2 items-center text-xs">
-                <span className="font-semibold text-ink/60 shrink-0">Giờ:</span>
-                <input 
-                  type="time" 
-                  value={eventTime}
-                  onChange={e => setEventTime(e.target.value)}
-                  className="sketch-input max-w-[120px] py-1 text-xs border-ink/15 bg-paper/20"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                {(['Reflection', 'Event'] as const).map(type => (
+                {/* RED HIGHLIGHT COLOR CIRCLE RING TOGGLE */}
+                <div className="flex items-center justify-between border-t border-b border-ink/10 py-3 mt-1">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-950 block">⭕ Viền Vòng Tròn Đỏ</span>
+                    <span className="text-[8px] text-ink/40 block leading-tight">Vẽ vòng viền màu đỏ quanh ngày</span>
+                  </div>
                   <button
-                    key={type}
-                    onClick={() => setLogType(type)}
+                    onClick={() => toggleDayRing(format(selectedDate, 'yyyy-MM-dd'))}
                     className={cn(
-                      "flex-1 text-[10px] font-bold uppercase tracking-wider py-1.5 rounded border transition-colors",
-                      logType === type 
-                        ? "bg-ink text-white border-ink" 
-                        : "text-ink/60 border-ink/15 bg-white"
+                      "p-1.5 rounded border text-[10px] font-bold transition flex items-center gap-1 cursor-pointer",
+                      dayRings[format(selectedDate, 'yyyy-MM-dd')]
+                        ? "bg-red-600 text-white border-red-600"
+                        : "bg-red-50 text-[#af1e2d] border-red-200 hover:border-[#af1e2d]"
                     )}
                   >
-                    {type === 'Reflection' ? '✍️ Suy Nghĩ' : '📅 Sự Kiện'}
+                    <CircleDot className="w-3" /> Viền đỏ
                   </button>
-                ))}
+                </div>
+
               </div>
 
-              <textarea 
-                value={logText}
-                onChange={(e) => setLogText(e.target.value)}
-                placeholder="Nhập nội dung nhật ký..."
-                className="w-full min-h-[50px] p-2 text-xs sketch-input bg-white"
-                rows={2}
-              />
+              {/* Right side writing components */}
+              <div className="md:col-span-7 space-y-3">
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-950 block">✍️ Ghi Chú & Sự Kiện Ngày Này</span>
 
-              <button 
-                onClick={() => {
-                  handleSaveLog();
-                  setIsMobileDrawerOpen(false);
-                }} 
-                className="w-full py-2 bg-indigo-950 text-white hover:bg-crimson uppercase text-xs font-black tracking-widest cursor-pointer shadow"
-              >
-                {editingId ? "Cập Nhật" : "Lưu nhật ký"}
-              </button>
+                {/* Location Input instead of Timepicker */}
+                <div className="flex gap-2 items-center text-xs">
+                  <span className="text-xs font-semibold text-ink/65 shrink-0 flex items-center gap-0.5">📍 Địa điểm:</span>
+                  <input 
+                    type="text" 
+                    placeholder="VD: Thư viện, Quán Cafe, Sân trường..."
+                    value={eventLocation}
+                    onChange={e => setEventLocation(e.target.value)}
+                    className="sketch-input flex-1 py-1 px-2 text-xs border-ink/15 bg-paper/20"
+                  />
+                </div>
 
-              {/* SAVED TIMELINE ENTRIES LIST */}
-              <div className="space-y-2 mt-2 max-h-[140px] overflow-y-auto">
-                {getLogsForDate(selectedDate).map(log => (
-                  <div 
-                    key={log.id}
-                    onClick={() => startEditLog(log)}
-                    className="p-2 bg-white border border-ink/15 rounded relative flex justify-between items-start"
-                  >
-                    <div className="flex-1">
-                      {log.time && <span className="font-sans font-bold text-[9px] bg-indigo-50 border border-indigo-100 px-1 py-0.1 text-indigo-800 rounded mr-1 inline-block">{log.time}</span>}
-                      <span className="text-[9px] text-ink/40 font-bold">[{log.type === 'Reflection' ? 'Nhật ký' : 'Sự kiện'}]</span>
-                      <p className="font-hand italic text-xs mt-0.5 text-indigo-950/80 leading-normal">{log.content}</p>
-                    </div>
-                    <button 
-                      onClick={(e) => handleDeleteLog(log.id, e)}
-                      className="text-red-650 font-bold px-1.5 text-sm"
+                {/* Type button choices */}
+                <div className="flex gap-2">
+                  {(['Reflection', 'Event'] as const).map(type => (
+                    <button
+                      key={type}
+                      onClick={() => setLogType(type)}
+                      className={cn(
+                        "flex-1 text-[10px] font-bold uppercase tracking-wider py-1 rounded border transition-colors cursor-pointer",
+                        logType === type 
+                          ? "bg-ink text-white border-ink" 
+                          : "text-ink/60 border-ink/15 hover:border-ink/30 bg-[#FAF8F5]/30"
+                      )}
                     >
-                      ×
+                      {type === 'Reflection' ? '✍️ Ghi chép' : '📅 Sự Kiện'}
                     </button>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                {/* diary string text area */}
+                <textarea 
+                  value={logText}
+                  onChange={(e) => setLogText(e.target.value)}
+                  placeholder="Hôm nay đã xảy ra việc gì, cảm xúc thế nào hay có sự kiện gì quan trọng..."
+                  className="w-full min-h-[60px] p-2 text-xs sketch-input bg-paper/10 resize-y"
+                  rows={2.5}
+                />
+
+                <button 
+                  onClick={handleSaveLog} 
+                  className="w-full py-2 bg-indigo-950 text-white hover:bg-[#af1e2d] uppercase text-xs font-black tracking-widest cursor-pointer shadow border border-white/10"
+                >
+                  {editingId ? "Cập Nhật" : "Lưu Nhật Ký"}
+                </button>
+
+                {/* LISTS OF DAILY LOGS Timeline list */}
+                <div className="space-y-1.5 mt-2 max-h-[160px] overflow-y-auto pr-1">
+                  {getLogsForDate(selectedDate).length === 0 ? (
+                    <p className="text-[10px] italic text-ink/40 text-center py-4">Chưa có ghi chép nào cho ngày này.</p>
+                  ) : (
+                    getLogsForDate(selectedDate).map(log => (
+                      <div 
+                        key={log.id} 
+                        onClick={() => startEditLog(log)}
+                        className={cn(
+                          "p-2 bg-white border border-ink/15 rounded relative cursor-pointer transition-colors group flex justify-between items-start",
+                          editingId === log.id ? "bg-amber-100/10 border-[#af1e2d]" : "hover:border-ink/30"
+                        )}
+                      >
+                        <div className="flex-1 pr-4">
+                          {log.time && (
+                            <span className="text-[9px] font-sans font-bold bg-indigo-50 border border-indigo-100 px-1 py-0.5 text-indigo-800 rounded mr-1 inline-block select-none">
+                              📍 {log.time}
+                            </span>
+                          )}
+                          <span className="text-[9px] font-sans font-bold text-ink/40">[{log.type === 'Reflection' ? 'Nhật ký' : 'Sự kiện'}]</span>
+                          <p className="font-hand italic text-xs mt-1 text-indigo-950/80 leading-snug whitespace-pre-wrap">
+                            {log.content}
+                          </p>
+                        </div>
+                        <button 
+                          onClick={(e) => handleDeleteLog(log.id, e)}
+                          className="text-red-500 font-bold hover:text-red-700 px-1 text-xs opacity-40 group-hover:opacity-100 transition-opacity"
+                          title="Xóa dòng này"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
               </div>
 
             </div>
