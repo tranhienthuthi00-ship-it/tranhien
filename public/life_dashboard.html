@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Dashboard</title>
+    <!-- Giao diện cao cấp phong cách Notion Minimalist & Neutral -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --bg-color: #fcfcfb;
+            --text-color: #1a1a1a;
+            --text-muted: #757574;
+            --border-color: #e3e3e2;
+            --card-bg: #ffffff;
+            --accent-blue: #5e81ac;
+            --accent-blue-light: #ebf0f6;
+            --accent-gray: #f4f4f3;
+            --accent-tag-home: #e2eafc;
+            --text-tag-home: #3f60a9;
+            --accent-tag-social: #fde2e4;
+            --text-tag-social: #a93f55;
+            --accent-tag-personal: #e8f5e9;
+            --text-tag-personal: #2e7d32;
+            --accent-tag-work: #fef9e7;
+            --text-tag-work: #b7791f;
+            --accent-tag-high: #ffebee;
+            --text-tag-high: #c62828;
+            --accent-tag-low: #f3e5f5;
+            --text-tag-low: #6a1b9a;
+            
+            --timeblock-morning: #edf2f7;
+            --timeblock-afternoon: #ebf8ff;
+            --timeblock-evening: #f7fafc;
+            
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --transition-swift: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Dark Mode Classes (ready for future implementation) */
+        .dark-theme {
+            --bg-color: #121212;
+            --text-color: #e5e5e5;
+            --text-muted: #9e9e9e;
+            --border-color: #2a2a2a;
+            --card-bg: #1e1e1e;
+            --accent-blue: #88c0d0;
+            --accent-blue-light: #2e3440;
+            --accent-gray: #2d2d2d;
+            --accent-tag-home: #2b303c;
+            --text-tag-home: #88c0d0;
+            --accent-tag-social: #3c2b30;
+            --text-tag-social: #bf616a;
+            --accent-tag-personal: #2b3c30;
+            --text-tag-personal: #a3be8c;
+            --accent-tag-work: #3c3a2b;
+            --text-tag-work: #ebcb8b;
+            --accent-tag-high: #4c2c2c;
+            --text-tag-high: #bf616a;
+            --accent-tag-low: #3c2b3c;
+            --text-tag-low: #b48ead;
+            
+            --timeblock-morning: #1e222b;
+            --timeblock-afternoon: #1a2333;
+            --timeblock-evening: #1d212a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            transition: var(--transition-swift);
+            padding-bottom: 80px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Ambient Top Banner Hero Image */
+        .hero-banner {
+            width: 100%;
+            height: 280px;
+            background-image: linear-gradient(to bottom, rgba(255,255,255,0) 40%, var(--bg-color) 100%), 
+                              url('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=1600');
+            background-size: cover;
+            background-position: center 35%;
+            margin-bottom: -40px;
+            position: relative;
+            z-index: 1;
+            opacity: 0.95;
+            transition: var(--transition-swift);
+        }
+
+        /* Main Header Structure */
+        .main-header {
+            position: relative;
+            z-index: 10;
+            padding-top: 40px;
+            margin-bottom: 24px;
+        }
+
+        .header-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .asterisk-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            transition: var(--transition-swift);
+        }
+        
+        .asterisk-btn:hover {
+            transform: rotate(45deg);
+            color: var(--accent-blue);
+        }
+
+        .title-panel h1 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 38px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--text-color);
+        }
+
+        .subtitle-panel {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-top: 2px;
+            padding-left: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .subtitle-panel .dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: var(--border-color);
+            display: inline-block;
+        }
+
+        /* Top Horizontal Navigation Bar */
+        .navigation-bar {
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 2px;
+            margin-bottom: 32px;
+            position: relative;
+            z-index: 15;
+        }
+
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            list-style: none;
+            flex-wrap: wrap;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-color);
+            font-size: 13.5px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: var(--transition-swift);
+            position: relative;
+            padding: 4px 0;
+        }
+
+        .nav-item:hover {
+            color: var(--accent-blue);
+        }
+
+        .nav-item i {
+            width: 14px;
+            height: 14px;
+            color: var(--text-muted);
+            transition: var(--transition-swift);
+        }
+
+        .nav-item:hover i {
+            color: var(--accent-blue);
+            transform: translateY(1px);
+        }
+
+        /* Grid Layout: 25% Sidebar is ~350px on standard screens */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+            .hero-banner {
+                height: 200px;
+            }
+        }
+
+        /* Common card styling */
+        .widget-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 24px;
+            transition: var(--transition-swift);
+        }
+
+        .widget-card:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+            border-color: #cfcfce;
+        }
+
+        .widget-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-color);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--accent-gray);
+        }
+
+        .widget-title-row i {
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+        }
+
+        /* 1. Left Sidebar Elements */
+        .welcome-section {
+            background-color: var(--accent-blue-light);
+            border: none;
+            border-left: 3px solid var(--accent-blue);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: var(--text-color);
+        }
+
+        .welcome-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .welcome-text {
+            color: #4c566a;
+            font-size: 12.5px;
+            line-height: 1.6;
+        }
+
+        /* Summary Segment Widget */
+        .summary-header-box {
+            background-color: var(--accent-gray);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            margin-bottom: 14px;
+        }
+
+        .summary-sub-title {
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-color);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .summary-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .summary-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .summary-item {
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2px 0;
+            border-bottom: 1px dotted var(--border-color);
+        }
+
+        .summary-item-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .summary-item-left i {
+            width: 14px;
+            height: 14px;
+            color: var(--text-muted);
+        }
+
+        .summary-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background-color: var(--accent-gray);
+            color: var(--text-muted);
+        }
+
+        .summary-badge.blue {
+            background-color: var(--accent-blue-light);
+            color: var(--accent-blue);
+        }
+
+        .btn-new-item {
+            width: 100%;
+            background: none;
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: var(--transition-swift);
+        }
+
+        .btn-new-item:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            background-color: rgba(94, 129, 172, 0.03);
+        }
+
+        /* Time Blocking Table Widget Style */
+        .timeblock-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11.5px;
+            margin-top: 8px;
+        }
+
+        .timeblock-table th {
+            text-align: left;
+            padding: 6px 4px;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .timeblock-table td {
+            padding: 8px 4px;
+            border-bottom: 1px solid var(--accent-gray);
+            vertical-align: middle;
+        }
+
+        .timeblock-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 550;
+            color: var(--text-muted);
+            white-space: nowrap;
+            width: 60px;
+        }
+
+        .timeblock-slot {
+            font-weight: 500;
+            padding: 4px 8px !important;
+            border-radius: var(--radius-sm);
+        }
+
+        .timeblock-slot.active-block {
+            border-left: 3px solid var(--accent-blue);
+            box-shadow: inset 2px 0 10px rgba(0,0,0,0.02);
+            font-weight: 600;
+        }
+
+        /* Main Content Structure (Right) */
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .section-header {
+            margin-bottom: 18px;
+        }
+
+        .section-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .section-title-row i {
+            color: var(--accent-blue);
+            width: 20px;
+            height: 20px;
+        }
+
+        .section-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 450;
+        }
+
+        /* Tab bar */
+        .tab-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 18px;
+            padding-bottom: 2px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        
+        .tab-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition-swift);
+            position: relative;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-color);
+        }
+
+        .tab-btn.active {
+            color: var(--text-color);
+            font-weight: 600;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            left: 12px;
+            right: 12px;
+            bottom: -3px;
+            height: 2px;
+            background-color: var(--text-color);
+            border-radius: 2px;
+        }
+
+        /* 2. To-Do List Content styling */
+        .todo-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+            background-color: var(--card-bg);
+            transition: var(--transition-swift);
+        }
+
+        .todo-item:hover {
+            border-color: #c9c9c8;
+            transform: translateX(2px);
+        }
+
+        .todo-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 17px;
+            height: 17px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--card-bg);
+            transition: var(--transition-swift);
+            margin-top: 3px;
+            flex-shrink: 0;
+        }
+
+        .todo-checkbox:hover {
+            border-color: var(--accent-blue);
+            background-color: var(--accent-blue-light);
+        }
+
+        .todo-checkbox:checked {
+            background-color: var(--text-color);
+            border-color: var(--text-color);
+        }
+
+        .todo-checkbox:checked::after {
+            content: "✓";
+            font-size: 12px;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .todo-content-box {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .todo-text {
+            font-size: 13.5px;
+            font-weight: 500;
+            color: var(--text-color);
+            word-break: break-word;
+            transition: var(--transition-swift);
+        }
+
+        .todo-item.checked-done .todo-text {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .todo-meta-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 10.5px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: capitalize;
+        }
+
+        .tag.tag-home { background-color: var(--accent-tag-home); color: var(--text-tag-home); }
+        .tag.tag-social { background-color: var(--accent-tag-social); color: var(--text-tag-social); }
+        .tag.tag-personal { background-color: var(--accent-tag-personal); color: var(--text-tag-personal); }
+        .tag.tag-work { background-color: var(--accent-tag-work); color: var(--text-tag-work); }
+        .tag.tag-high { background-color: var(--accent-tag-high); color: var(--text-tag-high); }
+        .tag.tag-low { background-color: var(--accent-tag-low); color: var(--text-tag-low); }
+
+        .todo-date {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .todo-date i {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* 3. Planner Grid Section */
+        .planner-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 14px;
+        }
+
+        .planner-card {
+            border: 1px solid var(--border-color);
+            background-color: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            transition: var(--transition-swift);
+        }
+
+        .planner-card:hover {
+            border-color: #c9c9c8;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            transform: translateY(-1px);
+        }
+
+        .planner-card-header {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            border-bottom: 1px solid var(--accent-gray);
+            padding-bottom: 10px;
+        }
+
+        .planner-day-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .planner-day-date {
+            font-size: 11.5px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-muted);
+        }
+
+        .planner-priority-box {
+            background-color: var(--accent-blue-light);
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+            font-size: 11.5px;
+            color: var(--accent-blue);
+            font-weight: 550;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .planner-priority-box i {
+            width: 13px;
+            height: 13px;
+            flex-shrink: 0;
+        }
+
+        .planner-tasks-sec {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .planner-task-item {
+            font-size: 12.5px;
+            color: var(--text-color);
+            display: flex;
+            align-items: start;
+            gap: 6px;
+            line-height: 1.4;
+        }
+
+        .planner-task-item i {
+            width: 13px;
+            height: 13px;
+            margin-top: 2.5px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .placeholder-card {
+            border: 1.5px dashed var(--border-color);
+            background: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            cursor: pointer;
+            border-radius: var(--radius-md);
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+            transition: var(--transition-swift);
+        }
+
+        .placeholder-card:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            background-color: rgba(94, 129, 172, 0.02);
+        }
+
+        .planner-action-bar {
+            margin-top: 14px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .classic-btn {
+            background-color: var(--text-color);
+            color: #ffffff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 12.5px;
+            font-weight: 550;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition-swift);
+        }
+
+        .classic-btn:hover {
+            background-color: #333333;
+            transform: translateY(-1px);
+        }
+
+        /* 4. Home & Lifestyle Outfits Section */
+        .outfit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+            gap: 20px;
+            margin-top: 14px;
+        }
+
+        .outfit-card {
+            border: 1px solid var(--border-color);
+            background-color: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: var(--transition-swift);
+        }
+
+        .outfit-card:hover {
+            border-color: #c9c9c8;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        }
+
+        .outfit-card-day {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--accent-gray);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .outfit-card-day span.tag {
+            text-transform: none;
+            font-size: 10px;
+        }
+
+        .outfit-assets-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .outfit-item-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            text-align: center;
+        }
+
+        .outfit-image-wrapper {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: var(--radius-sm);
+            background-color: var(--accent-gray);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: var(--transition-swift);
+        }
+
+        .outfit-image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: var(--transition-swift);
+        }
+
+        .outfit-card:hover .outfit-image-wrapper img {
+            transform: scale(1.05);
+        }
+
+        .outfit-image-wrapper i {
+            width: 18px;
+            height: 18px;
+            color: var(--text-muted);
+        }
+
+        .outfit-item-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-color);
+            max-width: 65px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .outfit-note {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            font-style: italic;
+            border-top: 1px dashed var(--border-color);
+            padding-top: 8px;
+            margin-top: 2px;
+        }
+
+        /* Modal popup overlay */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background-color: var(--text-color);
+            color: #ffffff;
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 100;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Ambient Header styling overlay dark-theme toggle float */
+        .theme-toggle-btn {
+            position: fixed;
+            bottom: 24px;
+            left: 24px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: var(--transition-swift);
+            z-index: 90;
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.05);
+            border-color: var(--accent-blue);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Target image mood ambient background -->
+    <div class="hero-banner" id="heroBanner"></div>
+
+    <div class="container">
+        
+        <!-- Main Header Block -->
+        <header class="main-header">
+            <div class="header-title-row">
+                <button class="asterisk-btn" onclick="showToast('Life Dashboard Asterisk clicked!')">
+                    <i data-lucide="asterisk" style="width: 28px; height: 28px;"></i>
+                </button>
+                <div class="title-panel">
+                    <h1>Life Dashboard</h1>
+                </div>
+            </div>
+            <div class="subtitle-panel">
+                <span>Home</span>
+                <span class="dot"></span>
+                <span id="currentDateHeader">8 Tháng 6, 2026</span>
+            </div>
+        </header>
+
+        <!-- Dropdown / Navigation Menu Bar -->
+        <nav class="navigation-bar">
+            <ul class="nav-menu">
+                <li>
+                    <a class="nav-item" onclick="showToast('Menu: Productivity clicked')">
+                        <i data-lucide="sparkles"></i>
+                        <span>Productivity</span>
+                        <i data-lucide="chevron-down" style="width: 12px; height: 12px;"></i>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" onclick="showToast('Menu: Finance clicked')">
+                        <i data-lucide="wallet"></i>
+                        <span>Finance</span>
+                        <i data-lucide="chevron-down" style="width: 12px; height: 12px;"></i>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" onclick="showToast('Menu: Health & Wellness clicked')">
+                        <i data-lucide="heart"></i>
+                        <span>Health | Wellness</span>
+                        <i data-lucide="chevron-down" style="width: 12px; height: 12px;"></i>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" onclick="showToast('Menu: Home & Lifestyle clicked')">
+                        <i data-lucide="home"></i>
+                        <span>Home | Lifestyle</span>
+                        <i data-lucide="chevron-down" style="width: 12px; height: 12px;"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Dashboard Grid -->
+        <div class="dashboard-grid">
+            
+            <!-- Left Sidebar Navigation/Briefing (25%) -->
+            <aside class="sidebar-area">
+                
+                <!-- Welcome greeting block mimicking image_0.png -->
+                <div class="welcome-section">
+                    <div class="welcome-title">
+                        <i data-lucide="smile" style="width: 16px; height: 16px; color: var(--accent-blue)"></i>
+                        <span>Welcome!</span>
+                    </div>
+                    <div class="welcome-text">
+                        Hi, Hien! Welcome back to your dashboard. This space is crafted to keep your day aligned, your routines elegant, and your style defined.
+                    </div>
+                </div>
+
+                <!-- Summary Panel Section -->
+                <div class="widget-card">
+                    <div class="widget-title-row">
+                        <i data-lucide="clipboard-list"></i>
+                        <span>Summary</span>
+                    </div>
+
+                    <div class="summary-header-box">
+                        <div class="summary-sub-title">
+                            <i data-lucide="zap" style="width: 12px; height: 12px; color: var(--accent-blue);" class="fill-current"></i>
+                            <span>Dashboard Summary</span>
+                        </div>
+                        <div class="summary-time" id="sidebarClockTime">Thứ 2, 06:12:37 PM</div>
+                    </div>
+
+                    <ul class="summary-list" id="summaryList">
+                        <!-- Dynamic items loaded via JavaScript -->
+                    </ul>
+
+                    <button class="btn-new-item" onclick="showToast('Add new summary category')">
+                        <i data-lucide="plus" style="width: 12px; height: 12px;"></i>
+                        <span>New</span>
+                    </button>
+                </div>
+
+                <!-- Time Blocking Segment -->
+                <div class="widget-card">
+                    <div class="widget-title-row">
+                        <i data-lucide="clock"></i>
+                        <span>Time Blocking</span>
+                    </div>
+
+                    <table class="timeblock-table">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Hoạt động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="timeblockBody">
+                            <!-- Chronological tasks loaded via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </aside>
+
+            <!-- Main Content Panels (75%) -->
+            <main class="content-area">
+                
+                <!-- 1. TO-DO LIST SECTION -->
+                <section class="content-section">
+                    <div class="section-header">
+                        <div class="section-title-row">
+                            <i data-lucide="check-square"></i>
+                            <span>To-Do List</span>
+                        </div>
+                        <p class="section-desc">Manage your high priority targets, assignments, and immediate errands.</p>
+                    </div>
+
+                    <div class="tab-bar">
+                        <button class="tab-btn active" onclick="activateTab(this, 'todo-today')">Today</button>
+                        <button class="tab-btn" onclick="activateTab(this, 'todo-overdue')">Overdue</button>
+                        <button class="tab-btn" onclick="activateTab(this, 'todo-week')">This week</button>
+                        <button class="tab-btn" onclick="activateTab(this, 'todo-calendar')">Calendar</button>
+                        <button class="tab-btn" onclick="activateTab(this, 'todo-table')">Table</button>
+                    </div>
+
+                    <div id="todoContainer">
+                        <!-- Todo items rendered dynamically -->
+                    </div>
+
+                    <button class="btn-new-item" style="margin-top: 14px;" onclick="addNewTodo()">
+                        <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                        <span>New Task</span>
+                    </button>
+                </section>
+
+                <!-- 2. PLANNER SECTION -->
+                <section class="content-section">
+                    <div class="section-header">
+                        <div class="section-title-row">
+                            <i data-lucide="calendar"></i>
+                            <span>Planner</span>
+                        </div>
+                        <p class="section-desc">Weekly blueprint of vital priorities, focal highlights, and milestone targets.</p>
+                    </div>
+
+                    <div class="tab-bar" style="margin-bottom: 8px;">
+                        <button class="tab-btn active" onclick="activateTab(this, 'planner-weekly')">Weekly plan</button>
+                        <button class="tab-btn" onclick="activateTab(this, 'planner-monthly')">Monthly plan</button>
+                    </div>
+
+                    <div class="planner-action-bar">
+                        <button class="classic-btn" onclick="showToast('Created new week plan template!')">
+                            <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+                            <span>New Week</span>
+                        </button>
+                    </div>
+
+                    <div class="planner-grid" id="plannerGrid">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </section>
+
+                <!-- 3. HOME & LIFESTYLE -->
+                <section class="content-section">
+                    <div class="section-header">
+                        <div class="section-title-row">
+                            <i data-lucide="hanger" style="width: 20px; height: 20px; color: var(--accent-blue)"></i>
+                            <span>Home & Lifestyle</span>
+                        </div>
+                        <p class="section-desc font-serif">Curate daily habits, outfits moodboard, and watches schedules.</p>
+                    </div>
+
+                    <div class="tab-bar">
+                        <button class="tab-btn" onclick="activateTab(this, 'lifestyle-cleaning')">Daily cleaning</button>
+                        <button class="tab-btn active" onclick="activateTab(this, 'lifestyle-outfits')">Weekly outfits</button>
+                        <button class="tab-btn" onclick="activateTab(this, 'lifestyle-watchlist')">Watchlist calendar</button>
+                    </div>
+
+                    <div class="outfit-grid" id="outfitGrid">
+                        <!-- Outfits loaded dynamically from master data -->
+                    </div>
+                </section>
+
+            </main>
+
+        </div>
+
+    </div>
+
+    <!-- Theme toggler for comfort -->
+    <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Chuyển chế độ Sáng/Tối">
+        <i data-lucide="sun" id="themeIcon" style="width: 18px; height:18px;"></i>
+    </button>
+
+    <!-- Interactive Toast -->
+    <div class="toast" id="toastBox">
+        <i data-lucide="info" style="width:16px; height:16px;"></i>
+        <span id="toastMessage">Thông báo</span>
+    </div>
+
+    <!-- Master Data & Controller Script -->
+    <script>
+        // Master mock data structure - extremely easy for user to change
+        const mockData = {
+            summaryItems: [
+                { id: 1, text: "To-Do List", icon: "check-circle", value: "85%", type: "blue" },
+                { id: 2, text: "Planner Goals", icon: "compass", value: "3 of 5", type: "blue" },
+                { id: 3, text: "Health & Wellness", icon: "activity", value: "100%", type: "gray" },
+                { id: 4, text: "Daily Cleaning", icon: "sparkles", value: "Completed", type: "gray" }
+            ],
+            
+            timeblocks: [
+                { time: "05:00 AM", activity: "Morning Routine", style: "var(--timeblock-morning)" },
+                { time: "07:00 AM", activity: "English Speaking Practice", style: "var(--timeblock-morning)" },
+                { time: "08:30 AM", activity: "Creative Project Sprint", style: "var(--accent-blue-light)" },
+                { time: "11:30 AM", activity: "Lunch & Reading Vibe", style: "var(--timeblock-afternoon)" },
+                { time: "01:30 PM", activity: "Vocabulary Flashcards Review", style: "var(--timeblock-afternoon)" },
+                { time: "02:30 PM", activity: "Outdoor Coffee Walk", style: "var(--timeblock-afternoon)" },
+                { time: "04:00 PM", activity: "Digital Scrapbook Crafting", style: "var(--timeblock-evening)" }
+            ],
+
+            todos: [
+                { id: 101, text: "Xây dựng sườn bài thuyết trình tranh Tiếng Anh", category: "work", priority: "high", date: "08/06/2026", checked: false },
+                { id: 102, text: "Ghi âm phát âm 10 từ vựng CEFR Level C1", category: "personal", priority: "high", date: "08/06/2026", checked: true },
+                { id: 103, text: "Chụp ảnh style dạo phố đăng Nhật ký (Aesthetic Photo)", category: "social", priority: "low", date: "09/06/2026", checked: false },
+                { id: 104, text: "Dọn dẹp bàn trang điểm & sắp xếp khay cài tóc", category: "home", priority: "low", date: "08/06/2026", checked: false },
+                { id: 105, text: "Cân đối báo cáo thu nhập danh mục Vốn ròng", category: "work", priority: "high", date: "08/06/2026", checked: false }
+            ],
+
+            plannerDays: [
+                {
+                    day: "Thứ Hai",
+                    date: "08/06",
+                    priority: "Focus: English dictation practice",
+                    tasks: [
+                        { text: "Hoàn thành 1 bài YouTube Dictation 10 phút", icon: "check-circle" },
+                        { text: "Cập nhật chi phí đi ăn uống với gia đình", icon: "dollar-sign" },
+                        { text: "Yoga giãn cơ buổi chiều", icon: "activity" }
+                    ]
+                },
+                {
+                    day: "Thứ Ba",
+                    date: "09/06",
+                    priority: "Focus: Creative UI mockup review",
+                    tasks: [
+                        { text: "Vẽ nháp wireframe sổ tay bằng tay", icon: "feather" },
+                        { text: "Học 20 từ vựng SRS mới", icon: "brain" },
+                        { text: "Gọi điện hỏi thăm bạn bè", icon: "message-circle" }
+                    ]
+                },
+                {
+                    day: "Thứ Tư",
+                    date: "10/06",
+                    priority: "Focus: Self reflection and study",
+                    tasks: [
+                        { text: "Viết Nhật ký suy ngẫm tuần qua", icon: "book-open" },
+                        { text: "Review lại biểu đồ thói quen", icon: "pie-chart" },
+                        { text: "Kiểm tra số dư thẻ Visa & tiền mặt", icon: "wallet" }
+                    ]
+                }
+            ],
+
+            outfits: [
+                {
+                    day: "Monday Style",
+                    mood: "Cozy Minimalist",
+                    items: [
+                        { label: "Top", img: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=300" },
+                        { label: "Pants", img: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=300" },
+                        { label: "Shoes", img: "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=300" },
+                        { label: "Clips", img: "https://images.unsplash.com/photo-1590439471364-192aa70c0b53?auto=format&fit=crop&q=80&w=300" }
+                    ],
+                    note: "Beige Knit Sweater with comfy white straight pants & retro sneakers."
+                },
+                {
+                    day: "Tuesday Vibe",
+                    mood: "Classic Workday",
+                    items: [
+                        { label: "Blazer", img: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&q=80&w=300" },
+                        { label: "Skirts", img: "https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?auto=format&fit=crop&q=80&w=300" },
+                        { label: "Boots", img: "https://images.unsplash.com/photo-1621996346565-e3bb69182a59?auto=format&fit=crop&q=80&w=300" },
+                        { label: "Tote Bag", img: "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=300" }
+                    ],
+                    note: "Structured charcoal blazer, midi skirt & black leather ankle boots."
+                },
+                {
+                    day: "Wednesday Vibe",
+                    mood: "Coffee Date",
+                    items: [
+                        { label: "Cardigan", img: "https://images.unsplash.com/photo-1574164904299-3a102b110380?auto=format&fit=crop&q=80&w=300" },
+                        { label: "Jeans", img: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=300" },
+                        { label: "Loafers", img: "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?auto=format&fit=crop&q=80&w=300" },
+                        { label: "Hair Pin", img: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?auto=format&fit=crop&q=80&w=300" }
+                    ],
+                    note: "Oversized pastel cardigan with washed denim jeans and leather loafers."
+                }
+            ]
+        };
+
+        // Render functions
+        function renderSummary() {
+            const container = document.getElementById("summaryList");
+            container.innerHTML = "";
+            mockData.summaryItems.forEach(item => {
+                const li = document.createElement("li");
+                li.className = "summary-item";
+                li.innerHTML = `
+                    <div class="summary-item-left">
+                        <i data-lucide="${item.icon}"></i>
+                        <span>${item.text}</span>
+                    </div>
+                    <span class="summary-badge ${item.type}">${item.value}</span>
+                `;
+                container.appendChild(li);
+            });
+        }
+
+        function renderTimeblocks() {
+            const container = document.getElementById("timeblockBody");
+            container.innerHTML = "";
+            mockData.timeblocks.forEach(block => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td class="timeblock-time">${block.time}</td>
+                    <td>
+                        <div class="timeblock-slot" style="background-color: ${block.style}">
+                            ${block.activity}
+                        </div>
+                    </td>
+                `;
+                container.appendChild(tr);
+            });
+            highlightCurrentTimeblock();
+        }
+
+        function renderTodos() {
+            const container = document.getElementById("todoContainer");
+            container.innerHTML = "";
+            mockData.todos.forEach(todo => {
+                const div = document.createElement("div");
+                div.className = `todo-item ${todo.checked ? 'checked-done' : ''}`;
+                div.id = `todo-${todo.id}`;
+                div.innerHTML = `
+                    <input type="checkbox" class="todo-checkbox" ${todo.checked ? 'checked' : ''} onchange="toggleTodoCheck(${todo.id}, this)">
+                    <div class="todo-content-box">
+                        <span class="todo-text">${todo.text}</span>
+                        <div class="todo-meta-row">
+                            <span class="tag tag-${todo.category}">${todo.category}</span>
+                            <span class="tag tag-${todo.priority}">${todo.priority}</span>
+                            <span class="todo-date">
+                                <i data-lucide="calendar"></i>
+                                ${todo.date}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function renderPlanner() {
+            const container = document.getElementById("plannerGrid");
+            container.innerHTML = "";
+            
+            // Render active days
+            mockData.plannerDays.forEach(day => {
+                const card = document.createElement("div");
+                card.className = "planner-card";
+                
+                let tasksHTML = "";
+                day.tasks.forEach(task => {
+                    tasksHTML += `
+                        <div class="planner-task-item">
+                            <i data-lucide="${task.icon}"></i>
+                            <span>${task.text}</span>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="planner-card-header">
+                        <span class="planner-day-name">${day.day}</span>
+                        <span class="planner-day-date">${day.date}</span>
+                    </div>
+                    <div class="planner-priority-box">
+                        <i data-lucide="zap"></i>
+                        <span>${day.priority}</span>
+                    </div>
+                    <div class="planner-tasks-sec">
+                        ${tasksHTML}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            // Add placeholder card
+            const placeholder = document.createElement("div");
+            placeholder.className = "placeholder-card";
+            placeholder.onclick = () => showToast("Add a new day to the weekly blueprint planner!");
+            placeholder.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                    <i data-lucide="plus" style="width: 24px; height: 24px;"></i>
+                    <span>Add New Day</span>
+                </div>
+            `;
+            container.appendChild(placeholder);
+            lucide.createIcons();
+        }
+
+        function renderOutfits() {
+            const container = document.getElementById("outfitGrid");
+            container.innerHTML = "";
+            
+            mockData.outfits.forEach(outfit => {
+                const card = document.createElement("div");
+                card.className = "outfit-card";
+                
+                let itemsHTML = "";
+                outfit.items.forEach(item => {
+                    itemsHTML += `
+                        <div class="outfit-item-slot">
+                            <div class="outfit-image-wrapper">
+                                <img src="${item.img}" alt="${item.label}" referrerpolicy="no-referrer">
+                            </div>
+                            <span class="outfit-item-label">${item.label}</span>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="outfit-card-day">
+                        <span>${outfit.day}</span>
+                        <span class="tag tag-personal">${outfit.mood}</span>
+                    </div>
+                    <div class="outfit-assets-container">
+                        ${itemsHTML}
+                    </div>
+                    <p class="outfit-note">${outfit.note}</p>
+                `;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        // Event actions
+        function toggleTodoCheck(id, checkbox) {
+            const todo = mockData.todos.find(t => t.id === id);
+            if (todo) {
+                todo.checked = checkbox.checked;
+                const element = document.getElementById(`todo-${id}`);
+                if (checkbox.checked) {
+                    element.classList.add("checked-done");
+                    showToast(`Completed: "${todo.text}"`);
+                } else {
+                    element.classList.remove("checked-done");
+                }
+            }
+        }
+
+        function addNewTodo() {
+            const description = prompt("Nhập nhiệm vụ mới cho ngày hôm nay:");
+            if (!description || !description.trim()) return;
+
+            const category = prompt("Chọn tag loại hình (home, social, personal, work):", "personal") || "personal";
+            const priority = prompt("Mức độ ưu tiên (high, low):", "low") || "low";
+            
+            const newId = Date.now();
+            mockData.todos.push({
+                id: newId,
+                text: description.trim(),
+                category: category.toLowerCase(),
+                priority: priority.toLowerCase(),
+                date: "08/06/2026",
+                checked: false
+            });
+            
+            renderTodos();
+            showToast("Đã thêm một nhiệm vụ mới tuyệt vời!");
+        }
+
+        function activateTab(btn, action) {
+            // Un-highlight previous siblings
+            const parent = btn.parentElement;
+            const buttons = parent.querySelectorAll(".tab-btn");
+            buttons.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            showToast(`Tab changed to ${btn.innerText}`);
+        }
+
+        function highlightCurrentTimeblock() {
+            // Highlight a timeblock based on mock time 18:12:37
+            const timeblockRows = document.querySelectorAll("#timeblockBody tr");
+            timeblockRows.forEach((row, idx) => {
+                const timeCell = row.cells[0].innerText;
+                const activityDiv = row.cells[1].querySelector(".timeblock-slot");
+                // Clear any active class
+                activityDiv.classList.remove("active-block");
+                
+                // Let's highlight '04:00 PM' or equivalent as active based on current 6:12 PM logic
+                if (timeCell.includes("04:00 PM") || idx === timeblockRows.length - 1) {
+                    activityDiv.classList.add("active-block");
+                }
+            });
+        }
+
+        // Theme controllers
+        function toggleTheme() {
+            const body = document.body;
+            body.classList.toggle("dark-theme");
+            
+            const icon = document.getElementById("themeIcon");
+            const isDark = body.classList.contains("dark-theme");
+            
+            if (isDark) {
+                icon.setAttribute("data-lucide", "moon");
+                showToast("Đã kích hoạt chế độ tối!");
+            } else {
+                icon.setAttribute("data-lucide", "sun");
+                showToast("Đã chuyển về chế độ sáng!");
+            }
+            lucide.createIcons();
+        }
+
+        // Toast message display helpers
+        let toastTimeout;
+        function showToast(message) {
+            const toast = document.getElementById("toastBox");
+            const msgSpan = document.getElementById("toastMessage");
+            msgSpan.innerText = message;
+            
+            toast.classList.add("show");
+            
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove("show");
+            }, 3000);
+        }
+
+        // System clock simulation with Cambodia/Vietnam current timezone 2026-06-08 (Mon)
+        function updateTimelineDates() {
+            const today = new Date("2026-06-08T18:12:37Z");
+            
+            // Format nice title date (e.g., "8 Tháng 6, 2026")
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedHeaderDate = today.toLocaleDateString('vi-VN', options);
+            document.getElementById("currentDateHeader").innerText = formattedHeaderDate;
+
+            // Updated clock with time tracking
+            setInterval(() => {
+                const now = new Date();
+                const clockString = now.toLocaleDateString('vi-VN', { weekday: 'long' }) + ", " + now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                document.getElementById("sidebarClockTime").innerText = clockString;
+            }, 1000);
+        }
+
+        // Entry initializer
+        window.addEventListener("DOMContentLoaded", () => {
+            renderSummary();
+            renderTimeblocks();
+            renderTodos();
+            renderPlanner();
+            renderOutfits();
+            updateTimelineDates();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
