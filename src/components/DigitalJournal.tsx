@@ -24,11 +24,15 @@ import {
   Flame,
   Gift,
   Briefcase,
-  X
+  X,
+  Camera,
+  CircleDot,
+  Edit
 } from "lucide-react";
 import { useFirebase } from "../context/FirebaseContext";
 import { cn } from "../lib/utils";
 import { LifeDashboard } from "./LifeDashboard";
+import { PolaroidPreset, STICKER_PRESETS } from "./CalendarView";
 
 
 const formatDateDot = (dateStr: string) => {
@@ -175,6 +179,77 @@ export function DigitalJournal({
   const [selectedDateStr, setSelectedDateStr] = useState(() => new Date().toISOString().split("T")[0]);
   const [isCalendarDetailsOpen, setIsCalendarDetailsOpen] = useState(false);
   const calendarContainerRef = useRef<HTMLDivElement>(null);
+
+  const monthStr = useMemo(() => {
+    return `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
+  }, [currentMonth]);
+
+  const [dayStickers, setDayStickers] = useState<Record<string, { type: 'preset' | 'upload'; data: string }>>(() => {
+    const saved = localStorage.getItem(`studyHub_calendarDayPics_${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {};
+  });
+
+  const [dayRings, setDayRings] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem(`studyHub_calendarRings_${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {};
+  });
+
+  // Keep state synced across month navigation
+  useEffect(() => {
+    const picsSaved = localStorage.getItem(`studyHub_calendarDayPics_${monthStr}`);
+    try {
+      setDayStickers(picsSaved ? JSON.parse(picsSaved) : {});
+    } catch {
+      setDayStickers({});
+    }
+
+    const ringsSaved = localStorage.getItem(`studyHub_calendarRings_${monthStr}`);
+    try {
+      setDayRings(ringsSaved ? JSON.parse(ringsSaved) : {});
+    } catch {
+      setDayRings({});
+    }
+  }, [monthStr]);
+
+  const setDayStickerValue = (dateStr: string, stickerId: string, imageBase64?: string) => {
+    const updated = { ...dayStickers };
+    if (stickerId === "none" && !imageBase64) {
+      delete updated[dateStr];
+    } else if (imageBase64) {
+      updated[dateStr] = { type: 'upload' as const, data: imageBase64 };
+    } else {
+      updated[dateStr] = { type: 'preset' as const, data: stickerId };
+    }
+    setDayStickers(updated);
+    localStorage.setItem(`studyHub_calendarDayPics_${monthStr}`, JSON.stringify(updated));
+  };
+
+  const handleStickerFileChange = (dateStr: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setDayStickerValue(dateStr, "", reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const toggleDayRing = (dateStr: string) => {
+    const updated = { ...dayRings, [dateStr]: !dayRings[dateStr] };
+    setDayRings(updated);
+    localStorage.setItem(`studyHub_calendarRings_${monthStr}`, JSON.stringify(updated));
+  };
   
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -190,6 +265,7 @@ export function DigitalJournal({
   
   // Quick Log entry state for interactive calendar
   const [quickLogContent, setQuickLogContent] = useState("");
+  const [quickLogLocation, setQuickLogLocation] = useState("");
   const [quickLogType, setQuickLogType] = useState<'Reflection' | 'Event'>('Reflection');
   const [quickLogEmoji, setQuickLogEmoji] = useState("📝5");
 
@@ -406,11 +482,12 @@ export function DigitalJournal({
       content: quickLogContent.trim(),
       type: quickLogType,
       emoji: quickLogType === "Reflection" ? "💭" : "🔔",
-      time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+      time: quickLogLocation.trim() || undefined
     };
 
     setLogs(prev => [...prev, newLog]);
     setQuickLogContent("");
+    setQuickLogLocation("");
     setAiSuggestions(null);
     setAiError("");
   };
@@ -969,12 +1046,14 @@ export function DigitalJournal({
             </div>
 
             {/* Days Grid */}
-            <div className="grid grid-cols-7 gap-1.5 text-center relative z-10">
+            <div className="grid grid-cols-7 gap-1.5 text-center relative z-10 font-sans">
               {calendarDays.map((cell, idx) => {
                 const isSelected = cell.dateStr === selectedDateStr;
                 const matchesToday = cell.dateStr === new Date().toISOString().split("T")[0];
                 const dayLogs = cell.dateStr ? logs.filter(l => l.date === cell.dateStr) : [];
                 const hasLogs = dayLogs.length > 0;
+                const sticker = cell.dateStr ? dayStickers[cell.dateStr] : null;
+                const isRinged = cell.dateStr ? dayRings[cell.dateStr] : false;
 
                 return (
                   <button
@@ -986,19 +1065,54 @@ export function DigitalJournal({
                         setIsCalendarDetailsOpen(true);
                       } 
                     }}
-                    className={`h-8 font-sans text-xs font-bold rounded-xl transition-all relative flex flex-col items-center justify-center cursor-pointer ${
+                    className={`h-11 font-sans text-xs font-bold rounded-xl transition-all relative flex flex-col items-center justify-center cursor-pointer ${
                       !cell.day 
                         ? "opacity-0" 
                         : isSelected 
                           ? "bg-ink text-[#fcfbf9] font-black scale-[1.05]" 
                           : matchesToday
                             ? "bg-rose-100/80 text-crimson border border-rose-250 font-black"
-                            : "bg-white/50 hover:bg-ink/5 text-ink border border-ink/5"
+                            : "bg-white/50 hover:bg-ink/5 text-[#1a1a1a] border border-ink/5"
                     }`}
                   >
-                    <span>{cell.day}</span>
+                    <span className="relative z-10 font-sans font-black flex items-center justify-center">
+                      {isRinged && (
+                        <span className="absolute inset-x-[-5px] inset-y-[-5px] pointer-events-none z-0">
+                          <svg className="w-8 h-8 text-rose-600/90" viewBox="0 0 100 100" fill="none">
+                            <path d="M 15,50 C 10,25 90,15 85,45 C 80,75 12,85 20,55 C 28,25 92,30 82,60" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
+                          </svg>
+                        </span>
+                      )}
+                      <span className="relative z-10">{cell.day}</span>
+                    </span>
+                    
                     {hasLogs && (
                       <span className={`w-1 h-1 rounded-full absolute bottom-1 ${isSelected ? "bg-[#fcfbf9]" : "bg-crimson"}`} />
+                    )}
+
+                    {sticker && (
+                      <div 
+                        className="absolute bottom-0.5 right-0.5 pointer-events-none z-15 shadow-sm border border-black/5 bg-white p-0.5 rotate-6"
+                        style={{ width: "15px", height: "16px" }}
+                      >
+                        <div className="w-full h-[11px] bg-ink/5 overflow-hidden flex items-center justify-center">
+                          {sticker.type === 'upload' ? (
+                            <img src={sticker.data} referrerPolicy="no-referrer" alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[7.5px] leading-none select-none">
+                              {sticker.data === 'notebook' ? '📔' :
+                               sticker.data === 'grocery' ? '🥖' :
+                               sticker.data === 'flowers' ? '💐' :
+                               sticker.data === 'journal' ? '📕' :
+                               sticker.data === 'closet' ? '👗' :
+                               sticker.data === 'ideas' ? '💡' :
+                               sticker.data === 'coffee' ? '☕' :
+                               sticker.data === 'tree' ? '🌲' :
+                               sticker.data === 'sun' ? '☀️' : '📍'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </button>
                 );
@@ -1010,16 +1124,16 @@ export function DigitalJournal({
               <div className="fixed inset-0 z-50 flex items-center justify-center p-3 animate-in fade-in duration-200">
                 {/* Dark Backdrop */}
                 <div 
-                  className="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity cursor-pointer" 
+                  className="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity cursor-pointer z-40" 
                   onClick={() => setIsCalendarDetailsOpen(false)} 
                 />
                 
                 {/* Modal Document Frame */}
-                <div className="w-full max-w-lg bg-[#FAF8F5] rounded-3xl p-5 md:p-6 flex flex-col gap-4 border-2 border-ink shadow-2xl relative z-50 max-h-[92vh] overflow-y-auto text-ink animate-in zoom-in-95 duration-200">
+                <div className="w-full max-w-2xl bg-[#FAF8F5] rounded-3xl p-5 md:p-6 flex flex-col gap-4 border-2 border-ink shadow-2xl relative z-50 max-h-[92vh] overflow-y-auto text-ink animate-in zoom-in-95 duration-200">
                   {/* Header */}
                   <div className="flex items-center justify-between border-b pb-2.5 border-ink/15 font-sans">
-                    <span className="text-xs uppercase font-extrabold tracking-wider text-amber-800 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-rose-650 animate-pulse" /> 
+                    <span className="text-xs uppercase font-extrabold tracking-wider text-amber-800 flex items-center gap-1.5 font-sans">
+                      <Edit className="w-3.5 h-3.5 text-rose-650 animate-pulse" /> 
                       Chi tiết ngày: <strong className="text-ink">{selectedDateStr.split("-").reverse().join("/")}</strong>
                     </span>
                     <div className="flex items-center gap-2">
@@ -1037,7 +1151,98 @@ export function DigitalJournal({
                     </div>
                   </div>
 
-              {(() => {
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start text-left">
+                    {/* Left Column: Polaroid stickers & red circled highlight ring */}
+                    <div className="md:col-span-5 space-y-4 md:border-r md:border-ink/10 md:pr-4">
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 block">🖼️ Dán Sticker Polaroid Nghệ Thuật</span>
+                        
+                        <div className="grid grid-cols-5 gap-1.5">
+                          {STICKER_PRESETS.map(preset => {
+                            const activeSticker = dayStickers[selectedDateStr];
+                            const isSelected = activeSticker?.type === 'preset' && activeSticker?.data === preset.id;
+                            const isNoneSelected = preset.id === "none" && !activeSticker;
+
+                            return (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                onClick={() => setDayStickerValue(selectedDateStr, preset.id)}
+                                className={cn(
+                                  "p-1 border text-[9px] rounded-lg flex flex-col items-center gap-0.5 bg-white transition-all text-center justify-center h-[42px] cursor-pointer",
+                                  isSelected || isNoneSelected
+                                    ? "border-rose-600 bg-rose-50/40 font-bold text-rose-700" 
+                                    : "border-ink/10 hover:border-ink/30"
+                                )}
+                                title={preset.label}
+                              >
+                                {preset.visual ? (
+                                  <PolaroidPreset type={preset.visual} className="w-3.5 h-3.5" />
+                                ) : (
+                                  <span className="text-[11px]">🚫</span>
+                                )}
+                                <span className="text-[7.5px] truncate w-full">{preset.label.split(" ")[1] || preset.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Upload custom picture */}
+                        <div className="pt-2">
+                          <input
+                            type="file"
+                            id="mini-sticker-file-modal"
+                            accept="image/*"
+                            onChange={(e) => handleStickerFileChange(selectedDateStr, e)}
+                            className="hidden"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => document.getElementById("mini-sticker-file-modal")?.click()}
+                              className="flex-1 py-1.5 px-2 border border-dashed border-ink/20 rounded-lg text-[10px] bg-amber-50/15 hover:border-ink/50 flex items-center justify-center gap-1.5 cursor-pointer font-bold uppercase tracking-wider text-amber-950 text-center"
+                            >
+                              <Camera className="w-3.5 h-3.5 text-rose-650" /> Ghép ảnh Polaroid
+                            </button>
+                            {dayStickers[selectedDateStr] && (
+                              <button
+                                type="button"
+                                onClick={() => setDayStickerValue(selectedDateStr, "none")}
+                                className="p-1 px-2 border border-red-200 text-crimson bg-red-50 text-[10px] rounded-lg cursor-pointer font-bold"
+                              >
+                                Xóa
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* RED HIGHLIGHT COLOR RING TOGGLE */}
+                      <div className="flex items-center justify-between border-t border-b border-ink/10 py-3 mt-1.5">
+                        <div>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-ink block">⭕ Viền Vòng Tròn Đỏ</span>
+                          <span className="text-[8px] text-ink/40 block leading-tight">Vẽ vòng viền màu đỏ quanh ngày</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleDayRing(selectedDateStr)}
+                          className={cn(
+                            "p-1.5 rounded-lg border text-[10px] font-bold transition flex items-center gap-1 cursor-pointer",
+                            dayRings[selectedDateStr]
+                              ? "bg-rose-600 text-white border-rose-600 animate-pulse"
+                              : "bg-rose-50 text-rose-700 border-rose-200 hover:border-rose-600"
+                          )}
+                        >
+                          <CircleDot className="w-3 animate-spin duration-3000" /> Viền đỏ
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Log entries list and quick inline add form */}
+                    <div className="md:col-span-7 space-y-4">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-ink block">✍️ Nhật Ký & Sự Kiện Của Ngày</span>
+
+                      {(() => {
                 const dayEvents = selectedDateLogs.filter(l => l.type === 'Event');
                 const dayReflections = selectedDateLogs.filter(l => l.type === 'Reflection' || !l.type);
 
@@ -1059,7 +1264,11 @@ export function DigitalJournal({
                                 <span className="shrink-0">{l.emoji || "🔔"}</span>
                                 <div className="min-w-0">
                                   <p className="font-semibold text-rose-950 break-words font-sans">{l.content}</p>
-                                  {l.time && <span className="font-mono text-[9px] text-[#0369a1] bg-[#e0f2fe] px-1 rounded block w-fit mt-0.5">{l.time}</span>}
+                                  {l.time && (
+                                    <span className="font-sans text-[9px] font-bold text-red-700/85 bg-red-50 border border-red-100/60 px-1 rounded block w-fit mt-0.5">
+                                      📍 {l.time}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                               <button 
@@ -1087,7 +1296,11 @@ export function DigitalJournal({
                                 <span className="shrink-0">{l.emoji || "💭"}</span>
                                 <div className="min-w-0">
                                   <p className="font-medium text-amber-950 break-words font-sans">{l.content}</p>
-                                  {l.time && <span className="font-mono text-[9px] text-amber-600 bg-amber-50 px-1 rounded block w-fit mt-0.5">{l.time}</span>}
+                                  {l.time && (
+                                    <span className="font-sans text-[9px] font-bold text-red-700/85 bg-red-50 border border-red-100/60 px-1 rounded block w-fit mt-0.5">
+                                      📍 {l.time}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                               <button 
@@ -1128,36 +1341,49 @@ export function DigitalJournal({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <form onSubmit={handleAddQuickLog} className="flex gap-1.5">
-                    <input
-                      type="text"
-                      value={quickLogContent}
-                      onChange={(e) => setQuickLogContent(e.target.value)}
-                      placeholder={quickLogType === 'Event' ? "Thêm nhanh một sự kiện của ngày đã chọn..." : "Ghi nhanh suy ngẫm / học được hôm nay..."}
-                      className="flex-1 px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200/60 focus:outline-none focus:border-amber-400 font-sans text-ink"
-                      required
-                    />
-                    
-                    {quickLogType === 'Reflection' && (
-                      <button
-                        type="button"
-                        onClick={handleImproveEnglish}
-                        disabled={isImproving || !quickLogContent.trim()}
-                        className="py-1.5 px-2 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 disabled:from-gray-300 disabled:to-gray-400 text-white font-extrabold text-[10px] rounded-lg cursor-pointer transition-all flex items-center gap-1 shrink-0 uppercase tracking-wider shadow-sm"
-                        title="Tối ưu hóa và sửa ngữ pháp Tiếng Anh bằng AI"
-                      >
-                        <Sparkles size={11} className={isImproving ? "animate-spin" : ""} />
-                        {isImproving ? "Đang quét..." : "Sửa Tiếng Anh"}
-                      </button>
-                    )}
+                  <form onSubmit={handleAddQuickLog} className="space-y-2">
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        value={quickLogContent}
+                        onChange={(e) => setQuickLogContent(e.target.value)}
+                        placeholder={quickLogType === 'Event' ? "Thêm nhanh một sự kiện của ngày đã chọn..." : "Ghi nhanh suy ngẫm / học được hôm nay..."}
+                        className="flex-1 px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200/60 focus:outline-none focus:border-amber-400 font-sans text-ink"
+                        required
+                      />
+                      
+                      {quickLogType === 'Reflection' && (
+                        <button
+                          type="button"
+                          onClick={handleImproveEnglish}
+                          disabled={isImproving || !quickLogContent.trim()}
+                          className="py-1.5 px-2 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 disabled:from-gray-300 disabled:to-gray-400 text-white font-extrabold text-[10px] rounded-lg cursor-pointer transition-all flex items-center gap-1 shrink-0 uppercase tracking-wider shadow-sm"
+                          title="Tối ưu hóa và sửa ngữ pháp Tiếng Anh bằng AI"
+                        >
+                          <Sparkles size={11} className={isImproving ? "animate-spin" : ""} />
+                          {isImproving ? "Đang quét..." : "Sửa Tiếng Anh"}
+                        </button>
+                      )}
+                    </div>
 
-                    <button
-                      type="submit"
-                      disabled={!quickLogContent.trim()}
-                      className="px-3 py-1.5 bg-ink text-white font-extrabold text-[10px] rounded-lg hover:bg-amber-600 disabled:opacity-40 uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1 shrink-0 shadow-sm"
-                    >
-                      <Plus size={10} /> Lưu
-                    </button>
+                    {/* Location (timepicker replacement) input field */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-extrabold text-[#1a1a1a]/40 uppercase tracking-wider shrink-0 font-sans">📍 Địa điểm</span>
+                      <input
+                        type="text"
+                        value={quickLogLocation}
+                        onChange={(e) => setQuickLogLocation(e.target.value)}
+                        placeholder="Địa điểm (ví dụ: Thư viện, Quán Cafe)..."
+                        className="flex-1 px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200/60 focus:outline-none focus:border-amber-400 font-sans text-[#1a1a1a]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!quickLogContent.trim()}
+                        className="px-3.5 py-1.5 bg-ink text-white font-extrabold text-[10px] rounded-lg hover:bg-amber-600 disabled:opacity-40 uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1 shrink-0 shadow-sm"
+                      >
+                        <Plus size={10} /> Lưu
+                      </button>
+                    </div>
                   </form>
 
                   {/* AI Improvement Result Panel */}
@@ -1212,8 +1438,8 @@ export function DigitalJournal({
                               {aiSuggestions.corrections.map((corr, idx) => (
                                 <div key={idx} className="p-2 bg-white/70 rounded-xl border border-amber-100 text-[11px] leading-relaxed space-y-1">
                                   <div className="flex flex-wrap items-center gap-1.5">
-                                    <span className="line-through text-red-600 bg-red-50 px-1 rounded-sm">{corr.originalPart}</span>
-                                    <span className="text-amber-800 font-extrabold">→</span>
+                                    <span className="line-through text-red-650 bg-red-50 px-1 rounded-sm">{corr.originalPart}</span>
+                                    <span className="text-amber-800 font-extrabold font-sans">→</span>
                                     <span className="font-bold text-emerald-700 bg-emerald-50 px-1 rounded-sm">{corr.correctedPart}</span>
                                   </div>
                                   <p className="text-[10px] text-ink/75 italic leading-snug">
@@ -1242,11 +1468,13 @@ export function DigitalJournal({
                       ⚠️ {aiError}
                     </div>
                   )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
 
           {/* UPCOMING EVENTS */}

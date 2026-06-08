@@ -120,7 +120,7 @@ export function HandDrawnIcon({ type, className, style }: { type: string, classN
   }
 }
 
-function PolaroidPreset({ type, className }: { type: string, className?: string }) {
+export function PolaroidPreset({ type, className }: { type: string, className?: string }) {
   switch (type) {
     case 'notebook':
       return (
@@ -216,7 +216,7 @@ function PolaroidPreset({ type, className }: { type: string, className?: string 
   }
 }
 
-const STICKER_PRESETS = [
+export const STICKER_PRESETS = [
   { id: "none", label: "❌ Không Sticker" },
   { id: "notebook", label: "📔 Sổ Mở", visual: "notebook" },
   { id: "grocery", label: "🥖 Túi Đỏ An", visual: "grocery" },
