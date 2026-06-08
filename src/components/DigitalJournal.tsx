@@ -123,6 +123,26 @@ export function DigitalJournal({
 
   const [newBucketGoalTitle, setNewBucketGoalTitle] = useState("");
 
+  const [bucketListSubtitle, setBucketListSubtitle] = useState(() => {
+    return localStorage.getItem("studyHub_bucketListSubtitle") || "🍉 SUMMER";
+  });
+  const [bucketListTitle, setBucketListTitle] = useState(() => {
+    return localStorage.getItem("studyHub_bucketListTitle") || "BUCKET LIST";
+  });
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitlePrefix, setEditTitlePrefix] = useState("");
+  const [editTitleMain, setEditTitleMain] = useState("");
+
+  const handleSaveTitle = () => {
+    const finalSub = editTitlePrefix.trim() || "🍉 SUMMER";
+    const finalTitle = editTitleMain.trim() || "BUCKET LIST";
+    setBucketListSubtitle(finalSub);
+    setBucketListTitle(finalTitle);
+    localStorage.setItem("studyHub_bucketListSubtitle", finalSub);
+    localStorage.setItem("studyHub_bucketListTitle", finalTitle);
+    setIsEditingTitle(false);
+  };
+
   const saveRename = async (id: string, isReal: boolean) => {
     const trimmed = editingGoalText.trim();
     if (!trimmed) {
@@ -893,13 +913,64 @@ export function DigitalJournal({
             </svg>
           </div>
 
-          <div className="relative text-center mb-10 select-none">
-            <h2 className="text-[#5C0612] font-hand font-black uppercase text-3xl md:text-5xl tracking-normal leading-none rotate-[-1.5deg] select-none flex flex-col items-center">
-              <span className="text-xl md:text-2xl block tracking-[0.2em] text-[#7D1E2B]/85 font-extrabold rotate-[2deg] opacity-95">🍉 SUMMER</span>
-              <span className="text-4xl md:text-6.5xl font-black block mt-2 tracking-tighter filter drop-shadow-[3px_3px_0px_#E59FB0]">BUCKET LIST</span>
-            </h2>
-            <div className="w-24 h-1.5 bg-[#5C0612] mx-auto mt-2 rounded-full rotate-[-0.5deg]" />
-          </div>
+          {isEditingTitle ? (
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveTitle();
+              }}
+              className="flex flex-col items-center gap-2 mb-10 select-none relative z-10"
+            >
+              <input
+                type="text"
+                value={editTitlePrefix}
+                onChange={(e) => setEditTitlePrefix(e.target.value)}
+                onBlur={handleSaveTitle}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSaveTitle();
+                  } else if (e.key === "Escape") {
+                    setIsEditingTitle(false);
+                  }
+                }}
+                autoFocus
+                className="text-xl md:text-2xl font-hand font-extrabold text-center uppercase tracking-[0.1em] text-[#7D1E2B]/85 bg-amber-50/50 border-b-2 border-dashed border-[#5C0612]/30 outline-none w-full max-w-xs py-0.5 focus:border-[#5C0612]"
+              />
+              <input
+                type="text"
+                value={editTitleMain}
+                onChange={(e) => setEditTitleMain(e.target.value)}
+                onBlur={handleSaveTitle}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSaveTitle();
+                  } else if (e.key === "Escape") {
+                    setIsEditingTitle(false);
+                  }
+                }}
+                className="text-3xl md:text-5xl font-hand font-black text-center uppercase tracking-tighter text-[#5C0612] bg-amber-50/50 border-b-2 border-dashed border-[#5C0612]/30 outline-none w-full max-w-md py-1 focus:border-[#5C0612]"
+                placeholder="BUCKET LIST"
+              />
+              <span className="text-[10px] font-bold text-[#5C0612]/40 uppercase mt-1">Ấn ENTER để lưu • ESC để huỷ</span>
+            </form>
+          ) : (
+            <div 
+              className="relative text-center mb-10 select-none cursor-pointer group"
+              onDoubleClick={() => {
+                setEditTitlePrefix(bucketListSubtitle);
+                setEditTitleMain(bucketListTitle);
+                setIsEditingTitle(true);
+              }}
+              title="Nhấp đúp chuột để đổi tiêu đề!"
+            >
+              <h2 className="text-[#5C0612] font-hand font-black uppercase text-3xl md:text-5xl tracking-normal leading-none rotate-[-1.5deg] select-none flex flex-col items-center group-hover:scale-[1.01] transition-transform">
+                <span className="text-xl md:text-2xl block tracking-[0.2em] text-[#7D1E2B]/85 font-extrabold rotate-[2deg] opacity-95">{bucketListSubtitle}</span>
+                <span className="text-4xl md:text-6.5xl font-black block mt-2 tracking-tighter filter drop-shadow-[3px_3px_0px_#E59FB0]">{bucketListTitle}</span>
+              </h2>
+              <div className="w-24 h-1.5 bg-[#5C0612] mx-auto mt-2 rounded-full rotate-[-0.5deg]" />
+              <span className="text-[9px] font-bold text-[#5C0612]/30 uppercase tracking-widest block mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">Nhấn đúp để đổi tiêu đề</span>
+            </div>
+          )}
 
           {/* Combined Custom and Default Bucket List Core Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 md:gap-y-5.5 text-left font-hand text-[#5C0612] pl-2 pr-2">
