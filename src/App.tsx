@@ -17,6 +17,7 @@ import { SpeechGame } from "./components/SpeechGame";
 import { TranslationPractice } from "./components/TranslationPractice";
 import { ReflexPractice } from "./components/ReflexPractice";
 import Flashcards from "./components/Flashcards";
+import { PictureDescriptionPractice } from "./components/PictureDescriptionPractice";
 import { HabitTracker } from "./components/HabitTracker";
 import { DigitalJournal } from "./components/DigitalJournal";
 import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
@@ -408,6 +409,7 @@ function AppContent() {
                       { id: "Translation", label: "🔤 Dịch thuật", name: "Translation" },
                       { id: "Reflex", label: "⚡ Phản xạ", name: "Reflex" },
                       { id: "SRS", label: "🧠 Ghi nhớ (SRS)", name: "SRS" },
+                      { id: "Picture", label: "🖼️ Miêu tả tranh", name: "Picture" },
                     ].map(tab => (
                       <button
                         key={tab.id}
@@ -435,6 +437,7 @@ function AppContent() {
                   {activePracticeSubTab === "Translation" && <TranslationPractice words={words} setWords={setWords} />}
                   {activePracticeSubTab === "Reflex" && <ReflexPractice />}
                   {activePracticeSubTab === "SRS" && <Flashcards words={words} setWords={setWords} />}
+                  {activePracticeSubTab === "Picture" && <PictureDescriptionPractice />}
                 </>
               )}
             </div>

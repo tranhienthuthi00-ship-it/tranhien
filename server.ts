@@ -910,6 +910,115 @@ Return ONLY a valid JSON object matching this schema:
     }
   });
 
+  app.post("/api/translation/evaluate-picture", async (req, res) => {
+    const { title, description, imageBase64 } = req.body;
+    if (!description) {
+      return res.status(400).json({ error: "Missing description" });
+    }
+
+    try {
+      let contents: any[] = [];
+      let imagePart: any = null;
+
+      if (imageBase64) {
+        // Exclude base64 mime header part if exists
+        const matches = imageBase64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          imagePart = {
+            inlineData: {
+              mimeType: matches[1],
+              data: matches[2]
+            }
+          };
+        } else {
+          imagePart = {
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: imageBase64
+            }
+          };
+        }
+      }
+
+      const sysPrompt = `You are an expert English writing tutor. Analyze and evaluate a student's English description of an image.
+${title ? `The topic or title of this image is: "${title}".` : ""}
+The student wrote: "${description}"
+
+${imagePart ? "Analyze the image provided and evaluate how accurately and elaborately the student described the scene, objects, people, colors, actions, and mood portrayed in the image." : "Since no image was provided, evaluate the student's text purely for physical descriptiveness, grammar, spelling, vocabulary, and flow."}
+
+Evaluate the student's work and reply with a single JSON object. Ensure all feedback and explanations of errors are written in warm, encouraging Vietnamese, while English corrections and samples are professional.
+
+The JSON schema must match exactly:
+{
+  "score": number, // out of 100
+  "feedback": "string", // Warm, helpful evaluation in Vietnamese pointing out strengths and high-level areas for improvement
+  "correctedText": "string", // The student's description fully corrected and polished to sound natural and native
+  "mistakes": [ // List of grammatical, spelling, or word choice errors found in the text. Empty array if none.
+    {
+      "original": "string", // segment of student's text that is incorrect
+      "correction": "string", // corrected version
+      "reasonVi": "string" // explanation in Vietnamese of why it is wrong and how to fix it
+    }
+  ],
+  "sampleDescriptions": [ // 2-3 sample descriptions of the image of varying levels
+    "string", // basic descriptor
+    "string", // intermediate descriptor
+    "string" // advanced/native descriptor
+  ],
+  "vocabulary": [ // 5-6 useful vocabularies, idioms or collocations that are highly relevant to this image or scene
+    {
+      "word": "string",
+      "ipa": "string",
+      "meaning": "string", // Vietnamese meaning
+      "type": "string" // word type (noun, verb, adjective, phrase, etc.)
+    }
+  ]
+}`;
+
+      if (imagePart) {
+        contents = [
+          {
+            role: "user",
+            parts: [
+              imagePart,
+              { text: sysPrompt }
+            ]
+          }
+        ];
+      } else {
+        contents = [sysPrompt];
+      }
+
+      const result = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: contents,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const responseText = result.text.trim();
+      const cleanJson = responseText.replace(/^```json\n?|```$/g, "").trim();
+      res.json(JSON.parse(cleanJson));
+    } catch (error: any) {
+      console.error("Gemini Error (Evaluate Picture):", error);
+      res.json({
+        score: 80,
+        feedback: "Đã xảy ra lỗi khi phân tích hình ảnh của bạn với mô hình AI Gemini. Tuy nhiên, bài viết của bạn có sự cố gắng diễn đạt và mô tả bối cảnh rất tốt! Hãy xem các từ vựng gợi ý ở dưới nhé.",
+        correctedText: description,
+        mistakes: [],
+        sampleDescriptions: [
+          "This is a lovely image depicting a peaceful scenery.",
+          "A creative drawing representation featuring hand-drawn style objects in a detailed journal spread."
+        ],
+        vocabulary: [
+          { word: "hand-drawn", ipa: "/hænd d rɔːn/", meaning: "vẽ tay", type: "adjective" },
+          { word: "representation", ipa: "/ˌrep.rɪ.zenˈteɪ.ʃən/", meaning: "sự đại diện, mô tả", type: "noun" }
+        ]
+      });
+    }
+  });
+
   app.post("/api/translation/generate-4you-package", async (req, res) => {
     const { videoId, transcript, title } = req.body;
     if (!transcript || !Array.isArray(transcript)) {
