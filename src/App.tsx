@@ -455,7 +455,11 @@ function AppContent() {
                   {tab === "Places" && <MapPin className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Content" && <Lightbulb className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Assets" && <Wallet className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
-                  {tab === "Content" ? "TREND / CONTENT" : tab === "Assets" ? "TÀI SẢN" : tab === "Habits" ? "THÓI QUEN / LỊCH TRÌNH" : tab}
+                  {tab === "Lists" && "MỤC TIÊU & NHIỆM VỤ"}
+                  {tab === "Habits" && "THÓI QUEN & LỊCH TRÌNH"}
+                  {tab === "Places" && "ĐỊA ĐIỂM & ĂN UỐNG"}
+                  {tab === "Content" && "Ý TƯỞNG & SÁNG TẠO"}
+                  {tab === "Assets" && "TÀI SẢN & TÀI CHÍNH"}
                 </button>
               ))}
             </div>
