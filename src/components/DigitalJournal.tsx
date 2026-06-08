@@ -1005,28 +1005,37 @@ export function DigitalJournal({
               })}
             </div>
 
-            {/* Day Log Recap Detail Panel */}
-            <div 
-              className={`bg-[#fffdf5] rounded-xl border border-dashed border-amber-400 space-y-3 transition-all duration-300 origin-top overflow-hidden ${isCalendarDetailsOpen ? 'opacity-100 scale-y-100 mt-4 p-4' : 'opacity-0 scale-y-0 h-0 p-0 m-0 border-0'}`}
-            >
-              <div className="flex items-center justify-between border-b border-amber-200/40 pb-1.5">
-                <span className="text-[10px] font-black uppercase text-amber-800 font-sans tracking-wide">
-                  Chi tiết ngày: <strong className="text-ink">{selectedDateStr.split("-").reverse().join("/")}</strong>
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black text-amber-700 font-mono bg-white px-1.5 py-0.5 rounded border border-amber-100">
-                    {selectedDateLogs.length} mục
-                  </span>
-                  <button 
-                    type="button" 
-                    onClick={() => setIsCalendarDetailsOpen(false)}
-                    className="p-1 hover:bg-amber-100 rounded text-amber-900 transition-colors cursor-pointer"
-                    title="Đóng"
-                  >
-                    <X size={12} strokeWidth={2.5} />
-                  </button>
-                </div>
-              </div>
+            {/* CENTRAL BEAUTIFUL TRANSITION OVERLAY MODAL */}
+            {isCalendarDetailsOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-3 animate-in fade-in duration-200">
+                {/* Dark Backdrop */}
+                <div 
+                  className="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity cursor-pointer" 
+                  onClick={() => setIsCalendarDetailsOpen(false)} 
+                />
+                
+                {/* Modal Document Frame */}
+                <div className="w-full max-w-lg bg-[#FAF8F5] rounded-3xl p-5 md:p-6 flex flex-col gap-4 border-2 border-ink shadow-2xl relative z-50 max-h-[92vh] overflow-y-auto text-ink animate-in zoom-in-95 duration-200">
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b pb-2.5 border-ink/15 font-sans">
+                    <span className="text-xs uppercase font-extrabold tracking-wider text-amber-800 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-rose-650 animate-pulse" /> 
+                      Chi tiết ngày: <strong className="text-ink">{selectedDateStr.split("-").reverse().join("/")}</strong>
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-amber-700 font-mono bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                        {selectedDateLogs.length} mục
+                      </span>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsCalendarDetailsOpen(false)}
+                        className="bg-ink hover:bg-[#af1e2d] text-white rounded-full w-7 h-7 flex items-center justify-center text-xs font-bold cursor-pointer transition-colors shadow"
+                        title="Đóng"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
 
               {(() => {
                 const dayEvents = selectedDateLogs.filter(l => l.type === 'Event');
@@ -1237,6 +1246,8 @@ export function DigitalJournal({
               </div>
             </div>
           </div>
+        )}
+      </div>
 
           {/* UPCOMING EVENTS */}
           <div className="bg-white p-5 rounded-3xl border-2 border-ink shadow-[4px_4px_0px_0px_#1a1a1a] mt-4">
