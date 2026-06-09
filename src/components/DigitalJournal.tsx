@@ -77,6 +77,7 @@ interface DigitalJournalProps {
   setBulkCardSpends: React.Dispatch<React.SetStateAction<{id: number, name: string, amount: string, notes: string}[]>>;
   bulkCurrentCash: Record<number, number>;
   setBulkCurrentCash: React.Dispatch<React.SetStateAction<Record<number, number>>>;
+  onSearch?: (query: string) => void;
 }
 
 export function DigitalJournal({ 
@@ -89,6 +90,7 @@ export function DigitalJournal({
   goals = [], 
   setGoals,
   setLogs,
+  onSearch,
   assets = [],
   setAssets,
   categories = [],
@@ -287,42 +289,8 @@ export function DigitalJournal({
     return `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
   }, [currentMonth]);
 
-  const [dayStickers, setDayStickers] = useState<Record<string, { type: 'preset' | 'upload'; data: string }>>(() => {
-    const saved = localStorage.getItem(`studyHub_calendarDayPics_${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return {};
-  });
-
-  const [dayRings, setDayRings] = useState<Record<string, boolean>>(() => {
-    const saved = localStorage.getItem(`studyHub_calendarRings_${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return {};
-  });
-
-  // Keep state synced across month navigation
-  useEffect(() => {
-    const picsSaved = localStorage.getItem(`studyHub_calendarDayPics_${monthStr}`);
-    try {
-      setDayStickers(picsSaved ? JSON.parse(picsSaved) : {});
-    } catch {
-      setDayStickers({});
-    }
-
-    const ringsSaved = localStorage.getItem(`studyHub_calendarRings_${monthStr}`);
-    try {
-      setDayRings(ringsSaved ? JSON.parse(ringsSaved) : {});
-    } catch {
-      setDayRings({});
-    }
-  }, [monthStr]);
+  const [dayStickers, setDayStickers] = useSyncedState<Record<string, { type: 'preset' | 'upload'; data: string }>>(`studyHub_calendarDayPics_${monthStr}`, {});
+  const [dayRings, setDayRings] = useSyncedState<Record<string, boolean>>(`studyHub_calendarRings_${monthStr}`, {});
 
   const setDayStickerValue = (dateStr: string, stickerId: string, imageBase64?: string) => {
     const updated = { ...dayStickers };
@@ -334,7 +302,6 @@ export function DigitalJournal({
       updated[dateStr] = { type: 'preset' as const, data: stickerId };
     }
     setDayStickers(updated);
-    localStorage.setItem(`studyHub_calendarDayPics_${monthStr}`, JSON.stringify(updated));
   };
 
   const handleStickerFileChange = (dateStr: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -546,11 +513,10 @@ export function DigitalJournal({
     const lastDay = new Date(year, month + 1, 0);
     const totalDays = lastDay.getDate();
     
-    // Start index (0: Sunday, 1: Monday, ... 6: Saturday)
-    // We want Monday-start, but Sunday-start matches standard calendar nicely
-    const startOffset = firstDay.getDay(); 
+    // Start index (0: Monday, 1: Tuesday, ... 6: Sunday) to align with Monday-Sunday headers nicely
+    const startOffset = (firstDay.getDay() + 6) % 7; 
     
-    const cells = [];
+    const cells: { day: number | null; dateStr: string | null }[] = [];
     
     // Previous month filler cells
     for (let i = 0; i < startOffset; i++) {
@@ -563,6 +529,15 @@ export function DigitalJournal({
       const dayStr = String(d).padStart(2, '0');
       const dateStr = `${year}-${monthStr}-${dayStr}`;
       cells.push({ day: d, dateStr });
+    }
+
+    // Pad post-month blanks so they form a beautiful grid table without any missing bounding box or border cells
+    const remainder = cells.length % 7;
+    if (remainder > 0) {
+      const paddingNeeded = 7 - remainder;
+      for (let i = 0; i < paddingNeeded; i++) {
+        cells.push({ day: null, dateStr: null });
+      }
     }
     
     return cells;
@@ -859,9 +834,16 @@ export function DigitalJournal({
                   placeholder="Tìm kiếm..." 
                   value={homeSearch} 
                   onChange={e => setHomeSearch(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && homeSearch.trim() && onSearch) {
+                      onSearch(homeSearch.trim());
+                    }
+                  }}
                   className="bg-transparent outline-none flex-1 text-sm font-hand font-bold text-[#3A1412] placeholder-[#3A1412]/50" 
                 />
-                <svg className="w-6 h-6 text-[#3A1412] stroke-current stroke-[3]" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3a7 7 0 0 0-7 7 c0 3 2 5 4 6 s5 2 7-1 s4-5 1-8 s-3-4-5-4 z" /><path d="M16 16 l5 4" /></svg>
+                <button onClick={() => { if (homeSearch.trim() && onSearch) onSearch(homeSearch.trim()); }} className="cursor-pointer hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6 text-[#3A1412] stroke-current stroke-[3]" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3a7 7 0 0 0-7 7 c0 3 2 5 4 6 s5 2 7-1 s4-5 1-8 s-3-4-5-4 z" /><path d="M16 16 l5 4" /></svg>
+                </button>
             </div>
         </div>
 
@@ -1028,7 +1010,6 @@ export function DigitalJournal({
                      {calendarDays.map((cell, i) => {
                         const isLastInRow = (i + 1) % 7 === 0;
                         const isLastRow = i >= calendarDays.length - 7;
-                        
                         const hasSticker = cell.dateStr ? !!dayStickers[cell.dateStr] : false;
                         const stickerData = cell.dateStr ? dayStickers[cell.dateStr] : null;
                         const ringStyle = cell.dateStr ? dayRings[cell.dateStr] : null;
@@ -1036,7 +1017,7 @@ export function DigitalJournal({
                         return (
                           <div 
                              key={i} 
-                             className={`p-2 flex flex-col relative group cursor-pointer hover:bg-[#8A1E2B]/5 transition-colors ${!isLastInRow ? 'border-r-[2px] border-[#8A1E2B]' : ''} ${!isLastRow ? 'border-b-[2px] border-[#8A1E2B]' : ''}`} 
+                             className={`p-2 flex flex-col relative group transition-colors ${cell.day ? 'cursor-pointer hover:bg-[#8A1E2B]/5 bg-transparent' : 'bg-neutral-100/20 cursor-default'} ${!isLastInRow ? 'border-r-[2px] border-[#8A1E2B]' : ''} ${!isLastRow ? 'border-b-[2px] border-[#8A1E2B]' : ''}`} 
                              onClick={() => {
                                if (cell.dateStr) {
                                   setSelectedDateStr(cell.dateStr);
@@ -1052,7 +1033,11 @@ export function DigitalJournal({
                               
                               {/* Decoratives logic based on interactions */}
                               {ringStyle && (
-                                <div className="absolute inset-2 border-[3px] rounded-full pointer-events-none opacity-80" style={{ borderColor: ringStyle === 'red-ring' ? '#e11d48' : '#8A1E2B', borderStyle: 'dashed' }} />
+                                <span className="absolute inset-x-1 inset-y-1 pointer-events-none z-0">
+                                  <svg className="w-full h-full text-red-600/70" viewBox="0 0 100 100" fill="none">
+                                    <path d="M 15,50 C 10,25 90,15 85,45 C 80,75 12,85 20,55 C 28,25 92,30 82,60" stroke="#8A1E2B" strokeWidth="6" strokeLinecap="round" />
+                                  </svg>
+                                </span>
                               )}
 
                                                             {/* Interaction Rendering - Constrained to bottom 2/3 of day frame */}
@@ -1060,12 +1045,6 @@ export function DigitalJournal({
                                 <div className="absolute top-[28%] left-0 right-0 bottom-0 flex flex-col items-center justify-center z-0 opacity-95 overflow-visible pointer-events-none pb-1 px-1">
                                   {hasSticker ? (
                                     <div className="flex flex-col items-center justify-center w-full h-full mt-1">
-                                      {stickerData && stickerData.type === 'image' && (
-                                        <img draggable={false} src={stickerData.data} className="w-12 h-12 object-contain hover:scale-110 transition-transform" style={{ filter: stickerData.color ? `drop-shadow(0 0 10px ${stickerData.color})` : 'none' }} />
-                                      )}
-                                      {stickerData && stickerData.type === 'text' && (
-                                        <div className="text-2xl font-bold font-sans" style={{ color: stickerData.color }}>{stickerData.data}</div>
-                                      )}
                                       {stickerData?.type === 'preset' && (
                                         <PolaroidPreset type={stickerData.data} className="w-9 h-9 drop-shadow-sm text-[#8A1E2B] hover:scale-110 transition-transform" />
                                       )}
@@ -1082,7 +1061,13 @@ export function DigitalJournal({
                                           const firstEv = dayEvents[0];
                                           // Display a cute visual sticker representation of the event
                                           if (firstEv.emoji) {
-                                            return (
+                           const isLastInRow = (i + 1) % 7 === 0;
+                        const isLastRow = i >= calendarDays.length - 7;
+                        const hasSticker = cell.dateStr ? !!dayStickers[cell.dateStr] : false;
+                        const stickerData = cell.dateStr ? dayStickers[cell.dateStr] : null;
+                        const ringStyle = cell.dateStr ? dayRings[cell.dateStr] : null;
+
+                        return (
                                               <span className="text-2xl md:text-3xl filter drop-shadow-md select-none transform hover:scale-125 hover:rotate-6 transition-transform animate-bounce mt-1">
                                                 {firstEv.emoji}
                                               </span>
@@ -1108,11 +1093,13 @@ export function DigitalJournal({
                                 </div>
                               )}
                               {/* Hover details hint */}
-                              <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <svg className="w-4 h-4 text-[#8A1E2B]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
-                              </div>
+                              {cell.day && (
+                                <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <svg className="w-4 h-4 text-[#8A1E2B]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                </div>
+                              )}
                           </div>
-                        )
+                         )
                      })}
                   </div>
                </div>
