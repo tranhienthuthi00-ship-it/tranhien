@@ -1333,28 +1333,11 @@ export function DigitalJournal({
 
                                           if (isEvent && (connectsLeft || connectsRight)) {
                                             return (
-                                              <div className="relative w-full flex items-center justify-center my-0.5" key={idx}>
-                                                {/* Connecting horizontal line */}
-                                                <div className="absolute inset-y-0 flex items-center w-full pointer-events-none z-0">
-                                                  <div 
-                                                    className="h-[1.5px] bg-[#8A1E2B]/50 border-t border-dashed border-[#8A1E2B]" 
-                                                    style={{
-                                                      left: connectsLeft ? "-15px" : "4px",
-                                                      right: connectsRight ? "-15px" : "4px",
-                                                      position: "absolute",
-                                                    }}
-                                                  />
-                                                </div>
-                                                
-                                                {/* Masked event content badge */}
-                                                <span 
-                                                  className={cn(
-                                                    "relative z-10 text-[8.5px] md:text-[9.5px] font-hand font-extrabold px-1.5 py-0.5 rounded-[4px] select-none text-[#8A1E2B] leading-none",
-                                                    "bg-[#f8f5ed] border border-[#8A1E2B]/20 shadow-2xs max-w-[95%] truncate"
-                                                  )}
-                                                >
-                                                  {!connectsLeft && "—— "}{l.content}{!connectsRight && " ——"}
-                                                </span>
+                                              <div 
+                                                key={idx} 
+                                                className="text-[8.5px] md:text-[9.5px] leading-tight truncate w-full text-center px-1 font-hand font-extrabold text-red-600 animate-fade-in"
+                                              >
+                                                —— {l.content} ——
                                               </div>
                                             );
                                           }
