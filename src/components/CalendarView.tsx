@@ -19,6 +19,7 @@ import {
   CircleDot
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSyncedState } from "../lib/useSyncedState";
 import type { LogEntry } from "@/types";
 
 export function HandDrawnIcon({ type, className, style }: { type: string, className?: string, style?: React.CSSProperties }) {
@@ -249,9 +250,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
   const monthStr = format(currentDate, "yyyy-MM");
 
   // Editable theme tagline: e.g. "GLOW UP SEASON"
-  const [themeTagline, setThemeTagline] = useState(() => {
-    return localStorage.getItem(`studyHub_calendarSubtitle_${monthStr}`) || "GLOW UP SEASON";
-  });
+  const [themeTagline, setThemeTagline] = useSyncedState(`studyHub_calendarSubtitle_${monthStr}`, "GLOW UP SEASON");
   const [isEditingTagline, setIsEditingTagline] = useState(false);
   const [taglineDraft, setTaglineDraft] = useState(themeTagline);
 
@@ -288,15 +287,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
   });
 
   // Circle highlight ring states (which days are ring highlighted like Day 30 in photo)
-  const [dayRings, setDayRings] = useState<Record<string, boolean>>(() => {
-    const saved = localStorage.getItem(`studyHub_calendarRings_${monthStr}`);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return {};
-  });
+  const [dayRings, setDayRings] = useSyncedState<Record<string, boolean>>(`studyHub_calendarRings_${monthStr}`, {});
 
   // Handle month selection load changes
   useEffect(() => {
@@ -351,7 +342,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
   const handleSaveTagline = () => {
     const cleanTag = taglineDraft.trim() || "MONTHLY PLANNER";
     setThemeTagline(cleanTag);
-    localStorage.setItem(`studyHub_calendarSubtitle_${monthStr}`, cleanTag);
+    
     setIsEditingTagline(false);
   };
 
@@ -360,7 +351,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
     const updated = [...notesList];
     updated[idx] = noteEditVal.trim() || `Intention line ${idx + 1}...`;
     setNotesList(updated);
-    localStorage.setItem(`studyHub_calendarNotes_${monthStr}`, JSON.stringify(updated));
+    
     setEditingNoteIndex(null);
   };
 
@@ -368,7 +359,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
   const toggleDayRing = (dateStr: string) => {
     const updated = { ...dayRings, [dateStr]: !dayRings[dateStr] };
     setDayRings(updated);
-    localStorage.setItem(`studyHub_calendarRings_${monthStr}`, JSON.stringify(updated));
+    
   };
 
   // Set sticker preset or custom file upload for specified Date
@@ -382,7 +373,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
       updated[dateStr] = { type: 'preset', data: stickerId };
     }
     setDayStickers(updated);
-    localStorage.setItem(`studyHub_calendarDayPics_${monthStr}`, JSON.stringify(updated));
+    
   };
 
   // Trigger Image File picker to embed customizable visual snapshot inside Polaroid

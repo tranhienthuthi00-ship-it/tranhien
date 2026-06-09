@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useSyncedState } from "../lib/useSyncedState";
 import confetti from "canvas-confetti";
 import type { LogEntry, Task, Achievement, StudyGoal, FoodPlace, AssetCategory } from "../types";
 import { 
@@ -91,6 +92,8 @@ export function DigitalJournal({
   assets = [],
   setAssets,
   categories = [],
+  wishlist = [],
+  ideas = [],
   bulkDebts,
   setBulkDebts,
   bulkCardSpends,
@@ -100,35 +103,17 @@ export function DigitalJournal({
 }: DigitalJournalProps) {
   
   // ---------------- BUCKET LIST PREVIEW STATE ----------------
-  const [localCompletedDefaultGoals, setLocalCompletedDefaultGoals] = useState<Record<string, boolean>>(() => {
-    try {
-      const saved = localStorage.getItem("studyHub_localBucketListDefaultDone");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
+  const [localCompletedDefaultGoals, setLocalCompletedDefaultGoals] = useSyncedState<Record<string, boolean>>("studyHub_localBucketListDefaultDone", {});
 
-  const [localRenamedDefaultGoals, setLocalRenamedDefaultGoals] = useState<Record<string, string>>(() => {
-    try {
-      const saved = localStorage.getItem("studyHub_localBucketListRenamed");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
+  const [localRenamedDefaultGoals, setLocalRenamedDefaultGoals] = useSyncedState<Record<string, string>>("studyHub_localBucketListRenamed", {});
 
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [editingGoalText, setEditingGoalText] = useState("");
 
   const [newBucketGoalTitle, setNewBucketGoalTitle] = useState("");
 
-  const [bucketListSubtitle, setBucketListSubtitle] = useState(() => {
-    return localStorage.getItem("studyHub_bucketListSubtitle") || "🍉 SUMMER";
-  });
-  const [bucketListTitle, setBucketListTitle] = useState(() => {
-    return localStorage.getItem("studyHub_bucketListTitle") || "BUCKET LIST";
-  });
+  const [bucketListSubtitle, setBucketListSubtitle] = useSyncedState("studyHub_bucketListSubtitle", "🍉 SUMMER");
+  const [bucketListTitle, setBucketListTitle] = useSyncedState("studyHub_bucketListTitle", "BUCKET LIST");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitlePrefix, setEditTitlePrefix] = useState("");
   const [editTitleMain, setEditTitleMain] = useState("");
@@ -138,8 +123,8 @@ export function DigitalJournal({
     const finalTitle = editTitleMain.trim() || "BUCKET LIST";
     setBucketListSubtitle(finalSub);
     setBucketListTitle(finalTitle);
-    localStorage.setItem("studyHub_bucketListSubtitle", finalSub);
-    localStorage.setItem("studyHub_bucketListTitle", finalTitle);
+    
+    
     setIsEditingTitle(false);
   };
 
@@ -163,7 +148,7 @@ export function DigitalJournal({
     } else {
       const updatedRenamed = { ...localRenamedDefaultGoals, [id]: trimmed };
       setLocalRenamedDefaultGoals(updatedRenamed);
-      localStorage.setItem("studyHub_localBucketListRenamed", JSON.stringify(updatedRenamed));
+      
     }
     setEditingGoalId(null);
   };
@@ -171,7 +156,7 @@ export function DigitalJournal({
   const toggleLocalDefaultGoal = (id: string) => {
     const updated = { ...localCompletedDefaultGoals, [id]: !localCompletedDefaultGoals[id] };
     setLocalCompletedDefaultGoals(updated);
-    localStorage.setItem("studyHub_localBucketListDefaultDone", JSON.stringify(updated));
+    
     try {
       if (updated[id]) {
         confetti({ particleCount: 50, spread: 50, colors: ["#5C0612", "#EFAEBB", "#ED7CB8"] });
@@ -366,7 +351,6 @@ export function DigitalJournal({
   const toggleDayRing = (dateStr: string) => {
     const updated = { ...dayRings, [dateStr]: !dayRings[dateStr] };
     setDayRings(updated);
-    localStorage.setItem(`studyHub_calendarRings_${monthStr}`, JSON.stringify(updated));
   };
   
   useEffect(() => {
@@ -811,2125 +795,836 @@ export function DigitalJournal({
     return tasks.filter(t => !t.completed);
   }, [tasks]);
 
+  const [bucketStickers, setBucketStickers] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('studyHub_bucketStickers') || '[]');
+    } catch { return []; }
+  });
+
+  const saveBucketStickers = (updated: any[]) => {
+    setBucketStickers(updated);
+    localStorage.setItem('studyHub_bucketStickers', JSON.stringify(updated));
+  };
+
+  const handleStickerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const newSticker = { 
+        id: "stk_" + Date.now(), 
+        data: reader.result as string, 
+        x: 0, y: 0, scale: 1, rotation: 0, 
+        type: 'image'
+      };
+      saveBucketStickers([...bucketStickers, newSticker]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const addPresetSticker = () => {
+    const newSticker = {
+      id: "stk_" + Date.now(),
+      data: "⭐",
+      x: 0, y: 0, scale: 1.5, rotation: 10,
+      type: 'text',
+      color: '#ED7CB8'
+    };
+    saveBucketStickers([...bucketStickers, newSticker]);
+  };
+
+  const [homeSearch, setHomeSearch] = useState("");
+
+  const [localInteractiveTasks, setLocalInteractiveTasks] = useState([
+    { id: 't1', text: 'Clean my room', done: false, isReal: false }, 
+    { id: 't2', text: 'Study English', done: false, isReal: false }, 
+    { id: 't3', text: 'Meeting with bigboss', done: false, isReal: false },
+    { id: 't4', text: 'To do 1', done: false, isReal: false },
+    { id: 't5', text: 'Meeting with bigboss', done: false, isReal: false },
+    { id: 't6', text: 'Meeting with bigboss', done: false, isReal: false },
+    { id: 't7', text: 'Meeting with bigboss', done: false, isReal: false },
+    { id: 't8', text: 'Meeting with bigboss', done: false, isReal: false },
+    { id: 't9', text: 'Meeting with bigboss', done: false, isReal: false },
+  ]);
+
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 font-sans select-none space-y-8 animate-in fade-in duration-300">
-      
-      {/* 1. MOTIVATIONAL WELCOME HEADER - FULL WIDTH */}
-      <div className="bg-[#fffdf5] p-6 md:p-8 rounded-3xl sketch-border border-ink relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-[4px_4px_0px_0px_#1a1a1a]">
-         <div className="absolute inset-0 opacity-45 pointer-events-none bg-[radial-gradient(circle_at_left,_var(--tw-gradient-stops))] from-amber-100 via-transparent to-transparent"></div>
-         
-         <div className="relative z-10 text-center md:text-left space-y-1.5 flex-1 min-w-0">
-           <span className="text-[10px] uppercase font-extrabold tracking-widest text-[#d97706] bg-amber-100/60 px-3 py-1 rounded-full border border-amber-350 inline-block font-sans">
-             {getTodayVietnameseDate()}
-           </span>
-           <h1 className="font-sans text-2xl md:text-3xl font-black uppercase tracking-wider text-ink flex items-center justify-center md:justify-start gap-2.5 mt-1">
-             <Sparkles size={24} className="text-amber-500 animate-pulse shrink-0" />
-             Welcome Home
-           </h1>
-           <p className="text-xs font-bold text-ink/75 font-sans max-w-xl truncate sm:overflow-visible sm:whitespace-normal">
-              Chào mừng quay trở lại! Chúc bạn ngày mới năng lượng, giữ vững thói quen và hoàn thành mục tiêu đặt ra.
-            </p>
-          </div>
-
-          <div className="relative z-10 flex flex-wrap justify-center gap-3 shrink-0">
-            {/* Metric 1 */}
-            <div className="bg-white border-2 border-ink hover:bg-rose-50/10 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-[2px_2px_0px_0px_#1a1a1a] hover:shadow-[4px_4px_0px_0px_#1a1a1a] hover:translate-y-[-2px] transition-all duration-200 text-left cursor-pointer group" title="Nhiệm vụ cần xử lý">
-              <span className="p-1 px-2.5 bg-rose-100 text-rose-700 rounded-lg text-xs font-mono font-black shrink-0">
-                {tasks.filter(t => !t.completed).length}
-              </span>
-              <div>
-                <p className="text-[9px] text-[#4b5563] uppercase font-black tracking-wider leading-none">Nhiệm vụ</p>
-                <p className="text-xs font-extrabold text-ink leading-tight mt-0.5">Cần xử lý</p>
-              </div>
-            </div>
-
-            {/* Metric 2 */}
-            <div className="bg-white border-2 border-ink hover:bg-orange-50/10 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-[2px_2px_0px_0px_#1a1a1a] hover:shadow-[4px_4px_0px_0px_#1a1a1a] hover:translate-y-[-2px] transition-all duration-200 text-left cursor-pointer group" title="Thói quen rèn luyện hôm nay">
-              <span className="p-1 px-2.5 bg-orange-100 text-orange-700 rounded-lg text-xs font-mono font-black shrink-0">
-                {(() => {
-                  const todayStr = new Date().toISOString().split("T")[0];
-                  const habitsDoneToday = habits.filter(h => h.isActive && h.history?.[todayStr]?.done).length;
-                  return habitsDoneToday;
-                })()}
-              </span>
-              <div>
-                <p className="text-[9px] text-[#4b5563] uppercase font-black tracking-wider leading-none">Thói quen</p>
-                <p className="text-xs font-extrabold text-ink leading-tight mt-0.5">Hoàn tất hôm nay</p>
-              </div>
-            </div>
-
-            {/* Metric 3 */}
-            <div className="bg-white border-2 border-ink hover:bg-emerald-50/10 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-[2px_2px_0px_0px_#1a1a1a] hover:shadow-[4px_4px_0px_0px_#1a1a1a] hover:translate-y-[-2px] transition-all duration-200 text-left cursor-pointer group" title="Tổng tài sản lưu lũy">
-              <span className="p-1 px-2.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-mono font-black shrink-0">
-                {(() => {
-                  const totalVndValue = assets.reduce((sum, curr) => {
-                    if (curr.excludeFromNetWorth) return sum;
-                    const val = curr.value || 0;
-                    return curr.isDebt ? sum - val : sum + val;
-                  }, 0);
-                  const millionVal = Math.floor(totalVndValue / 1000000);
-                  return `${millionVal.toLocaleString()}M`;
-                })()}
-              </span>
-              <div>
-                <p className="text-[9px] text-[#4b5563] uppercase font-black tracking-wider leading-none">Tài sản ròng</p>
-                <p className="text-xs font-extrabold text-ink leading-tight mt-0.5">Giá trị VND</p>
-              </div>
-            </div>
-          </div>
-       </div>
-
-      {/* EXTREMELY POLISHED SUMMER BUCKET LIST STYLE QUICK GOALS VIEW */}
-      <div 
-        className="w-full bg-[#f6ebdc] p-3 sm:p-6 md:p-8 rounded-[2.5rem] border-4 border-[#3D0A0F] shadow-[10px_10px_0px_#3D0A0F] relative overflow-hidden animate-in fade-in slide-in-from-top-6 duration-500 font-hand"
-        style={{
-          backgroundImage: "repeating-linear-gradient(90deg, #8A1E2B, #8A1E2B 24px, #E59FB0 24px, #E59FB0 48px)"
-        }}
-      >
-        <div className="max-w-4xl mx-auto bg-[#FAF3EB] border-[6px] border-[#3D0A0F] rounded-[2rem] p-6 md:p-10 text-[#5C0612] font-hand shadow-lg relative">
-          
-          {/* Handdrawn Zigzag Pink Sticker in upper-right */}
-          <div className="absolute right-4 top-4 md:right-7 md:top-7 select-none animate-pulse pointer-events-none">
-            <svg className="w-16 h-16 md:w-20 md:h-20 drop-shadow-sm rotate-12" viewBox="0 0 100 100">
-              {/* First sketchy pass (slightly offset) */}
-              <path 
-                d="M25,45 Q35,22 42,20 Q44,38 45,40 Q58,15 63,16 Q58,42 57,43 Q76,32 78,33 Q67,54 66,55 Q82,65 80,68 Q56,66 55,67 Q59,85 57,86 Q46,70 45,71 Q34,84 32,82 Q36,59 35,58 Q15,58 16,55 Z" 
-                fill="none" 
-                stroke="#EFAEBB" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                opacity="0.8"
-              />
-              {/* Second main pass */}
-              <path 
-                d="M26,46 Q34,24 41,21 Q44,37 46,39 Q57,16 62,17 Q59,41 58,42 Q75,33 77,34 Q66,53 67,54 Q81,64 79,67 Q57,65 56,66 Q58,84 56,85 Q47,69 46,70 Q35,82 33,81 Q35,58 34,57 Q16,57 17,54 Z"
-                fill="none" 
-                stroke="#ED7CB8" 
-                strokeWidth="3.5" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-
-          {isEditingTitle ? (
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSaveTitle();
-              }}
-              className="flex flex-col items-center gap-2 mb-10 select-none relative z-10"
-            >
-              <input
-                type="text"
-                value={editTitlePrefix}
-                onChange={(e) => setEditTitlePrefix(e.target.value)}
-                onBlur={handleSaveTitle}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleSaveTitle();
-                  } else if (e.key === "Escape") {
-                    setIsEditingTitle(false);
-                  }
-                }}
-                autoFocus
-                className="text-xl md:text-2xl font-hand font-extrabold text-center uppercase tracking-[0.1em] text-[#7D1E2B]/85 bg-amber-50/50 border-b-2 border-dashed border-[#5C0612]/30 outline-none w-full max-w-xs py-0.5 focus:border-[#5C0612]"
-              />
-              <input
-                type="text"
-                value={editTitleMain}
-                onChange={(e) => setEditTitleMain(e.target.value)}
-                onBlur={handleSaveTitle}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleSaveTitle();
-                  } else if (e.key === "Escape") {
-                    setIsEditingTitle(false);
-                  }
-                }}
-                className="text-3xl md:text-5xl font-hand font-black text-center uppercase tracking-tighter text-[#5C0612] bg-amber-50/50 border-b-2 border-dashed border-[#5C0612]/30 outline-none w-full max-w-md py-1 focus:border-[#5C0612]"
-                placeholder="BUCKET LIST"
-              />
-              <span className="text-[10px] font-bold text-[#5C0612]/40 uppercase mt-1">Ấn ENTER để lưu • ESC để huỷ</span>
-            </form>
-          ) : (
-            <div 
-              className="relative text-center mb-10 select-none cursor-pointer group"
-              onDoubleClick={() => {
-                setEditTitlePrefix(bucketListSubtitle);
-                setEditTitleMain(bucketListTitle);
-                setIsEditingTitle(true);
-              }}
-              title="Nhấp đúp chuột để đổi tiêu đề!"
-            >
-              <h2 className="text-[#5C0612] font-hand font-black uppercase text-3xl md:text-5xl tracking-normal leading-none rotate-[-1.5deg] select-none flex flex-col items-center group-hover:scale-[1.01] transition-transform">
-                <span className="text-xl md:text-2xl block tracking-[0.2em] text-[#7D1E2B]/85 font-extrabold rotate-[2deg] opacity-95">{bucketListSubtitle}</span>
-                <span className="text-4xl md:text-6.5xl font-black block mt-2 tracking-tighter filter drop-shadow-[3px_3px_0px_#E59FB0]">{bucketListTitle}</span>
-              </h2>
-              <div className="w-24 h-1.5 bg-[#5C0612] mx-auto mt-2 rounded-full rotate-[-0.5deg]" />
-              <span className="text-[9px] font-bold text-[#5C0612]/30 uppercase tracking-widest block mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">Nhấn đúp để đổi tiêu đề</span>
-            </div>
-          )}
-
-          {/* Combined Custom and Default Bucket List Core Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 md:gap-y-5.5 text-left font-hand text-[#5C0612] pl-2 pr-2">
-            
-            {/* Column 1 and Column 2 rendering */}
-            {(() => {
-              // Prepare custom active goals from database
-              const activeCustomGoals = goals.map(g => ({
-                id: g.id,
-                text: g.title,
-                isCompleted: g.isCompleted,
-                isReal: true
-              }));
-
-              // Setup static default goals from the image
-              const defaultGoals = [
-                { id: "def-1", text: "GIVE A STRANGER A COMPLIMENT", isReal: false },
-                { id: "def-2", text: "WALK THROUGH GRASS BAREFOOT", isReal: false },
-                { id: "def-3", text: "TRY A NEW RECIPE & SHARE IT WITH SOMEONE", isReal: false },
-                { id: "def-4", text: "HOST A DINNER PARTY", isReal: false },
-                { id: "def-5", text: "LEARN A NEW GAME", isReal: false },
-                { id: "def-6", text: "START A SCRAPBOOK & STICK WITH IT!", isReal: false },
-                { id: "def-7", text: "HAVE A BUBBLY DRINK BY A POOL", isReal: false },
-                { id: "def-8", text: "WATCH A FILM THAT GIVES YOU NEW PERSPECTIVE", isReal: false },
-                { id: "def-9", text: "MAKE A BOUQUET OF FLOWERS", isReal: false },
-                { id: "def-10", text: "SOAK IN SUNSHINE", isReal: false },
-                { id: "def-11", text: "CALL SOMEONE YOU SUSPECT MAY BE LONELY", isReal: false },
-                { id: "def-12", text: "TAKE PHOTOS OF THINGS THAT MADE YOU SMILE", isReal: false },
-                { id: "def-13", text: "MAKE A CHANGE YOU NEED TO MAKE", isReal: false },
-                { id: "def-14", text: "DANCE (IN ANY CAPACITY)", isReal: false },
-                { id: "def-15", text: "JUMP IN A COLD POOL", isReal: false },
-                { id: "def-16", text: "FLOAT IN AN INNER TUBE", isReal: false },
-                { id: "def-17", text: "EAT FRENCH FRIES IN THE SUN", isReal: false },
-                { id: "def-18", text: "EXPLORE A NEW CITY'S BEST LOCAL SPOTS", isReal: false }
-              ].map(d => ({
-                ...d,
-                text: localRenamedDefaultGoals[d.id] || d.text,
-                isCompleted: !!localCompletedDefaultGoals[d.id]
-              }));
-
-              // Merge custom goals first, then defaults
-              const allBucketItems = [...activeCustomGoals, ...defaultGoals];
-              
-              // Slice into two halves evenly
-              const halfCount = Math.ceil(allBucketItems.length / 2);
-              const leftColItems = allBucketItems.slice(0, halfCount);
-              const rightColItems = allBucketItems.slice(halfCount);
-
-              const renderItem = (item: any) => {
-                const isEditing = editingGoalId === item.id;
-                return (
-                  <div 
-                    key={item.id}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      setEditingGoalId(item.id);
-                      setEditingGoalText(item.text);
-                    }}
-                    className="flex items-start gap-3.5 group cursor-pointer"
-                    title="Nhấn đúp chuột để đổi tên mục tiêu!"
-                  >
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        item.isReal ? handleToggleRealGoal(item.id) : toggleLocalDefaultGoal(item.id);
-                      }}
-                      className="w-[18px] h-[18px] rounded-full border-2 border-[#5C0612] shrink-0 mt-0.5 transition-all flex items-center justify-center relative bg-transparent hover:scale-105"
-                      title={item.isCompleted ? "Đánh dấu chứa hoàn thành" : "Nhấp để hoàn thành!"}
-                    >
-                      {item.isCompleted && (
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#5C0612] absolute" />
-                      )}
-                    </button>
-                    
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editingGoalText}
-                        onChange={(e) => setEditingGoalText(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        onBlur={() => saveRename(item.id, item.isReal)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            saveRename(item.id, item.isReal);
-                          } else if (e.key === "Escape") {
-                            setEditingGoalId(null);
-                          }
-                        }}
-                        autoFocus
-                        className="flex-1 bg-white/95 border-2 border-[#5C0612] px-2 py-0.5 rounded text-xs sm:text-sm md:text-base font-hand font-bold text-[#5C0612] outline-none shadow-sm"
-                      />
-                    ) : (
-                      <span className={`font-hand font-bold uppercase text-xs sm:text-sm md:text-[15px] tracking-wide leading-snug transition-all text-[#5C0612] select-none ${
-                        item.isCompleted 
-                          ? "line-through opacity-45 text-[#5C0612]/70 decoration-[#5C0612] decoration-2" 
-                          : "group-hover:text-red-700"
-                      }`}>
-                        {item.isReal ? `🎯 ${item.text}` : item.text}
-                      </span>
-                    )}
-                  </div>
-                );
-              };
-
-              return (
-                <>
-                  <div className="space-y-4 md:space-y-5">
-                    {leftColItems.map(renderItem)}
-                  </div>
-                  <div className="space-y-4 md:space-y-5">
-                    {rightColItems.map(renderItem)}
-                  </div>
-                </>
-              );
-            })()}
-
-          </div>
-
-          {/* Quick handwritten goals creator inline inside the poster */}
-          <form onSubmit={handleAddBucketGoal} className="mt-10 pt-8 border-t-[3px] border-dashed border-[#5C0612]/20 flex flex-col sm:flex-row gap-3 items-center justify-center font-hand">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#5C0612] shrink-0">✨ THÊM MỤC TIÊU VÀO BUCKET LIST:</span>
-            <div className="flex w-full sm:w-auto flex-1 max-w-md bg-white/70 border-2 border-[#5C0612] rounded-full overflow-hidden px-1 py-1 shadow-sm focus-within:border-red-700 focus-within:bg-white transition-all">
-              <input
-                type="text"
-                placeholder="Ví dụ: Đọc xong 3 cuốn sách tiếng Anh..."
-                value={newBucketGoalTitle}
-                onChange={e => setNewBucketGoalTitle(e.target.value)}
-                className="flex-1 px-4 py-1.5 text-xs font-bold text-[#5C0612] bg-transparent outline-none placeholder-[#5C0612]/40 uppercase font-hand"
-                required
-              />
-              <button 
-                type="submit" 
-                className="px-5 py-1.5 bg-[#5C0612] hover:bg-red-800 text-white rounded-full text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer shrink-0 font-hand"
-              >
-                GHI LẠI
-              </button>
-            </div>
-          </form>
-
-        </div>
-      </div>
-
-      {/* THREE-COLUMN GRID: COMPACT TASKS (col-span-4), HABITS OVERVIEW (col-span-4), CALENDAR (col-span-4) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 pb-6 border-b-2 border-ink/5">
-
-        {/* COLUMN 1: COMPACT TASKS */}
-        <div className="lg:col-span-4 space-y-4">
-          
-
-          <div className="bg-[#fffdf5] p-5 rounded-3xl sketch-border border-ink space-y-3.5 shadow-[4px_4px_0px_0px_#1a1a1a] relative overflow-hidden flex flex-col h-full min-h-[350px]">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-200/10 rounded-full blur-2xl pointer-events-none"></div>
-            
-            <div className="flex items-center justify-between border-b pb-2.5 border-amber-200/50 gap-2 relative z-10 font-sans">
-              <span className="text-[10px] sm:text-xs uppercase font-black tracking-widest text-amber-900 flex items-center gap-1.5 shrink-0">
-                <span className="p-1 px-1.5 bg-amber-100 rounded-lg text-amber-600">
-                  <Check size={14} className="stroke-[3]" />
-                </span>
-                Next To Do
-              </span>
-              
-              <div className="flex items-center gap-1">
-                <button onClick={() => setShowAddTask(!showAddTask)} className="p-1 hover:bg-amber-500 hover:text-white rounded-lg border border-amber-300 text-amber-600 bg-white shadow-xs shrink-0 transition-colors">
-                  <Plus size={12} className={showAddTask ? "rotate-45" : ""} />
-                </button>
-              </div>
-            </div>
-
-            {/* Quick compact task filtering within card */}
-            <div className="relative z-10 font-sans">
-              <select
-                value={taskFilter}
-                onChange={(e) => setTaskFilter(e.target.value)}
-                className="w-full px-2.5 py-1 text-[9px] uppercase font-bold text-amber-900 bg-white border border-amber-200 rounded-md outline-none tracking-widest cursor-pointer hover:bg-amber-50 transition-colors"
-              >
-                <option value="All">Tất Cả Kế Hoạch</option>
-                <option value="Priority:High">⚠️ Ưu tiên Cao</option>
-                <option value="Priority:Medium">⚡ Ưu tiên Trung</option>
-                <option value="Priority:Low">🌱 Ưu tiên Thấp</option>
-                {goals.map(g => <option key={g.id} value={"Goal:" + g.id}>🎯 {g.title}</option>)}
-              </select>
-            </div>
-
-            {showAddTask && (
-              <form onSubmit={handleAddTask} className="bg-amber-50/60 p-3 rounded-xl border border-amber-100 flex flex-col gap-2 relative z-10 font-sans">
-                <input
-                  type="text"
-                  placeholder="Tôi sẽ bắt tay làm gì..."
-                  value={newTaskContent}
-                  onChange={e => setNewTaskContent(e.target.value)}
-                  className="px-2.5 py-1.5 text-xs bg-white rounded-lg border border-amber-200 outline-none w-full font-bold text-amber-950 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
-                  required
-                />
-                <div className="flex gap-1.5">
-                  <select
-                    value={newTaskPriority}
-                    onChange={e => setNewTaskPriority(e.target.value as any)}
-                    className="px-1.5 py-1 text-[9px] bg-white text-amber-900 font-bold rounded border border-amber-200 outline-none uppercase"
-                  >
-                    <option value="High">Cao</option>
-                    <option value="Medium">Trung</option>
-                    <option value="Low">Thấp</option>
-                  </select>
-                  <button type="submit" className="flex-1 py-1 bg-amber-600 text-white font-black text-[9px] uppercase tracking-widest rounded hover:bg-amber-700 shadow-xs transition-colors">
-                    Thêm
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Compact tasks list display with scrollbar */}
-            <div className="relative z-10 flex-1 overflow-y-auto max-h-[220px] custom-scrollbar pr-1 font-sans">
-              {activeTasks.filter(t => {
-                if (taskFilter === "All") return true;
-                if (taskFilter.startsWith("Priority:")) return t.priority === taskFilter.split(":")[1];
-                if (taskFilter.startsWith("Goal:")) return t.goalId === taskFilter.split(":")[1];
-                return true;
-              }).length === 0 ? (
-                <div className="text-center py-8 select-none">
-                  <span className="text-2xl block opacity-80">🌱</span>
-                  <p className="text-[9px] font-sans font-bold uppercase tracking-wider text-amber-800/50 mt-1">Sẵn sàng bắt đầu việc mới.</p>
-                </div>
-              ) : (
-                <div className="space-y-1.5 pb-2">
-                  {activeTasks.filter(t => {
-                    if (taskFilter === "All") return true;
-                    if (taskFilter.startsWith("Priority:")) return t.priority === taskFilter.split(":")[1];
-                    if (taskFilter.startsWith("Goal:")) return t.goalId === taskFilter.split(":")[1];
-                    return true;
-                  }).map(task => {
-                    const priorityStyles = 
-                      task.priority === "High" ? "bg-red-50 text-crimson border-red-200" :
-                      task.priority === "Medium" ? "bg-amber-50 text-amber-600 border-amber-200" :
-                      "bg-emerald-50 text-emerald-700 border-emerald-200";
-                    const targetGoal = goals.find(g => g.id === task.goalId);
-
-                    return (
-                      <div 
-                        key={task.id} 
-                        className="flex items-center justify-between bg-white px-2.5 py-2 rounded-xl border border-amber-100 hover:border-amber-200 transition-all group shadow-2xs"
-                      >
-                        <div className="flex gap-2 min-w-0 flex-1 pr-1 items-center">
-                          <button
-                            onClick={() => handleToggleTask(task.id)}
-                            className="w-4 h-4 rounded hover:border-emerald-500 bg-amber-50/50 border border-amber-200 shrink-0 cursor-pointer flex items-center justify-center"
-                          ></button>
-                          
-                          <div className="min-w-0 text-left flex-1">
-                            <p className="font-bold text-[11px] text-amber-950 leading-tight truncate group-hover:text-amber-700 transition-colors" title={task.content}>
-                              {task.content}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0 font-sans">
-                          <span className={`text-[7px] font-black uppercase px-1 py-0.2 rounded border ${priorityStyles} font-mono tracking-wider shrink-0`}>
-                            {task.priority[0]}
-                          </span>
-                          <button
-                            onClick={() => handleDeleteTask(task.id)}
-                            className="p-1 hover:bg-rose-50 rounded-md hover:text-crimson text-amber-900/30 cursor-pointer shrink-0 transition-colors opacity-0 group-hover:opacity-100"
-                          >
-                            <Trash2 size={10} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* COLUMN 2: DAILY HABITS */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="bg-[#fffdfa] p-5 rounded-3xl sketch-border border-ink space-y-3.5 shadow-[4px_4px_0px_0px_#1a1a1a] relative overflow-hidden flex flex-col h-full min-h-[350px]">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100/10 rounded-full blur-2xl pointer-events-none"></div>
-            
-            <div className="flex items-center justify-between border-b pb-2.5 border-orange-200/50 gap-2 relative z-10 font-sans">
-              <span className="text-[10px] sm:text-xs uppercase font-black tracking-widest text-[#9a3412] flex items-center gap-1.5 shrink-0">
-                <span className="p-1 px-1.5 bg-orange-50 rounded-lg text-orange-600">
-                  <Flame size={14} className="stroke-[3] text-orange-500 animate-pulse" />
-                </span>
-                Thói Quen Mỗi Ngày
-              </span>
-
-              <span className="text-[9px] font-bold text-orange-700 bg-orange-100/50 rounded-full px-2 py-0.5 font-mono">
-                {(() => {
-                  const todayKey = new Date().toISOString().split("T")[0];
-                  const activeHabitsList = habits.filter(h => h.isActive);
-                  const doneCount = activeHabitsList.filter(h => {
-                    const dailyHistory = h.history[todayKey] || {};
-                    const times = h.reminderTimes && h.reminderTimes.length > 0 ? h.reminderTimes : ["08:00"];
-                    return times.every((t: string) => dailyHistory[t]);
-                  }).length;
-                  return `${doneCount}/${activeHabitsList.length}`;
-                })()} Đã Xong
-              </span>
-            </div>
-
-            <p className="text-[10px] text-orange-900/60 leading-normal relative z-10 font-sans">
-              Nhấp để hoàn thành nhanh thói quen ngày hôm nay.
-            </p>
-
-            {/* Habits checklist with custom active tracking */}
-            <div className="relative z-10 flex-1 overflow-y-auto max-h-[220px] custom-scrollbar pr-1 font-sans">
-              {habits.filter(h => h.isActive).length === 0 ? (
-                <div className="text-center py-8 select-none">
-                  <span className="text-2xl block opacity-80">☕</span>
-                  <p className="text-[9px] font-sans font-bold uppercase tracking-wider text-orange-850/50 mt-1">Chưa thiết lập thói quen nào.</p>
-                </div>
-              ) : (
-                <div className="space-y-1.5 pb-2">
-                  {habits.filter(h => h.isActive).map(habit => {
-                    const todayKey = new Date().toISOString().split("T")[0];
-                    const dailyHistory = habit.history[todayKey] || {};
-                    const times = habit.reminderTimes && habit.reminderTimes.length > 0 ? habit.reminderTimes : ["08:00"];
-                    const isCompletedToday = times.every((t: string) => dailyHistory[t]);
-
-                    return (
-                      <div 
-                        key={habit.id}
-                        className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-all cursor-pointer group shadow-2xs ${
-                          isCompletedToday 
-                            ? "bg-emerald-50/70 border-emerald-200 text-emerald-950 font-medium font-sans" 
-                            : "bg-white border-orange-100 hover:border-orange-250 text-orange-950 font-sans"
-                        }`}
-                        onClick={() => handleToggleHabitFromHome(habit.id)}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <span className={`w-4 h-4 rounded-full flex items-center justify-center transition-all shrink-0 border-2 ${
-                            isCompletedToday 
-                              ? "bg-emerald-500 border-emerald-600 text-white" 
-                              : "bg-orange-50/50 border-orange-200 group-hover:border-orange-400"
-                          }`}>
-                            {isCompletedToday && <Check size={10} className="stroke-[4]" />}
-                          </span>
-
-                          <div className="truncate min-w-0 text-left">
-                            <span className="text-[11.5px] font-bold block truncate">
-                              {habit.icon} {habit.name}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0 pl-1 font-sans">
-                          {habit.streak > 0 && (
-                            <span className="flex items-center gap-0.5 text-[9px] font-black text-orange-600 bg-orange-100/50 px-1.5 py-0.2 rounded-md font-mono" title={`Chuỗi tích lũy ${habit.streak} ngày!`}>
-                              🔥 {habit.streak}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#f8f5ed] w-full pb-20 overflow-x-hidden font-hand text-[#3A1412] mt-4">
+      <div className="max-w-[1440px] mx-auto px-4 md:px-8 space-y-12 animate-in fade-in duration-500">
         
-        {/* COLUMN 3: MINI CALENDAR */}
-        <div className="lg:col-span-4 space-y-4">
-          <div ref={calendarContainerRef} className="bg-white p-5 rounded-3xl sketch-border border-ink shadow-[4px_4px_0px_0px_#1a1a1a] relative flex flex-col min-h-[350px]">
-            
-            <div className="flex items-center justify-between border-b pb-2.5 border-ink/15 font-sans">
-              <span className="text-xs uppercase font-extrabold tracking-wider text-ink flex items-center gap-1.5">
-                <CalendarIcon className="w-4 h-4 text-crimson" /> 
-                Calendar
-              </span>
-              
-              <div className="flex items-center gap-1">
-                <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-ink/5 rounded-lg border border-ink/15 transition-all"><ChevronLeft size={14} /></button>
-                <span className="text-xs font-black uppercase tracking-wider text-ink/80 px-2 leading-none font-sans select-none min-w-[75px] text-center">
-                  {currentMonth.toLocaleDateString("vi-VN", { month: "short", year: "numeric" })}
-                </span>
-                <button onClick={() => changeMonth(1)} className="p-1 hover:bg-ink/5 rounded-lg border border-ink/15 transition-all"><ChevronRight size={14} /></button>
-              </div>
-            </div>
-
-            {/* Week Headers */}
-            <div className="grid grid-cols-7 gap-1 text-center font-bold text-[10px] uppercase text-ink/40">
-              {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(h => <span key={h}>{h}</span>)}
-            </div>
-
-            {/* Days Grid */}
-            <div className="grid grid-cols-7 gap-1.5 text-center relative z-10 font-sans">
-              {calendarDays.map((cell, idx) => {
-                const isSelected = cell.dateStr === selectedDateStr;
-                const matchesToday = cell.dateStr === new Date().toISOString().split("T")[0];
-                const dayLogs = cell.dateStr ? logs.filter(l => l.date === cell.dateStr) : [];
-                const hasLogs = dayLogs.length > 0;
-                const sticker = cell.dateStr ? dayStickers[cell.dateStr] : null;
-                const isRinged = cell.dateStr ? dayRings[cell.dateStr] : false;
-
-                return (
-                  <button
-                    key={idx}
-                    disabled={!cell.day}
-                    onClick={() => { 
-                      if (cell.dateStr) { 
-                        setSelectedDateStr(cell.dateStr); 
-                        setIsCalendarDetailsOpen(true);
-                      } 
-                    }}
-                    className={`h-11 font-sans text-xs font-bold rounded-xl transition-all relative flex flex-col items-center justify-center cursor-pointer ${
-                      !cell.day 
-                        ? "opacity-0" 
-                        : isSelected 
-                          ? "bg-ink text-[#fcfbf9] font-black scale-[1.05]" 
-                          : matchesToday
-                            ? "bg-rose-100/80 text-crimson border border-rose-250 font-black"
-                            : "bg-white/50 hover:bg-ink/5 text-[#1a1a1a] border border-ink/5"
-                    }`}
-                  >
-                    <span className="relative z-10 font-sans font-black flex items-center justify-center">
-                      {isRinged && (
-                        <span className="absolute inset-x-[-5px] inset-y-[-5px] pointer-events-none z-0">
-                          <svg className="w-8 h-8 text-rose-600/90" viewBox="0 0 100 100" fill="none">
-                            <path d="M 15,50 C 10,25 90,15 85,45 C 80,75 12,85 20,55 C 28,25 92,30 82,60" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
-                          </svg>
-                        </span>
-                      )}
-                      <span className="relative z-10">{cell.day}</span>
-                    </span>
-                    
-                    {hasLogs && (
-                      <span className={`w-1 h-1 rounded-full absolute bottom-1 ${isSelected ? "bg-[#fcfbf9]" : "bg-crimson"}`} />
-                    )}
-
-                    {sticker && (
-                      <div 
-                        className="absolute bottom-0.5 right-0.5 pointer-events-none z-15 shadow-sm border border-black/5 bg-white p-0.5 rotate-6"
-                        style={{ width: "15px", height: "16px" }}
-                      >
-                        <div className="w-full h-[11px] bg-ink/5 overflow-hidden flex items-center justify-center">
-                          {sticker.type === 'upload' ? (
-                            <img src={sticker.data} referrerPolicy="no-referrer" alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-[7.5px] leading-none select-none">
-                              {sticker.data === 'notebook' ? '📔' :
-                               sticker.data === 'grocery' ? '🥖' :
-                               sticker.data === 'flowers' ? '💐' :
-                               sticker.data === 'journal' ? '📕' :
-                               sticker.data === 'closet' ? '👗' :
-                               sticker.data === 'ideas' ? '💡' :
-                               sticker.data === 'coffee' ? '☕' :
-                               sticker.data === 'tree' ? '🌲' :
-                               sticker.data === 'sun' ? '☀️' : '📍'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* CENTRAL BEAUTIFUL TRANSITION OVERLAY MODAL */}
-            {isCalendarDetailsOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-3 animate-in fade-in duration-200">
-                {/* Dark Backdrop */}
-                <div 
-                  className="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity cursor-pointer z-40" 
-                  onClick={() => setIsCalendarDetailsOpen(false)} 
+        {/* Top bar with Search */}
+        <div className="flex justify-end w-full">
+            <div className="flex items-center bg-[#f8f5ed] border-[3px] border-[#3A1412] px-4 py-1.5 shadow-[3px_3px_0px_#3A1412]" style={{ borderRadius: '12px 25px 12px 25px', width: '280px' }}>
+                <input 
+                  type="text" 
+                  placeholder="Tìm kiếm..." 
+                  value={homeSearch} 
+                  onChange={e => setHomeSearch(e.target.value)}
+                  className="bg-transparent outline-none flex-1 text-sm font-hand font-bold text-[#3A1412] placeholder-[#3A1412]/50" 
                 />
-                
-                {/* Modal Document Frame */}
-                <div className="w-full max-w-2xl bg-[#FAF8F5] rounded-3xl p-5 md:p-6 flex flex-col gap-4 border-2 border-ink shadow-2xl relative z-50 max-h-[92vh] overflow-y-auto text-ink animate-in zoom-in-95 duration-200">
-                  {/* Header */}
-                  <div className="flex items-center justify-between border-b pb-2.5 border-ink/15 font-sans">
-                    <span className="text-xs uppercase font-extrabold tracking-wider text-amber-800 flex items-center gap-1.5 font-sans">
-                      <Edit className="w-3.5 h-3.5 text-rose-650 animate-pulse" /> 
-                      Chi tiết ngày: <strong className="text-ink">{selectedDateStr.split("-").reverse().join("/")}</strong>
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black text-amber-700 font-mono bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
-                        {selectedDateLogs.length} mục
-                      </span>
-                      <button 
-                        type="button" 
-                        onClick={() => setIsCalendarDetailsOpen(false)}
-                        className="bg-ink hover:bg-[#af1e2d] text-white rounded-full w-7 h-7 flex items-center justify-center text-xs font-bold cursor-pointer transition-colors shadow"
-                        title="Đóng"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
+                <svg className="w-6 h-6 text-[#3A1412] stroke-current stroke-[3]" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3a7 7 0 0 0-7 7 c0 3 2 5 4 6 s5 2 7-1 s4-5 1-8 s-3-4-5-4 z" /><path d="M16 16 l5 4" /></svg>
+            </div>
+        </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start text-left">
-                    {/* Left Column: Polaroid stickers & red circled highlight ring */}
-                    <div className="md:col-span-5 space-y-4 md:border-r md:border-ink/10 md:pr-4">
-                      <div className="space-y-2">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 block">🖼️ Dán Sticker Polaroid Nghệ Thuật</span>
+                {/* MAIN LAYOUT */}
+        {/* MAIN LAYOUT OR SEARCH RESULTS */}
+                {homeSearch.trim() !== "" ? (
+                    <div className="w-full flex flex-col max-w-[1440px] px-4 mx-auto gap-8 animate-in fade-in duration-300">
+                      <div className="bg-white/90 p-6 shadow-[5px_5px_0px_#3A1412] rounded-2xl border-[3px] border-[#3A1412] min-h-[400px]">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-4 border-[#3A1412] pb-4 mb-6 gap-4">
+                          <div>
+                            <h2 className="font-hand font-black text-2xl md:text-3xl text-[#8A1E2B] tracking-wide uppercase flex items-center gap-2">
+                              <span>🔍 KẾT QUẢ TÌM KIẾM BỘ SƯU TẬP</span>
+                            </h2>
+                            <p className="text-xs text-[#3A1412]/60 font-sans font-bold uppercase mt-1">Kết quả khớp từ các chuyên mục Lists, Habits, Places, Ideas, và Assets</p>
+                          </div>
+                          <button onClick={() => setHomeSearch("")} className="px-4 py-2 font-hand font-black text-lg border-[3px] border-[#3A1412] rounded-xl bg-[#FAF3EB] hover:bg-[#8A1E2B]/10 active:scale-95 shadow-[3px_3px_0px_#3A1412] hover:shadow-[1px_1px_0px_#3A1412] transition-all cursor-pointer">Xóa Tìm Kiếm</button>
+                        </div>
                         
-                        <div className="grid grid-cols-5 gap-1.5">
-                          {STICKER_PRESETS.map(preset => {
-                            const activeSticker = dayStickers[selectedDateStr];
-                            const isSelected = activeSticker?.type === 'preset' && activeSticker?.data === preset.id;
-                            const isNoneSelected = preset.id === "none" && !activeSticker;
+                        {(() => {
+                          const q = homeSearch.toLowerCase().trim();
+                          const resGoals = goals.filter(g => g.title.toLowerCase().includes(q) || (g.type && g.type.toLowerCase().includes(q)));
+                          const resTasks = tasks.filter(t => t.content.toLowerCase().includes(q));
+                          const resPlaces = places.filter(p => p.name.toLowerCase().includes(q) || (p.notes && p.notes.toLowerCase().includes(q)) || (p.city && p.city.toLowerCase().includes(q)) || p.category.toLowerCase().includes(q));
+                          const resIdeas = (ideas || []).filter(i => i.title.toLowerCase().includes(q) || (i.description && i.description.toLowerCase().includes(q)));
+                          const resWish = (wishlist || []).filter(w => w.content.toLowerCase().includes(q) || (w.note && w.note.toLowerCase().includes(q)));
+                          const resAssets = (assets || []).filter(a => a.name.toLowerCase().includes(q) || (a.notes && a.notes.toLowerCase().includes(q)));
+                          
+                          const totalCount = resGoals.length + resTasks.length + resPlaces.length + resIdeas.length + resWish.length + resAssets.length;
+                          
+                          if (totalCount === 0) {
+                            return (
+                              <div className="text-center py-16 space-y-4">
+                                <span className="text-5xl">🏜️</span>
+                                <p className="text-[#8A1E2B] font-black text-2xl uppercase tracking-wider">Không tìm thấy kết quả nào phù hợp</p>
+                                <p className="text-[#3A1412]/60 text-lg max-w-md mx-auto">Hãy thử nhập từ khóa khác hoặc xóa tìm kiếm để xem toàn bộ nội dung nhé!</p>
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans">
+                              {/* 1. Goals & Tasks */}
+                              {(resGoals.length > 0 || resTasks.length > 0) && (
+                                <div className="border-[3px] border-[#3A1412] p-4 rounded-xl bg-[#FFF9F0] shadow-[3px_3px_0px_#3A1412]">
+                                  <h3 className="font-hand font-black text-xl text-[#8A1E2B] mb-3 border-b-2 border-dashed border-[#8A1E2B]/20 pb-1 flex items-center gap-2">🎯 MỤC TIÊU & NHIỆM VỤ <span className="text-xs bg-[#8A1E2B] text-white rounded-full px-2 py-0.5">{resGoals.length + resTasks.length}</span></h3>
+                                  <ul className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {resGoals.map(g => (
+                                      <li key={g.id} className="text-xs p-2 rounded bg-white border border-neutral-200">
+                                        <div className="font-bold text-[#3A1412] text-sm">{g.title}</div>
+                                        <div className="text-[10px] text-neutral-500 italic mt-0.5 font-bold uppercase">Mục tiêu • Trạng thái: {g.isCompleted ? "🎉 Hoàn thành" : "⏳ Đang tiến hành"}</div>
+                                      </li>
+                                    ))}
+                                    {resTasks.map(t => (
+                                      <li key={t.id} className="text-xs p-2 rounded bg-white border border-neutral-200">
+                                        <div className="font-semibold text-[#3A1412] text-sm">{t.content}</div>
+                                        <div className="text-[10px] text-neutral-500 italic mt-0.5 font-bold uppercase">Nhiệm vụ • {t.completed ? "✅ Đã xong" : "⏳ Đang thực hiện"}</div>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              {/* 2. Food & Places */}
+                              {resPlaces.length > 0 && (
+                                <div className="border-[3px] border-[#3A1412] p-4 rounded-xl bg-[#FFF9F0] shadow-[3px_3px_0px_#3A1412]">
+                                  <h3 className="font-hand font-black text-xl text-[#8A1E2B] mb-3 border-b-2 border-dashed border-[#8A1E2B]/20 pb-1 flex items-center gap-2 font-black uppercase font-bold">🍔 ĐỊA ĐIỂM & ĂN UỐNG <span className="text-xs bg-[#8A1E2B] text-white rounded-full px-2 py-0.5">{resPlaces.length}</span></h3>
+                                  <ul className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {resPlaces.map(p => (
+                                      <li key={p.id} className="text-sm p-2 rounded bg-white border border-neutral-200">
+                                        <div className="font-bold text-[#3A1412] flex items-center justify-between">
+                                          <span>{p.name}</span>
+                                          {p.rating ? <span className="text-amber-500 text-xs">⭐{p.rating}</span> : null}
+                                        </div>
+                                        {p.address && <div className="text-xs text-neutral-600 mt-0.5">📍 Địa chỉ: {p.address}</div>}
+                                        {p.notes && <div className="text-xs text-neutral-500 italic mt-1 bg-amber-50/50 p-1.5 rounded font-serif">{p.notes}</div>}
+                                        <div className="text-[10px] font-bold text-neutral-400 mt-1 uppercase font-semibold">Danh mục: {p.category} • {p.status === 'Visited' ? '✅ Đã ghé thăm' : 'Want to visit'}</div>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              {/* 3. Content Ideas */}
+                              {resIdeas.length > 0 && (
+                                <div className="border-[3px] border-[#3A1412] p-4 rounded-xl bg-[#FFF9F0] shadow-[3px_3px_0px_#3A1412]">
+                                  <h3 className="font-hand font-black text-xl text-[#8A1E2B] mb-3 border-b-2 border-dashed border-[#8A1E2B]/20 pb-1 flex items-center gap-2">💡 Ý TƯỞNG & SÁNG TẠO <span className="text-xs bg-[#8A1E2B] text-white rounded-full px-2 py-0.5">{resIdeas.length}</span></h3>
+                                  <ul className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {resIdeas.map(i => (
+                                      <li key={i.id} className="text-sm p-2 rounded bg-white border border-neutral-200">
+                                        <div className="font-bold text-[#3A1412]">{i.title}</div>
+                                        {i.description && <div className="text-xs text-neutral-600 mt-1 bg-neutral-50 p-1.5 rounded">{i.description}</div>}
+                                        <div className="text-[10px] uppercase font-bold text-neutral-400 mt-1">Nền tảng: {i.platform || "Chưa đặt"} • Trạng thái: {i.status}</div>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              {/* 4. Wishlist */}
+                              {resWish.length > 0 && (
+                                <div className="border-[3px] border-[#3A1412] p-4 rounded-xl bg-[#FFF9F0] shadow-[3px_3px_0px_#3A1412]">
+                                  <h3 className="font-hand font-black text-xl text-[#8A1E2B] mb-3 border-b-2 border-dashed border-[#8A1E2B]/20 pb-1 flex items-center gap-2">🎁 DANH SÁCH MONG ƯỚC <span className="text-xs bg-[#8A1E2B] text-white rounded-full px-2 py-0.5">{resWish.length}</span></h3>
+                                  <ul className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {resWish.map(w => (
+                                      <li key={w.id} className="text-sm p-2 rounded bg-white border border-neutral-200">
+                                        <div className="font-bold text-[#3A1412]">{w.content}</div>
+                                        {w.price ? <div className="text-xs text-neutral-600 font-mono font-bold mt-0.5">Giá: {Number(w.price).toLocaleString()} ₫</div> : null}
+                                        {w.note && <div className="text-xs text-neutral-500 italic mt-1 bg-pink-50/30 p-1.5 rounded font-serif">{w.note}</div>}
+                                        <div className="text-[10px] font-bold uppercase text-neutral-400 mt-1">Mức mong muốn: {w.necessity}</div>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              {/* 5. Assets */}
+                              {resAssets.length > 0 && (
+                                <div className="border-[3px] border-[#3A1412] p-4 rounded-xl bg-[#FFF9F0] shadow-[3px_3px_0px_#3A1412] col-span-1 md:col-span-2">
+                                  <h3 className="font-hand font-black text-xl text-[#8A1E2B] mb-3 border-b-2 border-dashed border-[#8A1E2B]/20 pb-1 flex items-center gap-2 font-black uppercase font-bold">💰 TÀI SẢN & TÀI CHÍNH <span className="text-xs bg-[#8A1E2B] text-white rounded-full px-2 py-0.5">{resAssets.length}</span></h3>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[250px] overflow-y-auto pr-1">
+                                    {resAssets.map(a => (
+                                      <div key={a.id} className="text-sm p-3 rounded bg-white border border-neutral-200 shadow-sm flex flex-col justify-between">
+                                        <div>
+                                          <div className="font-bold text-[#3A1412]">{a.name}</div>
+                                          {a.notes && <div className="text-xs text-neutral-500 italic mt-1 font-serif bg-neutral-50 p-1 rounded">{a.notes}</div>}
+                                        </div>
+                                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-neutral-100">
+                                          <span className="font-extrabold text-[#8A1E2B] font-mono text-base">{a.value.toLocaleString()} {a.currency || 'VND'}</span>
+                                          <span className={"text-[9px] px-2 py-0.5 rounded font-extrabold uppercase " + (a.isDebt ? 'bg-red-100 text-red-800' : a.isLoan ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800')}>{a.isDebt ? 'Khoản nợ' : a.isLoan ? 'Cho vay' : 'Tài sản'}</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 xl:gap-12 items-start max-w-[1440px] px-2 mx-auto w-full">
+            {/* LEFT: CALENDAR */}
+            <div className="lg:col-span-2 flex flex-col pt-2 relative z-10 w-full mb-10">
+               <div className="text-center font-caveat text-[#8A1E2B] font-black tracking-widest text-xl md:text-3xl uppercase flex items-center justify-center gap-6 mb-6">
+                  <button onClick={() => changeMonth(-1)} className="hover:-translate-x-1 transition-transform cursor-pointer">
+                    <svg className="w-8 h-8 stroke-[#8A1E2B] stroke-[3]" fill="none" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                  </button>
+                  <span className="min-w-[200px]">{currentMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' })}</span>
+                  <button onClick={() => changeMonth(1)} className="hover:translate-x-1 transition-transform cursor-pointer">
+                    <svg className="w-8 h-8 stroke-[#8A1E2B] stroke-[3]" fill="none" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </button>
+               </div>
+               
+               <div className="bg-[#f8f5ed] relative">
+                  {/* Headers */}
+                  <div className="grid grid-cols-7 border-[2.5px] border-b-0 border-[#8A1E2B] text-center text-[#8A1E2B] font-bold text-sm md:text-lg">
+                     {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d, idx) => (
+                         <div key={d} className={`p-3 ${idx < 6 ? 'border-r-[2.5px] border-[#8A1E2B]' : ''}`}>{d.substring(0,3)}</div>
+                     ))}
+                  </div>
+                  {/* Grid */}
+                  <div className="grid grid-cols-7 auto-rows-fr border-[2.5px] border-[#8A1E2B] bg-[#f8f5ed] shadow-[4px_4px_0_rgba(138,30,43,0.15)] relative min-h-[450px] lg:min-h-[550px]">
+                     {calendarDays.map((cell, i) => {
+                        const isLastInRow = (i + 1) % 7 === 0;
+                        const isLastRow = i >= calendarDays.length - 7;
+                        
+                        const hasSticker = cell.dateStr ? !!dayStickers[cell.dateStr] : false;
+                        const stickerData = cell.dateStr ? dayStickers[cell.dateStr] : null;
+                        const ringStyle = cell.dateStr ? dayRings[cell.dateStr] : null;
+
+                        return (
+                          <div 
+                             key={i} 
+                             className={`p-2 flex flex-col relative group cursor-pointer hover:bg-[#8A1E2B]/5 transition-colors ${!isLastInRow ? 'border-r-[2px] border-[#8A1E2B]' : ''} ${!isLastRow ? 'border-b-[2px] border-[#8A1E2B]' : ''}`} 
+                             onClick={() => {
+                               if (cell.dateStr) {
+                                  setSelectedDateStr(cell.dateStr);
+                                  setIsCalendarDetailsOpen(true);
+                               }
+                             }}
+                          >
+                              {cell.day && (
+                                <div className="flex items-center justify-between z-10 relative">
+                                  <span className="text-sm md:text-lg font-caveat font-black text-[#8A1E2B] group-hover:scale-110 transition-transform underline decoration-[#8A1E2B] decoration-[1.5px] underline-offset-4">{cell.day}</span>
+                                </div>
+                              )}
+                              
+                              {/* Decoratives logic based on interactions */}
+                              {ringStyle && (
+                                <div className="absolute inset-2 border-[3px] rounded-full pointer-events-none opacity-80" style={{ borderColor: ringStyle === 'red-ring' ? '#e11d48' : '#8A1E2B', borderStyle: 'dashed' }} />
+                              )}
+
+                                                            {/* Interaction Rendering - Constrained to bottom 2/3 of day frame */}
+                              {cell.dateStr && (
+                                <div className="absolute top-[28%] left-0 right-0 bottom-0 flex flex-col items-center justify-center z-0 opacity-95 overflow-visible pointer-events-none pb-1 px-1">
+                                  {hasSticker ? (
+                                    <div className="flex flex-col items-center justify-center w-full h-full mt-1">
+                                      {stickerData && stickerData.type === 'image' && (
+                                        <img draggable={false} src={stickerData.data} className="w-12 h-12 object-contain hover:scale-110 transition-transform" style={{ filter: stickerData.color ? `drop-shadow(0 0 10px ${stickerData.color})` : 'none' }} />
+                                      )}
+                                      {stickerData && stickerData.type === 'text' && (
+                                        <div className="text-2xl font-bold font-sans" style={{ color: stickerData.color }}>{stickerData.data}</div>
+                                      )}
+                                      {stickerData?.type === 'preset' && (
+                                        <PolaroidPreset type={stickerData.data} className="w-9 h-9 drop-shadow-sm text-[#8A1E2B] hover:scale-110 transition-transform" />
+                                      )}
+                                      {stickerData?.type === 'upload' && (
+                                        <img src={stickerData.data} alt="sticker" className="w-11 h-11 object-contain rounded border border-neutral-200/50" />
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col items-center justify-between w-full h-full pt-1">
+                                      {/* Auto Sticker for Day Events occupying bottom 2/3 area */}
+                                      {(() => {
+                                        const dayEvents = logs.filter(l => l.date === cell.dateStr && l.type === 'Event');
+                                        if (dayEvents.length > 0) {
+                                          const firstEv = dayEvents[0];
+                                          // Display a cute visual sticker representation of the event
+                                          if (firstEv.emoji) {
+                                            return (
+                                              <span className="text-2xl md:text-3xl filter drop-shadow-md select-none transform hover:scale-125 hover:rotate-6 transition-transform animate-bounce mt-1">
+                                                {firstEv.emoji}
+                                              </span>
+                                            );
+                                          }
+                                          return (
+                                            <PolaroidPreset type="star" className="w-8 h-8 drop-shadow-sm text-[#8A1E2B] mt-1 animate-pulse" />
+                                          );
+                                        }
+                                        return null;
+                                      })()}
+                                      
+                                      {/* Event text summary below auto sticker block */}
+                                      <div className="flex flex-col gap-0.5 w-full mt-auto">
+                                        {logs.filter(l => l.date === cell.dateStr).slice(0, 1).map((l, idx) => (
+                                          <div key={idx} className="text-[9px] md:text-[10px] truncate text-[#8A1E2B] font-bold font-sans bg-[#8A1E2B]/10 rounded px-1 text-center scale-90 border border-[#8A1E2B]/10">
+                                            {l.emoji || '📌'} {l.content}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              {/* Hover details hint */}
+                              <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <svg className="w-4 h-4 text-[#8A1E2B]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                              </div>
+                          </div>
+                        )
+                     })}
+                  </div>
+               </div>
+               
+               {/* Puppy drawing relative to top */}
+               <div className="absolute -top-12 -right-8 w-16 h-16 pointer-events-none opacity-80 rotate-12">
+                  <svg viewBox="0 0 100 100" fill="none" stroke="#8A1E2B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20,50 Q30,40 40,50 Q50,45 60,50 Q70,40 80,45 Q75,55 85,60 Q80,70 65,70 Q55,65 40,65 Q30,70 20,60 Q25,55 15,45 Z" />
+                    <circle cx="30" cy="50" r="2.5" fill="#8A1E2B"/>
+                    <path d="M25,55 Q35,60 40,55" />
+                    <path d="M30,35 L25,20 L40,30" />
+                    <path d="M50,80 L50,90 M70,75 L75,85 M25,75 L20,85 M35,80 L35,90" />
+                  </svg>
+               </div>
+            </div>
+
+            {/* MIDDLE: TO DO LIST */}
+            <div className="lg:col-span-1 flex flex-col pt-16 xl:pl-4">
+                
+                {/* To Do List */}
+                <div className="space-y-4">
+                   <div className="flex items-center gap-6 mb-4">
+                     <h3 className="font-hand font-black text-xl text-[#3A1412] tracking-wider uppercase m-0 flex-1">TODAY TO DO LIST:</h3>
+                     
+                     {/* Mascot */}
+                     <div className="w-24 h-24 pointer-events-none relative -mt-9 shrink-0 -mr-4" style={{ zIndex: 50 }}>
+                        {(() => {
+                            const allDisplayTasks = [
+                              ...tasks.map(t => ({ id: t.id, text: t.content, done: t.completed, isReal: true })),
+                              ...localInteractiveTasks
+                            ].slice(0, 9);
+                            
+                            const completedCount = allDisplayTasks.filter(t => t.done).length;
+                            const totalDisplayTasks = allDisplayTasks.length;
+                            const ratio = totalDisplayTasks === 0 ? 1 : completedCount / totalDisplayTasks;
+                            const controlY = 45 + ratio * 30;
 
                             return (
-                              <button
-                                key={preset.id}
-                                type="button"
-                                onClick={() => setDayStickerValue(selectedDateStr, preset.id)}
-                                className={cn(
-                                  "p-1 border text-[9px] rounded-lg flex flex-col items-center gap-0.5 bg-white transition-all text-center justify-center h-[42px] cursor-pointer",
-                                  isSelected || isNoneSelected
-                                    ? "border-rose-600 bg-rose-50/40 font-bold text-rose-700" 
-                                    : "border-ink/10 hover:border-ink/30"
-                                )}
-                                title={preset.label}
-                              >
-                                {preset.visual ? (
-                                  <PolaroidPreset type={preset.visual} className="w-3.5 h-3.5" />
-                                ) : (
-                                  <span className="text-[11px]">🚫</span>
-                                )}
-                                <span className="text-[7.5px] truncate w-full">{preset.label.split(" ")[1] || preset.label}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                              <svg viewBox="0 0 100 110" className="w-full h-full stroke-[#8A1E2B] stroke-[2.5]" strokeLinecap="round" strokeLinejoin="round" style={{ overflow: 'visible' }}>
+                                 {/* 1. Mascot Hair Back (Wavy, dark brown) */}
+                                 <motion.path 
+                                   d="M 24 45 
+                                      C 10 52, 6 65, 12 78 
+                                      C 6 86, 14 96, 26 95 
+                                      C 22 104, 38 108, 48 102 
+                                      C 60 106, 74 102, 74 94 
+                                      C 84 92, 92 80, 84 70 
+                                      C 96 58, 88 46, 76 43 Z" 
+                                   fill="#5C382A" stroke="#3A1412" strokeWidth="2.5" 
+                                   animate={{ 
+                                      rotate: ratio === 1 ? [0, -1, 1, -1, 0] : 0,
+                                      y: ratio === 1 ? [0, -1, 0] : 0 
+                                    }}
+                                 />
+                                 
+                                 {/* 2. Body/Shoulders is next */}
+                                 <motion.path 
+                                    d="M 32 82 L 68 82 L 72 110 L 28 110 Z" 
+                                    fill="#FFF9F0" stroke="#3A1412" strokeWidth="2.5"
+                                 />
+                                 
+                                 {/* White tank top dress matching photo */}
+                                 <path d="M 33 82 L 67 82 L 71 110 L 29 110 Z" fill="#FFFFFF" />
+                                 {/* Spaghetti straps */}
+                                 <line x1="36" y1="82" x2="36" y2="76" stroke="#3A1412" strokeWidth="1.5" />
+                                 <line x1="64" y1="82" x2="64" y2="76" stroke="#3A1412" strokeWidth="1.5" />
+                                 
+                                 {/* Cute sunglasses hanging on her neck frame */}
+                                 <ellipse cx="46" cy="88" rx="4" ry="5.5" fill="#2D2D2D" stroke="#3A1412" strokeWidth="1.5" />
+                                 <ellipse cx="54" cy="88" rx="4" ry="5.5" fill="#2D2D2D" stroke="#3A1412" strokeWidth="1.5" />
+                                 <line x1="46" y1="84" x2="54" y2="84" stroke="#3A1412" strokeWidth="2" />
 
-                        {/* Upload custom picture */}
-                        <div className="pt-2">
-                          <input
-                            type="file"
-                            id="mini-sticker-file-modal"
-                            accept="image/*"
-                            onChange={(e) => handleStickerFileChange(selectedDateStr, e)}
-                            className="hidden"
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => document.getElementById("mini-sticker-file-modal")?.click()}
-                              className="flex-1 py-1.5 px-2 border border-dashed border-ink/20 rounded-lg text-[10px] bg-amber-50/15 hover:border-ink/50 flex items-center justify-center gap-1.5 cursor-pointer font-bold uppercase tracking-wider text-amber-950 text-center"
-                            >
-                              <Camera className="w-3.5 h-3.5 text-rose-650" /> Ghép ảnh Polaroid
-                            </button>
-                            {dayStickers[selectedDateStr] && (
-                              <button
-                                type="button"
-                                onClick={() => setDayStickerValue(selectedDateStr, "none")}
-                                className="p-1 px-2 border border-red-200 text-crimson bg-red-50 text-[10px] rounded-lg cursor-pointer font-bold"
-                              >
-                                Xóa
-                              </button>
-                            )}
+                                 {/* 3. Coconut of Right hand */}
+                                 <circle cx="20" cy="85" r="10.5" fill="#8FA03B" stroke="#3A1412" strokeWidth="2.5" />
+                                 {/* Cut flat top center list of coco */}
+                                 <ellipse cx="20" cy="76" rx="6" ry="2.2" fill="#EAD9C2" stroke="#3A1412" strokeWidth="1.5" />
+                                 <circle cx="20" cy="76" r="2.5" fill="#8A1E2B" opacity="0.4" />
+                                 {/* Straw */}
+                                 <path d="M 21 76 L 16 64 L 14 64" fill="none" stroke="#FAF3EB" strokeWidth="2.5" />
+                                 <path d="M 21 76 L 16 64 L 14 64" fill="none" stroke="#3A1412" strokeWidth="1" />
+
+                                 {/* 4. Left Arm gesturing cute to her face */}
+                                 <path d="M 68 85 Q 78 80 75 70" fill="none" stroke="#FFF9F0" strokeWidth="7" strokeLinecap="round" />
+                                 <path d="M 68 85 Q 78 80 75 70" fill="none" stroke="#3A1412" strokeWidth="9" strokeLinecap="round" style={{ zIndex: -1 }} />
+                                 <path d="M 68 85 Q 78 80 75 70" fill="none" stroke="#FFF9F0" strokeWidth="6" strokeLinecap="round" />
+
+                                 {/* 5. Face/Head */}
+                                 <motion.path 
+                                    d="M 26 48 C 26 30 74 30 74 48 C 74 65 65 73 50 73 C 35 73 26 65 26 48 Z" 
+                                    fill="#FFF9F0" stroke="#3A1412" strokeWidth="2.5"
+                                    animate={{ 
+                                      rotate: ratio === 1 ? [0, -1, 1, -1, 0] : 0,
+                                      y: ratio === 1 ? [0, -1, 0] : 0 
+                                    }}
+                                    transition={{ duration: 0.5, repeat: ratio === 1 ? Infinity : 0, repeatDelay: 2 }}
+                                 />
+
+                                 {/* Rosy Peach Cheek blushes */}
+                                 <ellipse cx="34" cy="58" rx="6.5" ry="3.5" fill="#FF9E9E" opacity="0.75" />
+                                 <ellipse cx="66" cy="58" rx="6.5" ry="3.5" fill="#FF9E9E" opacity="0.75" />
+                                 
+                                 {/* Big expression eyes looking sideways (viewer right) */}
+                                 <ellipse cx="38" cy="48" rx="6" ry="5.5" fill="#FFFFFF" stroke="#3A1412" strokeWidth="2.2" />
+                                 <circle cx="41.5" cy="48" r="4" fill="#3A1412" />
+                                 <circle cx="43" cy="46" r="1.2" fill="#FFFFFF" />
+
+                                 <ellipse cx="62" cy="48" rx="6" ry="5.5" fill="#FFFFFF" stroke="#3A1412" strokeWidth="2.2" />
+                                 <circle cx="65.5" cy="48" r="4" fill="#3A1412" />
+                                 <circle cx="67" cy="46" r="1.2" fill="#FFFFFF" />
+                                 
+                                 {/* Cute Little Curve Nose */}
+                                 <path d="M 48 54 Q 50 51 51 54" fill="none" stroke="#3A1412" strokeWidth="2" strokeLinecap="round" />
+                                 
+                                 {/* Animated Smile */}
+                                 {ratio <1 ? (
+                                    <path d="M 46 61 Q 50 64 54 61" fill="none" stroke="#3A1412" strokeWidth="2.5" strokeLinecap="round" />
+                                 ) : (
+                                    <motion.path 
+                                       d="M 44 60 Q 50 67 56 60 Z" 
+                                       fill="#E56B6F" stroke="#3A1412" strokeWidth="2.2" strokeLinejoin="round"
+                                       animate={{ scale: [1, 1.1, 1] }}
+                                    />
+                                 )}
+
+                                 {/* Bangs (wavy/curly, framing forehead) */}
+                                 <path d="M 25 48 C 30 32, 48 27, 50 36 C 52 27, 70 32, 75 48 C 65 34, 35 34, 25 48 Z" fill="#5C382A" stroke="#3A1412" strokeWidth="2" strokeLinejoin="round" />
+                                 {/* Hair Side strand details */}
+                                 <path d="M 25 48 Q 28 58 26 66" fill="none" stroke="#3A1412" strokeWidth="2" />
+                                 <path d="M 75 48 Q 72 58 74 66" fill="none" stroke="#3A1412" strokeWidth="2" />
+
+                                 {/* 6. Straw Hat (Crown + Red Ribbon Band + Wide Brim) */}
+                                 <ellipse cx="50" cy="23" rx="19" ry="11.5" fill="#DEC083" stroke="#3A1412" strokeWidth="2.5" />
+                                 {/* Red Ribbon Band (Crimson accent) */}
+                                 <path d="M 31 24 C 31 24, 50 21, 69 24 L 70 28 C 70 28, 50 25, 30 28 Z" fill="#8A1E2B" stroke="#3A1412" strokeWidth="1" />
+                                 {/* Wide Brim */}
+                                 <ellipse cx="50" cy="30" rx="36" ry="7.2" fill="#DEC083" stroke="#3A1412" strokeWidth="2.5" />
+                                 {/* Straw Texture details */}
+                                 <path d="M 40 18 Q 45 15 50 18" fill="none" stroke="#B89753" strokeWidth="1" />
+                                 <path d="M 50 16 Q 55 13 60 16" fill="none" stroke="#B89753" strokeWidth="1" />
+                                 
+                                 {/* Sparkles if Happy (100% complete) */}
+                                 <AnimatePresence>
+                                  {ratio === 1 && (
+                                     <motion.g
+                                       initial={{ opacity: 0, scale: 0 }}
+                                       animate={{ opacity: 1, scale: 1 }}
+                                       exit={{ opacity: 0, scale: 0 }}
+                                     >
+                                        <path d="M 5 20 L 10 10 L 15 20 L 25 25 L 15 30 L 10 40 L 5 30 L -5 25 Z" fill="#FFA39E" stroke="none" transform="scale(0.5) translate(10, 20)"/>
+                                        <path d="M 85 20 L 90 10 L 95 20 L 105 25 L 95 30 L 90 40 L 85 30 L 75 25 Z" fill="#EAB308" stroke="none" transform="scale(0.5) translate(100, 30)"/>
+                                     </motion.g>
+                                  )}
+                                 </AnimatePresence>
+                              </svg>
+                            );
+                        })()}
+                     </div>
+                   </div>
+
+                   {(() => {
+                      const allDisplayTasks = [
+                        ...tasks.map(t => ({ id: t.id, text: t.content, done: t.completed, isReal: true })),
+                        ...localInteractiveTasks
+                      ].slice(0, 9);
+
+                      return allDisplayTasks.map((t, idx) => (
+                          <div key={t.id + idx} className="flex items-center gap-4 cursor-pointer group" onClick={() => {
+                             if (t.isReal) {
+                                handleToggleTask(t.id);
+                             } else {
+                                setLocalInteractiveTasks(prev => prev.map(item => item.id === t.id ? { ...item, done: !item.done } : item));
+                             }
+                          }}>
+                              <div className="w-8 h-8 border-[2.5px] border-[#8A1E2B] rounded-[4px] shrink-0 flex items-center justify-center transition-all group-hover:scale-105 bg-white shadow-sm overflow-hidden relative">
+                                  <AnimatePresence>
+                                    {t.done && (
+                                      <motion.div
+                                        initial={{ scale: 0, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0, opacity: 0 }}
+                                        className="w-full h-full bg-transparent flex items-center justify-center"
+                                      >
+                                        <svg className="text-[#8A1E2B] w-6 h-6 stroke-[4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <motion.path 
+                                            strokeLinecap="round" 
+                                            strokeLinejoin="round" 
+                                            d="M4 14 Q9 18 10 18 Q15 11 20 6"
+                                            initial={{ pathLength: 0 }}
+                                            animate={{ pathLength: 1 }}
+                                            transition={{ duration: 0.2 }}
+                                          />
+                                        </svg>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                              </div>
+                              <span className={`font-hand font-black text-xl md:text-2xl transition-all select-none ${t.done ? "text-[#8A1E2B]/50 line-through decoration-[#8A1E2B] decoration-[2px]" : "text-[#8A1E2B] group-hover:text-red-700"}`}>{t.text}</span>
                           </div>
+                      ));
+                   })()}
+                   
+                   <form onSubmit={handleAddTask} className="flex items-center gap-3 mt-4 pt-4 border-t-[1.5px] border-[#8A1E2B]/20 border-dashed">
+                     <span className="text-[#8A1E2B] font-black text-2xl">+</span>
+                     <input type="text" placeholder="Add new task..." value={newTaskContent} onChange={e => setNewTaskContent(e.target.value)} className="bg-transparent outline-none font-hand font-bold text-xl text-[#8A1E2B] placeholder-[#8A1E2B]/50 w-full uppercase" />
+                   </form>
+                </div>
+
+                </div>
+    {/* RIGHT: EVENTS */}
+    <div className="lg:col-span-1 flex flex-col pt-16 xl:pl-4">
+                <div className="space-y-4">
+                   <h3 className="font-hand font-black text-xl text-[#3A1412] tracking-wider uppercase mb-4">TODAY EVENT:</h3>
+                   <ul className="space-y-3 list-none">
+                      {logs.filter(l => l.date === new Date().toISOString().split("T")[0] && l.type === 'Event').length === 0 && (
+                          <li className="text-[#8A1E2B]/50 font-hand font-bold text-lg italic">No events today.</li>
+                      )}
+                      {logs.filter(l => l.date === new Date().toISOString().split("T")[0] && l.type === 'Event').map(l => (
+                         <li key={l.id} className="flex items-start gap-4"><div className="w-2 h-2 mt-3 rounded-full bg-[#8A1E2B] shrink-0" /> <span className="font-hand font-black text-xl md:text-2xl text-[#8A1E2B]">{l.emoji} {l.content}</span></li>
+                      ))}
+                   </ul>
+                </div>
+            </div>
+
+            
+        </div>
+        )}
+
+        {/* BOTTOM: BUCKET LIST */}
+        <div className="pt-24 z-20 w-full max-w-5xl mx-auto">
+            {/* RIGHT: BUCKET LIST */}
+            <div className="relative pt-8 z-20 w-full">
+              <div className="bg-[#862939] p-4 rounded-[40px] shadow-[8px_8px_0px_#f8f5ed,10px_10px_0px_rgba(0,0,0,0.1)] relative"
+                style={{
+                  backgroundImage: "repeating-linear-gradient(90deg, #8A1E2B, #8A1E2B 24px, #bc707b 24px, #bc707b 48px)"
+                }}
+              >
+                  <div className="bg-[#FAF3EB] border-[8px] border-[#862939] rounded-[30px] p-8 md:p-10 text-[#5C0612] relative min-h-[600px] overflow-hidden">
+                      
+                      {/* Stickers Area */}
+                      {bucketStickers.map((stk, i) => (
+                        <motion.div
+                          key={stk.id}
+                          drag
+                          dragMomentum={false}
+                          className="absolute z-50 cursor-grab active:cursor-grabbing origin-center group"
+                          style={{ x: stk.x, y: stk.y, rotate: stk.rotation, scale: stk.scale }}
+                          onDragEnd={(e, info) => {
+                            const updated = [...bucketStickers];
+                            updated[i].x += info.offset.x;
+                            updated[i].y += info.offset.y;
+                            saveBucketStickers(updated);
+                          }}
+                        >
+                          {stk.type === 'image' ? (
+                            <img draggable={false} src={stk.data} className="w-24 h-24 object-contain pointer-events-none" style={{ filter: stk.color ? `drop-shadow(0 0 10px ${stk.color})` : 'none' }} />
+                          ) : (
+                            <div className="text-6xl pointer-events-none" style={{ color: stk.color }}>{stk.data}</div>
+                          )}
+                          
+                          <div className="absolute -top-10 -right-10 bg-white/95 rounded-xl shadow-lg border-2 border-[#5C0612] flex gap-1 p-1 opacity-0 group-hover:opacity-100 transition-opacity z-50 cursor-default" onPointerDown={e => e.stopPropagation()}>
+                            <button className="w-6 h-6 hover:bg-gray-100 rounded text-xs flex items-center justify-center font-bold" onClick={() => { const up = [...bucketStickers]; up[i].scale = (up[i].scale || 1) + 0.2; saveBucketStickers(up); }}>+</button>
+                            <button className="w-6 h-6 hover:bg-gray-100 rounded text-xs flex items-center justify-center font-bold" onClick={() => { const up = [...bucketStickers]; up[i].scale = Math.max(0.3, (up[i].scale || 1) - 0.2); saveBucketStickers(up); }}>-</button>
+                            {stk.type === 'text' && (
+                              <input type="color" className="w-6 h-6 rounded cursor-pointer" value={stk.color || '#000000'} onChange={(e) => { const up = [...bucketStickers]; up[i].color = e.target.value; saveBucketStickers(up); }} />
+                            )}
+                            <button className="w-6 h-6 hover:bg-red-100 text-red-600 rounded text-xs flex items-center justify-center font-bold" onClick={() => saveBucketStickers(bucketStickers.filter(s => s.id !== stk.id))}>×</button>
+                          </div>
+                        </motion.div>
+                      ))}
+
+                      {/* Header */}
+                      {isEditingTitle ? (
+                        <form 
+                          onSubmit={(e) => { e.preventDefault(); handleSaveTitle(); }}
+                          className="flex flex-col items-center gap-1 mb-10 select-none relative z-40 bg-white/80 p-4 rounded-xl shadow-sm"
+                        >
+                          <input type="text" value={editTitlePrefix} onChange={e => setEditTitlePrefix(e.target.value)} onBlur={handleSaveTitle} onKeyDown={e => e.key === 'Enter' ? handleSaveTitle() : null} autoFocus className="text-xl md:text-2xl font-hand font-extrabold text-center tracking-[0.1em] text-[#7D1E2B]/85 bg-transparent border-b-2 border-dashed border-[#5C0612]/30 outline-none w-full max-w-xs focus:border-[#5C0612]" />
+                          <input type="text" value={editTitleMain} onChange={e => setEditTitleMain(e.target.value)} onBlur={handleSaveTitle} onKeyDown={e => e.key === 'Enter' ? handleSaveTitle() : null} className="text-3xl md:text-5xl font-hand font-black text-center tracking-tighter text-[#5C0612] bg-transparent border-b-2 border-dashed border-[#5C0612]/30 outline-none w-full max-w-md focus:border-[#5C0612]" placeholder="BUCKET LIST" />
+                          <span className="text-[10px] font-bold text-[#5C0612]/40 uppercase mt-2">Ấn ENTER để lưu</span>
+                        </form>
+                      ) : (
+                        <div 
+                          className="relative text-center mb-10 select-none cursor-pointer group z-10 pt-2"
+                          onDoubleClick={(e) => { e.stopPropagation(); setEditTitlePrefix(bucketListSubtitle); setEditTitleMain(bucketListTitle); setIsEditingTitle(true); }}
+                          title="Nhấp đúp chuột để đổi tiêu đề!"
+                        >
+                          <h2 className="text-[#5C0612] font-hand font-black text-3xl md:text-5xl tracking-normal leading-none rotate-[-1deg] select-none flex flex-col items-center group-hover:scale-[1.02] transition-transform">
+                            <span className="text-base md:text-xl block tracking-[0.2em] text-[#7D1E2B]/85 font-extrabold rotate-[2deg] opacity-95">🍉 {bucketListSubtitle.replace('🍉', '').trim()}</span>
+                            <span className="text-4xl md:text-[54px] font-black block mt-2 tracking-tighter drop-shadow-sm uppercase">{bucketListTitle}</span>
+                          </h2>
+                          <div className="w-24 h-1.5 bg-[#5C0612] mx-auto mt-4 rounded-full rotate-[1deg] opacity-10" />
                         </div>
+                      )}
+
+                      {/* Items */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 md:gap-y-4 text-left font-hand text-[#5C0612] relative z-10 mt-6">
+                        {(() => {
+                           const activeCustom = goals.map(g => ({ id: g.id, text: g.title, isCompleted: g.isCompleted, isReal: true }));
+                           const defaultG = [
+                             { id: "def-1", text: "VỀ NHÀ CHƠI THƯỜNG XUYÊN HƠN", isReal: false },
+                             { id: "def-2", text: "SINH NHẬT MINH", isReal: false },
+                             { id: "def-3", text: "SỬC KHOẺ TINH THẦN", isReal: false },
+                             { id: "def-4", text: "LÝ SƠN", isReal: false, isCompleted: true },
+                             { id: "def-5", text: "IPAD M3 11 INCH", isReal: false },
+                             { id: "def-6", text: "NIỀNG RĂNG", isReal: false },
+                             { id: "def-7", text: "GIVE A STRANGER A COMPLIMENT", isReal: false },
+                             { id: "def-8", text: "WALK THROUGH GRASS BAREFOOT", isReal: false },
+                             { id: "def-9", text: "TRY A NEW RECIPE & SHARE", isReal: false },
+                             { id: "def-10", text: "HOST A DINNER PARTY", isReal: false },
+                             { id: "def-11", text: "LEARN A NEW GAME", isReal: false },
+                             { id: "def-12", text: "START A SCRAPBOOK & STICK WITH IT!", isReal: false },
+                             { id: "def-13", text: "HAVE A BUBBLY DRINK BY A POOL", isReal: false },
+                             { id: "def-14", text: "WATCH A FILM THAT GIVES YOU NEW PERSPECTIVE", isReal: false },
+                             { id: "def-15", text: "MAKE A BOUQUET OF FLOWERS", isReal: false },
+                             { id: "def-16", text: "SOAK IN SUNSHINE", isReal: false },
+                             { id: "def-17", text: "CALL SOMEONE YOU SUSPECT MAY BE LONELY", isReal: false },
+                             { id: "def-18", text: "TAKE PHOTOS OF THINGS THAT MADE YOU SMILE", isReal: false },
+                             { id: "def-19", text: "MAKE A CHANGE YOU NEED TO MAKE", isReal: false },
+                             { id: "def-20", text: "DANCE (IN ANY CAPACITY)", isReal: false },
+                             { id: "def-21", text: "JUMP IN A COLD POOL", isReal: false },
+                             { id: "def-22", text: "FLOAT IN AN INNER TUBE", isReal: false },
+                             { id: "def-23", text: "EAT FRENCH FRIES IN THE SUN", isReal: false },
+                             { id: "def-24", text: "EXPLORE A NEW CITY'S BEST LOCAL SPOTS", isReal: false }
+                           ].map(d => ({ ...d, text: localRenamedDefaultGoals[d.id] || d.text, isCompleted: d.isCompleted || !!localCompletedDefaultGoals[d.id] }));
+                           
+                           const allItems = [...activeCustom, ...defaultG];
+                           const half = Math.ceil(allItems.length / 2);
+                           
+                           const renderItem = (item: any) => {
+                             const isEditing = editingGoalId === item.id;
+                             return (
+                               <div key={item.id} onDoubleClick={e => { e.stopPropagation(); setEditingGoalId(item.id); setEditingGoalText(item.text); }} className="flex items-start gap-3 group cursor-pointer z-10 w-full">
+                                 <button type="button" onClick={e => { e.stopPropagation(); item.isReal ? handleToggleRealGoal(item.id) : toggleLocalDefaultGoal(item.id); }} className="w-[18px] h-[18px] md:w-[20px] md:h-[20px] rounded-full border-[2.5px] border-[#5C0612] shrink-0 mt-[2px] transition-all flex items-center justify-center relative bg-transparent hover:scale-110">
+                                   {item.isCompleted && <div className="w-[8px] h-[8px] md:w-[10px] md:h-[10px] rounded-full bg-[#5C0612] absolute" />}
+                                 </button>
+                                 {isEditing ? (
+                                   <input type="text" value={editingGoalText} onChange={e => setEditingGoalText(e.target.value)} onBlur={() => saveRename(item.id, item.isReal)} onKeyDown={e => { if (e.key === 'Enter') saveRename(item.id, item.isReal); else if (e.key === 'Escape') setEditingGoalId(null); }} autoFocus onClick={e => e.stopPropagation()} className="flex-1 bg-white/95 border-b-2 border-[#5C0612] px-1 py-0 rounded-none text-[11px] sm:text-[13px] md:text-[14px] font-hand font-bold text-[#5C0612] outline-none" />
+                                 ) : (
+                                   <span className={`font-hand font-bold text-[10px] sm:text-[12px] md:text-[14px] tracking-wide leading-tight transition-all text-[#5C0612] select-none ${item.isCompleted ? "line-through opacity-50 decoration-[1.5px]" : "group-hover:text-red-700"}`}>
+                                      {item.isReal ? `🎯 ${item.text}` : item.text}
+                                   </span>
+                                 )}
+                               </div>
+                             );
+                           };
+                           
+                           return (
+                             <>
+                               <div className="space-y-3 lg:space-y-4">{allItems.slice(0, half).map(renderItem)}</div>
+                               <div className="space-y-3 lg:space-y-4">{allItems.slice(half).map(renderItem)}</div>
+                             </>
+                           );
+                        })()}
                       </div>
 
-                      {/* RED HIGHLIGHT COLOR RING TOGGLE */}
-                      <div className="flex items-center justify-between border-t border-b border-ink/10 py-3 mt-1.5">
-                        <div>
-                          <span className="text-[10px] font-black uppercase tracking-wider text-ink block">⭕ Viền Vòng Tròn Đỏ</span>
-                          <span className="text-[8px] text-ink/40 block leading-tight">Vẽ vòng viền màu đỏ quanh ngày</span>
+                      {/* Add Form */}
+                      <form onSubmit={handleAddBucketGoal} className="mt-12 pt-6 border-t-[2px] border-dashed border-[#5C0612]/20 flex flex-col items-center justify-center font-hand relative z-10 w-full">
+                        <div className="flex w-full max-w-[90%] bg-white border-[3px] border-[#5C0612] rounded-full overflow-hidden px-2 py-1.5 shadow-[2px_2px_0_#5C0612] focus-within:bg-white transition-all">
+                          <span className="pl-3 pt-0.5 text-[#eab308] text-xl">✨</span>
+                          <input type="text" placeholder="Thêm mục tiêu vào Bucket List..." value={newBucketGoalTitle} onChange={e => setNewBucketGoalTitle(e.target.value)} className="flex-1 px-3 py-1 text-xs md:text-sm font-bold text-[#5C0612] bg-transparent outline-none placeholder-[#5C0612]/50 font-hand" required />
+                          <button type="submit" className="px-5 py-1.5 bg-[#5C0612] hover:bg-black text-white rounded-full text-[10px] md:text-xs font-bold tracking-widest transition-colors font-hand shrink-0 uppercase cursor-pointer">Ghi Nhanh</button>
                         </div>
+                      </form>
+
+                      
+
+                  </div>
+              </div>
+            </div>
+
+        
+        </div>
+{/* BOTTOM: PERSONAL FINANCE OVERVIEW */}
+        <div className="pt-20 pb-12 w-full flex flex-col items-center justify-center">
+           <h3 className="text-center font-hand font-black text-2xl md:text-3xl text-[#8A1E2B] tracking-[0.2em] uppercase mb-10 w-fit mx-auto border-b-2 border-dashed border-[#8A1E2B]/30 pb-2">PERSONAL FINANCE OVERVIEW</h3>
+           
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-40 pointer-events-none grayscale max-w-4xl w-full">
+              {/* Simplified overview from previous logic */}
+              <div className="bg-[#f7ebe1] p-6 border-[3px] border-[#8A1E2B] text-center rounded-[30px] rounded-tl-none">
+                 <h4 className="font-hand font-bold text-[#8A1E2B] text-sm uppercase mb-2">TỔNG THU NHẬP</h4>
+                 <p className="text-2xl font-hand font-black text-[#8A1E2B]">{salaryInput} đ</p>
+              </div>
+              <div className="bg-[#f7ebe1] p-6 border-[3px] border-[#8A1E2B] text-center rounded-[30px] rounded-tr-none">
+                 <h4 className="font-hand font-bold text-[#8A1E2B] text-sm uppercase mb-2">ĐÃ LÊN KẾ HOẠCH</h4>
+                 <p className="text-2xl font-hand font-black text-[#8A1E2B]">{totalPlannedOutflows.toLocaleString('vi-VN')} đ</p>
+              </div>
+              <div className="bg-[#f7ebe1] p-6 border-[3px] border-[#8A1E2B] text-center rounded-[30px] rounded-br-none md:col-span-1 border-dashed">
+                 <h4 className="font-hand font-bold text-[#8A1E2B] text-sm uppercase mb-2">DƯ KIẾN CÒN LẠI</h4>
+                 <p className="text-2xl font-hand font-black text-[#8A1E2B]">{remainingBalance.toLocaleString('vi-VN')} đ</p>
+              </div>
+           </div>
+        </div>
+
+      
+      {/* CALENDAR DETAILS MODAL */}
+      <AnimatePresence>
+        {isCalendarDetailsOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div 
+              ref={calendarContainerRef}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-[#FAF3EB] w-full max-w-sm rounded-[30px] border-[3px] border-[#5C0612] shadow-[8px_8px_0_rgba(92,6,18,0.15)] flex flex-col font-caveat"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b-[2px] border-dashed border-[#5C0612]/30">
+                <h3 className="font-black text-[#5C0612] text-xl flex items-center gap-2">
+                  <span className="text-2xl">📅</span> {selectedDateStr}
+                </h3>
+                <button onClick={() => setIsCalendarDetailsOpen(false)} className="w-8 h-8 rounded-full hover:bg-black/5 flex items-center justify-center text-[#5C0612] transition-colors">
+                  <svg className="w-5 h-5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 flex flex-col gap-6 overflow-y-auto max-h-[70vh]">
+                
+                {/* 1. Add Sticker */}
+                <div className="space-y-3">
+                  <h4 className="font-bold text-[#5C0612] text-sm uppercase tracking-wider flex items-center gap-2">
+                    <span className="text-lg">✨</span> Thêm Sticker
+                  </h4>
+                  <div className="grid grid-cols-5 gap-2 mb-2">
+                    {STICKER_PRESETS.map(preset => {
+                      const activeSticker = dayStickers[selectedDateStr];
+                      const isSelected = activeSticker?.type === 'preset' && activeSticker?.data === preset.id;
+                      const isNoneSelected = preset.id === "none" && !activeSticker;
+
+                      return (
                         <button
-                          type="button"
-                          onClick={() => toggleDayRing(selectedDateStr)}
+                          key={preset.id}
+                          onClick={() => setDayStickerValue(selectedDateStr, preset.id)}
                           className={cn(
-                            "p-1.5 rounded-lg border text-[10px] font-bold transition flex items-center gap-1 cursor-pointer",
-                            dayRings[selectedDateStr]
-                              ? "bg-rose-600 text-white border-rose-600 animate-pulse"
-                              : "bg-rose-50 text-rose-700 border-rose-200 hover:border-rose-600"
+                            "p-1 border text-[9px] font-sans font-bold rounded flex flex-col items-center gap-0.5 bg-white/50 transition-all text-center justify-center h-[46px] cursor-pointer",
+                            isSelected || isNoneSelected
+                              ? "border-[#5C0612] bg-[#5C0612]/10 text-[#5C0612] scale-105" 
+                              : "border-[#5C0612]/20 hover:border-[#5C0612]/50 text-[#5C0612]/70"
                           )}
                         >
-                          <CircleDot className="w-3 animate-spin duration-3000" /> Viền đỏ
+                          {preset.id !== "none" && <PolaroidPreset type={preset.visual || preset.id} className="w-5 h-5" />}
+                          {preset.id === "none" && <span className="text-sm">❌</span>}
+                          <span className="truncate w-full block">{preset.id === "none" ? "Gỡ bỏ" : preset.label.split(" ").slice(1).join(" ")}</span>
                         </button>
-                      </div>
-                    </div>
-
-                    {/* Right Column: Log entries list and quick inline add form */}
-                    <div className="md:col-span-7 space-y-4">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-ink block">✍️ Nhật Ký & Sự Kiện Của Ngày</span>
-
-                      {(() => {
-                const dayEvents = selectedDateLogs.filter(l => l.type === 'Event');
-                const dayReflections = selectedDateLogs.filter(l => l.type === 'Reflection' || !l.type);
-
-                return selectedDateLogs.length === 0 ? (
-                  <p className="text-[11px] text-ink/45 font-hand italic leading-tight text-center py-2 select-none">
-                    Chưa ghi ghép sự kiện gì vào ngày này. Hãy lưu nhanh ở dưới!
-                  </p>
-                ) : (
-                  <div className="space-y-3 max-h-[165px] overflow-y-auto pr-1">
-                    {dayEvents.length > 0 && (
-                      <div className="space-y-1">
-                        <p className="text-[9px] font-black uppercase text-rose-600 tracking-wider flex items-center gap-1 mb-1.5 bg-rose-50 px-1.5 py-0.5 rounded w-fit">
-                          <span>📅 Sự kiện ({dayEvents.length})</span>
-                        </p>
-                        <div className="space-y-1.5">
-                          {dayEvents.map(l => (
-                            <div key={l.id} className="flex justify-between items-start text-xs bg-rose-50/20 p-2 rounded-lg border border-rose-250/30 group/log leading-relaxed">
-                              <div className="flex items-start gap-1.5 text-left min-w-0 flex-1">
-                                <span className="shrink-0">{l.emoji || "🔔"}</span>
-                                <div className="min-w-0">
-                                  <p className="font-semibold text-rose-950 break-words font-sans">{l.content}</p>
-                                  {l.time && (
-                                    <span className="font-sans text-[9px] font-bold text-red-700/85 bg-red-50 border border-red-100/60 px-1 rounded block w-fit mt-0.5">
-                                      📍 {l.time}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <button 
-                                onClick={() => handleDeleteLog(l.id)}
-                                className="p-1 hover:text-crimson opacity-0 group-hover/log:opacity-100 transition-opacity ml-1.5 cursor-pointer text-ink/40 w-auto"
-                                title="Xóa"
-                              >
-                                <Trash2 size={10} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {dayReflections.length > 0 && (
-                      <div className="space-y-1">
-                        <p className="text-[9px] font-black uppercase text-amber-700 tracking-wider flex items-center gap-1 mb-1.5 bg-amber-50 px-1.5 py-0.5 rounded w-fit">
-                          <span>💭 Ghi ghép / Suy ngẫm ({dayReflections.length})</span>
-                        </p>
-                        <div className="space-y-1.5">
-                          {dayReflections.map(l => (
-                            <div key={l.id} className="flex justify-between items-start text-xs bg-white/70 p-2 rounded-lg border border-amber-200/50 group/log leading-relaxed">
-                              <div className="flex items-start gap-1.5 text-left min-w-0 flex-1">
-                                <span className="shrink-0">{l.emoji || "💭"}</span>
-                                <div className="min-w-0">
-                                  <p className="font-medium text-amber-950 break-words font-sans">{l.content}</p>
-                                  {l.time && (
-                                    <span className="font-sans text-[9px] font-bold text-red-700/85 bg-red-50 border border-red-100/60 px-1 rounded block w-fit mt-0.5">
-                                      📍 {l.time}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <button 
-                                onClick={() => handleDeleteLog(l.id)}
-                                className="p-1 hover:text-crimson opacity-0 group-hover/log:opacity-100 transition-opacity ml-1.5 cursor-pointer text-ink/40 w-auto"
-                                title="Xóa"
-                              >
-                                <Trash2 size={10} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
-                );
-              })()}
-
-              {/* Quick Inline Log add Form */}
-              <div className="pt-2 border-t border-amber-200/30">
-                {/* Type Switcher */}
-                <div className="flex gap-1.5 mb-2 mt-0.5 border-b border-amber-100/50 pb-1.5">
-                  {(['Reflection', 'Event'] as const).map(type => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setQuickLogType(type)}
-                      className={cn(
-                        "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1",
-                        quickLogType === type 
-                          ? "bg-amber-100 text-amber-950 border border-amber-300" 
-                          : "text-amber-800/60 hover:bg-amber-50 border border-transparent"
-                      )}
-                    >
-                      {type === 'Reflection' ? '💭 Ghi ghép / Suy ngẫm' : '🔔 Sự kiện'}
-                    </button>
-                  ))}
+                  <label className="flex items-center gap-2 mt-2 w-fit bg-[#FAF3EB] border-[2px] border-[#5C0612] rounded-full px-4 py-2 cursor-pointer hover:bg-[#5C0612] hover:text-[#FAF3EB] transition-all text-[#5C0612] font-bold text-sm shadow-[2px_2px_0_#5C0612]">
+                    <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8 Q3 7 4 7 L6 4 Q7 3 8 3 L14 3 Q15 3 16 4 L18 7 Q19 7 20 7 L21 7 Q22 7 22 8 L22 19 Q22 20 21 20 L3 20 Q2 20 2 19 Z"/><path d="M12 11 Q14 11 15 14 Q15 16 12 17 Q9 16 10 14 Z"/></svg>
+                    Tải ảnh lên...
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleStickerFileChange(selectedDateStr, e)} />
+                  </label>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <form onSubmit={handleAddQuickLog} className="space-y-2">
-                    <div className="flex gap-1.5">
-                      <input
-                        type="text"
-                        value={quickLogContent}
-                        onChange={(e) => setQuickLogContent(e.target.value)}
-                        placeholder={quickLogType === 'Event' ? "Thêm nhanh một sự kiện của ngày đã chọn..." : "Ghi nhanh suy ngẫm / học được hôm nay..."}
-                        className="flex-1 px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200/60 focus:outline-none focus:border-amber-400 font-sans text-ink"
-                        required
-                      />
-                      
-                      {quickLogType === 'Reflection' && (
-                        <button
-                          type="button"
-                          onClick={handleImproveEnglish}
-                          disabled={isImproving || !quickLogContent.trim()}
-                          className="py-1.5 px-2 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 disabled:from-gray-300 disabled:to-gray-400 text-white font-extrabold text-[10px] rounded-lg cursor-pointer transition-all flex items-center gap-1 shrink-0 uppercase tracking-wider shadow-sm"
-                          title="Tối ưu hóa và sửa ngữ pháp Tiếng Anh bằng AI"
-                        >
-                          <Sparkles size={11} className={isImproving ? "animate-spin" : ""} />
-                          {isImproving ? "Đang quét..." : "Sửa Tiếng Anh"}
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Location (timepicker replacement) input field */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-extrabold text-[#1a1a1a]/40 uppercase tracking-wider shrink-0 font-sans">📍 Địa điểm</span>
-                      <input
-                        type="text"
-                        value={quickLogLocation}
-                        onChange={(e) => setQuickLogLocation(e.target.value)}
-                        placeholder="Địa điểm (ví dụ: Thư viện, Quán Cafe)..."
-                        className="flex-1 px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200/60 focus:outline-none focus:border-amber-400 font-sans text-[#1a1a1a]"
-                      />
-                      <button
-                        type="submit"
-                        disabled={!quickLogContent.trim()}
-                        className="px-3.5 py-1.5 bg-ink text-white font-extrabold text-[10px] rounded-lg hover:bg-amber-600 disabled:opacity-40 uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1 shrink-0 shadow-sm"
-                      >
-                        <Plus size={10} /> Lưu
-                      </button>
-                    </div>
-                  </form>
-
-                  {/* AI Improvement Result Panel */}
-                  <AnimatePresence>
-                    {aiSuggestions && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className="mt-2 p-3.5 bg-gradient-to-br from-amber-50/90 to-rose-50/70 rounded-2xl border-2 border-amber-200 text-left space-y-3 shadow-md relative overflow-hidden z-10"
-                      >
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full -mr-10 -mt-10 pointer-events-none" />
-                        
-                        <div className="flex items-center justify-between border-b border-amber-200/50 pb-2">
-                          <div className="flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
-                            <span className="text-[10px] font-black uppercase text-amber-950 tracking-wider">Gợi ý từ Giáo viên bản xứ AI</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setAiSuggestions(null)}
-                            className="text-amber-900/40 hover:text-rose-600 transition-colors p-0.5 rounded-lg hover:bg-amber-100/50 cursor-pointer"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <div className="text-[9px] uppercase font-bold text-amber-950/60 tracking-wider">Bản viết hoàn thiện đề xuất:</div>
-                          <p className="text-xs font-semibold text-ink bg-white/95 p-2.5 rounded-xl border border-amber-250/30 shadow-xs font-sans italic selection:bg-rose-100">
-                            "{aiSuggestions.improved}"
-                          </p>
-                          
-                          <div className="flex justify-end pt-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setQuickLogContent(aiSuggestions.improved);
-                                setAiSuggestions(null);
-                              }}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[9px] uppercase tracking-wider rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-xs border border-emerald-700"
-                            >
-                              <Check size={10} className="stroke-[3px]" /> Áp dụng bản chỉnh sửa
-                            </button>
-                          </div>
-                        </div>
-
-                        {aiSuggestions.corrections && aiSuggestions.corrections.length > 0 && (
-                          <div className="space-y-1.5 border-t border-dashed border-amber-200 pt-2.5">
-                            <div className="text-[9px] uppercase font-bold text-amber-950/60 tracking-wider">Chi tiết sửa lỗi & nâng cấp:</div>
-                            <div className="max-h-28 overflow-y-auto space-y-1.5 font-sans pr-1 custom-scrollbar">
-                              {aiSuggestions.corrections.map((corr, idx) => (
-                                <div key={idx} className="p-2 bg-white/70 rounded-xl border border-amber-100 text-[11px] leading-relaxed space-y-1">
-                                  <div className="flex flex-wrap items-center gap-1.5">
-                                    <span className="line-through text-red-650 bg-red-50 px-1 rounded-sm">{corr.originalPart}</span>
-                                    <span className="text-amber-800 font-extrabold font-sans">→</span>
-                                    <span className="font-bold text-emerald-700 bg-emerald-50 px-1 rounded-sm">{corr.correctedPart}</span>
-                                  </div>
-                                  <p className="text-[10px] text-ink/75 italic leading-snug">
-                                    💡 {corr.explanation}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {aiSuggestions.overallFeedback && (
-                          <div className="bg-amber-100/20 p-2.5 rounded-xl border border-amber-200/30">
-                            <div className="text-[9px] uppercase font-semibold text-rose-800 tracking-wider mb-0.5">Lời khuyên của Giáo viên:</div>
-                            <p className="text-[10px] text-ink/80 leading-snug italic font-sans">
-                              {aiSuggestions.overallFeedback}
-                            </p>
-                          </div>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {aiError && (
-                    <div className="mt-2 text-[10px] text-red-600 bg-red-50 p-2 rounded-lg border border-red-100">
-                      ⚠️ {aiError}
-                    </div>
-                  )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-      </div>
-
-          {/* UPCOMING EVENTS */}
-          <div className="bg-white p-5 rounded-3xl border-2 border-ink shadow-[4px_4px_0px_0px_#1a1a1a] mt-4">
-            <span className="text-xs uppercase font-extrabold tracking-wider text-rose-700 flex items-center gap-1.5 border-b pb-2.5 border-rose-200 mb-3">
-              <Sparkles className="w-4 h-4 text-rose-500" />
-              Sự Kiện Sắp Tới
-            </span>
-            <div className="space-y-2">
-              {logs.filter(l => l.type === 'Event' && l.date >= new Date().toISOString().split("T")[0])
-                .sort((a,b) => a.date.localeCompare(b.date))
-                .slice(0, 3)
-                .map(event => (
-                  <div key={event.id} className="flex gap-2 items-start text-xs border-l-2 border-rose-400 pl-2">
-                    <span className="bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded font-mono font-bold shrink-0">{event.date.slice(5).replace("-", "/")}</span>
-                    <span className="text-ink truncate">{event.content}</span>
-                  </div>
-              ))}
-              {logs.filter(l => l.type === 'Event' && l.date >= new Date().toISOString().split("T")[0]).length === 0 && (
-                <p className="text-[10px] text-ink/40 font-hand italic">Không có sự kiện nào sắp tới.</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-      </div>{/* End of top grid */}
-
-      {/* SECTION 2.2: CUSTOM GIFT CARDS & REWARDS POOL PANEL */}
-      <div className="bg-[#fffcf4] p-6 rounded-3xl sketch-border border-ink shadow-[4px_4px_0px_0px_#1a1a1a] text-left mb-6 mt-6 w-full animate-in fade-in slide-in-from-bottom-4">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b-2 border-amber-200 pb-4 gap-4">
-          <div className="flex items-center gap-3">
-            <span className="p-2 bg-amber-100 rounded-xl text-amber-700 border border-amber-250 shrink-0">
-              <Gift size={22} className="animate-bounce" />
-            </span>
-            <div>
-              <h3 className="text-base font-extrabold text-amber-950 uppercase tracking-wide font-sans">
-                Bể Thẻ Quà Tặng & Thẻ Tự Thưởng Tự Chọn 🎟️
-              </h3>
-              <p className="text-[11px] font-medium text-amber-800/80 mt-0.5 font-sans">
-                Tự thiết kế quà tặng của riêng bạn (Trà sữa, xem phim, nghỉ ngơi...). Mở khóa ngẫu nhiên khi hoàn thành nhiệm vụ hoặc tích chuỗi streak thói quen!
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              if (confirm("Reset danh mục quà tặng về mặc định ban đầu?")) {
-                localStorage.removeItem("studyHub_customRewardsList");
-                window.location.reload();
-              }
-            }}
-            className="px-2 py-1 text-[9px] font-bold text-amber-700 hover:text-white hover:bg-amber-700 bg-amber-50 border border-amber-250 transition-all rounded cursor-pointer"
-          >
-            Reset mẫu mặc định
-          </button>
-        </div>
-
-        {/* Action form to add a customized reward card */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!newRewardTitle.trim()) return;
-            const newCard = {
-              id: "custom_" + Date.now().toString(),
-              emoji: newRewardEmoji.trim() || "🎁",
-              title: newRewardTitle,
-              desc: newRewardDesc,
-              isUnlocked: false,
-              isRedeemed: false
-            };
-            setCustomRewards([...customRewards, newCard]);
-            setNewRewardTitle("");
-            setNewRewardDesc("");
-            setNewRewardEmoji("🎁");
-          }}
-          className="grid grid-cols-1 md:grid-cols-12 gap-3 mt-4 p-4.5 bg-amber-50/50 rounded-2xl border border-dashed border-amber-200 items-end"
-        >
-          <div className="md:col-span-2 col-span-12">
-            <label className="block text-[10px] font-black uppercase tracking-wider text-amber-900/60 mb-1 font-sans">Emoji</label>
-            <input
-              type="text"
-              value={newRewardEmoji}
-              onChange={(e) => setNewRewardEmoji(e.target.value)}
-              placeholder="🎁"
-              className="w-full px-3 py-1.5 text-center text-xs bg-white rounded-lg border border-amber-200 focus:outline-none focus:border-amber-400 font-mono text-ink"
-              maxLength={4}
-            />
-          </div>
-          <div className="md:col-span-4 col-span-12">
-            <label className="block text-[10px] font-black uppercase tracking-wider text-amber-900/60 mb-1 font-sans">Tên Quà Tặng / Quyền Lợi</label>
-            <input
-              type="text"
-              value={newRewardTitle}
-              onChange={(e) => setNewRewardTitle(e.target.value)}
-              placeholder="Ví dụ: Ly trà dâu tằm 40k"
-              className="w-full px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200 focus:outline-none focus:border-amber-400 font-sans text-ink"
-              required
-            />
-          </div>
-          <div className="md:col-span-4 col-span-12">
-            <label className="block text-[10px] font-black uppercase tracking-wider text-amber-900/60 mb-1 font-sans">Mô tả chi tiết / Cách sử dụng</label>
-            <input
-              type="text"
-              value={newRewardDesc}
-              onChange={(e) => setNewRewardDesc(e.target.value)}
-              placeholder="Phần thưởng sau khi đạt chuỗi hoặc tắt máy lúc 11h..."
-              className="w-full px-3 py-1.5 text-xs bg-white rounded-lg border border-amber-200 focus:outline-none focus:border-amber-400 font-sans text-ink"
-            />
-          </div>
-          <div className="md:col-span-2 col-span-12">
-            <button
-              type="submit"
-              className="w-full py-2 bg-amber-655 bg-amber-700 hover:bg-amber-800 text-white font-extrabold text-xs uppercase tracking-widest rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1 shadow-sm"
-            >
-              <Plus size={12} /> Tạo thẻ mới
-            </button>
-          </div>
-        </form>
-
-        {/* Grid displays customizable certificates / coupons */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-          {customRewards.map((reward) => (
-            <div
-              key={reward.id}
-              className={`relative border-2 rounded-2xl p-4.5 flex flex-col justify-between overflow-hidden transition-all ${
-                reward.isRedeemed
-                  ? "bg-zinc-100/60 border-zinc-300 text-zinc-400 opacity-60 scale-[0.98]"
-                  : reward.isUnlocked
-                  ? "bg-white border-2 border-ink text-[#1a1a1a] shadow-[3px_3px_0px_0px_#1a1a1a] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_#1a1a1a] cursor-pointer"
-                  : "bg-amber-50/5 border-2 border-dashed border-zinc-200 text-zinc-400 filter grayscale"
-              }`}
-              style={{
-                backgroundImage: reward.isUnlocked && !reward.isRedeemed
-                  ? "radial-gradient(circle at top left, transparent 10px, transparent 10px), radial-gradient(circle at bottom right, transparent 10px, transparent 10px)"
-                  : undefined
-              }}
-            >
-              {/* Scissors Line Graphic to make it look like a nice ticket coupon */}
-              {reward.isUnlocked && !reward.isRedeemed && (
-                <div className="absolute right-3.5 top-0 bottom-0 w-0 border-r-2 border-dashed border-amber-200/80 pointer-events-none" />
-              )}
-
-              {/* Tag Header */}
-              <div className="flex items-start justify-between gap-2.5">
-                <span className="text-2xl select-none shrink-0" role="img" aria-label="gift icon">
-                  {reward.emoji}
-                </span>
-
-                <div className="text-left flex-1 min-w-0">
-                  <h4 className={`text-xs font-black font-sans leading-snug truncate ${reward.isUnlocked && !reward.isRedeemed ? 'text-amber-950' : 'text-amber-950/70'}`}>
-                    {reward.title}
+                {/* 2. Highlight Ring */}
+                <div className="space-y-3 pt-4 border-t-[2px] border-dashed border-[#5C0612]/20">
+                  <h4 className="font-bold text-[#5C0612] text-sm uppercase tracking-wider flex items-center gap-2">
+                    <span className="text-lg">⭕</span> Làm nổi bật ngày
                   </h4>
-                  <p className={`text-[10px] leading-tight font-medium font-sans mt-1 line-clamp-2 ${reward.isUnlocked && !reward.isRedeemed ? 'text-amber-800/80' : 'text-zinc-500/50'}`}>
-                    {reward.desc || "Không có ghi chú thêm."}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm(`Xóa thẻ quà tặng "${reward.title}" khỏi bể thưởng?`)) {
-                      setCustomRewards(customRewards.filter((r) => r.id !== reward.id));
-                    }
-                  }}
-                  className="text-crimson hover:opacity-100 opacity-35 transition-all shrink-0 cursor-pointer p-0.5 hover:bg-rose-50 rounded"
-                  title="Xóa quà"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
-
-              {/* Stamp or Footer elements */}
-              <div className="mt-4 pt-3.5 border-t border-dashed border-amber-200/55 flex items-center justify-between gap-2">
-                {reward.isRedeemed ? (
-                  <div className="flex items-center gap-1.5 text-zinc-500 font-mono">
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-zinc-100 border border-zinc-250 px-1.5 py-0.5 rounded italic">
-                      ĐÃ SỬ DỤNG 🎉
-                    </span>
-                  </div>
-                ) : reward.isUnlocked ? (
-                  <div className="flex flex-col text-left">
-                    <span className="text-[8px] uppercase tracking-widest font-black text-amber-600">Đã mở: {reward.unlockedAt || "Gần đây"}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const updated = customRewards.map(r => r.id === reward.id ? { ...r, isRedeemed: true } : r);
-                        setCustomRewards(updated);
-                        try {
-                          confetti({ particleCount: 60, spread: 50, colors: ["#fbbf24", "#f59e0b"] });
-                        } catch(e){}
-                      }}
-                      className="mt-1 px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black uppercase tracking-widest rounded transition-all cursor-pointer shrink-0"
-                    >
-                      🎟️ Sử dụng quà
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col text-left">
-                    <span className="text-[8px] leading-none uppercase tracking-wider font-extrabold text-zinc-400 bg-zinc-100/50 border border-dashed border-zinc-200 px-1.5 py-0.5 rounded">
-                      🔒 CHƯA MỞ KHÓA
-                    </span>
-                  </div>
-                )}
-                
-                <span className="text-[9px] font-mono font-bold text-amber-900/30">
-                  {reward.isRedeemed ? "#REDEEMED" : reward.isUnlocked ? "#AVAILABLE" : "#LOCKED"}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* SALARY PROJECTION & BUDGET PLANNING ON HOME WINDOW */}
-      <div className="bg-paper p-6 rounded-2xl sketch-border border-ink shadow-sm space-y-4 text-left mb-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b-2 border-ink/10 pb-4 gap-4 font-sans">
-           <div className="flex items-center gap-3">
-              <span className="p-2 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-150">
-                <Briefcase size={18} />
-              </span>
-              <div className="text-left font-sans">
-                <h2 className="text-base font-black uppercase tracking-tight text-ink font-sans">Dự tính lương & Kế hoạch chi tiêu</h2>
-                <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest font-sans">Lập ngân sách chủ động trước khi nhận lương</p>
-              </div>
-           </div>
-
-           {/* Quick Stats Badges */}
-           <div className="flex flex-wrap gap-2 items-center">
-              <div className="flex items-center gap-2 bg-emerald-50 p-2 px-3 rounded-xl sketch-border border-emerald-200">
-                <div className="text-right">
-                  <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest">Dự tính lương</p>
-                  <div className="flex items-center gap-1.5 font-mono font-black text-xs text-emerald-700">
-                    <input
-                      type="text"
-                      value={salaryInput}
-                      onChange={e => {
-                        const valStr = e.target.value.replace(/[^0-9]/g, "");
-                        let formatted = "0";
-                        if (valStr) {
-                          const parsedVal = parseInt(valStr, 10);
-                          if (!isNaN(parsedVal)) {
-                            formatted = parsedVal.toLocaleString('en-US');
-                          }
-                        }
-                        setSalaryInput(formatted);
-                      }}
-                      className="w-24 text-right bg-white border border-emerald-300 font-mono font-bold rounded px-1 py-0.5 outline-none focus:border-emerald-600 text-xs shadow-inner"
-                      placeholder="0"
-                    />
-                    <span>đ</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 bg-rose-50 p-2 px-3 rounded-xl sketch-border border-rose-200">
-                <div className="text-right">
-                  <p className="text-[8px] font-bold text-rose-600 uppercase tracking-widest font-sans">Tổng dự chi</p>
-                  <p className="text-xs font-black text-rose-700 font-mono">
-                    {totalPlannedOutflows.toLocaleString('vi-VN')} đ
-                  </p>
-                </div>
-              </div>
-
-              <div className={`flex items-center gap-2 p-2 px-3 rounded-xl sketch-border ${
-                remainingBalance >= 0 
-                  ? "bg-blue-50 border-blue-200 text-blue-700" 
-                  : "bg-red-50 border-red-200 text-red-600 animate-pulse"
-              }`}>
-                <div className="text-right">
-                  <p className="text-[8px] font-bold uppercase tracking-widest opacity-80 font-sans">Còn lại</p>
-                  <p className="text-xs font-black font-mono">
-                    {remainingBalance.toLocaleString('vi-VN')} đ
-                  </p>
-                </div>
-              </div>
-           </div>
-        </div>
-
-        {/* Visual Allocation Meter */}
-        <div className="bg-white sketch-border p-4 rounded-xl">
-          <div className="flex justify-between items-center text-xs mb-1.5 font-sans">
-            <span className="font-bold text-ink/70">Tỷ lệ phân bổ ngân sách dự tính:</span>
-            <span className={`font-mono font-black ${percentageSpent > 100 ? "text-rose-600" : "text-emerald-600"}`}>
-              {percentageSpent.toFixed(1)}% {percentageSpent > 100 ? "(Vượt hạn mức!)" : ""}
-            </span>
-          </div>
-          <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-ink/10 shadow-inner flex">
-            <div 
-              style={{ width: `${Math.min(percentageSpent, 100)}%` }} 
-              className={`h-full transition-all duration-500 ${
-                percentageSpent > 100 ? "bg-rose-500" :
-                percentageSpent > 80 ? "bg-amber-500" : "bg-emerald-500"
-              }`}
-            />
-          </div>
-          <p className="text-[10px] text-ink/50 mt-2 leading-relaxed italic">
-            * Khuyên dùng: Giữ tổng dự chi dưới 80% lương để dành từ 20% lương gửi tiết kiệm, đầu tư tài sản dài hạn.
-          </p>
-        </div>
-
-        {/* Expenses List Table */}
-        <div className="bg-white/70 sketch-border p-4 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto max-w-full">
-            <table className="min-w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-emerald-50 text-[9px] font-black uppercase tracking-widest text-emerald-800 border-b-2 border-emerald-200">
-                  <th className="px-4 py-3 font-black w-56">Khoản Mục Dự Chi</th>
-                  <th className="px-4 py-3 text-right font-black">Số Tiền (VND)</th>
-                  <th className="px-4 py-3 text-center font-black w-14">Xóa</th>
-                </tr>
-              </thead>
-              <tbody className="font-sans divide-y divide-emerald-100">
-                {plannedExpenses.map((item, idx) => (
-                  <tr key={item.id} className="transition-colors hover:bg-emerald-50/20">
-                    <td className="px-4 py-2 font-bold text-ink hover:bg-slate-50 border-r border-transparent focus-within:border-emerald-500">
-                      <input 
-                        type="text" 
-                        value={item.name} 
-                        onChange={e => {
-                          const newExp = [...plannedExpenses];
-                          newExp[idx].name = e.target.value;
-                          setPlannedExpenses(newExp);
-                        }} 
-                        className="w-full bg-transparent font-bold text-ink outline-none py-0.5 text-xs"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <input 
-                        type="text" 
-                        value={
-                          item.amount === "-" 
-                            ? "-" 
-                            : item.amount 
-                              ? Number(item.amount.replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
-                              : ""
-                        } 
-                        onChange={e => {
-                          const cleanVal = e.target.value.replace(/[^0-9-]/g, "");
-                          if (!cleanVal) {
-                            const newExp = [...plannedExpenses];
-                            newExp[idx].amount = "";
-                            setPlannedExpenses(newExp);
-                            return;
-                          }
-                          const isNeg = cleanVal.startsWith("-");
-                          const digits = cleanVal.replace("-", "");
-                          const parsedVal = parseInt(digits, 10);
-                          if (!isNaN(parsedVal)) {
-                            const formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
-                            const newExp = [...plannedExpenses];
-                            newExp[idx].amount = formatted;
-                            setPlannedExpenses(newExp);
-                          }
-                        }} 
-                        placeholder="0"
-                        className="w-full text-right font-mono font-bold text-emerald-700 bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-emerald-600 text-xs shadow-inner"
-                      />
-                    </td>
-                    <td className="px-4 py-2 text-center">
-                      <button
-                        onClick={() => handleRemovePlannedExpense(item.id)}
-                        className="p-1 text-rose-500 hover:bg-rose-50 rounded transition-colors cursor-pointer"
-                        title="Xóa khoản dự chi"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-
-                {/* Inline adder row */}
-                <tr className="bg-slate-50 border-t-2 border-slate-200">
-                  <td className="px-4 py-2.5 font-semibold text-ink">
-                    <input 
-                      type="text" 
-                      value={newExpName} 
-                      onChange={e => setNewExpName(e.target.value)} 
-                      placeholder="Thêm khoản mới (Ví dụ: Tiệc tùng, mua sách...)"
-                      className="w-full bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-slate-500 text-xs shadow-inner font-sans font-medium"
-                    />
-                  </td>
-                  <td colSpan={2} className="px-4 py-2.5">
-                    <div className="flex gap-2">
-                      <input 
-                        type="text" 
-                        value={newExpAmount} 
-                        onChange={e => {
-                          const valStr = e.target.value.replace(/[^0-9]/g, "");
-                          let formatted = "";
-                          if (valStr) {
-                            const parsedVal = parseInt(valStr, 10);
-                            if (!isNaN(parsedVal)) {
-                              formatted = parsedVal.toLocaleString('en-US');
-                            }
-                          }
-                          setNewExpAmount(formatted);
-                        }} 
-                        placeholder="Số tiền (đ)"
-                        className="flex-1 text-right font-mono font-bold text-slate-700 bg-white border border-ink/15 rounded-lg px-2.5 py-1 outline-none focus:border-slate-500 text-xs shadow-inner"
-                      />
-                      <button
-                        onClick={handleAddPlannedExpense}
-                        disabled={!newExpName.trim()}
-                        className="p-1.5 bg-emerald-600 disabled:opacity-30 text-white rounded-lg hover:bg-emerald-700 transition-colors cursor-pointer flex items-center justify-center shrink-0"
-                        title="Xác nhận thêm khoản"
-                      >
-                        <Plus size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr className="bg-emerald-100 font-bold text-emerald-800 border-t-2 border-emerald-200">
-                  <td className="px-4 py-2.5 font-sans">
-                    <span className="uppercase text-[10px] tracking-widest font-black block">Tổng Dự Chi Tháng Này</span>
-                    <span className="text-emerald-950/50 text-[10px] font-medium italic">
-                      * Tổng {plannedExpenses.length} vị trí phân phối dòng tiền dự tính
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-right font-mono font-bold text-xs" colSpan={2}>
-                    {totalPlannedOutflows.toLocaleString('vi-VN')} đ
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        {/* Action button panel */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-emerald-50/20 sketch-border border-dashed border-emerald-200 rounded-xl">
-          <div className="text-center sm:text-left">
-            <p className="text-xs text-ink/75 leading-relaxed font-sans">
-              ℹ️ <strong>Mục Tiêu Tài Chính:</strong> Dự toán trước khi lương về ví sẽ hạn chế tối đa chi tiêu bừa bãi và xây dựng thói quen tích lũy tài sản dài hạn.
-            </p>
-          </div>
-          
-          <div className="flex gap-2 shrink-0">
-             <button 
-               onClick={handleResetSalaryPlanner}
-               className="sketch-button text-xs py-2 px-6 font-bold uppercase tracking-widest text-ink bg-white hover:bg-emerald-50 cursor-pointer transition-all border border-ink/10"
-             >
-               Reset Bảng Lương
-             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 2.5: CREDIT CARD & REVENUE STATEMENTS (BẢNG KÊ CHI TIÊU & DOANH THU) */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-2">
-        {/* LEFT CARD: BẢNG KÊ CHI TIÊU THẺ TÍN DỤNG */}
-        <div className="bg-gradient-to-tr from-[#fcfdff] to-[#f5f8ff] p-6 rounded-3xl sketch-border border-ink shadow-[4px_4px_0px_0px_#1a1a1a] space-y-4 text-left">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-[#3b82f6] pb-2.5 gap-2">
-            <div className="flex items-center gap-2 text-left">
-              <span className="p-2 bg-[#dbeafe] rounded-xl text-[#1e40af] border border-blue-250">
-                <CreditCard size={18} className="animate-pulse" />
-              </span>
-              <div>
-                <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#1e40af] font-sans">
-                  Bảng Kê Chi Tiêu Thẻ Tín Dụng
-                </h3>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => {
-                  setBulkCardSpends([...bulkCardSpends, {
-                    id: Date.now(),
-                    name: new Date().toISOString().split("T")[0],
-                    amount: "",
-                    notes: ""
-                  }]);
-                }}
-                className="px-2.5 py-1 text-[10px] bg-blue-50 text-blue-700 rounded-lg border border-blue-200 uppercase font-black tracking-widest hover:bg-[#1e40af] hover:text-white transition-all cursor-pointer flex items-center gap-1"
-              >
-                <Plus size={10} /> Thêm Dòng
-              </button>
-              <button
-                onClick={() => {
-                  if (confirm("Reset toàn bộ bảng kê chi tiêu thẻ tín dụng?")) {
-                    setBulkCardSpends([]);
-                  }
-                }}
-                className="px-2.5 py-1 text-[10px] bg-red-50 text-crimson rounded-lg border border-red-200 uppercase font-black tracking-widest hover:bg-crimson hover:text-white transition-all cursor-pointer"
-              >
-                Reset
-              </button>
-            </div>
-          </div>
-
-          <div className="w-full overflow-x-auto sm:overflow-visible scrollbar-none sm:scrollbar-thin">
-            <table className="w-full text-left border-collapse text-xs table-fixed sm:table-auto">
-              <thead>
-                <tr className="bg-blue-100/50 text-[#1e40af] font-bold uppercase tracking-wider text-[9px]">
-                  <th className="px-1.5 sm:px-3 py-2 w-[95px] sm:w-32 border border-blue-100">
-                    <span className="hidden sm:inline">Ngày / Tên</span>
-                    <span className="inline sm:hidden">Ngày</span>
-                  </th>
-                  <th className="px-1.5 sm:px-3 py-2 w-[100px] sm:w-40 border border-blue-100">
-                    <span className="hidden sm:inline">Số Tiền (VND)</span>
-                    <span className="inline sm:hidden">Số Tiền</span>
-                  </th>
-                  <th className="px-1.5 sm:px-3 py-2 border border-blue-100 font-bold uppercase text-[9px]">Ghi Chú</th>
-                  <th className="px-1 py-2 w-8 sm:w-10 text-center border border-blue-100">Xóa</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bulkCardSpends.map((item, index) => (
-                  <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
-                    <td className="p-0.5 sm:p-1 border border-blue-100/50">
-                      <div className="flex items-center justify-between gap-0.5 px-0.5 sm:px-2.5 py-0.5 sm:py-1 text-left relative">
-                        <span className="text-[11px] sm:text-xs font-black text-blue-950 font-mono">
-                          {formatDateDot(item.name)}
-                        </span>
-                        <div className="relative w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center shrink-0 hover:bg-blue-100 rounded transition-all cursor-pointer">
-                          <CalendarIcon className="text-blue-500 cursor-pointer w-3 h-3 sm:w-[12px] sm:h-[12px]" />
-                          <input
-                            type="date"
-                            value={item.name}
-                            onChange={(e) => {
-                              const updated = [...bulkCardSpends];
-                              updated[index].name = e.target.value;
-                              setBulkCardSpends(updated);
-                            }}
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-0.5 sm:p-1 border border-blue-100/50">
-                      <input
-                        type="text"
-                        placeholder="Số tiền"
-                        value={
-                          item.amount === "-" 
-                            ? "-" 
-                            : item.amount 
-                              ? Number(item.amount.replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
-                              : ""
-                        }
-                        onChange={(e) => {
-                          const cleanVal = e.target.value.replace(/[^0-9-]/g, "");
-                          if (!cleanVal) {
-                            const updated = [...bulkCardSpends];
-                            updated[index].amount = "";
-                            setBulkCardSpends(updated);
-                            return;
-                          }
-                          if (cleanVal === "-") {
-                            const updated = [...bulkCardSpends];
-                            updated[index].amount = "-";
-                            setBulkCardSpends(updated);
-                            return;
-                          }
-                          const isNeg = cleanVal.startsWith("-");
-                          const digits = cleanVal.replace("-", "");
-                          const parsedVal = parseInt(digits, 10);
-                          if (!isNaN(parsedVal)) {
-                            const formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
-                            const updated = [...bulkCardSpends];
-                            updated[index].amount = formatted;
-                            setBulkCardSpends(updated);
-                          }
-                        }}
-                        className="w-full px-1 sm:px-2 py-1 sm:py-1.5 text-[11px] sm:text-xs bg-transparent text-right font-bold text-indigo-950 focus:outline-none focus:bg-white rounded"
-                      />
-                    </td>
-                    <td className="p-0.5 sm:p-1 border border-blue-100/50">
-                      <input
-                        type="text"
-                        placeholder="Chi tiết chi tiêu..."
-                        value={item.notes || ""}
-                        onChange={(e) => {
-                          const updated = [...bulkCardSpends];
-                          updated[index].notes = e.target.value;
-                          setBulkCardSpends(updated);
-                        }}
-                        className="w-full px-1 sm:px-2 py-1 sm:py-1.5 text-[11px] sm:text-xs bg-transparent text-left text-blue-900 focus:outline-none focus:bg-white rounded"
-                      />
-                    </td>
-                    <td className="p-0.5 sm:p-1 border border-blue-100/50 text-center">
-                      <button
-                        onClick={() => {
-                          const updated = bulkCardSpends.filter((_, i) => i !== index);
-                          setBulkCardSpends(updated);
-                        }}
-                        className="p-1 sm:p-1.5 text-rose-300 hover:text-crimson hover:bg-rose-50 rounded transition-colors mx-auto"
-                        title="Xóa hàng"
-                      >
-                        <Trash2 size={11} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {bulkCardSpends.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="text-center p-4 text-[10px] text-blue-400 italic">
-                      Dữ liệu trống. Nhấp "Thêm Dòng" để tạo bảng kê mới.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Sum footer */}
-          <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-150">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-blue-800">Tổng chi tiêu thẻ:</span>
-            <span className="text-sm font-black text-[#1e40af] font-mono">
-              {(() => {
-                const total = bulkCardSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
-                return total.toLocaleString("vi-VN") + " đ";
-              })()}
-            </span>
-          </div>
-        </div>
-
-        {/* RIGHT CARD: BẢNG KÊ DOANH THU KHÁCH NỢ TUẦN QUA */}
-        <div className="bg-gradient-to-tr from-[#fdfdfc] to-[#f4fbf7] p-6 rounded-3xl sketch-border border-ink shadow-[4px_4px_0px_0px_#1a1a1a] space-y-4 text-left">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-[#10b981] pb-2.5 gap-2">
-            <div className="flex items-center gap-2 text-left">
-              <span className="p-2 bg-[#d1fae5] rounded-xl text-[#065f46] border border-emerald-250">
-                <Receipt size={18} className="animate-pulse" />
-              </span>
-              <div>
-                <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#065f46] font-sans">
-                  Doanh Thu
-                </h3>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => {
-                  setBulkDebts([...bulkDebts, {
-                    id: Date.now(),
-                    name: new Date().toISOString().split("T")[0],
-                    amount: "",
-                    notes: ""
-                  }]);
-                }}
-                className="px-2.5 py-1 text-[10px] bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 uppercase font-black tracking-widest hover:bg-emerald-700 hover:text-white transition-all cursor-pointer flex items-center gap-1"
-              >
-                <Plus size={10} /> Thêm Dòng
-              </button>
-              <button
-                onClick={() => {
-                  if (confirm("Đặt lại toàn bộ bảng kê doanh thu và khách nợ tuần này?")) {
-                    setBulkDebts(bulkDebts.map(item => ({ ...item, amount: "", notes: "" })));
-                  }
-                }}
-                className="px-2.5 py-1 text-[10px] bg-red-50 text-crimson rounded-lg border border-red-200 uppercase font-black tracking-widest hover:bg-crimson hover:text-white transition-all cursor-pointer"
-              >
-                Reset tuần
-              </button>
-            </div>
-          </div>
-
-          <div className="w-full overflow-x-auto sm:overflow-visible scrollbar-none sm:scrollbar-thin">
-            <table className="w-full text-left border-collapse text-xs table-fixed sm:table-auto">
-              <thead>
-                <tr className="bg-emerald-100/50 text-[#065f46] font-bold uppercase tracking-wider text-[9px]">
-                  <th className="px-1.5 sm:px-3 py-2 w-[95px] sm:w-32 border border-emerald-100">
-                    <span className="hidden sm:inline">Ngày / Tên</span>
-                    <span className="inline sm:hidden">Ngày</span>
-                  </th>
-                  <th className="px-1.5 sm:px-3 py-2 w-[100px] sm:w-40 border border-emerald-100">
-                    <span className="hidden sm:inline">Số Tiền (VND)</span>
-                    <span className="inline sm:hidden">Số Tiền</span>
-                  </th>
-                  <th className="px-1.5 sm:px-3 py-2 border border-emerald-100 font-bold uppercase text-[9px]">Ghi Chú</th>
-                  <th className="px-1 py-2 w-8 sm:w-10 text-center border border-emerald-100 font-bold uppercase text-[9px]">Xóa</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bulkDebts.map((item, index) => {
-                  return (
-                    <tr key={item.id} className="hover:bg-emerald-50/50 transition-colors">
-                      <td className="p-0.5 sm:p-1 border border-emerald-100/50">
-                        <div className="flex items-center justify-between gap-0.5 px-0.5 sm:px-2.5 py-0.5 sm:py-1 text-left relative">
-                          <span className="text-[11px] sm:text-xs font-black text-emerald-950 font-mono">
-                            {formatDateDot(item.name)}
-                          </span>
-                          <div className="relative w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center shrink-0 hover:bg-emerald-100 rounded transition-all cursor-pointer">
-                            <CalendarIcon size={12} className="text-emerald-500 cursor-pointer w-3 h-3 sm:w-[12px] sm:h-[12px]" />
-                            <input
-                              type="date"
-                              value={item.name}
-                              onChange={(e) => {
-                                const updated = [...bulkDebts];
-                                updated[index].name = e.target.value;
-                                setBulkDebts(updated);
-                              }}
-                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                            />
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-0.5 sm:p-1 border border-emerald-100/50">
-                        <input
-                          type="text"
-                          placeholder="Số tiền"
-                          value={
-                            item.amount === "-" 
-                              ? "-" 
-                              : item.amount 
-                                ? Number(item.amount.replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
-                                : ""
-                          }
-                          onChange={(e) => {
-                            const cleanVal = e.target.value.replace(/[^0-9-]/g, "");
-                            if (!cleanVal) {
-                              const updated = [...bulkDebts];
-                              updated[index].amount = "";
-                              setBulkDebts(updated);
-                              return;
-                            }
-                            if (cleanVal === "-") {
-                              const updated = [...bulkDebts];
-                              updated[index].amount = "-";
-                              setBulkDebts(updated);
-                              return;
-                            }
-                            const isNeg = cleanVal.startsWith("-");
-                            const digits = cleanVal.replace("-", "");
-                            const parsedVal = parseInt(digits, 10);
-                            if (!isNaN(parsedVal)) {
-                              const formatted = (isNeg ? "-" : "") + parsedVal.toLocaleString('en-US');
-                              const updated = [...bulkDebts];
-                              updated[index].amount = formatted;
-                              setBulkDebts(updated);
-                            }
-                          }}
-                          className="w-full px-1 sm:px-2 py-1 sm:py-1.5 text-[11px] sm:text-xs bg-transparent text-right font-bold text-emerald-950 focus:outline-none focus:bg-white rounded"
-                        />
-                      </td>
-                      <td className="p-0.5 sm:p-1 border border-emerald-100/50">
-                        <input
-                          type="text"
-                          placeholder="Nguồn thu / Tên khách nợ..."
-                          value={item.notes || ""}
-                          onChange={(e) => {
-                            const updated = [...bulkDebts];
-                            updated[index].notes = e.target.value;
-                            setBulkDebts(updated);
-                          }}
-                          className="w-full px-1 sm:px-2 py-1 sm:py-1.5 text-[11px] sm:text-xs bg-transparent text-left text-emerald-900 focus:outline-none focus:bg-white rounded"
-                        />
-                      </td>
-                      <td className="p-0.5 sm:p-1 border border-emerald-100/50 text-center">
-                        <button
-                          onClick={() => {
-                            const updated = bulkDebts.filter((_, i) => i !== index);
-                            setBulkDebts(updated);
-                          }}
-                          className="p-1 sm:p-1.5 text-rose-300 hover:text-crimson hover:bg-rose-50 rounded transition-colors mx-auto"
-                          title="Xóa hàng"
-                        >
-                          <Trash2 size={11} style={{ filter: 'url(#hand-drawn-filter)' }} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {bulkDebts.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="text-center p-4 text-[10px] text-emerald-400 italic">
-                      Dữ liệu trống. Nhấp "Thêm Dòng" để tạo bảng kê mới.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Sum footer */}
-          <div className="flex items-center justify-between bg-emerald-50/50 p-3 rounded-xl border border-emerald-150">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-[#065f46]">Tổng:</span>
-            <span className="text-sm font-black text-[#0f5132] font-mono">
-              {(() => {
-                const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
-                return total.toLocaleString("vi-VN") + " đ";
-              })()}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. ACHIEVEMENT WALL COMPONENT */}
-      <div className="bg-white/80 p-6 rounded-2xl sketch-border border-dashed border-ink/30">
-        <div className="flex items-center justify-between border-b-2 border-amber-400 pb-2 mb-4">
-          <span className="text-xs uppercase font-black tracking-widest text-amber-700 flex items-center gap-1.5">
-            <Award className="w-5 h-5 text-amber-500 shrink-0" />
-            Thành Tựu Bền Bỉ Gặt Hái Được
-          </span>
-          <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-mono">
-            {achievements.length} Huy chương đạt được
-          </span>
-        </div>
-
-        {achievements.length === 0 ? (
-          <div className="py-6 text-center select-none">
-            <p className="text-xs text-ink/40 font-hand italic">
-              Vun đắp thêm kế hoạch rèn luyện hàng ngày và hoàn thành mục tiêu để ghi nhận kỳ hiệu chiến tích đầu tiên nhé!
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-4 justify-start">
-            {achievements.map((ach) => (
-              <div 
-                key={ach.id} 
-                className="bg-amber-50/50 border border-amber-200 rounded-2xl px-4 py-3 min-w-[180px] flex items-center gap-3 shadow-2xs hover:scale-103 transition-transform relative overflow-hidden group/ach"
-              >
-                <div className="p-2.5 bg-amber-100 border border-amber-300 rounded-xl text-amber-600">
-                  <Award size={18} className="animate-pulse" />
-                </div>
-                <div className="text-left">
-                  <h4 className="font-extrabold text-xs text-amber-950 leading-none">{ach.title}</h4>
-                  <p className="text-[10px] text-amber-800/70 py-0.5 leading-tight">{ach.description}</p>
-                  {ach.unlockedAt && (
-                    <span className="text-[8px] text-amber-600 bg-white border border-amber-100 rounded px-1 font-mono">
-                      {new Date(ach.unlockedAt).toLocaleDateString("vi-VN")}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 4. PERSONAL TIPS, HACKS & PLACES LOGBOOK TABLE */}
-      <div className="bg-white/95 p-6 rounded-2xl sketch-border border-ink shadow-sm space-y-4">
-        
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pb-3.5 border-b border-ink/15 gap-3.5 cursor-pointer" onClick={() => setIsPersonalOpen(!isPersonalOpen)}>
-          <div className="space-y-0.5">
-            <span className="text-xs uppercase font-black tracking-widest text-[#af1e2d] flex items-center gap-1.5">
-              <Bookmark className="w-5 h-5 text-[#af1e2d] shrink-0" /> 
-              Góc Cá Nhân (Mẹo hay, Địa điểm, Tips hay thú vị)
-            </span>
-            <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">
-              Nơi lưu giữ thông tin nhanh, bookmarks, mẹo mỏ hay định giá liên lạc
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <input
-              type="text"
-              value={tipSearch}
-              onChange={(e) => setTipSearch(e.target.value)}
-              placeholder="Tìm kiếm mẹo/địa điểm..."
-              className="px-3 py-1 text-xs bg-white rounded-lg border border-ink/10 focus:outline-none"
-            />
-            
-            <button
-              onClick={() => {
-                setIsPersonalOpen(true);
-                setEditingTipId(null);
-                setTipDesc("");
-                setTipCategory("Tips");
-                setTipLink("");
-                setTipPrice("");
-                setTipNotes("");
-                setShowAddTip(!showAddTip);
-              }}
-              className="py-1 px-3 bg-ink hover:bg-[#af1e2d] text-white rounded-lg text-xs font-black uppercase tracking-wider cursor-pointer select-none whitespace-nowrap"
-            >
-              {showAddTip ? "Đóng Form" : "Thêm mới"}
-            </button>
-          </div>
-        </div>
-
-        {isPersonalOpen && (
-          <div className="space-y-4 animate-in slide-in-from-top-1">
-            {/* Tip Inline Mutation Form */}
-        {showAddTip && (
-          <form onSubmit={handleSaveTip} className="p-4 bg-rose-50/20 rounded-xl border border-dashed border-[#af1e2d]/35 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-3.5 text-left">
-              <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-black uppercase text-ink/50 ml-1">Mô Tả / Tên (Description/Name)</label>
-                <input
-                  type="text"
-                  value={tipDesc}
-                  onChange={(e) => setTipDesc(e.target.value)}
-                  placeholder="Ví dụ: Cách rèn tiếng anh tốt, Quán cafe yên tĩnh ở Hà Nội..."
-                  className="px-3 py-2 text-xs bg-white rounded-lg border border-ink/10 text-ink focus:outline-none focus:border-[#af1e2d]"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-black uppercase text-ink/50 ml-1">Phần / Mục nào (Category)</label>
-                  <select
-                    value={tipCategory}
-                    onChange={(e) => setTipCategory(e.target.value)}
-                    className="px-2 py-2 text-xs bg-white border border-ink/10 rounded-lg text-ink font-bold focus:outline-none cursor-pointer"
+                  <button 
+                    onClick={() => toggleDayRing(selectedDateStr)}
+                    className={`w-full py-2.5 rounded-full font-bold text-sm transition-all border-[2px] ${dayRings[selectedDateStr] ? 'bg-[#5C0612] text-[#FAF3EB] border-[#5C0612]' : 'bg-transparent text-[#5C0612] border-[#5C0612] hover:bg-[#5C0612]/10'} shadow-[3px_3px_0_rgba(92,6,18,1)]`}
                   >
-                    <option value="Tips">Mẹo hay (Tips)</option>
-                    <option value="Hacks">Hack mẹo cuộc sống (Hacks)</option>
-                    <option value="Places">Địa điểm lý thú (Places)</option>
-                    <option value="Work">Công việc / Học tập</option>
-                    <option value="Other">Các phần khác</option>
-                  </select>
+                    {dayRings[selectedDateStr] ? 'Đã khoanh đỏ (Nhấn để hủy)' : 'Khoanh đỏ ngày này'}
+                  </button>
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-black uppercase text-ink/50 ml-1">Giá tiền (VND)</label>
-                  <input
-                    type="text"
-                    value={tipPrice}
-                    onChange={(e) => setTipPrice(e.target.value)}
-                    placeholder="Nhập giá tiền nếu có..."
-                    className="px-3 py-2 text-xs bg-white rounded-lg border border-ink/10 text-ink focus:outline-none"
-                  />
+                {/* 3. Quick Note */}
+                <div className="space-y-3 pt-4 border-t-[2px] border-dashed border-[#5C0612]/20">
+                  <h4 className="font-bold text-[#5C0612] text-sm uppercase tracking-wider flex items-center gap-2">
+                    <span className="text-lg">✍️</span> Thêm ghi chú nhanh
+                  </h4>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!quickLogContent.trim() || !setLogs) return;
+                    setLogs([{
+                      id: "log_" + Date.now().toString(),
+                      date: selectedDateStr,
+                      content: quickLogContent.trim(),
+                      location: quickLogLocation.trim() || undefined,
+                      emoji: quickLogEmoji,
+                      type: quickLogType as 'Reflection' | 'Event',
+                      createdAt: Date.now()
+                    }, ...logs]);
+                    setQuickLogContent("");
+                    setQuickLogLocation("");
+                    setIsCalendarDetailsOpen(false);
+                  }} className="flex flex-col gap-3">
+                    <input type="text" placeholder="Bạn đã làm gì?" value={quickLogContent} onChange={e => setQuickLogContent(e.target.value)} className="w-full bg-white/50 border-[2px] border-[#5C0612] rounded-xl px-3 py-2 text-sm font-bold text-[#5C0612] placeholder-[#5C0612]/50 outline-none focus:bg-white transition-colors" required />
+                    <div className="flex gap-2">
+                      <select value={quickLogEmoji} onChange={e => setQuickLogEmoji(e.target.value)} className="bg-white/50 border-[2px] border-[#5C0612] rounded-xl px-2 py-2 text-sm outline-none w-16 text-center cursor-pointer">
+                         <option value="📝">📝</option>
+                         <option value="⭐">⭐</option>
+                         <option value="❤️">❤️</option>
+                         <option value="🎉">🎉</option>
+                         <option value="☕">☕</option>
+                         <option value="✈️">✈️</option>
+                         <option value="🌧️">🌧️</option>
+                      </select>
+                      <input type="text" placeholder="Địa điểm (ops)" value={quickLogLocation} onChange={e => setQuickLogLocation(e.target.value)} className="flex-1 bg-white/50 border-[2px] border-[#5C0612] rounded-xl px-3 py-2 text-sm font-bold text-[#5C0612] placeholder-[#5C0612]/50 outline-none focus:bg-white transition-colors" />
+                    </div>
+                    <button type="submit" className="w-full bg-[#5C0612] text-[#FAF3EB] font-bold py-2.5 rounded-xl uppercase tracking-widest text-xs hover:bg-black transition-colors mt-2 shadow-[3px_3px_0_rgba(0,0,0,1)]">
+                      Lưu ghi chú
+                    </button>
+                  </form>
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-3.5 text-left flex flex-col justify-between">
-              <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-black uppercase text-ink/50 ml-1">Đường dẫn / Link</label>
-                <input
-                  type="url"
-                  value={tipLink}
-                  onChange={(e) => setTipLink(e.target.value)}
-                  placeholder="Nhập đường liên kết link (https://...)"
-                  className="px-3 py-2 text-xs bg-white rounded-lg border border-ink/10 text-ink focus:outline-none"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-black uppercase text-ink/50 ml-1">Ghi Chú Chi Tiết (Notes)</label>
-                <input
-                  type="text"
-                  value={tipNotes}
-                  onChange={(e) => setTipNotes(e.target.value)}
-                  placeholder="Nhập ghi chú quan trọng khác..."
-                  className="px-3 py-2 text-xs bg-white rounded-lg border border-ink/10 text-ink focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-ink text-white font-black text-[10px] rounded-lg tracking-wider uppercase cursor-pointer"
-                >
-                  {editingTipId ? "Cập Nhật" : "Lưu Ghi Chép"}
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
-
-        {/* Tabular bookmarks lists */}
-        {filteredTips.length === 0 ? (
-          <div className="py-12 border border-dashed border-ink/10 rounded-xl text-center select-none bg-slate-50">
-            <p className="text-xs text-ink/40 font-hand italic">Chưa lưu mẹo hay hoặc địa điểm hấp dẫn nào. Nhấn Thêm mới để tạo ngay!</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto scrollbar-thin max-w-full">
-            {/* Mobile layout: Card stacking */}
-            <div className="block sm:hidden space-y-3">
-              {filteredTips.map((tip) => (
-                <div key={tip.id} className="bg-white p-4 rounded-xl border border-ink/10 flex flex-col gap-2 shadow-xs text-left relative group">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h4 className="text-xs font-black text-ink">{tip.name}</h4>
-                      <span className="inline-block mt-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-2 py-0.5 font-sans font-black text-[9px] uppercase tracking-wide">
-                        {tip.address || "Khác / Tips"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleStartEditTip(tip)}
-                        className="hover:text-blue-600 p-1.5 bg-slate-50 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
-                        title="Sửa hàng"
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTip(tip.id)}
-                        className="hover:text-crimson p-1.5 bg-rose-50/50 hover:bg-rose-100 rounded-md transition-all cursor-pointer"
-                        title="Xóa hàng"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {tip.price ? (
-                    <div className="text-[11px] font-bold text-emerald-700 font-mono mt-0.5">
-                      <span className="text-ink/50 font-normal">Giá tiền: </span>{tip.price.toLocaleString("vi-VN")} đ
-                    </div>
-                  ) : null}
-                  
-                  {tip.notes && (
-                    <p className="text-[11px] italic text-ink/65 border-t border-ink/5 pt-1.5 text-left font-sans">
-                      <strong>Ghi chú:</strong> {tip.notes}
-                    </p>
-                  )}
-                  
-                  {tip.link ? (
-                    <div className="border-t border-ink/5 pt-1.5">
-                      <a 
-                        href={tip.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1 font-semibold hover:underline text-[11px]"
-                      >
-                        <Link2 size={11} className="shrink-0" />
-                        <span>Xem link gốc</span>
-                      </a>
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop layout: Large table */}
-            <table className="hidden sm:table min-w-full divide-y divide-ink/10">
-              <thead className="bg-ink/5 text-ink text-[10px] font-black uppercase tracking-wider text-left">
-                <tr>
-                  <th scope="col" className="px-5 py-3">Mô Tả / Tên</th>
-                  <th scope="col" className="px-5 py-3">Mục Nào</th>
-                  <th scope="col" className="px-5 py-3">Link Dẫn</th>
-                  <th scope="col" className="px-5 py-3">Giá Tiền (VND)</th>
-                  <th scope="col" className="px-5 py-3">Ghi Chú</th>
-                  <th scope="col" className="px-5 py-3 text-right">Thao Tác</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-ink/5 text-xs text-ink/80 text-left">
-                {filteredTips.map((tip) => (
-                  <tr key={tip.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-5 py-3.5 font-bold text-ink max-w-[200px] break-words">
-                      {tip.name}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-2.5 py-0.5 font-sans font-extrabold text-[10px] uppercase tracking-wide">
-                        {tip.address || "Khác / Tips"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 max-w-[150px] truncate">
-                      {tip.link ? (
-                        <a 
-                          href={tip.link} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-blue-600 hover:text-blue-800 flex items-center gap-1 font-semibold hover:underline"
-                        >
-                          <Link2 size={12} className="shrink-0" />
-                          <span>Link gốc</span>
-                        </a>
-                      ) : (
-                        <span className="text-ink/30 font-hand">-</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5 font-semibold text-emerald-700 font-mono">
-                      {tip.price ? (
-                        `${tip.price.toLocaleString("vi-VN")} đ`
-                      ) : (
-                        <span className="text-ink/30 italic text-[10px]">-</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5 italic max-w-[200px] break-words text-ink/65 font-sans">
-                      {tip.notes || <span className="text-ink/20">-</span>}
-                    </td>
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-2.5">
-                        <button
-                          onClick={() => handleStartEditTip(tip)}
-                          className="hover:text-blue-600 p-1 cursor-pointer transition-colors"
-                          title="Sửa hàng"
-                        >
-                          <Edit2 size={12} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTip(tip.id)}
-                          className="hover:text-crimson p-1 cursor-pointer transition-all"
-                          title="Xóa hàng"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-          </div>
-        )}
-      </div>
-
-      {/* Thẻ Quà Tặng Overlay */}
-      <AnimatePresence>
-        {rewardPopup && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-amber-900/40 backdrop-blur-sm"
-          >
-            <div 
-              className="absolute inset-0 cursor-pointer"
-              onClick={() => setRewardPopup(null)}
-            />
-            
-            <motion.div 
-              initial={{ scale: 0.85, y: 50, rotate: -3 }}
-              animate={{ scale: 1, y: 0, rotate: 0 }}
-              exit={{ scale: 0.85, y: 50, opacity: 0, rotate: 5 }}
-              transition={{ type: "spring", bounce: 0.6 }}
-              className="bg-[#fffdf5] p-8 md:p-10 rounded-3xl sketch-border border-amber-300 max-w-sm w-full relative z-10 shadow-2xl flex flex-col items-center justify-center border-[3px]"
-            >
-              <div className="absolute -top-10 bg-white w-20 h-20 flex items-center justify-center rounded-full border-[3px] border-amber-300 rotate-12 shadow-xl shrink-0">
-                <span className="text-4xl">{rewardPopup.emoji}</span>
-              </div>
-              
-              <div className="mt-8 text-center space-y-4 w-full">
-                <p className="text-[10px] font-black tracking-[0.2em] text-amber-700/60 uppercase">
-                  ✨ Phần Thưởng Bất Ngờ ✨
-                </p>
-                <h3 className="font-sans font-black text-3xl text-amber-900 leading-tight drop-shadow-sm">
-                  {rewardPopup.title}
-                </h3>
-                <div className="p-5 bg-amber-50 rounded-2xl border border-dashed border-amber-300 relative shadow-sm">
-                   <p className="text-amber-800 font-bold leading-relaxed text-sm">
-                     {rewardPopup.desc}
-                   </p>
-                </div>
-              </div>
-              
-              <button 
-                onClick={() => setRewardPopup(null)}
-                className="mt-8 w-full py-3.5 text-sm font-black uppercase text-white tracking-widest bg-amber-600 outline-none rounded-xl hover:bg-amber-700 active:scale-95 transition-all shadow-md"
-              >
-                Nhận Quà 🎁
-              </button>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
-
+</div>
     </div>
   );
 }

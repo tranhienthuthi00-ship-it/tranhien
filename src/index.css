@@ -10,6 +10,7 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-hand: 'Patrick Hand', 'Itim', 'Mali', 'Caveat', cursive, sans-serif;
   --font-handwriting: 'Patrick Hand', 'Itim', 'Mali', 'Caveat', cursive;
+  --font-caveat: 'Caveat', cursive, sans-serif;
   --font-logo: 'Baloo 2', cursive;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --color-paper: #FDFBF7;
@@ -22,7 +23,7 @@ body {
   background-color: var(--color-paper);
   background-image: var(--background-image-paper);
   color: var(--color-ink);
-  font-family: var(--font-sans); 
+  font-family: var(--font-hand); 
   font-size: 1rem; 
 }
 
