@@ -1312,36 +1312,6 @@ export function DigitalJournal({
                                       <div className="flex flex-col gap-0.5 w-full mt-auto max-h-[38px] overflow-hidden shrink-0">
                                         {logs.filter(l => l.date === cell.dateStr).slice(0, 2).map((l, idx) => {
                                           const isEvent = l.type === 'Event';
-                                          const prevCell = i > 0 ? calendarDays[i - 1] : null;
-                                          const nextCell = i < calendarDays.length - 1 ? calendarDays[i + 1] : null;
-
-                                          const connectsLeft = !!(
-                                            isEvent &&
-                                            prevCell &&
-                                            prevCell.dateStr &&
-                                            (i % 7 !== 0) &&
-                                            logs.some(other => other.date === prevCell.dateStr && other.type === 'Event' && other.content === l.content)
-                                          );
-
-                                          const connectsRight = !!(
-                                            isEvent &&
-                                            nextCell &&
-                                            nextCell.dateStr &&
-                                            ((i + 1) % 7 !== 0) &&
-                                            logs.some(other => other.date === nextCell.dateStr && other.type === 'Event' && other.content === l.content)
-                                          );
-
-                                          if (isEvent && (connectsLeft || connectsRight)) {
-                                            return (
-                                              <div 
-                                                key={idx} 
-                                                className="text-[8.5px] md:text-[9.5px] leading-tight truncate w-full text-center px-1 font-hand font-extrabold text-red-600 animate-fade-in"
-                                              >
-                                                —— {l.content} ——
-                                              </div>
-                                            );
-                                          }
-
                                           return (
                                             <div 
                                               key={idx} 
