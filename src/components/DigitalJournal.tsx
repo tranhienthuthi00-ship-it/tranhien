@@ -697,7 +697,6 @@ export function DigitalJournal({
     });
 
     setHabits(updatedHabits);
-    localStorage.setItem("studyHub_habits", JSON.stringify(updatedHabits));
 
     if (triggeredReward) {
       const lockedRewards = customRewards.filter(r => !r.isUnlocked);
@@ -1042,15 +1041,22 @@ export function DigitalJournal({
     return tasks.filter(t => !t.completed);
   }, [tasks]);
 
-  const [bucketStickers, setBucketStickers] = useState<any[]>(() => {
+  const [bucketStickers, setBucketStickers] = useSyncedState<any[]>('studyHub_bucketStickers_global', []);
+
+  // Migrate old localstorage bucketStickers explicitly (runs once on load in useSyncedState via kvStore anyway, but we handle the array migration easily: )
+  useEffect(() => {
     try {
-      return JSON.parse(localStorage.getItem('studyHub_bucketStickers') || '[]');
-    } catch { return []; }
-  });
+      const old = localStorage.getItem('studyHub_bucketStickers');
+      if (old && Array.isArray(JSON.parse(old))) {
+        if (bucketStickers.length === 0 && JSON.parse(old).length > 0) {
+          setBucketStickers(JSON.parse(old));
+        }
+      }
+    } catch {}
+  }, []);
 
   const saveBucketStickers = (updated: any[]) => {
     setBucketStickers(updated);
-    localStorage.setItem('studyHub_bucketStickers', JSON.stringify(updated));
   };
 
   const handleStickerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1095,8 +1101,8 @@ export function DigitalJournal({
   ]);
 
   return (
-    <div className="min-h-screen bg-[#f8f5ed] w-full pb-20 overflow-x-hidden font-hand text-[#3A1412] mt-4">
-      <div className="max-w-[1440px] mx-auto px-4 md:px-8 space-y-12 animate-in fade-in duration-500">
+    <div className="w-full pb-20 overflow-x-hidden font-hand text-[#3A1412] mt-4">
+      <div className="w-full mx-auto px-2 md:px-4 space-y-12 animate-in fade-in duration-500">
         
         {/* Top bar with Search */}
         <div className="flex justify-end w-full">

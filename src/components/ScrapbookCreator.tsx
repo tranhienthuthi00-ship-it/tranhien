@@ -22,6 +22,8 @@ import {
   Heart
 } from "lucide-react";
 
+import { useSyncedState } from '../lib/useSyncedState';
+
 // Types for elements on the scrapbook board
 export interface ScrapElement {
   id: string;
@@ -470,27 +472,30 @@ const SCRAPBOOK_PRESETS: { [key: string]: { title: string, desc: string, element
 };
 
 export function ScrapbookCreator({ currentDate, onClose, onSaveToJournal }: ScrapbookCreatorProps) {
-  // Try loading from localStorage
-  const [scrapbooks, setScrapbooks] = useState<Scrapbook[]>(() => {
-    try {
-      const saved = localStorage.getItem("studyHub_scrapbooks");
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    
-    // Default initial list of scrapbooks with our custom Ragu built-in
-    const initial: Scrapbook = {
+  // Use synced state for cross-device loading
+  const [scrapbooks, setScrapbooks] = useSyncedState<Scrapbook[]>("studyHub_scrapbooks_global", [
+    {
       id: "scrap-ragu",
       title: "Ragu alla Bolognese (Mẫu)",
       date: currentDate,
       paperStyle: "blank",
       elements: [...SCRAPBOOK_PRESETS.ragu_bolognese.elements]
-    };
-    return [initial];
-  });
+    }
+  ]);
+
+  // Migrate old localstorage items
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_scrapbooks");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0 && scrapbooks.length === 1 && scrapbooks[0].id === 'scrap-ragu') {
+          setScrapbooks(parsed);
+        }
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [activeScrapId, setActiveScrapId] = useState<string>("scrap-ragu");
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
@@ -503,15 +508,6 @@ export function ScrapbookCreator({ currentDate, onClose, onSaveToJournal }: Scra
   const activeScrapbook = useMemo(() => {
     return scrapbooks.find(s => s.id === activeScrapId) || scrapbooks[0];
   }, [scrapbooks, activeScrapId]);
-
-  // Persist to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem("studyHub_scrapbooks", JSON.stringify(scrapbooks));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [scrapbooks]);
 
   // Sync to current date
   const handleCreateNewScrap = (presetKey?: string) => {

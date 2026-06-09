@@ -9,6 +9,8 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import type { Habit, TodayTask, LogEntry } from "../types";
 import { cn } from "../lib/utils";
+import { useFirebase } from "../context/FirebaseContext";
+import { useSyncedState } from "../lib/useSyncedState";
 import { 
   BarChart, 
   Bar, 
@@ -458,15 +460,9 @@ interface EditingTaskState {
 
 export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
   // --- States ---
-  const [habits, setHabits] = useState<Habit[]>(() => {
-    const saved = localStorage.getItem("studyHub_habits");
-    return saved ? JSON.parse(saved) : DEFAULT_HABITS;
-  });
+  const { habits, setHabits } = useFirebase();
 
-  const [oneOffTasks, setOneOffTasks] = useState<TodayTask[]>(() => {
-    const saved = localStorage.getItem("studyHub_oneOffTasks");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [oneOffTasks, setOneOffTasks] = useSyncedState<TodayTask[]>("studyHub_oneOffTasks", []);
 
   // Today "YYYY-MM-DD"
   const getTodayStr = () => new Date().toISOString().split('T')[0];
@@ -528,15 +524,6 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
   useEffect(() => {
     setQuickTaskDate(selectedDate);
   }, [selectedDate]);
-
-  // Save changes to LocalStorage
-  useEffect(() => {
-    localStorage.setItem("studyHub_habits", JSON.stringify(habits));
-  }, [habits]);
-
-  useEffect(() => {
-    localStorage.setItem("studyHub_oneOffTasks", JSON.stringify(oneOffTasks));
-  }, [oneOffTasks]);
 
   // --- Core Computations for Today's Alarms ---
   // Today's day index (0 for Sunday, 1 for Monday, etc.)

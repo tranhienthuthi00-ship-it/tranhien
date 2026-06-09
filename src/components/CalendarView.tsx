@@ -295,6 +295,46 @@ export function PolaroidPreset({ type, className }: { type: string, className?: 
           <path d="M 45 18 L 85 8" strokeWidth="10" stroke="currentColor" />
         </svg>
       );
+    case 'heart':
+      return (
+        <svg className={cn("w-7 h-7 text-red-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 50 85 C 50 85 15 55 15 30 C 15 15 35 10 50 30 C 65 10 85 15 85 30 C 85 55 50 85 50 85 Z" fill="#FECDD3" />
+          <path d="M 30 25 C 35 20 40 25 40 25" strokeWidth="3" stroke="#F43F5E" />
+        </svg>
+      );
+    case 'star':
+      return (
+        <svg className={cn("w-7 h-7 text-amber-400", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 50 10 L 60 40 L 90 40 L 65 60 L 75 90 L 50 70 L 25 90 L 35 60 L 10 40 L 40 40 Z" fill="#FEF08A" />
+          <circle cx="45" cy="45" r="2.5" fill="#B45309" stroke="none" />
+          <circle cx="55" cy="45" r="2.5" fill="#B45309" stroke="none" />
+          <path d="M 47 55 Q 50 60 53 55" strokeWidth="3" stroke="#B45309" />
+        </svg>
+      );
+    case 'smile':
+      return (
+        <svg className={cn("w-7 h-7 text-amber-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="50" cy="50" r="40" fill="#FEF3C7" />
+          <circle cx="35" cy="40" r="4" fill="#92400E" stroke="none" />
+          <circle cx="65" cy="40" r="4" fill="#92400E" stroke="none" />
+          <path d="M 30 60 Q 50 80 70 60" strokeWidth="6" stroke="#92400E" />
+        </svg>
+      );
+    case 'fire':
+      return (
+        <svg className={cn("w-7 h-7 text-orange-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 50 15 Q 35 40 25 60 A 25 25 0 0 0 75 60 Q 65 40 50 15 Z" fill="#FED7AA" />
+          <path d="M 50 35 Q 40 55 35 70 A 15 15 0 0 0 65 70 Q 60 55 50 35 Z" fill="#FDBA74" stroke="none" />
+        </svg>
+      );
+    case 'sparkles':
+      return (
+        <svg className={cn("w-7 h-7 text-yellow-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 50 10 L 55 45 L 90 50 L 55 55 L 50 90 L 45 55 L 10 50 L 45 45 Z" fill="#FEF08A" />
+          <path d="M 25 25 L 30 35 L 40 40 L 30 45 L 25 55 L 20 45 L 10 40 L 20 35 Z" fill="#FDE047" strokeWidth="3" />
+          <path d="M 75 75 L 80 85 L 90 90 L 80 95 L 75 105 L 70 95 L 60 90 L 70 85 Z" fill="#FDE047" strokeWidth="2" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -318,7 +358,12 @@ export const STICKER_PRESETS = [
   { id: "icecream", label: "🍦 Kem Mát", visual: "icecream" },
   { id: "airplane", label: "✈️ Du Lịch", visual: "airplane" },
   { id: "cat", label: "🐱 Mèo Con", visual: "cat" },
-  { id: "music", label: "🎵 Âm Nhạc", visual: "music" }
+  { id: "music", label: "🎵 Âm Nhạc", visual: "music" },
+  { id: "heart", label: "❤️ Trái Tim", visual: "heart" },
+  { id: "star", label: "⭐ Ngôi Sao", visual: "star" },
+  { id: "smile", label: "😊 Mặt Cười", visual: "smile" },
+  { id: "fire", label: "🔥 Lửa Cháy", visual: "fire" },
+  { id: "sparkles", label: "✨ Lấp Lánh", visual: "sparkles" }
 ];
 
 interface CalendarViewProps {
@@ -341,7 +386,8 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
   const monthStr = format(currentDate, "yyyy-MM");
 
   // Editable theme tagline: e.g. "GLOW UP SEASON"
-  const [themeTagline, setThemeTagline] = useSyncedState(`studyHub_calendarSubtitle_${monthStr}`, "GLOW UP SEASON");
+  const [themeTaglineGlobal, setThemeTaglineGlobal] = useSyncedState<Record<string, string>>(`studyHub_calendarSubtitle_global`, {});
+  const themeTagline = themeTaglineGlobal[monthStr] || "GLOW UP SEASON";
   const [isEditingTagline, setIsEditingTagline] = useState(false);
   const [taglineDraft, setTaglineDraft] = useState(themeTagline);
 
@@ -349,91 +395,95 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   // Bottom Notes section data - 3 intention statements
-  const [notesList, setNotesList] = useState<string[]>(() => {
-    const saved = localStorage.getItem(`studyHub_calendarNotes_${monthStr}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === 3) return parsed;
-      } catch (e) {}
-    }
-    return [
-      "This month I am becoming the version of me I've been dreaming about.",
-      "This month I am creating habits that future me will thank me for.",
-      "This month I am focusing on consistency over intensity."
-    ];
-  });
+  const [notesListGlobal, setNotesListGlobal] = useSyncedState<Record<string, string[]>>(`studyHub_calendarNotes_global`, {});
+  const notesList = notesListGlobal[monthStr] || [
+    "This month I am becoming the version of me I've been dreaming about.",
+    "This month I am creating habits that future me will thank me for.",
+    "This month I am focusing on consistency over intensity."
+  ];
   const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
   const [noteEditVal, setNoteEditVal] = useState("");
 
   // Polaroid day images: Preset sticker IDs or user-uploaded base64 string
-  const [dayStickers, setDayStickers] = useState<Record<string, { type: 'preset' | 'upload'; data: string }>>(() => {
-    const saved = localStorage.getItem(`studyHub_calendarDayPics_${monthStr}`);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return {};
-  });
+  const [dayStickers, setDayStickers] = useSyncedState<Record<string, { type: 'preset' | 'upload'; data: string }[]>>("studyHub_calendarDayPics_global", {});
 
   // Circle highlight ring states (which days are ring highlighted like Day 30 in photo)
-  const [dayRings, setDayRings] = useSyncedState<Record<string, boolean>>(`studyHub_calendarRings_${monthStr}`, {});
+  const [dayRings, setDayRings] = useSyncedState<Record<string, boolean>>("studyHub_calendarRings_global", {});
 
   // Handle month selection load changes
   useEffect(() => {
-    const currentMonth = format(currentDate, "yyyy-MM");
-    const savedTag = localStorage.getItem(`studyHub_calendarSubtitle_${currentMonth}`) || "GLOW UP SEASON";
-    setThemeTagline(savedTag);
-    setTaglineDraft(savedTag);
+    setTaglineDraft(themeTaglineGlobal[monthStr] || "GLOW UP SEASON");
+  }, [currentDate, monthStr, themeTaglineGlobal]);
 
-    const savedNotes = localStorage.getItem(`studyHub_calendarNotes_${currentMonth}`);
-    if (savedNotes) {
-      try {
-        setNotesList(JSON.parse(savedNotes));
-      } catch (e) {
-        setNotesList([
-          "This month I am becoming the version of me I've been dreaming about.",
-          "This month I am creating habits that future me will thank me for.",
-          "This month I am focusing on consistency over intensity."
-        ]);
+  // Migrate old month-specific localStorage items into global on mount
+  useEffect(() => {
+    try {
+      const keys = Object.keys(localStorage);
+      
+      // Migrate notes
+      const notesKeys = keys.filter(k => k.startsWith("studyHub_calendarNotes_") && !k.includes("global"));
+      if (notesKeys.length > 0) {
+        const mergedNotes = { ...notesListGlobal };
+        let hasNew = false;
+        notesKeys.forEach(k => {
+          const arr = k.split("_");
+          const mStr = arr[arr.length - 1];
+          try {
+            const parsed = JSON.parse(localStorage.getItem(k) || "[]");
+            if (!mergedNotes[mStr] && Array.isArray(parsed) && parsed.length > 0) {
+              mergedNotes[mStr] = parsed;
+              hasNew = true;
+            }
+          } catch {}
+        });
+        if (hasNew) setNotesListGlobal(mergedNotes);
       }
-    } else {
-      setNotesList([
-        "This month I am becoming the version of me I've been dreaming about.",
-        "This month I am creating habits that future me will thank me for.",
-        "This month I am focusing on consistency over intensity."
-      ]);
-    }
 
-    const savedPics = localStorage.getItem(`studyHub_calendarDayPics_${currentMonth}`);
-    if (savedPics) {
-      try {
-        setDayStickers(JSON.parse(savedPics));
-      } catch (e) {
-        setDayStickers({});
+      // Migrate subtitles
+      const subKeys = keys.filter(k => k.startsWith("studyHub_calendarSubtitle_") && !k.includes("global"));
+      if (subKeys.length > 0) {
+        const mergedSub = { ...themeTaglineGlobal };
+        let hasNew = false;
+        subKeys.forEach(k => {
+          const arr = k.split("_");
+          const mStr = arr[arr.length - 1];
+          const val = localStorage.getItem(k);
+          if (val && !mergedSub[mStr]) {
+            mergedSub[mStr] = val;
+            hasNew = true;
+          }
+        });
+        if (hasNew) setThemeTaglineGlobal(mergedSub);
       }
-    } else {
-      setDayStickers({});
-    }
-
-    const savedRings = localStorage.getItem(`studyHub_calendarRings_${currentMonth}`);
-    if (savedRings) {
-      try {
-        setDayRings(JSON.parse(savedRings));
-      } catch (e) {
-        setDayRings({});
+      
+      // Migrate pics
+      const picKeys = keys.filter(k => k.startsWith("studyHub_calendarDayPics_") && !k.includes("global"));
+      if (picKeys.length > 0) {
+        const mergedPics = { ...dayStickers };
+        let hasNew = false;
+        picKeys.forEach(k => {
+          try {
+            const parsed = JSON.parse(localStorage.getItem(k) || "{}");
+            Object.entries(parsed).forEach(([dateStr, val]) => {
+              if (!mergedPics[dateStr]) {
+                mergedPics[dateStr] = val as any;
+                hasNew = true;
+              }
+            });
+          } catch {}
+        });
+        if (hasNew) setDayStickers(mergedPics);
       }
-    } else {
-      setDayRings({});
+    } catch (e) {
+      console.error("Migration error:", e);
     }
-  }, [currentDate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Persists top subtitle tagline
   const handleSaveTagline = () => {
     const cleanTag = taglineDraft.trim() || "MONTHLY PLANNER";
-    setThemeTagline(cleanTag);
-    
+    setThemeTaglineGlobal(prev => ({ ...prev, [monthStr]: cleanTag }));
     setIsEditingTagline(false);
   };
 
@@ -441,8 +491,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
   const handleSaveNoteLine = (idx: number) => {
     const updated = [...notesList];
     updated[idx] = noteEditVal.trim() || `Intention line ${idx + 1}...`;
-    setNotesList(updated);
-    
+    setNotesListGlobal(prev => ({ ...prev, [monthStr]: updated }));
     setEditingNoteIndex(null);
   };
 
@@ -456,18 +505,16 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
   // Set sticker preset or custom file upload for specified Date
   const setDayStickerValue = (dateStr: string, stickerId: string, imageBase64?: string) => {
     const updated = { ...dayStickers };
+    const current = Array.isArray(updated[dateStr]) ? updated[dateStr] : [];
+
     if (stickerId === "none" && !imageBase64) {
       delete updated[dateStr];
     } else if (imageBase64) {
-      updated[dateStr] = { type: 'upload', data: imageBase64 };
+      updated[dateStr] = [...current, { type: 'upload' as const, data: imageBase64 }];
     } else {
-      updated[dateStr] = { type: 'preset', data: stickerId };
+      updated[dateStr] = [...current, { type: 'preset' as const, data: stickerId }];
     }
     setDayStickers(updated);
-    
-    // Save to localStorage immediately
-    const currentMonth = format(currentDate, "yyyy-MM");
-    localStorage.setItem(`studyHub_calendarDayPics_${currentMonth}`, JSON.stringify(updated));
   };
 
   // Trigger Image File picker to embed customizable visual snapshot inside Polaroid
@@ -580,10 +627,10 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
   };
 
   return (
-    <div className="w-full max-w-[1240px] mx-auto p-1 md:p-4 flex flex-col gap-5 text-ink animate-fade-in">
+    <div className="w-full p-1 md:p-4 flex flex-col gap-5 text-ink animate-fade-in">
       
       {/* THE CALENDAR JOURNAL SPREAD PAGE */}
-      <div className="w-full bg-paper sketch-border p-4 md:p-6 space-y-6 shadow-xl relative min-h-[500px]">
+      <div className="w-full p-2 md:p-6 space-y-6 relative min-h-[500px]">
         
         {/* JOURNAL HEADBAND RULINGS */}
         <div className="absolute top-0 left-10 right-10 h-[5px] bg-[#af1e2d]/6 opacity-20 border-b border-dashed border-ink/15 pointer-events-none" />
@@ -724,7 +771,7 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
                     {dayLogs.slice(0, 2).map((log) => (
                       <p 
                         key={log.id} 
-                        className="text-[9px] md:text-[11px] leading-tight font-hand italic text-indigo-950/85 truncate pl-0.5 border-l-2 border-indigo-200/50 mb-0.5"
+                        className={cn("text-[9px] md:text-[11px] leading-tight font-hand italic truncate pl-0.5 border-l-2 mb-0.5", log.type === 'Event' ? "text-[#af1e2d] border-[#af1e2d]/50" : "text-indigo-950/85 border-indigo-200/50")}
                         title={log.content}
                       >
                         {log.time && <span className="font-sans font-bold text-red-700/85 mr-0.5 inline-flex items-center gap-0.5">📍{log.time}</span>}
@@ -734,17 +781,24 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
                   </div>
 
                   {/* CALENDAR EMBED POLAROID PIC OR PRESSED STICKER */}
-                  {sticker && (
+                  {Array.isArray(dayStickers[dStr]) && dayStickers[dStr].length > 0 && (
+                    <div className="absolute inset-0 z-0 pointer-events-none opacity-20 flex items-center justify-center">
+                       {dayStickers[dStr].filter(s => s.type === 'preset').slice(0, 1).map((sticker, idx) => (
+                         <React.Fragment key={idx}>
+                           <PolaroidPreset type={sticker.data} className="w-10 h-10 text-rose-800" />
+                         </React.Fragment>
+                       ))}
+                    </div>
+                  )}
+                  {Array.isArray(dayStickers[dStr]) && dayStickers[dStr].length > 0 && dayStickers[dStr].some(s => s.type === 'upload') && (
                     <div 
                       className="absolute bottom-1 right-1 pointer-events-none z-15 shadow-sm border border-black/5 bg-white p-0.5 rotate-6 hover:rotate-0 transition-transform origin-bottom-right"
                       style={{ width: "32px", height: "35px" }}
                     >
                       <div className="w-full h-[25px] bg-ink/5 overflow-hidden flex items-center justify-center">
-                        {sticker.type === 'upload' ? (
-                          <img src={sticker.data} referrerPolicy="no-referrer" alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <PolaroidPreset type={sticker.data} className="w-4 h-4" />
-                        )}
+                        {dayStickers[dStr].find(s => s.type === 'upload') ? (
+                          <img src={dayStickers[dStr].find(s => s.type === 'upload')?.data} referrerPolicy="no-referrer" alt="" className="w-full h-full object-cover" />
+                        ) : null}
                       </div>
                       <div className="h-[5px] bg-white" />
                     </div>
@@ -857,9 +911,9 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
                   <div className="grid grid-cols-5 gap-1">
                     {STICKER_PRESETS.map(preset => {
                       const dStr = format(selectedDate, 'yyyy-MM-dd');
-                      const activeSticker = dayStickers[dStr];
-                      const isSelected = activeSticker?.type === 'preset' && activeSticker?.data === preset.id;
-                      const isNoneSelected = preset.id === "none" && !activeSticker;
+                      const activeStickers = Array.isArray(dayStickers[dStr]) ? dayStickers[dStr] : [];
+                      const isSelected = activeStickers.some((st: any) => st.type === 'preset' && st.data === preset.id);
+                      const isNoneSelected = preset.id === "none" && activeStickers.length === 0;
 
                       return (
                         <button
@@ -900,12 +954,12 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
                       >
                         <Camera className="w-3.5 h-3.5 text-rose-600" /> Ghép ảnh Polaroid
                       </button>
-                      {dayStickers[format(selectedDate, 'yyyy-MM-dd')] && (
+                      {Array.isArray(dayStickers[format(selectedDate, 'yyyy-MM-dd')]) && dayStickers[format(selectedDate, 'yyyy-MM-dd')].length > 0 && (
                         <button
                           onClick={() => setDayStickerValue(format(selectedDate, 'yyyy-MM-dd'), "none")}
-                          className="p-1 px-2 border border-red-200 text-crimson bg-red-50 text-[10px] rounded cursor-pointer"
+                          className="p-1 px-2 border border-red-200 text-red-600 bg-red-50 text-[10px] uppercase font-bold rounded cursor-pointer"
                         >
-                          Xóa
+                          Xóa Hết
                         </button>
                       )}
                     </div>

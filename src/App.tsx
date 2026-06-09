@@ -424,7 +424,7 @@ function AppContent() {
                 )}
               </div>
 
-              <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
+              <div className="w-full px-2 md:px-6">
               {activeEnglishSubTab === "Từ Vựng" && <Academy words={words} setWords={setWords} tags={tags} setTags={setTags} />}
               {activeEnglishSubTab === "Trò Chơi" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={(val) => {
                 if(val === "Academy") setActiveEnglishSubTab("Từ Vựng");
@@ -485,7 +485,7 @@ function AppContent() {
               ))}
             </div>
             
-            <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
+            <div className="w-full px-2 md:px-6">
               {activeCollectionSubTab === "Lists" && (
                 <div className="max-w-5xl mx-auto space-y-12">
                   <PersonalGoals 
@@ -517,7 +517,7 @@ function AppContent() {
             </div>
           </div>
         )}
-        <div className="max-w-7xl mx-auto w-full px-2 md:px-6">
+        <div className="w-full px-2 md:px-6">
           {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
           {activeTab === "Journal" && (
             <DigitalJournal 
