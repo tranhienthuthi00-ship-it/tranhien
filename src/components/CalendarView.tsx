@@ -212,6 +212,89 @@ export function PolaroidPreset({ type, className }: { type: string, className?: 
           <path d="M 68 68 L 75 75" strokeWidth="5" />
         </svg>
       );
+    case 'milktea':
+      return (
+        <svg className={cn("w-7 h-7 text-amber-950", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 30 35 L 35 85 Q 50 90 65 85 L 70 35 Z" fill="#F5DEB3" />
+          <path d="M 26 35 Q 50 25 74 35" strokeWidth="6" />
+          <path d="M 50 15 L 50 45" strokeWidth="7" stroke="#EF4444" />
+          <circle cx="42" cy="72" r="4" fill="#1F2937" stroke="none" />
+          <circle cx="58" cy="70" r="4" fill="#1F2937" stroke="none" />
+          <circle cx="50" cy="63" r="4" fill="#1F2937" stroke="none" />
+          <circle cx="45" cy="53" r="4" fill="#1F2937" stroke="none" />
+          <circle cx="55" cy="56" r="4" fill="#1F2937" stroke="none" />
+        </svg>
+      );
+    case 'coconut':
+      return (
+        <svg className={cn("w-7 h-7 text-emerald-800", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="50" cy="55" r="28" fill="#10B981" />
+          <ellipse cx="50" cy="35" rx="18" ry="7" fill="#F0FDF4" />
+          <path d="M 46 38 L 32 18" strokeWidth="6" stroke="#EC4899" />
+          <path d="M 54 35 L 68 20" strokeWidth="3" stroke="#F59E0B" />
+        </svg>
+      );
+    case 'beach':
+      return (
+        <svg className={cn("w-7 h-7 text-sky-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 10 80 Q 50 72 90 80 L 90 90 L 10 90 Z" fill="#FEF3C7" stroke="none" />
+          <path d="M 10 80 Q 30 75 50 80 Q 70 85 90 80" strokeWidth="4" stroke="#0ea5e9" />
+          <line x1="45" y1="80" x2="60" y2="35" strokeWidth="5" stroke="#78350F" />
+          <path d="M 30 45 Q 60 18 90 45 Z" fill="#EF4444" />
+          <path d="M 50 33 Q 60 45 70 33" strokeWidth="3" stroke="#FBBF24" />
+          <circle cx="24" cy="26" r="8" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1" />
+        </svg>
+      );
+    case 'watermelon':
+      return (
+        <svg className={cn("w-7 h-7 text-rose-600", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 15 45 Q 50 90 85 45 Z" fill="#F43F5E" />
+          <path d="M 15 45 Q 50 90 85 45" stroke="#10B981" strokeWidth="9" fill="none" />
+          <path d="M 15 45 Q 50 90 85 45" stroke="#ECFDF5" strokeWidth="3" fill="none" />
+          <circle cx="40" cy="55" r="2.5" fill="#000" stroke="none" />
+          <circle cx="50" cy="65" r="2.5" fill="#000" stroke="none" />
+          <circle cx="60" cy="55" r="2.5" fill="#000" stroke="none" />
+        </svg>
+      );
+    case 'icecream':
+      return (
+        <svg className={cn("w-7 h-7 text-orange-400", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 35 50 L 50 90 L 65 50 Z" fill="#F59E0B" />
+          <line x1="42" y1="50" x2="52" y2="85" strokeWidth="2.5" stroke="#D97706" />
+          <line x1="58" y1="50" x2="48" y2="85" strokeWidth="2.5" stroke="#D97706" />
+          <circle cx="50" cy="40" r="15" fill="#F472B6" />
+          <circle cx="50" cy="24" r="11" fill="#FEF08A" />
+          <circle cx="50" cy="11" r="4.5" fill="#EF4444" stroke="none" />
+          <path d="M 50 11 Q 57 2 54 -4" strokeWidth="2.5" stroke="#EF4444" />
+        </svg>
+      );
+    case 'airplane':
+      return (
+        <svg className={cn("w-7 h-7 text-blue-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 50 15 L 50 85 M 50 48 L 15 62 L 50 38 M 50 48 L 85 62 L 50 38 M 50 75 L 35 80 L 50 70 M 50 75 L 65 80 L 50 70" fill="#EFF6FF" strokeWidth="6" />
+        </svg>
+      );
+    case 'cat':
+      return (
+        <svg className={cn("w-7 h-7 text-amber-600", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="50" cy="55" r="23" fill="#F59E0B" />
+          <path d="M 30 42 L 20 18 L 40 35 Z" fill="#F59E0B" strokeWidth="4" />
+          <path d="M 70 42 L 80 18 L 60 35 Z" fill="#F59E0B" strokeWidth="4" />
+          <circle cx="41" cy="52" r="2.5" fill="#1F2937" stroke="none" />
+          <circle cx="59" cy="52" r="2.5" fill="#1F2937" stroke="none" />
+          <path d="M 48 59 L 52 59 L 50 61 Z" fill="#EF4444" stroke="none" />
+          <path d="M 50 61 Q 45 66 43 63 M 50 61 Q 55 66 57 63" strokeWidth="3" />
+        </svg>
+      );
+    case 'music':
+      return (
+        <svg className={cn("w-7 h-7 text-violet-600", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="35" cy="72" r="11" fill="#C084FC" />
+          <circle cx="75" cy="62" r="11" fill="#C084FC" />
+          <path d="M 45 72 V 18 L 85 8 V 62" strokeWidth="7" stroke="currentColor" />
+          <path d="M 45 18 L 85 8" strokeWidth="10" stroke="currentColor" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -227,7 +310,15 @@ export const STICKER_PRESETS = [
   { id: "ideas", label: "💡 Bóng Ý Tưởng", visual: "ideas" },
   { id: "coffee", label: "☕ Ly Cà Phê", visual: "coffee" },
   { id: "tree", label: "🌲 Cây Xanh", visual: "tree" },
-  { id: "sun", label: "☀️ Mặt Trời", visual: "sun" }
+  { id: "sun", label: "☀️ Mặt Trời", visual: "sun" },
+  { id: "milktea", label: "🧋 Trà Sữa", visual: "milktea" },
+  { id: "coconut", label: "🥥 Quả Dừa", visual: "coconut" },
+  { id: "beach", label: "🏖️ Bãi Biển", visual: "beach" },
+  { id: "watermelon", label: "🍉 Dưa Hấu", visual: "watermelon" },
+  { id: "icecream", label: "🍦 Kem Mát", visual: "icecream" },
+  { id: "airplane", label: "✈️ Du Lịch", visual: "airplane" },
+  { id: "cat", label: "🐱 Mèo Con", visual: "cat" },
+  { id: "music", label: "🎵 Âm Nhạc", visual: "music" }
 ];
 
 interface CalendarViewProps {
