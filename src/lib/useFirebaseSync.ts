@@ -52,8 +52,47 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 }
 
 export function useFirebaseSync() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any>(() => {
+    try {
+      const saved = localStorage.getItem("studyHub_guest_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
+
+  const loadGuestData = () => {
+    try {
+      const getLS = (key: string, def: any) => {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : def;
+      };
+      setWords(getLS('spatial_hub_words', []));
+      setTasks(getLS('spatial_hub_tasks', []));
+      setWishlist(getLS('spatial_hub_wishlist', []));
+      setLogs(getLS('spatial_hub_logs', []));
+      setFoodPlaces(getLS('spatial_hub_places', []));
+      setContentIdeas(getLS('spatial_hub_content_ideas', []));
+      setAssets(getLS('spatial_hub_assets', []));
+      const defaultCats = [
+        { id: 'cat-money', name: 'Tiền mặt & NH', icon: 'Wallet' },
+        { id: 'cat-realestate', name: 'Bất động sản', icon: 'Home' },
+        { id: 'cat-vehicles', name: 'Xe cộ', icon: 'Car' },
+        { id: 'cat-tech', name: 'Công nghệ', icon: 'Laptop' }
+      ];
+      setAssetCategories(getLS('spatial_hub_asset_cats', defaultCats));
+      setDictations(getLS('spatial_hub_dictations', []));
+      setCustomSentences(getLS('spatial_hub_custom_sentences', []));
+      setPracticeParagraphs(getLS('spatial_hub_practice_paragraphs', []));
+      setStudyGoals(getLS('spatial_hub_study_goals', []));
+      setAchievements(getLS('spatial_hub_achievements', []));
+      setTags(getLS('spatial_hub_tags', ['Tourism', 'Hospitality', 'Cruise Industry']));
+    } catch (e) {
+      console.error("Error loading guest data:", e);
+    }
+  };
+
 
   // States
   const [words, setWords] = useState<Word[]>([]);
@@ -179,17 +218,30 @@ export function useFirebaseSync() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      if (!u) {
-        setLoading(false);
-      } else {
+      if (u) {
+        setUser(u);
         migrateLocalStorage(u.uid);
+      } else {
+        const savedGuest = localStorage.getItem("studyHub_guest_user");
+        if (savedGuest) {
+          try {
+            setUser(JSON.parse(savedGuest));
+            setLoading(false);
+          } catch (e) {
+            setUser(null);
+            setLoading(false);
+          }
+        } else {
+          setUser(null);
+          setLoading(false);
+        }
       }
     });
     return unsub;
   }, []);
 
   const migrateLocalStorage = async (uid: string) => {
+    if (uid === "guest_user") return;
     const migratedV4 = localStorage.getItem(`migrated_${uid}_v4`);
     const migratedV5 = localStorage.getItem(`migrated_${uid}_v5`);
     if (migratedV5) return;
@@ -257,6 +309,12 @@ export function useFirebaseSync() {
 
   useEffect(() => {
     if (!user) return;
+
+    if (user.uid === "guest_user") {
+      loadGuestData();
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 
@@ -423,7 +481,7 @@ export function useFirebaseSync() {
 
   // Debounce saving assetsBulk to Firestore
   useEffect(() => {
-    if (!user || saveTrigger === 0) return;
+    if (!user || user.uid === "guest_user" || saveTrigger === 0) return;
 
     const t = setTimeout(async () => {
       try {
@@ -465,6 +523,30 @@ export function useFirebaseSync() {
       }
 
       try {
+        if (user.uid === "guest_user") {
+          const lsKeyMap: Record<string, string> = {
+            'words': 'spatial_hub_words',
+            'tasks': 'spatial_hub_tasks',
+            'wishlistItems': 'spatial_hub_wishlist',
+            'logEntries': 'spatial_hub_logs',
+            'foodPlaces': 'spatial_hub_places',
+            'contentIdeas': 'spatial_hub_content_ideas',
+            'assets': 'spatial_hub_assets',
+            'assetCategories': 'spatial_hub_asset_cats',
+            'dictations': 'spatial_hub_dictations',
+            'customSentences': 'spatial_hub_custom_sentences',
+            'practiceParagraphs': 'spatial_hub_practice_paragraphs',
+            'studyGoals': 'spatial_hub_study_goals',
+            'achievements': 'spatial_hub_achievements',
+            'tags': 'spatial_hub_tags'
+          };
+          const lsKey = lsKeyMap[collectionName];
+          if (lsKey) {
+            localStorage.setItem(lsKey, JSON.stringify(targetItems));
+          }
+          return;
+        }
+
         if (isSingleDoc) {
           await setDoc(doc(db, `users/${user.uid}/data/${collectionName}`), { [collectionName]: targetItems });
           return;
@@ -558,7 +640,7 @@ export function useFirebaseSync() {
     setSalaryInput: async (newVal: string) => {
       setSalaryInput(newVal);
       localStorage.setItem("studyHub_salaryInput", newVal);
-      if (user) {
+      if (user && user.uid !== "guest_user") {
         try {
           await setDoc(doc(db, `users/${user.uid}/data/salaryPlanner`), {
             salaryInput: newVal,
@@ -579,7 +661,7 @@ export function useFirebaseSync() {
       }
       setPlannedExpenses(nextVal);
       localStorage.setItem("studyHub_plannedExpenses", JSON.stringify(nextVal));
-      if (user) {
+      if (user && user.uid !== "guest_user") {
         try {
           await setDoc(doc(db, `users/${user.uid}/data/salaryPlanner`), {
             salaryInput: salaryInputRef.current,
@@ -600,7 +682,7 @@ export function useFirebaseSync() {
       }
       setHabits(nextVal);
       localStorage.setItem("studyHub_habits", JSON.stringify(nextVal));
-      if (user) {
+      if (user && user.uid !== "guest_user") {
         try {
           await setDoc(doc(db, `users/${user.uid}/data/habits`), { habits: nextVal });
         } catch (err) {
@@ -614,7 +696,7 @@ export function useFirebaseSync() {
       const updated = { ...kvStoreRef.current, [key]: value };
       setKvStore(updated);
       localStorage.setItem("studyHub_kvStore", JSON.stringify(updated));
-      if (auth.currentUser) {
+      if (auth.currentUser && user?.uid !== "guest_user") {
         try {
           await setDoc(doc(db, `users/${auth.currentUser.uid}/data/kvStore`), { data: updated }, { merge: true });
         } catch (e) { console.error("KV sync error", e); }
@@ -629,13 +711,29 @@ export function useFirebaseSync() {
       }
       setCustomRewards(nextVal);
       localStorage.setItem("studyHub_customRewardsList", JSON.stringify(nextVal));
-      if (user) {
+      if (user && user.uid !== "guest_user") {
         try {
           await setDoc(doc(db, `users/${user.uid}/data/customRewards`), { customRewards: nextVal });
         } catch (err) {
           console.error("Custom rewards sync error:", err);
         }
       }
+    },
+    loginAsGuest: () => {
+      const gUser = {
+        uid: "guest_user",
+        email: "guest@spatialhub.abc",
+        displayName: "Khách (Offline)"
+      };
+      localStorage.setItem("studyHub_guest_user", JSON.stringify(gUser));
+      setUser(gUser);
+    },
+    logout: async () => {
+      localStorage.removeItem("studyHub_guest_user");
+      try {
+        await auth.signOut();
+      } catch (e) {}
+      setUser(null);
     }
   };
 }

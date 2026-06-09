@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 
-export function Login({ onLogin }: { onLogin: () => void }) {
+export function Login({ onLogin, onGuestLogin }: { onLogin: () => void; onGuestLogin?: () => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -34,6 +34,14 @@ export function Login({ onLogin }: { onLogin: () => void }) {
     } catch (err: any) {
       if (err.code === "auth/operation-not-allowed") {
         setError("LỖI: Bạn cần vào Firebase Console -> Authentication -> Sign-in method -> BẬT 'Email/Password'.");
+      } else if (err.code === "auth/network-request-failed") {
+        setError("Lỗi kết nối mạng! Vui lòng kiểm tra lại đường truyền internet.");
+      } else if (err.code === "auth/weak-password") {
+        setError("Mật khẩu quá yếu! Vui lòng dùng mật khẩu tối thiểu 6 ký tự.");
+      } else if (err.code === "auth/email-already-in-use") {
+        setError("Tên đăng nhập này đã có người đăng ký với mật khẩu khác. Vui lòng kiểm tra lại mật khẩu hoặc đổi tên đăng nhập mới.");
+      } else if (err.code === "auth/invalid-credential") {
+        setError("Mật khẩu không khớp với tên đăng nhập này. Vui lòng nhập đúng mật khẩu hoặc chọn một tên đăng nhập khác.");
       } else {
         setError("Sai tên đăng nhập hoặc mật khẩu, hoặc lỗi mạng.");
       }
@@ -134,6 +142,24 @@ export function Login({ onLogin }: { onLogin: () => void }) {
             >
               Let's Go!
             </button>
+
+            {onGuestLogin && (
+              <>
+                <div className="relative flex items-center my-4">
+                  <div className="flex-grow border-t border-dashed border-ink/20"></div>
+                  <span className="flex-shrink mx-4 hand-text text-lg text-ink/40">HOẶC</span>
+                  <div className="flex-grow border-t border-dashed border-ink/20"></div>
+                </div>
+
+                <button 
+                  type="button"
+                  onClick={onGuestLogin}
+                  className="w-full sketch-button py-2.5 text-base font-bold bg-[#f4f1ea] text-ink hover:bg-emerald-50 hover:text-emerald-800 transition-all duration-300"
+                >
+                  🚀 Vào chế độ Khách (Offline - Không cần mạng)
+                </button>
+              </>
+            )}
           </div>
         </form>
       </div>
