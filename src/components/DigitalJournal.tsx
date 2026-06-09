@@ -423,7 +423,7 @@ export function DigitalJournal({
     return `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
   }, [currentMonth]);
 
-  const [dayStickers, setDayStickers] = useSyncedState<Record<string, { type: 'preset' | 'upload'; data: string }>>(`studyHub_calendarDayPics_${monthStr}`, {});
+  const [dayStickers, setDayStickers] = useSyncedState<Record<string, any>>(`studyHub_calendarDayPics_${monthStr}`, {});
   const [dayRings, setDayRings] = useSyncedState<Record<string, boolean>>(`studyHub_calendarRings_${monthStr}`, {});
   const [dayCards, setDayCards] = useSyncedState<Record<string, {
     topTitle: string;
@@ -434,14 +434,37 @@ export function DigitalJournal({
     customBody?: string;
   }>>("studyHub_calendarDayCards_v1", {});
 
+  const getStickersForDay = (dateStr: string): { type: 'preset' | 'upload'; data: string }[] => {
+    const raw = dayStickers[dateStr];
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'object' && raw.type && raw.data) {
+      return [raw];
+    }
+    return [];
+  };
+
   const setDayStickerValue = (dateStr: string, stickerId: string, imageBase64?: string) => {
     const updated = { ...dayStickers };
+    const current = getStickersForDay(dateStr);
+
     if (stickerId === "none" && !imageBase64) {
       delete updated[dateStr];
     } else if (imageBase64) {
-      updated[dateStr] = { type: 'upload' as const, data: imageBase64 };
+      updated[dateStr] = [...current, { type: 'upload' as const, data: imageBase64 }];
     } else {
-      updated[dateStr] = { type: 'preset' as const, data: stickerId };
+      const existsIdx = current.findIndex(st => st.type === 'preset' && st.data === stickerId);
+      if (existsIdx > -1) {
+        const next = [...current];
+        next.splice(existsIdx, 1);
+        if (next.length === 0) {
+          delete updated[dateStr];
+        } else {
+          updated[dateStr] = next;
+        }
+      } else {
+        updated[dateStr] = [...current, { type: 'preset' as const, data: stickerId }];
+      }
     }
     setDayStickers(updated);
   };
@@ -1189,13 +1212,31 @@ export function DigitalJournal({
                                 <div className="absolute top-[28%] left-0 right-0 bottom-0 flex flex-col items-center justify-start z-0 opacity-95 overflow-hidden pointer-events-none pb-1.5 py-1 px-0.5">
                                   {/* 1. Sticker, Uploaded Photo or Auto Event Emoji */}
                                   {hasSticker ? (
-                                    <div className="flex items-center justify-center mb-1 shrink-0">
-                                      {stickerData?.type === 'preset' && (
-                                        <PolaroidPreset type={stickerData.data} className="w-7 h-7 md:w-8 md:h-8 drop-shadow-xs text-[#8A1E2B] hover:scale-110 transition-transform" />
-                                      )}
-                                      {stickerData?.type === 'upload' && (
-                                        <img src={stickerData.data} alt="sticker" className="w-7 h-7 md:w-8 md:h-8 object-contain rounded border border-neutral-200/30" />
-                                      )}
+                                    <div className="relative w-full h-8 md:h-10 flex items-center justify-center mb-1 shrink-0">
+                                      {(() => {
+                                        const cellStickers = getStickersForDay(cell.dateStr || "");
+                                        return cellStickers.map((st, sIdx) => {
+                                          const rot = sIdx === 0 ? -6 : sIdx === 1 ? 6 : sIdx === 2 ? -2 : 2;
+                                          const total = cellStickers.length;
+                                          const offsetPx = total > 1 ? (sIdx - (total - 1) / 2) * 8 : 0;
+                                          return (
+                                            <div
+                                              key={sIdx}
+                                              className="absolute animate-fade-in"
+                                              style={{
+                                                transform: `translateX(${offsetPx}px) rotate(${rot}deg)`,
+                                                zIndex: sIdx + 1,
+                                              }}
+                                            >
+                                              {st.type === 'preset' ? (
+                                                <PolaroidPreset type={st.data} className="w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 drop-shadow-xs text-[#8A1E2B]" />
+                                              ) : (
+                                                <img src={st.data} alt="sticker" className="w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 object-cover rounded border border-neutral-300 bg-white p-0.5 shadow-xs" />
+                                              )}
+                                            </div>
+                                          );
+                                        });
+                                      })()}
                                     </div>
                                   ) : (
                                     (() => {
@@ -1264,15 +1305,15 @@ export function DigitalJournal({
                </div>
             </div>
 
-            {/* MIDDLE: TO DO LIST */}
-            <div className="lg:col-span-1 flex flex-col pt-16 xl:pl-4">
-                
-                {/* To Do List */}
-                <div className="space-y-4">
-                   <div className="flex items-center gap-6 mb-4">
-                     <h3 className="font-hand font-black text-xl text-[#3A1412] tracking-wider uppercase m-0 flex-1">TODAY TO DO LIST:</h3>
-                     
-                     {/* Mascot */}
+             {/* MIDDLE: TO DO LIST */}
+             <div className="lg:col-span-1 flex flex-col pt-16 xl:pl-4">
+                 
+                 {/* To Do List */}
+                 <div className="space-y-4">
+                    <div className="flex items-center gap-6 mb-4">
+                      <h3 className="font-hand font-black text-xl text-[#3A1412] tracking-wider uppercase m-0 flex-1">TODAY TO DO LIST:</h3>
+                      
+                      {/* Mascot */}
                      <div className="w-24 h-24 pointer-events-none relative -mt-9 shrink-0 -mr-4" style={{ zIndex: 50 }}>
                         {(() => {
                             const allDisplayTasks = [
@@ -1282,122 +1323,118 @@ export function DigitalJournal({
                             
                             const completedCount = allDisplayTasks.filter(t => t.done).length;
                             const totalDisplayTasks = allDisplayTasks.length;
-                            const ratio = totalDisplayTasks === 0 ? 1 : completedCount / totalDisplayTasks;
-                            const controlY = 45 + ratio * 30;
+                            const ratio = totalDisplayTasks === 0 ? 0 : completedCount / totalDisplayTasks;
 
                             return (
-                              <svg viewBox="0 0 100 110" className="w-full h-full stroke-[#8A1E2B] stroke-[2.5]" strokeLinecap="round" strokeLinejoin="round" style={{ overflow: 'visible' }}>
-                                 {/* 1. Mascot Hair Back (Wavy, dark brown) */}
-                                 <motion.path 
+                              <svg viewBox="0 0 100 110" className="w-full h-full stroke-[#4A2D2A] stroke-[2.2]" strokeLinecap="round" strokeLinejoin="round" style={{ overflow: 'visible' }}>
+                                 {/* 1. Long Curly Hair (Back Mass) */}
+                                 <path 
                                    d="M 24 45 
-                                      C 10 52, 6 65, 12 78 
-                                      C 6 86, 14 96, 26 95 
-                                      C 22 104, 38 108, 48 102 
-                                      C 60 106, 74 102, 74 94 
-                                      C 84 92, 92 80, 84 70 
-                                      C 96 58, 88 46, 76 43 Z" 
-                                   fill="#5C382A" stroke="#3A1412" strokeWidth="2.5" 
-                                   animate={{ 
-                                      rotate: ratio === 1 ? [0, -1, 1, -1, 0] : 0,
-                                      y: ratio === 1 ? [0, -1, 0] : 0 
-                                    }}
+                                      C 8 50, 4 65, 8 75
+                                      C 2 82, 4 92, 12 98
+                                      C 20 104, 30 100, 28 92
+                                      C 32 98, 48 100, 48 92
+                                      C 48 98, 64 98, 68 92
+                                      C 66 100, 76 104, 84 98
+                                      C 92 92, 94 82, 88 75
+                                      C 92 65, 88 50, 74 45 Z" 
+                                   fill="#5C3B30" stroke="#3A1412" strokeWidth="2.5" 
                                  />
                                  
-                                 {/* 2. Body/Shoulders is next */}
-                                 <motion.path 
-                                    d="M 32 82 L 68 82 L 72 110 L 28 110 Z" 
-                                    fill="#FFF9F0" stroke="#3A1412" strokeWidth="2.5"
+                                 {/* Curly spirals/texture inside the hair pack */}
+                                 <path d="M 14 62 Q 10 70 16 75" fill="none" stroke="#3A1412" strokeWidth="1.8" />
+                                 <path d="M 12 78 Q 8 85 14 90" fill="none" stroke="#3A1412" strokeWidth="1.8" />
+                                 <path d="M 84 62 Q 88 70 82 75" fill="none" stroke="#3A1412" strokeWidth="1.8" />
+                                 <path d="M 86 78 Q 90 85 84 90" fill="none" stroke="#3A1412" strokeWidth="1.8" />
+
+                                 {/* 2. Hand-drawn shoulders/body */}
+                                 <path 
+                                   d="M 30 85 Q 50 88 70 85 L 75 110 L 25 110 Z" 
+                                   fill="#FFEFE5" stroke="#3A1412" strokeWidth="2.5" 
                                  />
-                                 
-                                 {/* White tank top dress matching photo */}
-                                 <path d="M 33 82 L 67 82 L 71 110 L 29 110 Z" fill="#FFFFFF" />
-                                 {/* Spaghetti straps */}
-                                 <line x1="36" y1="82" x2="36" y2="76" stroke="#3A1412" strokeWidth="1.5" />
-                                 <line x1="64" y1="82" x2="64" y2="76" stroke="#3A1412" strokeWidth="1.5" />
-                                 
-                                 {/* Cute sunglasses hanging on her neck frame */}
-                                 <ellipse cx="46" cy="88" rx="4" ry="5.5" fill="#2D2D2D" stroke="#3A1412" strokeWidth="1.5" />
-                                 <ellipse cx="54" cy="88" rx="4" ry="5.5" fill="#2D2D2D" stroke="#3A1412" strokeWidth="1.5" />
-                                 <line x1="46" y1="84" x2="54" y2="84" stroke="#3A1412" strokeWidth="2" />
+                                 {/* Hand-drawn striped shirt */}
+                                 <path d="M 28 92 L 72 92" stroke="#8A1E2B" strokeWidth="2" />
+                                 <path d="M 26 100 L 74 100" stroke="#8A1E2B" strokeWidth="2" />
+                                 <path d="M 25 108 L 75 108" stroke="#8A1E2B" strokeWidth="2" />
 
-                                 {/* 3. Coconut of Right hand */}
-                                 <circle cx="20" cy="85" r="10.5" fill="#8FA03B" stroke="#3A1412" strokeWidth="2.5" />
-                                 {/* Cut flat top center list of coco */}
-                                 <ellipse cx="20" cy="76" rx="6" ry="2.2" fill="#EAD9C2" stroke="#3A1412" strokeWidth="1.5" />
-                                 <circle cx="20" cy="76" r="2.5" fill="#8A1E2B" opacity="0.4" />
-                                 {/* Straw */}
-                                 <path d="M 21 76 L 16 64 L 14 64" fill="none" stroke="#FAF3EB" strokeWidth="2.5" />
-                                 <path d="M 21 76 L 16 64 L 14 64" fill="none" stroke="#3A1412" strokeWidth="1" />
-
-                                 {/* 4. Left Arm gesturing cute to her face */}
-                                 <path d="M 68 85 Q 78 80 75 70" fill="none" stroke="#FFF9F0" strokeWidth="7" strokeLinecap="round" />
-                                 <path d="M 68 85 Q 78 80 75 70" fill="none" stroke="#3A1412" strokeWidth="9" strokeLinecap="round" style={{ zIndex: -1 }} />
-                                 <path d="M 68 85 Q 78 80 75 70" fill="none" stroke="#FFF9F0" strokeWidth="6" strokeLinecap="round" />
-
-                                 {/* 5. Face/Head */}
-                                 <motion.path 
-                                    d="M 26 48 C 26 30 74 30 74 48 C 74 65 65 73 50 73 C 35 73 26 65 26 48 Z" 
-                                    fill="#FFF9F0" stroke="#3A1412" strokeWidth="2.5"
-                                    animate={{ 
-                                      rotate: ratio === 1 ? [0, -1, 1, -1, 0] : 0,
-                                      y: ratio === 1 ? [0, -1, 0] : 0 
-                                    }}
-                                    transition={{ duration: 0.5, repeat: ratio === 1 ? Infinity : 0, repeatDelay: 2 }}
+                                 {/* 3. Face/Head (Slightly uneven hand-drawn sketch) */}
+                                 <path 
+                                    d="M 28 45 C 28 28, 72 28, 72 45 C 72 63, 62 70, 50 70 C 38 70, 28 63, 28 45 Z" 
+                                    fill="#FFF4EE" stroke="#3A1412" strokeWidth="2.5"
                                  />
 
-                                 {/* Rosy Peach Cheek blushes */}
-                                 <ellipse cx="34" cy="58" rx="6.5" ry="3.5" fill="#FF9E9E" opacity="0.75" />
-                                 <ellipse cx="66" cy="58" rx="6.5" ry="3.5" fill="#FF9E9E" opacity="0.75" />
-                                 
-                                 {/* Big expression eyes looking sideways (viewer right) */}
-                                 <ellipse cx="38" cy="48" rx="6" ry="5.5" fill="#FFFFFF" stroke="#3A1412" strokeWidth="2.2" />
-                                 <circle cx="41.5" cy="48" r="4" fill="#3A1412" />
-                                 <circle cx="43" cy="46" r="1.2" fill="#FFFFFF" />
+                                 {/* 4. Front Curly Hair Bangs and side locks */}
+                                 <path 
+                                   d="M 28 45 C 32 32, 45 30, 50 36 C 55 30, 68 32, 72 45 Q 60 36, 50 38 Q 40 36, 28 45 Z" 
+                                   fill="#5C3B30" stroke="#3A1412" strokeWidth="2.5" 
+                                 />
+                                 {/* Long curly danglers framing sides */}
+                                 <path d="M 29 45 Q 23 58 28 66 T 25 74" fill="none" stroke="#3A1412" strokeWidth="2.2" />
+                                 <path d="M 71 45 Q 77 58 72 66 T 75 74" fill="none" stroke="#3A1412" strokeWidth="2.2" />
 
-                                 <ellipse cx="62" cy="48" rx="6" ry="5.5" fill="#FFFFFF" stroke="#3A1412" strokeWidth="2.2" />
-                                 <circle cx="65.5" cy="48" r="4" fill="#3A1412" />
-                                 <circle cx="67" cy="46" r="1.2" fill="#FFFFFF" />
-                                 
-                                 {/* Cute Little Curve Nose */}
-                                 <path d="M 48 54 Q 50 51 51 54" fill="none" stroke="#3A1412" strokeWidth="2" strokeLinecap="round" />
-                                 
-                                 {/* Animated Smile */}
-                                 {ratio <1 ? (
-                                    <path d="M 46 61 Q 50 64 54 61" fill="none" stroke="#3A1412" strokeWidth="2.5" strokeLinecap="round" />
+                                 {/* 5. Rosy peach cheeks blush */}
+                                 <ellipse cx="33" cy="56" rx="5" ry="3.2" fill="#FFA5A5" opacity="0.6" />
+                                 <ellipse cx="67" cy="56" rx="5" ry="3.2" fill="#FFA5A5" opacity="0.6" />
+
+                                 {/* Doodle Eyebrows */}
+                                 <path d="M 33 42 Q 38 40 42 43" fill="none" stroke="#3A1412" strokeWidth="1.8" />
+                                 <path d="M 58 43 Q 62 40 67 42" fill="none" stroke="#3A1412" strokeWidth="1.8" />
+
+                                 {/* 6. Dynamic Doodle Eyes */}
+                                 {ratio >= 0.75 ? (
+                                   <>
+                                     {/* Happy closed arched eyes */}
+                                     <path d="M 33 48 Q 38 42 43 48" fill="none" stroke="#3A1412" strokeWidth="2.8" strokeLinecap="round" />
+                                     <path d="M 57 48 Q 62 42 67 48" fill="none" stroke="#3A1412" strokeWidth="2.8" strokeLinecap="round" />
+                                   </>
                                  ) : (
-                                    <motion.path 
-                                       d="M 44 60 Q 50 67 56 60 Z" 
-                                       fill="#E56B6F" stroke="#3A1412" strokeWidth="2.2" strokeLinejoin="round"
-                                       animate={{ scale: [1, 1.1, 1] }}
-                                    />
+                                   <>
+                                     {/* Simple big expressive dots */}
+                                     <circle cx="38" cy="48" r="3.5" fill="#3A1412" />
+                                     <circle cx="62" cy="48" r="3.5" fill="#3A1412" />
+                                     <circle cx="39.2" cy="46.5" r="1" fill="#FFFFFF" />
+                                     <circle cx="63.2" cy="46.5" r="1" fill="#FFFFFF" />
+                                   </>
                                  )}
 
-                                 {/* Bangs (wavy/curly, framing forehead) */}
-                                 <path d="M 25 48 C 30 32, 48 27, 50 36 C 52 27, 70 32, 75 48 C 65 34, 35 34, 25 48 Z" fill="#5C382A" stroke="#3A1412" strokeWidth="2" strokeLinejoin="round" />
-                                 {/* Hair Side strand details */}
-                                 <path d="M 25 48 Q 28 58 26 66" fill="none" stroke="#3A1412" strokeWidth="2" />
-                                 <path d="M 75 48 Q 72 58 74 66" fill="none" stroke="#3A1412" strokeWidth="2" />
+                                 {/* Small Curve Nose */}
+                                 <path d="M 48 53 Q 50 51 51 53" fill="none" stroke="#3A1412" strokeWidth="2" strokeLinecap="round" />
 
-                                 {/* 6. Straw Hat (Crown + Red Ribbon Band + Wide Brim) */}
-                                 <ellipse cx="50" cy="23" rx="19" ry="11.5" fill="#DEC083" stroke="#3A1412" strokeWidth="2.5" />
-                                 {/* Red Ribbon Band (Crimson accent) */}
-                                 <path d="M 31 24 C 31 24, 50 21, 69 24 L 70 28 C 70 28, 50 25, 30 28 Z" fill="#8A1E2B" stroke="#3A1412" strokeWidth="1" />
-                                 {/* Wide Brim */}
-                                 <ellipse cx="50" cy="30" rx="36" ry="7.2" fill="#DEC083" stroke="#3A1412" strokeWidth="2.5" />
-                                 {/* Straw Texture details */}
-                                 <path d="M 40 18 Q 45 15 50 18" fill="none" stroke="#B89753" strokeWidth="1" />
-                                 <path d="M 50 16 Q 55 13 60 16" fill="none" stroke="#B89753" strokeWidth="1" />
-                                 
-                                 {/* Sparkles if Happy (100% complete) */}
+                                 {/* 7. Dynamic Hand-drawn Smile (Saves ratio level) */}
+                                 {(() => {
+                                    if (ratio === 0) {
+                                      // No completed tasks: neutral straight line
+                                      return <path d="M 44 61 Q 50 61 56 61" fill="none" stroke="#3A1412" strokeWidth="2.5" strokeLinecap="round" />;
+                                    } else if (ratio <= 0.34) {
+                                      // Few completed tasks: tiny modest smile
+                                      return <path d="M 44 60 Q 50 63 56 60" fill="none" stroke="#3A1412" strokeWidth="2.5" strokeLinecap="round" />;
+                                    } else if (ratio <= 0.75) {
+                                      // Medium completed tasks: beautiful warm smile
+                                      return <path d="M 42 59 Q 50 67 58 59" fill="none" stroke="#3A1412" strokeWidth="2.5" strokeLinecap="round" />;
+                                    } else {
+                                      // A lot of completed tasks: full happy open laughing mouth
+                                      return (
+                                        <g>
+                                          <path d="M 41 58 Q 50 71 59 58 Z" fill="#E56B6F" stroke="#3A1412" strokeWidth="2.5" strokeLinejoin="round" />
+                                          {/* Cute tongue */}
+                                          <path d="M 45 65 Q 50 61 55 65 Q 50 71 45 65" fill="#FFA5A5" />
+                                        </g>
+                                      );
+                                    }
+                                 })()}
+
+                                 {/* Cute hand-drawn decorative heart if extreme happy */}
                                  <AnimatePresence>
-                                  {ratio === 1 && (
+                                  {ratio >= 0.75 && (
                                      <motion.g
-                                       initial={{ opacity: 0, scale: 0 }}
-                                       animate={{ opacity: 1, scale: 1 }}
+                                       initial={{ opacity: 0, scale: 0, rotate: -15 }}
+                                       animate={{ opacity: 1, scale: 1, rotate: [0, -5, 5, 0] }}
                                        exit={{ opacity: 0, scale: 0 }}
+                                       transition={{ duration: 0.4 }}
                                      >
-                                        <path d="M 5 20 L 10 10 L 15 20 L 25 25 L 15 30 L 10 40 L 5 30 L -5 25 Z" fill="#FFA39E" stroke="none" transform="scale(0.5) translate(10, 20)"/>
-                                        <path d="M 85 20 L 90 10 L 95 20 L 105 25 L 95 30 L 90 40 L 85 30 L 75 25 Z" fill="#EAB308" stroke="none" transform="scale(0.5) translate(100, 30)"/>
+                                        {/* Golden sparkles in background of happy hand-drawn girl */}
+                                        <path d="M 5 20 Q 10 10 15 20 T 25 25 T 15 30 T 10 40 T 5 30 T -5 25 Z" fill="#FFA39E" stroke="none" transform="scale(0.4) translate(10, 20)"/>
+                                        <path d="M 85 20 Q 90 10 95 20 T 105 25 T 95 30 T 90 40 T 85 30 T 75 25 Z" fill="#EAB308" stroke="none" transform="scale(0.4) translate(110, 30)"/>
                                      </motion.g>
                                   )}
                                  </AnimatePresence>
@@ -1715,9 +1752,9 @@ export function DigitalJournal({
                     
                     <div className="grid grid-cols-5 gap-1.5">
                       {STICKER_PRESETS.map(preset => {
-                        const activeSticker = dayStickers[selectedDateStr];
-                        const isSelected = activeSticker?.type === 'preset' && activeSticker?.data === preset.id;
-                        const isNoneSelected = preset.id === "none" && !activeSticker;
+                        const currentStickers = getStickersForDay(selectedDateStr);
+                        const isSelected = currentStickers.some(st => st.type === 'preset' && st.data === preset.id);
+                        const isNoneSelected = preset.id === "none" && currentStickers.length === 0;
 
                         return (
                           <button
@@ -1757,6 +1794,41 @@ export function DigitalJournal({
                         {dayRings[selectedDateStr] ? '⭕ Đã Khoanh Đỏ' : '⭕ Khoanh Đỏ Lịch'}
                       </button>
                     </div>
+
+                    {/* Active stickers gallery list */}
+                    {getStickersForDay(selectedDateStr).length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-dashed border-[#5C0612]/15">
+                        <span className="text-[10px] uppercase font-bold text-[#5C0612]/60 block mb-2 font-mono">Stickers đã thêm ({getStickersForDay(selectedDateStr).length}):</span>
+                        <div className="flex flex-wrap gap-2">
+                          {getStickersForDay(selectedDateStr).map((st, idx) => (
+                            <div key={idx} className="relative group/mini bg-white border border-[#5C0612]/15 rounded-lg p-1 flex items-center gap-1">
+                              {st.type === 'preset' ? (
+                                <PolaroidPreset type={st.data} className="w-6 h-6 text-[#8A1E2B]" />
+                              ) : (
+                                <img src={st.data} alt="sticker" className="w-6 h-6 object-cover rounded" />
+                              )}
+                              <button 
+                                onClick={() => {
+                                  const updated = { ...dayStickers };
+                                  const current = getStickersForDay(selectedDateStr);
+                                  const next = current.filter((_, sIdx) => sIdx !== idx);
+                                  if (next.length === 0) {
+                                    delete updated[selectedDateStr];
+                                  } else {
+                                    updated[selectedDateStr] = next;
+                                  }
+                                  setDayStickers(updated);
+                                }}
+                                className="w-4 h-4 rounded-full bg-red-100 hover:bg-red-200 text-red-600 font-bold flex items-center justify-center text-[9px] cursor-pointer"
+                                title="Xóa sticker này"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Part 2: Quick Logs */}
