@@ -1195,9 +1195,7 @@ export function DigitalJournal({
                              key={i} 
                              className={`p-2 flex flex-col relative group transition-colors ${
                                 cell.day 
-                                  ? isToday 
-                                    ? 'cursor-pointer bg-[#8A1E2B]/8 hover:bg-[#8A1E2B]/12 ring-[2.5px] ring-inset ring-[#8A1E2B]' 
-                                    : 'cursor-pointer hover:bg-[#8A1E2B]/5 bg-transparent' 
+                                  ? 'cursor-pointer hover:bg-[#8A1E2B]/5 bg-transparent' 
                                   : 'bg-neutral-100/20 cursor-default'
                              } ${!isLastInRow ? 'border-r-[2px] border-[#8A1E2B]' : ''} ${!isLastRow ? 'border-b-[2px] border-[#8A1E2B]' : ''}`}  
                              onClick={() => {
@@ -1209,10 +1207,13 @@ export function DigitalJournal({
                           >
                               {cell.day && (
                                 <div className="flex items-center justify-between z-10 relative">
-                                  <span className="text-sm md:text-lg font-hand font-extrabold text-[#8A1E2B] group-hover:scale-110 transition-transform underline decoration-[#8A1E2B] decoration-[1.5px] underline-offset-4">{cell.day}</span>
-                                  {isToday && (
-                                    <span className="text-[10px] font-hand font-black bg-[#8A1E2B] text-white px-1.5 py-0.5 rounded shadow-2xs leading-none select-none tracking-wider">
-                                      HÔM NAY
+                                  {isToday ? (
+                                    <span className="w-6 h-6 md:w-8 md:h-8 flex items-center justify-center rounded-full bg-[#8A1E2B] text-white text-xs md:text-sm font-hand font-black shadow-xs select-none">
+                                      {cell.day}
+                                    </span>
+                                  ) : (
+                                    <span className="text-sm md:text-lg font-hand font-extrabold text-[#8A1E2B] group-hover:scale-110 transition-transform underline decoration-[#8A1E2B] decoration-[1.5px] underline-offset-4">
+                                      {cell.day}
                                     </span>
                                   )}
                                 </div>
