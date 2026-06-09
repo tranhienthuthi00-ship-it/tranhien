@@ -33,6 +33,7 @@ import {
 import { useFirebase } from "../context/FirebaseContext";
 import { cn } from "../lib/utils";
 import { PolaroidPreset, STICKER_PRESETS } from "./CalendarView";
+import html2canvas from "html2canvas";
 
 
 const formatDateDot = (dateStr: string) => {
@@ -52,6 +53,139 @@ const formatDateDot = (dateStr: string) => {
     }
   } catch (err) {}
   return dateStr;
+};
+
+const formatPosterDate = (dateStr: string) => {
+  if (!dateStr) return "";
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const year = parts[0];
+    const monthIndex = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    
+    const months = [
+      "January", "February", "March", "April", "May", "June", 
+      "July", "August", "September", "October", "November", "December"
+    ];
+    
+    return `${months[monthIndex]} ${day}, ${year}`;
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+const DoodleRenderer: React.FC<{ type: string }> = ({ type }) => {
+  switch (type) {
+    case 'study':
+      return (
+        <svg viewBox="0 0 400 320" className="w-full h-full max-h-[190px] md:max-h-[220px] select-none" fill="none" stroke="#251F1D" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 110 160 L 230 160 L 220 185 L 100 185 Z" fill="#FCFAF2" stroke="#251F1D" />
+          <path d="M 100 185 C 120 188, 205 188, 220 185 M 230 160 C 228 168, 223 178, 220 185" stroke="#251F1D" />
+          <path d="M 125 130 L 245 130 L 235 155 L 115 155 Z" fill="#E8F4F8" stroke="#251F1D" />
+          <path d="M 115 155 C 135 158, 220 158, 235 155 M 245 130 C 243 138, 238 148, 235 155" stroke="#251F1D" />
+          <path d="M 170 120 L 210 75 Q 250 82 290 75 L 250 120 Z" fill="#FAF6EC" stroke="#251F1D" />
+          <path d="M 270 145 Q 265 175 285 175 Q 305 175 300 145 Z" fill="#FDE1D3" stroke="#251F1D" />
+          <ellipse cx="285" cy="145" rx="15" ry="5" stroke="#251F1D" fill="#5C3D2E" />
+          <path d="M 300 150 Q 312 158 298 166" stroke="#251F1D" strokeWidth="2.2" />
+          <path d="M 140 130 L 130 60 Q 150 40 180 55" stroke="#251F1D" strokeWidth="3" />
+          <path d="M 165 45 L 195 65 L 180 75 L 150 55 Z" fill="#FFEAA7" stroke="#251F1D" />
+          <path d="M 160 65 L 110 130 M 190 70 L 260 130" stroke="#FFEAA7" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.6" />
+          <path d="M 320 60 L 330 65 L 320 70 L 310 65 Z" fill="#FBC09C" stroke="none" />
+        </svg>
+      );
+    case 'sleep':
+      return (
+        <svg viewBox="0 0 400 320" className="w-full h-full max-h-[190px] md:max-h-[220px] select-none" fill="none" stroke="#251F1D" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 230 60 C 140 60, 130 160, 210 180 C 170 160, 170 90, 230 60 Z" fill="#FFEAA7" stroke="#251F1D" />
+          <path d="M 175 115 Q 182 122 190 115" stroke="#251F1D" strokeWidth="2" fill="none" />
+          <path d="M 183 62 C 185 45, 230 30, 245 42 C 260 55, 245 75, 222 61 Z" fill="#E8F4F8" stroke="#251F1D" />
+          <circle cx="250" cy="42" r="6" fill="#FFF" stroke="#251F1D" />
+          <path d="M 120 180 C 100 180, 90 160, 110 145 C 100 125, 140 110, 160 120 C 180 100, 230 110, 230 135 C 250 135, 260 155, 250 170 C 260 185, 230 200, 210 190 C 190 205, 140 205, 120 180 Z" fill="#FCFAF2" stroke="#251F1D" />
+          <circle cx="140" cy="155" r="5" fill="#FF8D8D" opacity="0.6" stroke="none" />
+          <circle cx="210" cy="155" r="5" fill="#FF8D8D" opacity="0.6" stroke="none" />
+          <path d="M 152 148 Q 158 153 164 148" stroke="#251F1D" />
+          <path d="M 186 148 Q 192 153 198 148" stroke="#251F1D" />
+          <path d="M 170 162 Q 175 168 180 162" stroke="#251F1D" />
+          <path d="M 90 80 Q 90 90 100 90 Q 90 90 90 100 Q 90 90 80 90 Q 90 90 90 80" fill="#FBC09C" stroke="none" />
+          <path d="M 280 110 Q 280 120 290 120 Q 280 120 280 130 Q 280 120 270 120 Q 280 120 280 110" fill="#FBC09C" stroke="none" />
+        </svg>
+      );
+    case 'workout':
+      return (
+        <svg viewBox="0 0 400 320" className="w-full h-full max-h-[190px] md:max-h-[220px] select-none" fill="none" stroke="#251F1D" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="160" cy="155" r="40" fill="#E8F4F8" stroke="#251F1D" />
+          <path d="M 135 122 C 135 95, 185 95, 185 122" stroke="#251F1D" strokeWidth="4.5" />
+          <path d="M 145 125 C 145 108, 175 108, 175 125" stroke="#251F1D" strokeWidth="1.5" />
+          <text x="150" y="162" fontFamily="var(--font-mono)" fontWeight="bold" fontSize="14" fill="#251F1D">10</text>
+          <path d="M 210 185 L 290 185 C 300 185, 305 175, 298 160 L 275 130 C 265 120, 245 120, 235 132 L 210 165 Z" fill="#FCFAF2" stroke="#251F1D" />
+          <path d="M 205 185 C 235 190, 265 190, 295 185" stroke="#251F1D" strokeWidth="3" />
+          <path d="M 245 140 L 235 165 M 255 140 L 245 168 M 265 142 L 255 170" stroke="#251F1D" strokeWidth="1.5" />
+          <path d="M 110 50 Q 120 35 130 50 L 110 70 L 90 50 Q 100 35 110 50" fill="#FF7675" stroke="#251F1D" />
+          <path d="M 60 60 L 75 60 L 80 40 L 85 75 L 90 55 L 95 60 L 119 60" stroke="#FF7675" strokeWidth="2" />
+        </svg>
+      );
+    case 'travel':
+      return (
+        <svg viewBox="0 0 400 320" className="w-full h-full max-h-[190px] md:max-h-[220px] select-none" fill="none" stroke="#251F1D" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="110" y="100" width="130" height="95" rx="15" fill="#FCFAF2" stroke="#251F1D" />
+          <rect x="110" y="125" width="130" height="15" fill="#E8F4F8" stroke="#251F1D" />
+          <rect x="125" y="110" width="18" height="10" rx="3" fill="#FFEAA7" stroke="#251F1D" />
+          <circle cx="175" cy="148" r="28" fill="#FDE1D3" stroke="#251F1D" />
+          <circle cx="175" cy="148" r="16" fill="#251F1D" />
+          <circle cx="171" cy="144" r="4" fill="#FFF" />
+          <circle cx="218" cy="112" r="5" fill="#FF7675" stroke="#251F1D" />
+          <path d="M 230 155 Q 248 140 262 155 C 265 170, 245 178, 230 155 Z" fill="#251F1D" stroke="#251F1D" />
+          <path d="M 268 155 Q 286 140 300 155 C 303 170, 283 178, 268 155 Z" fill="#251F1D" stroke="#251F1D" />
+          <path d="M 261 149 Q 265 145 269 149" stroke="#251F1D" strokeWidth="2.5" />
+          <path d="M 270 70 L 310 50 L 290 90 L 280 75 Z" fill="#FCFAF2" stroke="#251F1D" />
+        </svg>
+      );
+    case 'movie':
+      return (
+        <svg viewBox="0 0 400 320" className="w-full h-full max-h-[190px] md:max-h-[220px] select-none" fill="none" stroke="#251F1D" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 130 110 L 145 190 L 195 190 L 210 110 Z" fill="#FCFAF2" stroke="#251F1D" />
+          <path d="M 148 110 L 158 190 M 170 110 L 170 190 M 192 110 L 182 190" stroke="#FF7675" strokeWidth="5" />
+          <path d="M 130 110 L 145 190 L 195 190 L 210 110 Z" fill="none" stroke="#251F1D" />
+          <path d="M 125 110 C 120 100, 135 95, 140 105 C 145 92, 160 92, 165 105 C 170 95, 185 92, 190 105 C 195 95, 210 100, 205 110 Z" fill="#FFEAA7" stroke="#251F1D" />
+          <circle cx="145" cy="95" r="6" fill="#FFEAA7" stroke="#251F1D" />
+          <circle cx="160" cy="85" r="7" fill="#FFEAA7" stroke="#251F1D" />
+          <circle cx="180" cy="90" r="6" fill="#FFEAA7" stroke="#251F1D" />
+          <circle cx="192" cy="100" r="5" fill="#FFEAA7" stroke="#251F1D" />
+          <path d="M 235 130 L 245 190 L 275 190 L 285 130 Z" fill="#E8F4F8" stroke="#251F1D" />
+          <ellipse cx="260" cy="130" rx="25" ry="6" fill="#FCFAF2" stroke="#251F1D" />
+          <path d="M 260 130 L 275 90 M 275 90 L 285 93" stroke="#251F1D" strokeWidth="3" />
+        </svg>
+      );
+    case 'brunch':
+    default:
+      return (
+        <svg viewBox="0 0 400 320" className="w-full h-full max-h-[190px] md:max-h-[220px] select-none" fill="none" stroke="#251F1D" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 330 60 L 350 70 L 340 90 L 320 80 L 305 100 L 300 75 L 280 65 L 300 55 L 310 30 L 322 52 Z" fill="#FBC09C" stroke="none" opacity="0.8" />
+          <ellipse cx="195" cy="115" rx="72" ry="24" stroke="#251F1D" fill="#FAF6EC" />
+          <ellipse cx="195" cy="111" rx="60" ry="18" stroke="#251F1D" strokeWidth="1.2" />
+          <path d="M 150 90 C 150 75, 175 60, 195 72 C 215 60, 240 75, 240 90 C 240 102, 230 115, 195 115 C 160 115, 150 102, 150 90 Z" fill="#FCFAF2" stroke="#251F1D" />
+          <path d="M 155 90 C 155 80, 175 67, 195 77 C 215 67, 235 80, 235 90 C 235 98, 225 108, 195 108 C 165 108, 155 98, 155 90 Z" stroke="#251F1D" strokeWidth="1.2" />
+          <ellipse cx="195" cy="92" rx="14" ry="10" stroke="#251F1D" fill="#FFEAA7" />
+          <ellipse cx="270" cy="165" rx="62" ry="22" stroke="#251F1D" fill="#FAF6EC" />
+          <ellipse cx="270" cy="161" rx="52" ry="16" stroke="#251F1D" strokeWidth="1.2" />
+          <path d="M 235 155 C 240 142, 290 135, 305 150 C 310 158, 300 172, 270 172 C 240 172, 232 162, 235 155 Z" fill="#FCFAF2" stroke="#251F1D" />
+          <path d="M 245 155 Q 270 148 295 158" stroke="#251F1D" />
+          <path d="M 252 161 Q 275 154 290 164" stroke="#251F1D" />
+          <path d="M 268 168 Q 280 162 288 170" stroke="#251F1D" />
+          <path d="M 132 110 C 128 108, 115 118, 122 125 C 130 130, 140 120, 132 110 Z" fill="#FF7675" stroke="#251F1D" />
+          <ellipse cx="155" cy="180" rx="46" ry="15" stroke="#251F1D" fill="#FAF6EC" />
+          <ellipse cx="155" cy="177" rx="36" ry="10" stroke="#251F1D" strokeWidth="1.2" />
+          <path d="M 115 150 L 123 175 C 126 182, 179 182, 182 175 L 190 150 Z" fill="#FAF6EC" stroke="#251F1D" />
+          <ellipse cx="152.5" cy="150" rx="37.5" ry="12" stroke="#251F1D" fill="#3D291F" />
+          <ellipse cx="152.5" cy="151.2" rx="31.5" ry="9" stroke="none" fill="#1A0D00" />
+          <ellipse cx="152.5" cy="151.2" rx="31.5" ry="9" stroke="#251F1D" strokeWidth="1" />
+          <path d="M 140 151 C 145 149, 155 149, 160 151" stroke="#FCFAF2" strokeWidth="1.5" />
+          <path d="M 116 154 C 103 154, 102 172, 119 171" stroke="#251F1D" strokeWidth="2.5" />
+          <path d="M 140 132 Q 137 122 143 115 M 153 130 Q 158 118 152 110" stroke="#251F1D" strokeWidth="1.5" />
+        </svg>
+      );
+  }
 };
 
 interface DigitalJournalProps {
@@ -291,6 +425,14 @@ export function DigitalJournal({
 
   const [dayStickers, setDayStickers] = useSyncedState<Record<string, { type: 'preset' | 'upload'; data: string }>>(`studyHub_calendarDayPics_${monthStr}`, {});
   const [dayRings, setDayRings] = useSyncedState<Record<string, boolean>>(`studyHub_calendarRings_${monthStr}`, {});
+  const [dayCards, setDayCards] = useSyncedState<Record<string, {
+    topTitle: string;
+    bottomTitle: string;
+    doodleType: 'brunch' | 'study' | 'sleep' | 'workout' | 'travel' | 'movie';
+    timeStr: string;
+    dateStrCustom?: string;
+    customBody?: string;
+  }>>("studyHub_calendarDayCards_v1", {});
 
   const setDayStickerValue = (dateStr: string, stickerId: string, imageBase64?: string) => {
     const updated = { ...dayStickers };
@@ -337,6 +479,8 @@ export function DigitalJournal({
   const [quickLogLocation, setQuickLogLocation] = useState("");
   const [quickLogType, setQuickLogType] = useState<'Reflection' | 'Event'>('Reflection');
   const [quickLogEmoji, setQuickLogEmoji] = useState("📝5");
+  const [modalActiveTab, setModalActiveTab] = useState<'notebook' | 'poster'>('poster');
+  const posterCardRef = useRef<HTMLDivElement>(null);
 
   // AI-powered 'Improve English' states and handler
   const [isImproving, setIsImproving] = useState(false);
@@ -1497,115 +1641,559 @@ export function DigitalJournal({
       {/* CALENDAR DETAILS MODAL */}
       <AnimatePresence>
         {isCalendarDetailsOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-black/60 backdrop-blur-sm">
             <motion.div 
               ref={calendarContainerRef}
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-[#FAF3EB] w-full max-w-sm rounded-[30px] border-[3px] border-[#5C0612] shadow-[8px_8px_0_rgba(92,6,18,0.15)] flex flex-col font-caveat"
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-[#FAF3EB] w-full max-w-4xl rounded-[30px] border-[3.5px] border-[#5C0612] shadow-[12px_12px_0_rgba(92,6,18,0.15)] flex flex-col font-sans text-neutral-800 overflow-hidden max-h-[92vh]"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b-[2px] border-dashed border-[#5C0612]/30">
-                <h3 className="font-black text-[#5C0612] text-xl flex items-center gap-2">
-                  <span className="text-2xl">📅</span> {selectedDateStr}
-                </h3>
-                <button onClick={() => setIsCalendarDetailsOpen(false)} className="w-8 h-8 rounded-full hover:bg-black/5 flex items-center justify-center text-[#5C0612] transition-colors">
-                  <svg className="w-5 h-5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              <div className="flex items-center justify-between p-4 border-b-[2.5px] border-dashed border-[#5C0612]/30 bg-[#FAF3EB]/80 backdrop-blur-sm z-10">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">🎨</span>
+                  <div>
+                    <h3 className="font-logo font-black text-[#5C0612] text-xl md:text-2xl leading-none">
+                      Thiệp Kỷ Niệm Trong Ngày
+                    </h3>
+                    <p className="text-xs text-[#5C0612]/60 font-medium font-sans uppercase tracking-wider mt-0.5">Custom Memory Card • {selectedDateStr}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsCalendarDetailsOpen(false)} 
+                  className="w-10 h-10 rounded-full hover:bg-red-100 flex items-center justify-center text-[#5C0612] hover:text-[#af1e2d] transition-colors border-2 border-[#5C0612]/20 cursor-pointer"
+                >
+                  <X className="w-5 h-5 stroke-[3]" />
                 </button>
               </div>
 
-              {/* Body */}
-              <div className="p-5 flex flex-col gap-6 overflow-y-auto max-h-[70vh]">
+              {/* Mobile Tab Control */}
+              <div className="flex border-b-[2px] border-dashed border-[#5C0612]/20 md:hidden bg-[#FCFAF5]">
+                <button 
+                  onClick={() => setModalActiveTab('notebook')}
+                  className={cn(
+                    "flex-1 py-3 text-center font-bold text-sm transition-colors cursor-pointer",
+                    modalActiveTab === 'notebook' 
+                      ? "bg-[#FAF3EB] text-[#5C0612] border-b-2 border-[#5C0612]" 
+                      : "text-neutral-500 hover:text-[#5C0612]"
+                  )}
+                >
+                  📝 Thiết Lập & Notes
+                </button>
+                <button 
+                  onClick={() => setModalActiveTab('poster')}
+                  className={cn(
+                    "flex-1 py-3 text-center font-bold text-sm transition-colors cursor-pointer",
+                    modalActiveTab === 'poster' 
+                      ? "bg-[#FAF3EB] text-[#5C0612] border-b-2 border-[#5C0612]" 
+                      : "text-neutral-500 hover:text-[#5C0612]"
+                  )}
+                >
+                  🖼️ Xem Thiệp Kỷ Niệm
+                </button>
+              </div>
+
+              {/* Body Panels */}
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#FCFAF5] custom-scrollbar">
                 
-                {/* 1. Add Sticker */}
-                <div className="space-y-3">
-                  <h4 className="font-bold text-[#5C0612] text-sm uppercase tracking-wider flex items-center gap-2">
-                    <span className="text-lg">✨</span> Thêm Sticker
-                  </h4>
-                  <div className="grid grid-cols-5 gap-2 mb-2">
-                    {STICKER_PRESETS.map(preset => {
-                      const activeSticker = dayStickers[selectedDateStr];
-                      const isSelected = activeSticker?.type === 'preset' && activeSticker?.data === preset.id;
-                      const isNoneSelected = preset.id === "none" && !activeSticker;
+                {/* LEFT CONTEXT: controls (Visible if selected on mobile, always visible on desktop) */}
+                <div className={cn(
+                  "flex flex-col gap-5 pr-0 md:pr-4 md:border-r-2 md:border-dashed md:border-[#5C0612]/20",
+                  modalActiveTab === 'notebook' ? "block" : "hidden md:flex"
+                )}>
+                  
+                  {/* Part 1: Sticker Settings */}
+                  <div className="bg-[#FAF3EB]/50 p-4 rounded-2xl border-[2px] border-[#5C0612]/20 shadow-[2px_2px_0_rgba(92,6,18,0.05)]">
+                    <h4 className="font-logo font-bold text-[#5C0612] text-sm uppercase tracking-wider flex items-center gap-2 mb-3">
+                      <span className="text-base text-[#D4AF37]">✨</span> 1. Thêm Sticker Môi Trường
+                    </h4>
+                    
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {STICKER_PRESETS.map(preset => {
+                        const activeSticker = dayStickers[selectedDateStr];
+                        const isSelected = activeSticker?.type === 'preset' && activeSticker?.data === preset.id;
+                        const isNoneSelected = preset.id === "none" && !activeSticker;
 
-                      return (
-                        <button
-                          key={preset.id}
-                          onClick={() => setDayStickerValue(selectedDateStr, preset.id)}
-                          className={cn(
-                            "p-1 border text-[9px] font-sans font-bold rounded flex flex-col items-center gap-0.5 bg-white/50 transition-all text-center justify-center h-[46px] cursor-pointer",
-                            isSelected || isNoneSelected
-                              ? "border-[#5C0612] bg-[#5C0612]/10 text-[#5C0612] scale-105" 
-                              : "border-[#5C0612]/20 hover:border-[#5C0612]/50 text-[#5C0612]/70"
-                          )}
-                        >
-                          {preset.id !== "none" && <PolaroidPreset type={preset.visual || preset.id} className="w-5 h-5" />}
-                          {preset.id === "none" && <span className="text-sm">❌</span>}
-                          <span className="truncate w-full block">{preset.id === "none" ? "Gỡ bỏ" : preset.label.split(" ").slice(1).join(" ")}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <label className="flex items-center gap-2 mt-2 w-fit bg-[#FAF3EB] border-[2px] border-[#5C0612] rounded-full px-4 py-2 cursor-pointer hover:bg-[#5C0612] hover:text-[#FAF3EB] transition-all text-[#5C0612] font-bold text-sm shadow-[2px_2px_0_#5C0612]">
-                    <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8 Q3 7 4 7 L6 4 Q7 3 8 3 L14 3 Q15 3 16 4 L18 7 Q19 7 20 7 L21 7 Q22 7 22 8 L22 19 Q22 20 21 20 L3 20 Q2 20 2 19 Z"/><path d="M12 11 Q14 11 15 14 Q15 16 12 17 Q9 16 10 14 Z"/></svg>
-                    Tải ảnh lên...
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleStickerFileChange(selectedDateStr, e)} />
-                  </label>
-                </div>
-
-                {/* 2. Highlight Ring */}
-                <div className="space-y-3 pt-4 border-t-[2px] border-dashed border-[#5C0612]/20">
-                  <h4 className="font-bold text-[#5C0612] text-sm uppercase tracking-wider flex items-center gap-2">
-                    <span className="text-lg">⭕</span> Làm nổi bật ngày
-                  </h4>
-                  <button 
-                    onClick={() => toggleDayRing(selectedDateStr)}
-                    className={`w-full py-2.5 rounded-full font-bold text-sm transition-all border-[2px] ${dayRings[selectedDateStr] ? 'bg-[#5C0612] text-[#FAF3EB] border-[#5C0612]' : 'bg-transparent text-[#5C0612] border-[#5C0612] hover:bg-[#5C0612]/10'} shadow-[3px_3px_0_rgba(92,6,18,1)]`}
-                  >
-                    {dayRings[selectedDateStr] ? 'Đã khoanh đỏ (Nhấn để hủy)' : 'Khoanh đỏ ngày này'}
-                  </button>
-                </div>
-
-                {/* 3. Quick Note */}
-                <div className="space-y-3 pt-4 border-t-[2px] border-dashed border-[#5C0612]/20">
-                  <h4 className="font-bold text-[#5C0612] text-sm uppercase tracking-wider flex items-center gap-2">
-                    <span className="text-lg">✍️</span> Thêm ghi chú nhanh
-                  </h4>
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!quickLogContent.trim() || !setLogs) return;
-                    setLogs([{
-                      id: "log_" + Date.now().toString(),
-                      date: selectedDateStr,
-                      content: quickLogContent.trim(),
-                      location: quickLogLocation.trim() || undefined,
-                      emoji: quickLogEmoji,
-                      type: quickLogType as 'Reflection' | 'Event',
-                      createdAt: Date.now()
-                    }, ...logs]);
-                    setQuickLogContent("");
-                    setQuickLogLocation("");
-                    setIsCalendarDetailsOpen(false);
-                  }} className="flex flex-col gap-3">
-                    <input type="text" placeholder="Bạn đã làm gì?" value={quickLogContent} onChange={e => setQuickLogContent(e.target.value)} className="w-full bg-white/50 border-[2px] border-[#5C0612] rounded-xl px-3 py-2 text-sm font-bold text-[#5C0612] placeholder-[#5C0612]/50 outline-none focus:bg-white transition-colors" required />
-                    <div className="flex gap-2">
-                      <select value={quickLogEmoji} onChange={e => setQuickLogEmoji(e.target.value)} className="bg-white/50 border-[2px] border-[#5C0612] rounded-xl px-2 py-2 text-sm outline-none w-16 text-center cursor-pointer">
-                         <option value="📝">📝</option>
-                         <option value="⭐">⭐</option>
-                         <option value="❤️">❤️</option>
-                         <option value="🎉">🎉</option>
-                         <option value="☕">☕</option>
-                         <option value="✈️">✈️</option>
-                         <option value="🌧️">🌧️</option>
-                      </select>
-                      <input type="text" placeholder="Địa điểm (ops)" value={quickLogLocation} onChange={e => setQuickLogLocation(e.target.value)} className="flex-1 bg-white/50 border-[2px] border-[#5C0612] rounded-xl px-3 py-2 text-sm font-bold text-[#5C0612] placeholder-[#5C0612]/50 outline-none focus:bg-white transition-colors" />
+                        return (
+                          <button
+                            key={preset.id}
+                            onClick={() => setDayStickerValue(selectedDateStr, preset.id)}
+                            className={cn(
+                              "p-1 border text-[9px] font-sans font-bold rounded-lg flex flex-col items-center gap-0.5 bg-white/60 transition-all text-center justify-center h-[52px] cursor-pointer",
+                              isSelected || isNoneSelected
+                                ? "border-[#5C0612] bg-[#5C0612]/15 text-[#5C0612] scale-105 font-black" 
+                                : "border-neutral-200 hover:border-[#5C0612]/50 text-neutral-600 hover:bg-white"
+                            )}
+                          >
+                            {preset.id !== "none" && <PolaroidPreset type={preset.visual || preset.id} className="w-5 h-5" />}
+                            {preset.id === "none" && <span className="text-base">❌</span>}
+                            <span className="truncate w-full block leading-none mt-0.5">{preset.id === "none" ? "Gỡ bỏ" : preset.label.split(" ").slice(1).join(" ")}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <button type="submit" className="w-full bg-[#5C0612] text-[#FAF3EB] font-bold py-2.5 rounded-xl uppercase tracking-widest text-xs hover:bg-black transition-colors mt-2 shadow-[3px_3px_0_rgba(0,0,0,1)]">
-                      Lưu ghi chú
+                    
+                    <div className="mt-3 flex items-center justify-between">
+                      <label className="flex items-center gap-1.5 bg-white border-2 border-[#5C0612]/30 rounded-full px-3 py-1.5 cursor-pointer hover:bg-[#5C0612] hover:text-[#FAF3EB] hover:border-[#5C0612] transition-all text-[#5C0612] font-bold text-xs shadow-[2px_2px_0_rgba(92,6,18,0.1)]">
+                        <Camera className="w-3.5 h-3.5" />
+                        Tải Sticker Riêng...
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleStickerFileChange(selectedDateStr, e)} />
+                      </label>
+                      
+                      <button 
+                        onClick={() => toggleDayRing(selectedDateStr)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full font-bold text-xs transition-all border-2 cursor-pointer shadow-[2px_2px_0_rgba(0,0,0,0.1)]",
+                          dayRings[selectedDateStr] 
+                            ? 'bg-[#8A1E2B] text-white border-[#8A1E2B]' 
+                            : 'bg-white text-[#8A1E2B] border-[#8A1E2B]/30 hover:bg-[#8A1E2B]/5'
+                        )}
+                      >
+                        {dayRings[selectedDateStr] ? '⭕ Đã Khoanh Đỏ' : '⭕ Khoanh Đỏ Lịch'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Part 2: Quick Logs */}
+                  <div className="bg-[#FAF3EB]/50 p-4 rounded-2xl border-[2px] border-[#5C0612]/20 shadow-[2px_2px_0_rgba(92,6,18,0.05)]">
+                    <h4 className="font-logo font-bold text-[#5C0612] text-sm uppercase tracking-wider flex items-center gap-2 mb-2.5">
+                      <span className="text-base text-red-600">✍️</span> 2. Viết Ghi Chú Nhanh Nhật Ký
+                    </h4>
+                    
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!quickLogContent.trim() || !setLogs) return;
+                      const newContent = quickLogContent.trim();
+                      setLogs([{
+                        id: "log_" + Date.now().toString(),
+                        date: selectedDateStr,
+                        content: newContent,
+                        location: quickLogLocation.trim() || undefined,
+                        emoji: quickLogEmoji,
+                        type: quickLogType as 'Reflection' | 'Event',
+                        createdAt: Date.now()
+                      }, ...logs]);
+                      
+                      // Also update poster description instantly
+                      const currentCard = dayCards[selectedDateStr] || {
+                        topTitle: "Brunch",
+                        bottomTitle: "Hangout",
+                        doodleType: "brunch",
+                        timeStr: "12:00 PM - 2:00 PM",
+                        dateStrCustom: formatPosterDate(selectedDateStr),
+                        customBody: newContent
+                      };
+                      setDayCards({
+                        ...dayCards,
+                        [selectedDateStr]: {
+                          ...currentCard,
+                          customBody: newContent
+                        }
+                      });
+
+                      setQuickLogContent("");
+                      setQuickLogLocation("");
+                    }} className="flex flex-col gap-2.5">
+                      <input 
+                        type="text" 
+                        placeholder="Hôm nay bạn làm gì? (Tự động cập nhật thiệp)" 
+                        value={quickLogContent} 
+                        onChange={e => setQuickLogContent(e.target.value)} 
+                        className="w-full bg-white border-2 border-dashed border-[#5C0612]/30 rounded-xl px-3 py-2 text-xs font-bold text-neutral-800 placeholder-neutral-400 outline-none focus:border-[#5C0612] transition-colors" 
+                        required 
+                      />
+                      
+                      <div className="flex gap-2">
+                        <select 
+                          value={quickLogEmoji} 
+                          onChange={e => setQuickLogEmoji(e.target.value)} 
+                          className="bg-white border-2 border-dashed border-[#5C0612]/30 rounded-xl px-2.5 py-1.5 text-xs outline-none w-16 text-center cursor-pointer font-sans"
+                        >
+                           <option value="📝">📝</option>
+                           <option value="⭐">⭐</option>
+                           <option value="❤️">❤️</option>
+                           <option value="🎉">🎉</option>
+                           <option value="☕">☕</option>
+                           <option value="🏃">🏃</option>
+                           <option value="✈️">✈️</option>
+                           <option value="🍿">🍿</option>
+                           <option value="🌙">🌙</option>
+                        </select>
+                        <input 
+                          type="text" 
+                          placeholder="Địa điểm / Tóm tắt" 
+                          value={quickLogLocation} 
+                          onChange={e => setQuickLogLocation(e.target.value)} 
+                          className="flex-1 bg-white border-2 border-dashed border-[#5C0612]/30 rounded-xl px-3 py-1.5 text-xs font-bold text-neutral-800 placeholder-neutral-400 outline-none focus:border-[#5C0612] transition-colors" 
+                        />
+                      </div>
+                      
+                      <button 
+                        type="submit" 
+                        className="w-full bg-[#8A1E2B] text-[#FAF3EB] font-bold py-2 rounded-xl uppercase tracking-wider text-xs hover:bg-[#6c141e] transition-all cursor-pointer shadow-[2px_2px_0_rgba(0,0,0,0.15)] flex items-center justify-center gap-1.5"
+                      >
+                        <span>📝</span> Lưu nhật ký hôm nay
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Part 3: Customize Card Fields */}
+                  <div className="bg-[#FAF3EB]/50 p-4 rounded-2xl border-[2px] border-[#5C0612]/20 shadow-[2px_2px_0_rgba(92,6,18,0.05)] flex-1 flex flex-col justify-between">
+                    <div>
+                      <h4 className="font-logo font-bold text-[#5C0612] text-sm uppercase tracking-wider flex items-center gap-2 mb-2.5">
+                        <span className="text-base text-amber-600">🎨</span> 3. Thiết Kế Tấm Thiệp Ngày
+                      </h4>
+
+                      {/* Doodle selector */}
+                      <div className="mb-3">
+                        <label className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Kiểu Họa Họa (Vector Doodle)</label>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[
+                            { id: 'brunch', label: 'Cafe ☕' },
+                            { id: 'study', label: 'Bàn Học 📚' },
+                            { id: 'sleep', label: 'Ngủ Ngon 🌙' },
+                            { id: 'workout', label: 'Gym 🏃' },
+                            { id: 'travel', label: 'Du Lịch ✈️' },
+                            { id: 'movie', label: 'Xem Phim 🍿' }
+                          ].map(d => {
+                            const activeCard = dayCards[selectedDateStr] || {
+                              topTitle: "Brunch",
+                              bottomTitle: "Hangout",
+                              doodleType: "brunch",
+                              timeStr: "12:00 PM - 2:00 PM",
+                              dateStrCustom: formatPosterDate(selectedDateStr),
+                              customBody: logs.filter(l => l.date === selectedDateStr)[0]?.content || "Join us for a fun afternoon cooking up French toast, eggs, and other tasty brunch favourites."
+                            };
+                            const isChosen = activeCard.doodleType === d.id;
+                            
+                            return (
+                              <button
+                                key={d.id}
+                                type="button"
+                                onClick={() => {
+                                  const current = dayCards[selectedDateStr] || {
+                                    topTitle: "Brunch",
+                                    bottomTitle: "Hangout",
+                                    doodleType: "brunch",
+                                    timeStr: "12:00 PM - 2:00 PM",
+                                    dateStrCustom: formatPosterDate(selectedDateStr),
+                                    customBody: logs.filter(l => l.date === selectedDateStr)[0]?.content || "Join us for a fun afternoon cooking up French toast, eggs, and other tasty brunch favourites."
+                                  };
+                                  setDayCards({
+                                    ...dayCards,
+                                    [selectedDateStr]: {
+                                      ...current,
+                                      doodleType: d.id as any
+                                    }
+                                  });
+                                }}
+                                className={cn(
+                                  "py-1.5 px-2 rounded-lg text-xs font-bold border-2 transition-all cursor-pointer text-center truncate",
+                                  isChosen 
+                                    ? "bg-amber-100 text-amber-800 border-amber-600 font-extrabold" 
+                                    : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"
+                                )}
+                              >
+                                {d.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Header values */}
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <label className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Tiêu Đề Trên</label>
+                          <input 
+                            type="text"
+                            maxLength={15}
+                            value={(dayCards[selectedDateStr]?.topTitle !== undefined) ? dayCards[selectedDateStr].topTitle : "Brunch"}
+                            onChange={(e) => {
+                              const current = dayCards[selectedDateStr] || {
+                                topTitle: "Brunch",
+                                bottomTitle: "Hangout",
+                                doodleType: "brunch" as const,
+                                timeStr: "12:00 PM - 2:00 PM",
+                                dateStrCustom: formatPosterDate(selectedDateStr),
+                                customBody: logs.filter(l => l.date === selectedDateStr)[0]?.content || "Join us for a fun afternoon cooking up French toast, eggs, and other tasty brunch favourites."
+                              };
+                              setDayCards({
+                                ...dayCards,
+                                [selectedDateStr]: {
+                                  ...current,
+                                  topTitle: e.target.value
+                                }
+                              });
+                            }}
+                            className="w-full bg-white border border-neutral-200 rounded-lg px-2.5 py-1 text-xs font-bold text-neutral-800 outline-none focus:border-amber-600"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Tiêu Đề Dưới</label>
+                          <input 
+                            type="text"
+                            maxLength={15}
+                            value={(dayCards[selectedDateStr]?.bottomTitle !== undefined) ? dayCards[selectedDateStr].bottomTitle : "Hangout"}
+                            onChange={(e) => {
+                              const current = dayCards[selectedDateStr] || {
+                                topTitle: "Brunch",
+                                bottomTitle: "Hangout",
+                                doodleType: "brunch" as const,
+                                timeStr: "12:00 PM - 2:00 PM",
+                                dateStrCustom: formatPosterDate(selectedDateStr),
+                                customBody: logs.filter(l => l.date === selectedDateStr)[0]?.content || "Join us for a fun afternoon cooking up French toast, eggs, and other tasty brunch favourites."
+                              };
+                              setDayCards({
+                                ...dayCards,
+                                [selectedDateStr]: {
+                                  ...current,
+                                  bottomTitle: e.target.value
+                                }
+                              });
+                            }}
+                            className="w-full bg-white border border-neutral-200 rounded-lg px-2.5 py-1 text-xs font-bold text-neutral-800 outline-none focus:border-amber-600"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Row settings */}
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <label className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">DATE: Hiển Thị</label>
+                          <input 
+                            type="text"
+                            value={(dayCards[selectedDateStr]?.dateStrCustom !== undefined) ? dayCards[selectedDateStr].dateStrCustom : formatPosterDate(selectedDateStr)}
+                            onChange={(e) => {
+                              const current = dayCards[selectedDateStr] || {
+                                topTitle: "Brunch",
+                                bottomTitle: "Hangout",
+                                doodleType: "brunch" as const,
+                                timeStr: "12:00 PM - 2:00 PM",
+                                dateStrCustom: formatPosterDate(selectedDateStr),
+                                customBody: logs.filter(l => l.date === selectedDateStr)[0]?.content || "Join us for a fun afternoon cooking up French toast, eggs, and other tasty brunch favourites."
+                              };
+                              setDayCards({
+                                ...dayCards,
+                                [selectedDateStr]: {
+                                  ...current,
+                                  dateStrCustom: e.target.value
+                                }
+                              });
+                            }}
+                            className="w-full bg-white border border-neutral-200 rounded-lg px-2.5 py-1 text-xs font-bold text-neutral-800 outline-none focus:border-amber-600"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">TIME: Hiển Thị</label>
+                          <input 
+                            type="text"
+                            value={(dayCards[selectedDateStr]?.timeStr !== undefined) ? dayCards[selectedDateStr].timeStr : "12:00 PM - 2:00 PM"}
+                            onChange={(e) => {
+                              const current = dayCards[selectedDateStr] || {
+                                topTitle: "Brunch",
+                                bottomTitle: "Hangout",
+                                doodleType: "brunch" as const,
+                                timeStr: "12:00 PM - 2:00 PM",
+                                dateStrCustom: formatPosterDate(selectedDateStr),
+                                customBody: logs.filter(l => l.date === selectedDateStr)[0]?.content || "Join us for a fun afternoon cooking up French toast, eggs, and other tasty brunch favourites."
+                              };
+                              setDayCards({
+                                ...dayCards,
+                                [selectedDateStr]: {
+                                  ...current,
+                                  timeStr: e.target.value
+                                }
+                              });
+                            }}
+                            className="w-full bg-white border border-neutral-200 rounded-lg px-2.5 py-1 text-xs font-bold text-neutral-800 outline-none focus:border-amber-600"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Body Description customizer */}
+                      <div>
+                        <label className="text-[10px] font-bold text-neutral-500 uppercase block mb-1">Lời Nhắn / Mô Tả Tấm Thiệp</label>
+                        <textarea 
+                          rows={2}
+                          value={(dayCards[selectedDateStr]?.customBody !== undefined) ? dayCards[selectedDateStr].customBody : (logs.filter(l => l.date === selectedDateStr)[0]?.content || "Join us for a fun afternoon cooking up French toast, eggs, and other tasty brunch favourites.")}
+                          onChange={(e) => {
+                            const current = dayCards[selectedDateStr] || {
+                              topTitle: "Brunch",
+                              bottomTitle: "Hangout",
+                              doodleType: "brunch" as const,
+                              timeStr: "12:00 PM - 2:00 PM",
+                              dateStrCustom: formatPosterDate(selectedDateStr),
+                              customBody: logs.filter(l => l.date === selectedDateStr)[0]?.content || "Join us for a fun afternoon cooking up French toast, eggs, and other tasty brunch favourites."
+                            };
+                            setDayCards({
+                              ...dayCards,
+                              [selectedDateStr]: {
+                                ...current,
+                                customBody: e.target.value
+                              }
+                            });
+                          }}
+                          className="w-full bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-neutral-800 outline-none focus:border-amber-600 font-sans leading-normal resize-none custom-scrollbar"
+                          placeholder="Mời bạn bè hoặc mô tả chi tiết buổi hẹn..."
+                        />
+                      </div>
+                    </div>
+
+                    {/* Restore Defaults button */}
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        const defaultLog = logs.filter(l => l.date === selectedDateStr)[0]?.content || "Join us for a fun afternoon cooking up French toast, eggs, and other tasty brunch favourites.";
+                        setDayCards({
+                          ...dayCards,
+                          [selectedDateStr]: {
+                            topTitle: "Brunch",
+                            bottomTitle: "Hangout",
+                            doodleType: "brunch",
+                            timeStr: "12:00 PM - 2:00 PM",
+                            dateStrCustom: formatPosterDate(selectedDateStr),
+                            customBody: defaultLog
+                          }
+                        });
+                      }}
+                      className="mt-3 text-[11px] text-amber-800 hover:text-amber-950 font-bold underline transition-colors self-start cursor-pointer"
+                    >
+                      🔄 Khôi phục mặc định thiệp ngày này
                     </button>
-                  </form>
+                  </div>
                 </div>
+
+                {/* RIGHT CONTEXT: Visual Poster Card representation (Visible if selected on mobile, always visible on desktop) */}
+                <div className={cn(
+                  "flex flex-col items-center justify-center p-1 md:p-3 bg-[#FAF3EB]/30 rounded-3xl border-2 border-dashed border-amber-600/10 min-h-[460px]",
+                  modalActiveTab === 'poster' ? "block" : "hidden md:flex"
+                )}>
+                  
+                  {/* The actual poster viewport */}
+                  <div 
+                    ref={posterCardRef}
+                    id={`poster-card-${selectedDateStr}`}
+                    className="w-full max-w-[340px] aspect-[3/4] bg-[#FCFAF5] border-[3px] border-[#2A2421] rounded-[24px] shadow-[8px_8px_0_rgba(42,36,33,0.1)] p-6 flex flex-col justify-between relative overflow-hidden select-none select-none active:scale-[0.99] transition-transform"
+                    style={{ backgroundImage: 'radial-gradient(circle, rgba(138,30,43,0.02) 0%, rgba(0,0,0,0) 100%)' }}
+                  >
+                    {/* Outline Sketch Dots and Stars around background (matches user mockup styling) */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      {/* Top Right Star */}
+                      <svg className="absolute top-4 right-5 w-8 h-8 opacity-75" viewBox="0 0 100 100" fill="none">
+                        <path d="M 50 10 Q 50 50 90 50 Q 50 50 50 90 Q 50 50 10 50 Q 50 50 50 10" fill="#FBC09C" stroke="#FBC09C" strokeWidth="1.5" />
+                        <circle cx="50" cy="50" r="3" fill="#FFEAA7" />
+                      </svg>
+                      
+                      {/* Left Side Small Sparkle Star */}
+                      <svg className="absolute top-28 left-4 w-7 h-7 opacity-60" viewBox="0 0 100 100" fill="none">
+                        <path d="M 50 20 Q 50 50 80 50 Q 50 50 50 80 Q 50 50 20 50 Q 50 50 50 20" fill="#FBC09C" />
+                      </svg>
+
+                      {/* Bottom-Left Sparkle Star */}
+                      <svg className="absolute bottom-32 left-3 w-6 h-6 opacity-60" viewBox="0 0 100 100" fill="none">
+                        <path d="M 50 15 Q 50 50 85 50 Q 50 50 50 85 Q 50 50 15 50 Q 50 50 50 15" fill="#FFEAA7" />
+                      </svg>
+                      
+                      {/* Center right mini circles decoration */}
+                      <svg className="absolute bottom-40 right-2 w-9 h-9 opacity-50" viewBox="0 0 100 100" fill="none" stroke="#251F1D" strokeWidth="1">
+                        <circle cx="40" cy="50" r="12" strokeDasharray="3 3" />
+                        <circle cx="55" cy="50" r="6" />
+                      </svg>
+                      
+                      {/* Corner loops */}
+                      <svg className="absolute top-3 left-4 w-10 h-10 opacity-30 text-[#8A1E2B]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 100 100">
+                        <path d="M 20 20 C 50 30 10 50 49 51" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+
+                    {/* UPPER HEADING (Bold, huge hand-styled display line) */}
+                    <div className="text-center font-caveat -rotate-[1deg] transition-all">
+                      <h2 className="text-4xl md:text-5xl font-black text-[#2A2421] leading-tight select-none tracking-wide drop-shadow-sm uppercase">
+                        {dayCards[selectedDateStr]?.topTitle !== undefined ? dayCards[selectedDateStr].topTitle : "Brunch"}
+                      </h2>
+                    </div>
+
+                    {/* DOODLE ARTWORK INNER CONTAINER */}
+                    <div className="flex-1 flex items-center justify-center p-2 relative">
+                      <DoodleRenderer type={dayCards[selectedDateStr]?.doodleType || "brunch"} />
+                    </div>
+
+                    {/* MIDDLE HEADING (Cursive display line) */}
+                    <div className="text-center font-caveat rotate-[2deg] transition-all -mt-3">
+                      <h2 className="text-4xl md:text-5xl font-black text-[#2A2421] leading-tight select-none tracking-wide drop-shadow-sm uppercase">
+                        {dayCards[selectedDateStr]?.bottomTitle !== undefined ? dayCards[selectedDateStr].bottomTitle : "Hangout"}
+                      </h2>
+                    </div>
+
+                    {/* METADATA GRID BOX (Exact representation of bottom grid in the mock image) */}
+                    <div className="border-[2.5px] border-[#2A2421] rounded-xl flex flex-col font-sans select-none overflow-hidden mt-3 shadow-[1.5px_1.5px_0_rgba(42,36,33,0.15)]">
+                      {/* Top Box: DATE & TIME */}
+                      <div className="grid grid-cols-2 border-b-[2.5px] border-[#2A2421] divide-x-[2.5px] divide-[#2A2421]">
+                        {/* Date field cell */}
+                        <div className="p-2 flex flex-col justify-center bg-[#FAF6EC] hover:bg-neutral-50 transition-colors">
+                          <span className="text-[10px] font-black text-[#C05C3E] uppercase tracking-widest font-sans">DATE:</span>
+                          <span className="text-[13px] md:text-[14px] font-caveat font-extrabold text-[#251F1D] leading-tight truncate">
+                            {dayCards[selectedDateStr]?.dateStrCustom !== undefined ? dayCards[selectedDateStr].dateStrCustom : formatPosterDate(selectedDateStr)}
+                          </span>
+                        </div>
+                        
+                        {/* Time field cell */}
+                        <div className="p-2 flex flex-col justify-center bg-[#FAF6EC] hover:bg-neutral-50 transition-colors">
+                          <span className="text-[10px] font-black text-[#C05C3E] uppercase tracking-widest font-sans">TIME:</span>
+                          <span className="text-[13px] md:text-[14px] font-caveat font-extrabold text-[#251F1D] leading-tight truncate">
+                            {dayCards[selectedDateStr]?.timeStr !== undefined ? dayCards[selectedDateStr].timeStr : "12:00 PM - 2:00 PM"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Bottom Box: Note description (In handwritten/cursive) */}
+                      <div className="p-3 bg-white hover:bg-neutral-50/50 transition-colors flex items-center justify-center min-h-[56px] text-center">
+                        <p className="font-hand text-[15px] md:text-[16px] leading-[1.3] text-[#2A2421] font-bold italic line-clamp-3">
+                          {dayCards[selectedDateStr]?.customBody !== undefined 
+                            ? dayCards[selectedDateStr].customBody 
+                            : (logs.filter(l => l.date === selectedDateStr)[0]?.content || "Join us for a fun afternoon cooking up French toast, eggs, and other tasty brunch favourites.")
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions Tray */}
+                  <div className="mt-4 flex gap-2.5 w-full justify-center">
+                    <button 
+                      type="button"
+                      onClick={async () => {
+                        const element = document.getElementById(`poster-card-${selectedDateStr}`);
+                        if (!element) return;
+                        try {
+                          const canvas = await html2canvas(element, {
+                            scale: 2.5,
+                            backgroundColor: "#FCFAF5",
+                            useCORS: true,
+                            logging: false
+                          });
+                          const link = document.createElement('a');
+                          link.download = `Memories-Card-${selectedDateStr}.png`;
+                          link.href = canvas.toDataURL('image/png');
+                          link.click();
+                          confetti({
+                            particleCount: 100,
+                            spread: 70,
+                            origin: { y: 0.6 }
+                          });
+                        } catch (err) {
+                          console.error("Down card error:", err);
+                        }
+                      }}
+                      className="px-5 py-2.5 bg-[#5C0612] hover:bg-black text-[#FAF3EB] hover:text-[#FFD2B2] font-logo font-bold text-sm tracking-wider uppercase rounded-full border-[2.5px] border-black transition-all cursor-pointer shadow-[3.5px_3.5px_0_rgba(0,0,0,1)] flex items-center gap-2"
+                    >
+                      <span>💾</span> Tải Tấm Thiệp Kỷ Niệm (.PNG)
+                    </button>
+                  </div>
+                </div>
+
               </div>
             </motion.div>
           </div>
