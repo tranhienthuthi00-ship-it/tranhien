@@ -41,8 +41,7 @@ function AppContent() {
     achievements, setAchievements,
     bulkDebts, setBulkDebts,
     bulkCardSpends, setBulkCardSpends,
-    bulkCurrentCash, setBulkCurrentCash,
-    loginAsGuest, logout
+    bulkCurrentCash, setBulkCurrentCash
   } = useFirebase();
 
   // AUTOMATIC SYNC: Update bulk card spends credit card debt into the central assets state
@@ -333,16 +332,12 @@ function AppContent() {
   };
 
   const handleLogout = async () => {
-    if (logout) {
-      await logout();
-    } else {
-      const { auth } = await import("./lib/firebase");
-      auth.signOut();
-    }
+    const { auth } = await import("./lib/firebase");
+    auth.signOut();
   };
 
   if (!user) {
-    return <Login onLogin={handleLogin} onGuestLogin={loginAsGuest} />;
+    return <Login onLogin={handleLogin} />;
   }
 
   if (loading) {

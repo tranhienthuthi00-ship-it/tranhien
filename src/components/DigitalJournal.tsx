@@ -1336,7 +1336,7 @@ export function DigitalJournal({
                                 return (
                                   <>
                                     {/* 1. Preset Stickers - Ở trên 1/3 khung ngày */}
-                                    {hasPreset && hasUpload && (
+                                    {hasPreset && (
                                       <div className="absolute top-[6px] right-[8px] flex items-center justify-end gap-0.5 z-20 pointer-events-none">
                                         {presetStickers.map((st, sIdx) => {
                                           const rot = sIdx === 0 ? -6 : sIdx === 1 ? 6 : -2;
@@ -1382,31 +1382,9 @@ export function DigitalJournal({
                                             );
                                           })}
                                         </div>
-                                      ) : hasPreset ? (
-                                        /* Ngày nào không có ảnh thì sticker đưa vào giữa ô ngày (to bằng ảnh) */
-                                        <div className="relative w-full h-[28px] md:h-[36px] flex items-center justify-center mb-1 shrink-0">
-                                          {presetStickers.map((st, sIdx) => {
-                                            const rot = sIdx === 0 ? -4 : sIdx === 1 ? 4 : 2;
-                                            return (
-                                              <div
-                                                key={sIdx}
-                                                className="absolute animate-fade-in"
-                                                style={{
-                                                  transform: `rotate(${rot}deg)`,
-                                                  zIndex: sIdx + 1,
-                                                }}
-                                              >
-                                                <PolaroidPreset 
-                                                  type={st.data} 
-                                                  className="w-[26px] h-[26px] md:w-[32px] md:h-[32px] drop-shadow-xs text-[#8A1E2B] hover:scale-110 transition-transform" 
-                                                />
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
                                       ) : (
                                         /* Fallback emoji only if no stickers exist */
-                                        (() => {
+                                        !hasPreset && (() => {
                                           const dayEvents = logs.filter(l => l.date === cell.dateStr && l.type === 'Event');
                                           if (dayEvents.length > 0 && dayEvents[0].emoji) {
                                             return (
@@ -1437,7 +1415,7 @@ export function DigitalJournal({
                                               className={cn(
                                                 "text-[8.5px] md:text-[9.5px] leading-tight truncate w-full text-center px-1 font-hand font-extrabold",
                                                 isEvent 
-                                                  ? "text-[#8A1E2B]"
+                                                  ? "text-red-600"
                                                   : "text-neutral-800"
                                               )}
                                             >
