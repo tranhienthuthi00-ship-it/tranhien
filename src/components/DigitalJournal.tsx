@@ -1167,7 +1167,7 @@ export function DigitalJournal({
                
                <div className="bg-[#f8f5ed] relative">
                   {/* Headers */}
-                  <div className="grid grid-cols-7 border-[2.5px] border-b-0 border-[#8A1E2B] text-center text-[#8A1E2B] font-bold text-sm md:text-lg">
+                  <div className="grid grid-cols-7 border-[2.5px] border-b-0 border-[#8A1E2B] text-center text-[#8A1E2B] font-hand font-extrabold text-sm md:text-lg">
                      {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d, idx) => (
                          <div key={d} className={`p-3 ${idx < 6 ? 'border-r-[2.5px] border-[#8A1E2B]' : ''}`}>{d.substring(0,3)}</div>
                      ))}
@@ -1217,21 +1217,19 @@ export function DigitalJournal({
                                         const cellStickers = getStickersForDay(cell.dateStr || "");
                                         return cellStickers.map((st, sIdx) => {
                                           const rot = sIdx === 0 ? -6 : sIdx === 1 ? 6 : sIdx === 2 ? -2 : 2;
-                                          const total = cellStickers.length;
-                                          const offsetPx = total > 1 ? (sIdx - (total - 1) / 2) * 8 : 0;
                                           return (
                                             <div
                                               key={sIdx}
                                               className="absolute animate-fade-in"
                                               style={{
-                                                transform: `translateX(${offsetPx}px) rotate(${rot}deg)`,
+                                                transform: `rotate(${rot}deg)`,
                                                 zIndex: sIdx + 1,
                                               }}
                                             >
                                               {st.type === 'preset' ? (
-                                                <PolaroidPreset type={st.data} className="w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 drop-shadow-xs text-[#8A1E2B]" />
+                                                <PolaroidPreset type={st.data} className="w-7 h-7 md:w-8 md:h-8 drop-shadow-xs text-[#8A1E2B] hover:scale-110 transition-transform" />
                                               ) : (
-                                                <img src={st.data} alt="sticker" className="w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 object-cover rounded border border-neutral-300 bg-white p-0.5 shadow-xs" />
+                                                <img src={st.data} alt="sticker" className="w-7 h-7 md:w-8 md:h-8 object-cover rounded border border-neutral-300 bg-white p-0.5 shadow-xs" />
                                               )}
                                             </div>
                                           );
@@ -1268,7 +1266,7 @@ export function DigitalJournal({
                                         <div 
                                           key={idx} 
                                           className={cn(
-                                            "text-[8.5px] md:text-[9.5px] leading-tight truncate w-full text-center px-1 font-sans font-extrabold",
+                                            "text-[8.5px] md:text-[9.5px] leading-tight truncate w-full text-center px-1 font-hand font-extrabold",
                                             isEvent 
                                               ? "red-event-badge text-red-600 bg-red-50/70 rounded-[2.5px] border border-red-200/40" 
                                               : "black-diary-badge text-neutral-900 bg-neutral-100/70 rounded-[2.5px] border border-neutral-200/40"
