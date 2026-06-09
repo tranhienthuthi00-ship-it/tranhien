@@ -431,8 +431,8 @@ export function DigitalJournal({
     return `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
   }, [currentMonth]);
 
-  const [dayStickers, setDayStickers] = useSyncedState<Record<string, any>>(`studyHub_calendarDayPics_${monthStr}`, {});
-  const [dayRings, setDayRings] = useSyncedState<Record<string, boolean>>(`studyHub_calendarRings_${monthStr}`, {});
+  const [dayStickers, setDayStickers] = useSyncedState<Record<string, any>>("studyHub_calendarDayPics_global", {});
+  const [dayRings, setDayRings] = useSyncedState<Record<string, boolean>>("studyHub_calendarRings_global", {});
   const [dayCards, setDayCards] = useSyncedState<Record<string, {
     topTitle: string;
     bottomTitle: string;
@@ -482,9 +482,43 @@ export function DigitalJournal({
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setDayStickerValue(dateStr, "", reader.result as string);
+        const img = new Image();
+        img.onload = () => {
+          // Resize to max 120x120 for stickers to keep size extremely small (<10KB)
+          const canvas = document.createElement('canvas');
+          const maxDim = 120;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+            setDayStickerValue(dateStr, "", compressedBase64);
+          } else {
+            setDayStickerValue(dateStr, "", reader.result as string);
+          }
+        };
+        img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
+      
+      // Clear file input value to allow re-uploading identical file triggers
+      e.target.value = "";
     }
   };
 
@@ -492,6 +526,69 @@ export function DigitalJournal({
     const updated = { ...dayRings, [dateStr]: !dayRings[dateStr] };
     setDayRings(updated);
   };
+
+  // Migrate old partitioned monthly stickers & rings into unified global storage
+  useEffect(() => {
+    try {
+      const fallbackKeys = Object.keys(localStorage).filter(
+        k => k.startsWith("studyHub_calendarDayPics_") && k !== "studyHub_calendarDayPics_global"
+      );
+      if (fallbackKeys.length > 0) {
+        const merged: Record<string, any> = { ...dayStickers };
+        let hasNewData = false;
+        fallbackKeys.forEach(fk => {
+          const savedStr = localStorage.getItem(fk);
+          if (savedStr) {
+            try {
+              const parsed = JSON.parse(savedStr);
+              Object.entries(parsed).forEach(([dk, val]) => {
+                if (!merged[dk]) {
+                  merged[dk] = val;
+                  hasNewData = true;
+                }
+              });
+            } catch {}
+          }
+        });
+        if (hasNewData) {
+          setDayStickers(merged);
+        }
+      }
+    } catch (err) {
+      console.error("Stickers migration error:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const fallbackKeys = Object.keys(localStorage).filter(
+        k => k.startsWith("studyHub_calendarRings_") && k !== "studyHub_calendarRings_global"
+      );
+      if (fallbackKeys.length > 0) {
+        const merged: Record<string, boolean> = { ...dayRings };
+        let hasNewData = false;
+        fallbackKeys.forEach(fk => {
+          const savedStr = localStorage.getItem(fk);
+          if (savedStr) {
+            try {
+              const parsed = JSON.parse(savedStr);
+              Object.entries(parsed).forEach(([dk, val]) => {
+                if (merged[dk] === undefined) {
+                  merged[dk] = !!val;
+                  hasNewData = true;
+                }
+              });
+            } catch {}
+          }
+        });
+        if (hasNewData) {
+          setDayRings(merged);
+        }
+      }
+    } catch (err) {
+      console.error("Rings migration error:", err);
+    }
+  }, []);
   
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

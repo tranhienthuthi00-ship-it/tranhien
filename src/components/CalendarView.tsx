@@ -374,6 +374,9 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
     }
     setDayStickers(updated);
     
+    // Save to localStorage immediately
+    const currentMonth = format(currentDate, "yyyy-MM");
+    localStorage.setItem(`studyHub_calendarDayPics_${currentMonth}`, JSON.stringify(updated));
   };
 
   // Trigger Image File picker to embed customizable visual snapshot inside Polaroid
@@ -382,9 +385,43 @@ export function CalendarView({ logs, setLogs }: CalendarViewProps) {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setDayStickerValue(dateStr, "", reader.result as string);
+        const img = new Image();
+        img.onload = () => {
+          // Resize to max 120x120 for stickers to keep size extremely small (<10KB)
+          const canvas = document.createElement('canvas');
+          const maxDim = 120;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+            setDayStickerValue(dateStr, "", compressedBase64);
+          } else {
+            setDayStickerValue(dateStr, "", reader.result as string);
+          }
+        };
+        img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
+      
+      // Clear file input value to allow re-uploading identical file triggers
+      e.target.value = "";
     }
   };
 
