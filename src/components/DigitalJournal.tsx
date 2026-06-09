@@ -419,6 +419,14 @@ export function DigitalJournal({
   const [isCalendarDetailsOpen, setIsCalendarDetailsOpen] = useState(false);
   const calendarContainerRef = useRef<HTMLDivElement>(null);
 
+  const todayDateStr = useMemo(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
   const monthStr = useMemo(() => {
     return `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
   }, [currentMonth]);
@@ -1180,11 +1188,18 @@ export function DigitalJournal({
                         const hasSticker = cell.dateStr ? !!dayStickers[cell.dateStr] : false;
                         const stickerData = cell.dateStr ? dayStickers[cell.dateStr] : null;
                         const ringStyle = cell.dateStr ? dayRings[cell.dateStr] : null;
+                        const isToday = cell.dateStr === todayDateStr;
 
                         return (
                           <div 
                              key={i} 
-                             className={`p-2 flex flex-col relative group transition-colors ${cell.day ? 'cursor-pointer hover:bg-[#8A1E2B]/5 bg-transparent' : 'bg-neutral-100/20 cursor-default'} ${!isLastInRow ? 'border-r-[2px] border-[#8A1E2B]' : ''} ${!isLastRow ? 'border-b-[2px] border-[#8A1E2B]' : ''}`} 
+                             className={`p-2 flex flex-col relative group transition-colors ${
+                                cell.day 
+                                  ? isToday 
+                                    ? 'cursor-pointer bg-[#8A1E2B]/8 hover:bg-[#8A1E2B]/12 ring-[2.5px] ring-inset ring-[#8A1E2B]' 
+                                    : 'cursor-pointer hover:bg-[#8A1E2B]/5 bg-transparent' 
+                                  : 'bg-neutral-100/20 cursor-default'
+                             } ${!isLastInRow ? 'border-r-[2px] border-[#8A1E2B]' : ''} ${!isLastRow ? 'border-b-[2px] border-[#8A1E2B]' : ''}`}  
                              onClick={() => {
                                if (cell.dateStr) {
                                   setSelectedDateStr(cell.dateStr);
@@ -1194,7 +1209,12 @@ export function DigitalJournal({
                           >
                               {cell.day && (
                                 <div className="flex items-center justify-between z-10 relative">
-                                  <span className="text-sm md:text-lg font-caveat font-black text-[#8A1E2B] group-hover:scale-110 transition-transform underline decoration-[#8A1E2B] decoration-[1.5px] underline-offset-4">{cell.day}</span>
+                                  <span className="text-sm md:text-lg font-hand font-extrabold text-[#8A1E2B] group-hover:scale-110 transition-transform underline decoration-[#8A1E2B] decoration-[1.5px] underline-offset-4">{cell.day}</span>
+                                  {isToday && (
+                                    <span className="text-[10px] font-hand font-black bg-[#8A1E2B] text-white px-1.5 py-0.5 rounded shadow-2xs leading-none select-none tracking-wider">
+                                      HÔM NAY
+                                    </span>
+                                  )}
                                 </div>
                               )}
                               
@@ -1207,78 +1227,109 @@ export function DigitalJournal({
                                 </span>
                               )}
 
-                                                            {/* Interaction Rendering - Constrained to bottom 2/3 of day frame */}
-                              {cell.dateStr && (
-                                <div className="absolute top-[28%] left-0 right-0 bottom-0 flex flex-col items-center justify-start z-0 opacity-95 overflow-hidden pointer-events-none pb-1.5 py-1 px-0.5">
-                                  {/* 1. Sticker, Uploaded Photo or Auto Event Emoji */}
-                                  {hasSticker ? (
-                                    <div className="relative w-full h-8 md:h-10 flex items-center justify-center mb-1 shrink-0">
-                                      {(() => {
-                                        const cellStickers = getStickersForDay(cell.dateStr || "");
-                                        return cellStickers.map((st, sIdx) => {
-                                          const rot = sIdx === 0 ? -6 : sIdx === 1 ? 6 : sIdx === 2 ? -2 : 2;
+                                                            {/* Interaction Rendering - Constrained dynamically based on content layers */}
+                              {cell.dateStr && (() => {
+                                const cellStickers = getStickersForDay(cell.dateStr || "");
+                                const presetStickers = cellStickers.filter(st => st.type === 'preset');
+                                const uploadedStickers = cellStickers.filter(st => st.type === 'upload');
+                                const hasPreset = presetStickers.length > 0;
+                                const hasUpload = uploadedStickers.length > 0;
+
+                                return (
+                                  <>
+                                    {/* 1. Preset Stickers - Ở trên 1/3 khung ngày */}
+                                    {hasPreset && (
+                                      <div className="absolute top-[6px] right-[8px] flex items-center justify-end gap-0.5 z-20 pointer-events-none">
+                                        {presetStickers.map((st, sIdx) => {
+                                          const rot = sIdx === 0 ? -6 : sIdx === 1 ? 6 : -2;
                                           return (
                                             <div
                                               key={sIdx}
-                                              className="absolute animate-fade-in"
+                                              className="animate-fade-in"
                                               style={{
                                                 transform: `rotate(${rot}deg)`,
                                                 zIndex: sIdx + 1,
                                               }}
                                             >
-                                              {st.type === 'preset' ? (
-                                                <PolaroidPreset type={st.data} className="w-7 h-7 md:w-8 md:h-8 drop-shadow-xs text-[#8A1E2B] hover:scale-110 transition-transform" />
-                                              ) : (
-                                                <img src={st.data} alt="sticker" className="w-7 h-7 md:w-8 md:h-8 object-cover rounded border border-neutral-300 bg-white p-0.5 shadow-xs" />
-                                              )}
+                                              <PolaroidPreset type={st.data} className="w-[18px] h-[18px] md:w-6 md:h-6 drop-shadow-xs text-[#8A1E2B] hover:scale-110 transition-transform" />
                                             </div>
                                           );
-                                        });
-                                      })()}
-                                    </div>
-                                  ) : (
-                                    (() => {
-                                      const dayEvents = logs.filter(l => l.date === cell.dateStr && l.type === 'Event');
-                                      if (dayEvents.length > 0 && dayEvents[0].emoji) {
-                                        return (
-                                          <span className="text-lg md:text-xl filter drop-shadow-xs select-none transform hover:scale-110 transition-transform mb-1 shrink-0">
-                                            {dayEvents[0].emoji}
-                                          </span>
-                                        );
-                                      }
-                                      const dayLogs = logs.filter(l => l.date === cell.dateStr);
-                                      if (dayLogs.length > 0 && dayLogs[0].emoji) {
-                                        return (
-                                          <span className="text-lg md:text-xl filter drop-shadow-xs select-none transform hover:scale-110 transition-transform mb-1 shrink-0">
-                                            {dayLogs[0].emoji}
-                                          </span>
-                                        );
-                                      }
-                                      return null;
-                                    })()
-                                  )}
+                                        })}
+                                      </div>
+                                    )}
 
-                                  {/* 2. Diaries & Events list underneath (Red text for Events, Black text for Diaries) */}
-                                  <div className="flex flex-col gap-0.5 w-full mt-auto max-h-[38px] overflow-hidden shrink-0">
-                                    {logs.filter(l => l.date === cell.dateStr).slice(0, 2).map((l, idx) => {
-                                      const isEvent = l.type === 'Event';
-                                      return (
-                                        <div 
-                                          key={idx} 
-                                          className={cn(
-                                            "text-[8.5px] md:text-[9.5px] leading-tight truncate w-full text-center px-1 font-hand font-extrabold",
-                                            isEvent 
-                                              ? "red-event-badge text-red-600 bg-red-50/70 rounded-[2.5px] border border-red-200/40" 
-                                              : "black-diary-badge text-neutral-900 bg-neutral-100/70 rounded-[2.5px] border border-neutral-200/40"
-                                          )}
-                                        >
-                                          {isEvent ? "📌 " : "📝 "}{l.content}
+                                    {/* 2. Middle & Lower Portion - Ảnh để dưới và sau đó đến nhật ký/event */}
+                                    <div className="absolute top-[32%] left-0 right-0 bottom-0 flex flex-col items-center justify-start z-0 opacity-95 overflow-hidden pointer-events-none pb-1.5 py-1 px-0.5">
+                                      {/* Uploaded Photos (Ảnh) */}
+                                      {hasUpload ? (
+                                        <div className="relative w-full h-[28px] md:h-[36px] flex items-center justify-center mb-1 shrink-0">
+                                          {uploadedStickers.map((st, sIdx) => {
+                                            const rot = sIdx === 0 ? -4 : sIdx === 1 ? 4 : 2;
+                                            return (
+                                              <div
+                                                key={sIdx}
+                                                className="absolute animate-fade-in"
+                                                style={{
+                                                  transform: `rotate(${rot}deg)`,
+                                                  zIndex: sIdx + 1,
+                                                }}
+                                              >
+                                                <img 
+                                                  referrerPolicy="no-referrer"
+                                                  src={st.data} 
+                                                  alt="uploaded sticker" 
+                                                  className="w-[26px] h-[26px] md:w-[32px] md:h-[32px] object-cover rounded border border-neutral-300 bg-white p-0.5 shadow-xs" 
+                                                />
+                                              </div>
+                                            );
+                                          })}
                                         </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
+                                      ) : (
+                                        /* Fallback emoji only if no stickers exist */
+                                        !hasPreset && (() => {
+                                          const dayEvents = logs.filter(l => l.date === cell.dateStr && l.type === 'Event');
+                                          if (dayEvents.length > 0 && dayEvents[0].emoji) {
+                                            return (
+                                              <span className="text-base md:text-lg filter drop-shadow-xs select-none transform hover:scale-110 transition-transform mb-1 shrink-0">
+                                                {dayEvents[0].emoji}
+                                              </span>
+                                            );
+                                          }
+                                          const dayLogs = logs.filter(l => l.date === cell.dateStr);
+                                          if (dayLogs.length > 0 && dayLogs[0].emoji) {
+                                            return (
+                                              <span className="text-base md:text-lg filter drop-shadow-xs select-none transform hover:scale-110 transition-transform mb-1 shrink-0">
+                                                {dayLogs[0].emoji}
+                                              </span>
+                                            );
+                                          }
+                                          return null;
+                                        })()
+                                      )}
+
+                                      {/* Nhật ký / Event list */}
+                                      <div className="flex flex-col gap-0.5 w-full mt-auto max-h-[38px] overflow-hidden shrink-0">
+                                        {logs.filter(l => l.date === cell.dateStr).slice(0, 2).map((l, idx) => {
+                                          const isEvent = l.type === 'Event';
+                                          return (
+                                            <div 
+                                              key={idx} 
+                                              className={cn(
+                                                "text-[8.5px] md:text-[9.5px] leading-tight truncate w-full text-center px-1 font-hand font-extrabold",
+                                                isEvent 
+                                                  ? "text-red-600"
+                                                  : "text-neutral-800"
+                                              )}
+                                            >
+                                              {l.content}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  </>
+                                );
+                              })()}
                               {/* Hover details hint */}
                               {cell.day && (
                                 <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1339,11 +1390,17 @@ export function DigitalJournal({
                                    fill="#5C3B30" stroke="#3A1412" strokeWidth="2.5" 
                                  />
                                  
-                                 {/* Curly spirals/texture inside the hair pack */}
-                                 <path d="M 14 62 Q 10 70 16 75" fill="none" stroke="#3A1412" strokeWidth="1.8" />
-                                 <path d="M 12 78 Q 8 85 14 90" fill="none" stroke="#3A1412" strokeWidth="1.8" />
-                                 <path d="M 84 62 Q 88 70 82 75" fill="none" stroke="#3A1412" strokeWidth="1.8" />
-                                 <path d="M 86 78 Q 90 85 84 90" fill="none" stroke="#3A1412" strokeWidth="1.8" />
+                                 {/* Fluffy Disney hair curls back-drawn details */}
+                                 <path d="M 12 62 Q 4 72 16 80" fill="none" stroke="#3A1412" strokeWidth="2.2" />
+                                 <path d="M 10 65 Q 2 75 14 83" fill="none" stroke="#FABBA7" strokeWidth="1.5" />
+                                 <path d="M 88 62 Q 96 72 84 80" fill="none" stroke="#3A1412" strokeWidth="2.2" />
+                                 <path d="M 90 65 Q 98 75 86 83" fill="none" stroke="#FABBA7" strokeWidth="1.5" />
+                                 
+                                 {/* Detailed strands across center of mass */}
+                                 <path d="M 32 30 C 22 45, 30 55, 22 75" fill="none" stroke="#3A1412" strokeWidth="1.8" />
+                                 <path d="M 34 32 C 24 47, 32 57, 24 77" fill="none" stroke="#FABBA7" strokeWidth="1.2" />
+                                 <path d="M 68 30 C 78 45, 70 55, 78 75" fill="none" stroke="#3A1412" strokeWidth="1.8" />
+                                 <path d="M 66 32 C 76 47, 68 57, 76 77" fill="none" stroke="#FABBA7" strokeWidth="1.2" />
 
                                  {/* 2. Hand-drawn shoulders/body */}
                                  <path 
@@ -1366,9 +1423,17 @@ export function DigitalJournal({
                                    d="M 28 45 C 32 32, 45 30, 50 36 C 55 30, 68 32, 72 45 Q 60 36, 50 38 Q 40 36, 28 45 Z" 
                                    fill="#5C3B30" stroke="#3A1412" strokeWidth="2.5" 
                                  />
-                                 {/* Long curly danglers framing sides */}
-                                 <path d="M 29 45 Q 23 58 28 66 T 25 74" fill="none" stroke="#3A1412" strokeWidth="2.2" />
-                                 <path d="M 71 45 Q 77 58 72 66 T 75 74" fill="none" stroke="#3A1412" strokeWidth="2.2" />
+                                 {/* Front Bang waves highlights/shimmer */}
+                                 <path d="M 33 34 C 42 31, 48 34, 46 39" fill="none" stroke="#FABBA7" strokeWidth="1.8" />
+                                 <path d="M 67 34 C 58 31, 52 34, 54 39" fill="none" stroke="#FABBA7" strokeWidth="1.8" />
+
+                                 {/* Cascading bouncy princess ringlets (Left side) */}
+                                 <path d="M 29 45 C 16 52, 14 62, 22 68 C 30 74, 12 78, 18 88 T 14 100" fill="none" stroke="#3A1412" strokeWidth="2.5" />
+                                 <path d="M 26 50 C 12 58, 16 68, 12 78 T 16 94" fill="none" stroke="#FABBA7" strokeWidth="1.5" />
+                                 
+                                 {/* Cascading bouncy princess ringlets (Right side) */}
+                                 <path d="M 71 45 C 84 52, 86 62, 78 68 C 70 74, 88 78, 82 88 T 86 100" fill="none" stroke="#3A1412" strokeWidth="2.5" />
+                                 <path d="M 74 50 C 88 58, 84 68, 88 78 T 84 94" fill="none" stroke="#FABBA7" strokeWidth="1.5" />
 
                                  {/* 5. Rosy peach cheeks blush */}
                                  <ellipse cx="33" cy="56" rx="5" ry="3.2" fill="#FFA5A5" opacity="0.6" />
@@ -1742,6 +1807,69 @@ export function DigitalJournal({
                   modalActiveTab === 'notebook' ? "block" : "hidden md:flex"
                 )}>
                   
+                  {/* Part 0: Daily Recap */}
+                  <div className="bg-[#FAF3EB]/80 p-4 rounded-2xl border-[2.5px] border-[#8A1E2B] shadow-[3.5px_3.5px_0_rgba(138,30,43,0.15)] mb-2">
+                    <h4 className="font-hand font-extrabold text-[#8A1E2B] text-lg uppercase tracking-wider flex items-center gap-2 mb-3">
+                      <span>📖</span> NHẬT KÝ & HOẠT ĐỘNG TRONG NGÀY
+                    </h4>
+                    
+                    {(() => {
+                      const dayLogs = logs.filter(l => l.date === selectedDateStr);
+                      if (dayLogs.length === 0) {
+                        return (
+                          <div className="p-3 text-xs italic text-neutral-500 bg-white/40 rounded-xl border border-dashed border-[#8A1E2B]/20 leading-relaxed font-hand">
+                            Chưa có hoạt động hay nhật ký nào được ghi nhận cho ngày này. Hãy viết nhanh một ghi chú phía dưới để hồi tưởng bạn nhé! ✏️
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                          {dayLogs.map((l) => (
+                            <div 
+                              key={l.id} 
+                              className={cn(
+                                "p-2.5 rounded-xl border relative group/log transition-all bg-white flex gap-2 w-full",
+                                l.type === 'Event' ? 'border-red-200 bg-red-50/10' : 'border-neutral-200 bg-white'
+                              )}
+                            >
+                              <span className="text-lg shrink-0 leading-none select-none">{l.emoji || (l.type === 'Event' ? '📌' : '📝')}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className={cn(
+                                    "text-[9px] font-black uppercase px-1.5 py-0.5 rounded-sm tracking-wider font-sans",
+                                    l.type === 'Event' ? 'bg-red-100 text-red-800' : 'bg-neutral-100 text-neutral-700'
+                                  )}>
+                                    {l.type === 'Event' ? 'Sự Kiện' : 'Nhật ký'}
+                                  </span>
+                                  {l.location && (
+                                    <span className="text-[10px] font-bold text-neutral-500 font-hand truncate max-w-[120px]">
+                                      📍 {l.location}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-[#2A2421] font-hand font-extrabold leading-snug mt-1 break-words">
+                                  {l.content}
+                                </p>
+                              </div>
+                              
+                              <button
+                                onClick={() => {
+                                  setLogs(logs.filter(existing => existing.id !== l.id));
+                                }}
+                                className="self-start p-1 rounded-full text-neutral-400 hover:text-red-500 hover:bg-red-50 opacity-100 md:opacity-0 group-hover/log:opacity-100 transition-all cursor-pointer"
+                                title="Xóa dòng nhật ký"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
                   {/* Part 1: Sticker Settings */}
                   <div className="bg-[#FAF3EB]/50 p-4 rounded-2xl border-[2px] border-[#5C0612]/20 shadow-[2px_2px_0_rgba(92,6,18,0.05)]">
                     <h4 className="font-logo font-bold text-[#5C0612] text-sm uppercase tracking-wider flex items-center gap-2 mb-3">

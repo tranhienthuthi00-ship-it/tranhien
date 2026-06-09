@@ -82,6 +82,7 @@ export interface LogEntry {
   emoji?: string;
   icon?: string;
   time?: string;
+  location?: string;
 }
 
 export interface AssetCategory {
