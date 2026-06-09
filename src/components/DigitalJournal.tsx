@@ -1186,54 +1186,58 @@ export function DigitalJournal({
 
                                                             {/* Interaction Rendering - Constrained to bottom 2/3 of day frame */}
                               {cell.dateStr && (
-                                <div className="absolute top-[28%] left-0 right-0 bottom-0 flex flex-col items-center justify-center z-0 opacity-95 overflow-visible pointer-events-none pb-1 px-1">
+                                <div className="absolute top-[28%] left-0 right-0 bottom-0 flex flex-col items-center justify-start z-0 opacity-95 overflow-hidden pointer-events-none pb-1.5 py-1 px-0.5">
+                                  {/* 1. Sticker, Uploaded Photo or Auto Event Emoji */}
                                   {hasSticker ? (
-                                    <div className="flex flex-col items-center justify-center w-full h-full mt-1">
+                                    <div className="flex items-center justify-center mb-1 shrink-0">
                                       {stickerData?.type === 'preset' && (
-                                        <PolaroidPreset type={stickerData.data} className="w-9 h-9 drop-shadow-sm text-[#8A1E2B] hover:scale-110 transition-transform" />
+                                        <PolaroidPreset type={stickerData.data} className="w-7 h-7 md:w-8 md:h-8 drop-shadow-xs text-[#8A1E2B] hover:scale-110 transition-transform" />
                                       )}
                                       {stickerData?.type === 'upload' && (
-                                        <img src={stickerData.data} alt="sticker" className="w-11 h-11 object-contain rounded border border-neutral-200/50" />
+                                        <img src={stickerData.data} alt="sticker" className="w-7 h-7 md:w-8 md:h-8 object-contain rounded border border-neutral-200/30" />
                                       )}
                                     </div>
                                   ) : (
-                                    <div className="flex flex-col items-center justify-between w-full h-full pt-1">
-                                      {/* Auto Sticker for Day Events occupying bottom 2/3 area */}
-                                      {(() => {
-                                        const dayEvents = logs.filter(l => l.date === cell.dateStr && l.type === 'Event');
-                                        if (dayEvents.length > 0) {
-                                          const firstEv = dayEvents[0];
-                                          // Display a cute visual sticker representation of the event
-                                          if (firstEv.emoji) {
-                           const isLastInRow = (i + 1) % 7 === 0;
-                        const isLastRow = i >= calendarDays.length - 7;
-                        const hasSticker = cell.dateStr ? !!dayStickers[cell.dateStr] : false;
-                        const stickerData = cell.dateStr ? dayStickers[cell.dateStr] : null;
-                        const ringStyle = cell.dateStr ? dayRings[cell.dateStr] : null;
-
-                        return (
-                                              <span className="text-2xl md:text-3xl filter drop-shadow-md select-none transform hover:scale-125 hover:rotate-6 transition-transform animate-bounce mt-1">
-                                                {firstEv.emoji}
-                                              </span>
-                                            );
-                                          }
-                                          return (
-                                            <PolaroidPreset type="star" className="w-8 h-8 drop-shadow-sm text-[#8A1E2B] mt-1 animate-pulse" />
-                                          );
-                                        }
-                                        return null;
-                                      })()}
-                                      
-                                      {/* Event text summary below auto sticker block */}
-                                      <div className="flex flex-col gap-0.5 w-full mt-auto">
-                                        {logs.filter(l => l.date === cell.dateStr).slice(0, 1).map((l, idx) => (
-                                          <div key={idx} className="text-[9px] md:text-[10px] truncate text-[#8A1E2B] font-bold font-sans bg-[#8A1E2B]/10 rounded px-1 text-center scale-90 border border-[#8A1E2B]/10">
-                                            {l.emoji || '📌'} {l.content}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
+                                    (() => {
+                                      const dayEvents = logs.filter(l => l.date === cell.dateStr && l.type === 'Event');
+                                      if (dayEvents.length > 0 && dayEvents[0].emoji) {
+                                        return (
+                                          <span className="text-lg md:text-xl filter drop-shadow-xs select-none transform hover:scale-110 transition-transform mb-1 shrink-0">
+                                            {dayEvents[0].emoji}
+                                          </span>
+                                        );
+                                      }
+                                      const dayLogs = logs.filter(l => l.date === cell.dateStr);
+                                      if (dayLogs.length > 0 && dayLogs[0].emoji) {
+                                        return (
+                                          <span className="text-lg md:text-xl filter drop-shadow-xs select-none transform hover:scale-110 transition-transform mb-1 shrink-0">
+                                            {dayLogs[0].emoji}
+                                          </span>
+                                        );
+                                      }
+                                      return null;
+                                    })()
                                   )}
+
+                                  {/* 2. Diaries & Events list underneath (Red text for Events, Black text for Diaries) */}
+                                  <div className="flex flex-col gap-0.5 w-full mt-auto max-h-[38px] overflow-hidden shrink-0">
+                                    {logs.filter(l => l.date === cell.dateStr).slice(0, 2).map((l, idx) => {
+                                      const isEvent = l.type === 'Event';
+                                      return (
+                                        <div 
+                                          key={idx} 
+                                          className={cn(
+                                            "text-[8.5px] md:text-[9.5px] leading-tight truncate w-full text-center px-1 font-sans font-extrabold",
+                                            isEvent 
+                                              ? "red-event-badge text-red-600 bg-red-50/70 rounded-[2.5px] border border-red-200/40" 
+                                              : "black-diary-badge text-neutral-900 bg-neutral-100/70 rounded-[2.5px] border border-neutral-200/40"
+                                          )}
+                                        >
+                                          {isEvent ? "📌 " : "📝 "}{l.content}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
                               )}
                               {/* Hover details hint */}
