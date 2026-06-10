@@ -51,6 +51,31 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn("localStorage.getItem failed for key: " + key, e);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn("localStorage.setItem failed for key: " + key, e);
+    }
+  },
+  removeItem: (key: string): void => {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.warn("localStorage.removeItem failed for key: " + key, e);
+    }
+  }
+};
+
 export function useFirebaseSync() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,11 +103,11 @@ export function useFirebaseSync() {
 
   // Sync state for Salary Planner
   const [salaryInput, setSalaryInput] = useState<string>(() => {
-    return localStorage.getItem("studyHub_salaryInput") || "15,000,000";
+    return safeLocalStorage.getItem("studyHub_salaryInput") || "15,000,000";
   });
   const [plannedExpenses, setPlannedExpenses] = useState<{ id: string; name: string; amount: string; notes: string }[]>(() => {
     try {
-      const saved = localStorage.getItem("studyHub_plannedExpenses");
+      const saved = safeLocalStorage.getItem("studyHub_plannedExpenses");
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return [
@@ -96,13 +121,13 @@ export function useFirebaseSync() {
 
   // Sync state for Habits
   const [habits, setHabits] = useState<any[]>(() => {
-    const saved = localStorage.getItem("studyHub_habits");
+    const saved = safeLocalStorage.getItem("studyHub_habits");
     return saved ? JSON.parse(saved) : [];
   });
 
   // Sync state for Custom Rewards
   const [customRewards, setCustomRewards] = useState<{ id: string, emoji: string, title: string, desc: string, isUnlocked: boolean, unlockedAt?: string, isRedeemed?: boolean }[]>(() => {
-    const saved = localStorage.getItem("studyHub_customRewardsList");
+    const saved = safeLocalStorage.getItem("studyHub_customRewardsList");
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -137,7 +162,7 @@ export function useFirebaseSync() {
 
   const [bulkDebts, setBulkDebts] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => {
     try {
-      const saved = localStorage.getItem("studyHub_bulkDebts");
+      const saved = safeLocalStorage.getItem("studyHub_bulkDebts");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length === 7) return parsed;
@@ -148,7 +173,7 @@ export function useFirebaseSync() {
 
   const [bulkCardSpends, setBulkCardSpends] = useState<{id: number, name: string, amount: string, notes: string}[]>(() => {
     try {
-      const saved = localStorage.getItem("studyHub_bulkCardSpends");
+      const saved = safeLocalStorage.getItem("studyHub_bulkCardSpends");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -159,7 +184,7 @@ export function useFirebaseSync() {
 
   const [kvStore, setKvStore] = useState<Record<string, any>>(() => {
     try {
-      const saved = localStorage.getItem("studyHub_kvStore");
+      const saved = safeLocalStorage.getItem("studyHub_kvStore");
       if (saved) return JSON.parse(saved);
     } catch(e) {}
     return {};
@@ -169,7 +194,7 @@ export function useFirebaseSync() {
 
   const [bulkCurrentCash, setBulkCurrentCash] = useState<Record<number, number>>(() => {
     try {
-      const saved = localStorage.getItem("studyHub_bulkCurrentCash");
+      const saved = safeLocalStorage.getItem("studyHub_bulkCurrentCash");
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return {};
@@ -190,8 +215,8 @@ export function useFirebaseSync() {
   }, []);
 
   const migrateLocalStorage = async (uid: string) => {
-    const migratedV4 = localStorage.getItem(`migrated_${uid}_v4`);
-    const migratedV5 = localStorage.getItem(`migrated_${uid}_v5`);
+    const migratedV4 = safeLocalStorage.getItem(`migrated_${uid}_v4`);
+    const migratedV5 = safeLocalStorage.getItem(`migrated_${uid}_v5`);
     if (migratedV5) return;
 
     const safeSetDoc = async (path: string, item: any) => {
@@ -223,7 +248,7 @@ export function useFirebaseSync() {
       for (const [lsKey, firestorePath] of Object.entries(storageMap)) {
         // v5 migration specifically targets those that might have failed rule checks earlier
         // but we can re-migrate everything safely as setDoc is idempotent
-        const data = localStorage.getItem(lsKey);
+        const data = safeLocalStorage.getItem(lsKey);
         if (data) {
           try {
             const parsed = JSON.parse(data);
@@ -240,7 +265,7 @@ export function useFirebaseSync() {
         }
       }
 
-      const savedTags = localStorage.getItem('spatial_hub_tags');
+      const savedTags = safeLocalStorage.getItem('spatial_hub_tags');
       if (savedTags) {
         try {
           const parsed = JSON.parse(savedTags);
@@ -248,8 +273,8 @@ export function useFirebaseSync() {
         } catch(e) {}
       }
 
-      localStorage.setItem(`migrated_${uid}_v4`, 'true');
-      localStorage.setItem(`migrated_${uid}_v5`, 'true');
+      safeLocalStorage.setItem(`migrated_${uid}_v4`, 'true');
+      safeLocalStorage.setItem(`migrated_${uid}_v5`, 'true');
     } catch (e) {
       console.error("Migration error", e);
     }
@@ -311,11 +336,11 @@ export function useFirebaseSync() {
         const data = docSnap.data();
         if (data.salaryInput !== undefined) {
           setSalaryInput(data.salaryInput);
-          localStorage.setItem("studyHub_salaryInput", data.salaryInput);
+          safeLocalStorage.setItem("studyHub_salaryInput", data.salaryInput);
         }
         if (data.plannedExpenses !== undefined && Array.isArray(data.plannedExpenses)) {
           setPlannedExpenses(data.plannedExpenses);
-          localStorage.setItem("studyHub_plannedExpenses", JSON.stringify(data.plannedExpenses));
+          safeLocalStorage.setItem("studyHub_plannedExpenses", JSON.stringify(data.plannedExpenses));
         }
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/salaryPlanner`));
@@ -323,14 +348,14 @@ export function useFirebaseSync() {
     const unsubHabits = onSnapshot(doc(db, `users/${user.uid}/data/habits`), (docSnap) => {
       if (docSnap.exists() && docSnap.data().habits) {
         setHabits(docSnap.data().habits);
-        localStorage.setItem("studyHub_habits", JSON.stringify(docSnap.data().habits));
+        safeLocalStorage.setItem("studyHub_habits", JSON.stringify(docSnap.data().habits));
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/habits`));
 
     const unsubRewards = onSnapshot(doc(db, `users/${user.uid}/data/customRewards`), (docSnap) => {
       if (docSnap.exists() && docSnap.data().customRewards) {
         setCustomRewards(docSnap.data().customRewards);
-        localStorage.setItem("studyHub_customRewardsList", JSON.stringify(docSnap.data().customRewards));
+        safeLocalStorage.setItem("studyHub_customRewardsList", JSON.stringify(docSnap.data().customRewards));
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/customRewards`));
 
@@ -338,7 +363,7 @@ export function useFirebaseSync() {
       if (docSnap.exists() && docSnap.data().data) {
         if (JSON.stringify(kvStoreRef.current) !== JSON.stringify(docSnap.data().data)) {
           setKvStore(docSnap.data().data);
-          localStorage.setItem("studyHub_kvStore", JSON.stringify(docSnap.data().data));
+          safeLocalStorage.setItem("studyHub_kvStore", JSON.stringify(docSnap.data().data));
         }
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/kvStore`));
@@ -349,19 +374,19 @@ export function useFirebaseSync() {
         if (data.bulkDebts !== undefined && Array.isArray(data.bulkDebts)) {
           if (JSON.stringify(bulkDebtsRef.current) !== JSON.stringify(data.bulkDebts)) {
             setBulkDebts(data.bulkDebts);
-            localStorage.setItem("studyHub_bulkDebts", JSON.stringify(data.bulkDebts));
+            safeLocalStorage.setItem("studyHub_bulkDebts", JSON.stringify(data.bulkDebts));
           }
         }
         if (data.bulkCardSpends !== undefined && Array.isArray(data.bulkCardSpends)) {
           if (JSON.stringify(bulkCardSpendsRef.current) !== JSON.stringify(data.bulkCardSpends)) {
             setBulkCardSpends(data.bulkCardSpends);
-            localStorage.setItem("studyHub_bulkCardSpends", JSON.stringify(data.bulkCardSpends));
+            safeLocalStorage.setItem("studyHub_bulkCardSpends", JSON.stringify(data.bulkCardSpends));
           }
         }
         if (data.bulkCurrentCash !== undefined && typeof data.bulkCurrentCash === 'object') {
           if (JSON.stringify(bulkCurrentCashRef.current) !== JSON.stringify(data.bulkCurrentCash)) {
             setBulkCurrentCash(data.bulkCurrentCash);
-            localStorage.setItem("studyHub_bulkCurrentCash", JSON.stringify(data.bulkCurrentCash));
+            safeLocalStorage.setItem("studyHub_bulkCurrentCash", JSON.stringify(data.bulkCurrentCash));
           }
         }
       }
@@ -520,122 +545,122 @@ export function useFirebaseSync() {
     tags, setTags: createSyncSetter<any>('tags', React.createRef(), setTags as any, true),
     bulkDebts,
     setBulkDebts: async (valOrFunc: any) => {
-      let nextVal;
-      if (typeof valOrFunc === 'function') {
-        nextVal = valOrFunc(bulkDebtsRef.current);
-      } else {
-        nextVal = valOrFunc;
-      }
-      setBulkDebts(nextVal);
-      localStorage.setItem("studyHub_bulkDebts", JSON.stringify(nextVal));
-      setSaveTrigger(p => p + 1);
+       let nextVal;
+       if (typeof valOrFunc === 'function') {
+         nextVal = valOrFunc(bulkDebtsRef.current);
+       } else {
+         nextVal = valOrFunc;
+       }
+       setBulkDebts(nextVal);
+       safeLocalStorage.setItem("studyHub_bulkDebts", JSON.stringify(nextVal));
+       setSaveTrigger(p => p + 1);
     },
     bulkCardSpends,
     setBulkCardSpends: async (valOrFunc: any) => {
-      let nextVal;
-      if (typeof valOrFunc === 'function') {
-        nextVal = valOrFunc(bulkCardSpendsRef.current);
-      } else {
-        nextVal = valOrFunc;
-      }
-      setBulkCardSpends(nextVal);
-      localStorage.setItem("studyHub_bulkCardSpends", JSON.stringify(nextVal));
-      setSaveTrigger(p => p + 1);
+       let nextVal;
+       if (typeof valOrFunc === 'function') {
+         nextVal = valOrFunc(bulkCardSpendsRef.current);
+       } else {
+         nextVal = valOrFunc;
+       }
+       setBulkCardSpends(nextVal);
+       safeLocalStorage.setItem("studyHub_bulkCardSpends", JSON.stringify(nextVal));
+       setSaveTrigger(p => p + 1);
     },
     bulkCurrentCash,
     setBulkCurrentCash: async (valOrFunc: any) => {
-      let nextVal;
-      if (typeof valOrFunc === 'function') {
-        nextVal = valOrFunc(bulkCurrentCashRef.current);
-      } else {
-        nextVal = valOrFunc;
-      }
-      setBulkCurrentCash(nextVal);
-      localStorage.setItem("studyHub_bulkCurrentCash", JSON.stringify(nextVal));
-      setSaveTrigger(p => p + 1);
+       let nextVal;
+       if (typeof valOrFunc === 'function') {
+         nextVal = valOrFunc(bulkCurrentCashRef.current);
+       } else {
+         nextVal = valOrFunc;
+       }
+       setBulkCurrentCash(nextVal);
+       safeLocalStorage.setItem("studyHub_bulkCurrentCash", JSON.stringify(nextVal));
+       setSaveTrigger(p => p + 1);
     },
     salaryInput,
     setSalaryInput: async (newVal: string) => {
-      setSalaryInput(newVal);
-      localStorage.setItem("studyHub_salaryInput", newVal);
-      if (user) {
-        try {
-          await setDoc(doc(db, `users/${user.uid}/data/salaryPlanner`), {
-            salaryInput: newVal,
-            plannedExpenses: plannedExpensesRef.current
-          }, { merge: true });
-        } catch (err) {
-          console.error("Salary sync error:", err);
-        }
-      }
+       setSalaryInput(newVal);
+       safeLocalStorage.setItem("studyHub_salaryInput", newVal);
+       if (user) {
+         try {
+           await setDoc(doc(db, `users/${user.uid}/data/salaryPlanner`), {
+             salaryInput: newVal,
+             plannedExpenses: plannedExpensesRef.current
+           }, { merge: true });
+         } catch (err) {
+           console.error("Salary sync error:", err);
+         }
+       }
     },
     plannedExpenses,
     setPlannedExpenses: async (newValOrFunc: any) => {
-      let nextVal;
-      if (typeof newValOrFunc === 'function') {
-        nextVal = newValOrFunc(plannedExpensesRef.current);
-      } else {
-        nextVal = newValOrFunc;
-      }
-      setPlannedExpenses(nextVal);
-      localStorage.setItem("studyHub_plannedExpenses", JSON.stringify(nextVal));
-      if (user) {
-        try {
-          await setDoc(doc(db, `users/${user.uid}/data/salaryPlanner`), {
-            salaryInput: salaryInputRef.current,
-            plannedExpenses: nextVal
-          }, { merge: true });
-        } catch (err) {
-          console.error("Planned expenses sync error:", err);
-        }
-      }
+       let nextVal;
+       if (typeof newValOrFunc === 'function') {
+         nextVal = newValOrFunc(plannedExpensesRef.current);
+       } else {
+         nextVal = newValOrFunc;
+       }
+       setPlannedExpenses(nextVal);
+       safeLocalStorage.setItem("studyHub_plannedExpenses", JSON.stringify(nextVal));
+       if (user) {
+         try {
+           await setDoc(doc(db, `users/${user.uid}/data/salaryPlanner`), {
+             salaryInput: salaryInputRef.current,
+             plannedExpenses: nextVal
+           }, { merge: true });
+         } catch (err) {
+           console.error("Planned expenses sync error:", err);
+         }
+       }
     },
     habits,
     setHabits: async (newValOrFunc: any) => {
-      let nextVal;
-      if (typeof newValOrFunc === 'function') {
-        nextVal = newValOrFunc(habitsRef.current);
-      } else {
-        nextVal = newValOrFunc;
-      }
-      setHabits(nextVal);
-      localStorage.setItem("studyHub_habits", JSON.stringify(nextVal));
-      if (user) {
-        try {
-          await setDoc(doc(db, `users/${user.uid}/data/habits`), { habits: nextVal });
-        } catch (err) {
-          console.error("Habits sync error:", err);
-        }
-      }
+       let nextVal;
+       if (typeof newValOrFunc === 'function') {
+         nextVal = newValOrFunc(habitsRef.current);
+       } else {
+         nextVal = newValOrFunc;
+       }
+       setHabits(nextVal);
+       safeLocalStorage.setItem("studyHub_habits", JSON.stringify(nextVal));
+       if (user) {
+         try {
+           await setDoc(doc(db, `users/${user.uid}/data/habits`), { habits: nextVal });
+         } catch (err) {
+           console.error("Habits sync error:", err);
+         }
+       }
     },
     customRewards,
     kvStore,
     setKvStoreTarget: async (key: string, value: any) => {
-      const updated = { ...kvStoreRef.current, [key]: value };
-      setKvStore(updated);
-      localStorage.setItem("studyHub_kvStore", JSON.stringify(updated));
-      if (auth.currentUser) {
-        try {
-          await setDoc(doc(db, `users/${auth.currentUser.uid}/data/kvStore`), { data: updated }, { merge: true });
-        } catch (e) { console.error("KV sync error", e); }
-      }
+       const updated = { ...kvStoreRef.current, [key]: value };
+       setKvStore(updated);
+       safeLocalStorage.setItem("studyHub_kvStore", JSON.stringify(updated));
+       if (auth.currentUser) {
+         try {
+           await setDoc(doc(db, `users/${auth.currentUser.uid}/data/kvStore`), { data: updated }, { merge: true });
+         } catch (e) { console.error("KV sync error", e); }
+       }
     },
     setCustomRewards: async (newValOrFunc: any) => {
-      let nextVal;
-      if (typeof newValOrFunc === 'function') {
-        nextVal = newValOrFunc(customRewardsRef.current);
-      } else {
-        nextVal = newValOrFunc;
-      }
-      setCustomRewards(nextVal);
-      localStorage.setItem("studyHub_customRewardsList", JSON.stringify(nextVal));
-      if (user) {
-        try {
-          await setDoc(doc(db, `users/${user.uid}/data/customRewards`), { customRewards: nextVal });
-        } catch (err) {
-          console.error("Custom rewards sync error:", err);
-        }
-      }
+       let nextVal;
+       if (typeof newValOrFunc === 'function') {
+         nextVal = newValOrFunc(customRewardsRef.current);
+       } else {
+         nextVal = newValOrFunc;
+       }
+       setCustomRewards(nextVal);
+       safeLocalStorage.setItem("studyHub_customRewardsList", JSON.stringify(nextVal));
+       if (user) {
+         try {
+           await setDoc(doc(db, `users/${user.uid}/data/customRewards`), { customRewards: nextVal });
+         } catch (err) {
+           console.error("Custom rewards sync error:", err);
+         }
+       }
     }
   };
 }

@@ -45,7 +45,11 @@ export function useSyncedState<T>(key: string, defaultValue: T): [T, (val: T | (
     setVal(prev => {
        const finalVal = typeof newValOrFunc === 'function' ? (newValOrFunc as Function)(prev) : newValOrFunc;
        const valStr = typeof finalVal === 'string' ? finalVal : JSON.stringify(finalVal);
-       localStorage.setItem(key, valStr);
+       try {
+         localStorage.setItem(key, valStr);
+       } catch (e) {
+         console.warn("localStorage.setItem failed in useSyncedState:", e);
+       }
        setKvStoreTarget(key, finalVal);
        return finalVal;
     });
