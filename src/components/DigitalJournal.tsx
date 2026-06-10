@@ -250,6 +250,7 @@ export function DigitalJournal({
 
   const [bucketListSubtitle, setBucketListSubtitle] = useSyncedState("studyHub_bucketListSubtitle", "🍉 SUMMER");
   const [bucketListTitle, setBucketListTitle] = useSyncedState("studyHub_bucketListTitle", "BUCKET LIST");
+  const [isFinanceOverallOpen, setIsFinanceOverallOpen] = useSyncedState("studyHub_isFinanceOverallOpen_home", false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitlePrefix, setEditTitlePrefix] = useState("");
   const [editTitleMain, setEditTitleMain] = useState("");
@@ -1882,24 +1883,279 @@ export function DigitalJournal({
         
         </div>
 {/* BOTTOM: PERSONAL FINANCE OVERVIEW */}
-        <div className="pt-20 pb-12 w-full flex flex-col items-center justify-center">
-           <h3 className="text-center font-hand font-black text-2xl md:text-3xl text-[#8A1E2B] tracking-[0.2em] uppercase mb-10 w-fit mx-auto border-b-2 border-dashed border-[#8A1E2B]/30 pb-2">PERSONAL FINANCE OVERVIEW</h3>
-           
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-40 pointer-events-none grayscale max-w-4xl w-full">
-              {/* Simplified overview from previous logic */}
-              <div className="bg-[#f7ebe1] p-6 border-[3px] border-[#8A1E2B] text-center rounded-[30px] rounded-tl-none">
-                 <h4 className="font-hand font-bold text-[#8A1E2B] text-sm uppercase mb-2">TỔNG THU NHẬP</h4>
-                 <p className="text-2xl font-hand font-black text-[#8A1E2B]">{salaryInput} đ</p>
+        <div className="pt-24 pb-12 z-20 w-full max-w-5xl mx-auto">
+            <div className="relative pt-8 z-20 w-full">
+              <div className="bg-[#862939] p-4 rounded-[40px] shadow-[8px_8px_0px_#f8f5ed,10px_10px_0px_rgba(0,0,0,0.1)] relative"
+                style={{
+                  backgroundImage: "repeating-linear-gradient(90deg, #8A1E2B, #8A1E2B 24px, #bc707b 24px, #bc707b 48px)"
+                }}
+              >
+                  <div className="bg-[#FAF3EB] border-[8px] border-[#862939] rounded-[30px] p-6 md:p-8 text-[#5C0612] relative min-h-[300px] overflow-hidden">
+                      
+                      {/* Header */}
+                      <div className="relative text-center mb-6 select-none cursor-pointer group z-10 pt-2"
+                        onClick={() => setIsFinanceOverallOpen(!isFinanceOverallOpen)}
+                      >
+                           <h2 className="text-[#5C0612] font-hand font-black text-3xl md:text-4xl tracking-normal leading-none rotate-[-1deg] select-none flex flex-col items-center group-hover:scale-[1.02] transition-transform">
+                             <span className="text-base md:text-lg block tracking-[0.2em] text-[#7D1E2B]/85 font-extrabold rotate-[2deg] opacity-95">💰 FINANCE OVERALL</span>
+                             <span className="text-3xl md:text-[45px] font-black block mt-2 tracking-tighter drop-shadow-sm uppercase">SỔ TỔNG HỢP TÀI CHÍNH</span>
+                           </h2>
+                           <div className="w-24 h-1.5 bg-[#5C0612] mx-auto mt-4 rounded-full rotate-[1deg] opacity-10" />
+                           <span className="text-[10px] font-hand font-black uppercase tracking-wider text-[#8A1E2B] block mt-2 animate-pulse">
+                             {isFinanceOverallOpen ? "Ấn vào đây để ĐÓNG SỔ 🔒" : "Ấn vào đây để MỞ SỔ CHI TIẾT 🔓"}
+                           </span>
+                      </div>
+
+                      {/* Always show high level summary row */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto w-full relative z-10 my-6">
+                         <div className="bg-[#fcf8f2] p-4 border-[3px] border-[#8A1E2B] text-center rounded-[20px] shadow-[3px_3px_0_rgba(138,30,43,0.1)]">
+                            <h4 className="font-hand font-black text-[#8A1E2B] text-xs uppercase mb-1">TỔNG THU NHẬP</h4>
+                            <p className="text-lg md:text-xl font-hand font-black text-[#5C0612]">
+                              {(() => {
+                                const baseSalaryVal = parseFloat(salaryInput.replace(/,/g, '')) || 0;
+                                return baseSalaryVal.toLocaleString('vi-VN');
+                              })()} đ
+                            </p>
+                         </div>
+                         <div className="bg-[#fcf8f2] p-4 border-[3px] border-[#8A1E2B] text-center rounded-[20px] shadow-[3px_3px_0_rgba(138,30,43,0.1)]">
+                            <h4 className="font-hand font-black text-[#8A1E2B] text-xs uppercase mb-1">DOANH THU TUẦN</h4>
+                            <p className="text-lg md:text-xl font-hand font-black text-[#5C0612]/90">
+                              {(() => {
+                                const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                                return (total > 0 ? "+" : "") + total.toLocaleString("vi-VN");
+                              })()} đ
+                            </p>
+                         </div>
+                         <div className="bg-[#fcf8f2] p-4 border-[3px] border-[#8A1E2B] text-center rounded-[20px] shadow-[3px_3px_0_rgba(138,30,43,0.1)]">
+                            <h4 className="font-hand font-black text-[#8A1E2B] text-xs uppercase mb-1">KÊ KHAI TIỀN MẶT</h4>
+                            <p className="text-lg md:text-xl font-hand font-black text-[#5C0612]/90">
+                              {(() => {
+                                const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
+                                const total = VND_DENOMINATIONS.reduce((sum, den) => sum + den * (bulkCurrentCash[den] || 0), 0);
+                                return total.toLocaleString("vi-VN");
+                              })()} đ
+                            </p>
+                         </div>
+                      </div>
+
+                      {/* Collapsible area for details */}
+                      <AnimatePresence>
+                        {isFinanceOverallOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden relative z-10"
+                          >
+                            <div className="border-t-2 border-dashed border-[#5C0612]/20 my-6 pt-6">
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-left font-hand text-[#5C0612]">
+                                
+                                {/* TABLE 1: DOANH THU TUẦN */}
+                                <div className="bg-[#fcfbf7] p-4 md:p-6 border-[3px] border-dashed border-[#8A1E2B]/40 rounded-[24px]">
+                                   <div className="mb-4 text-center">
+                                     <h4 className="font-hand font-black text-lg md:text-xl uppercase tracking-wider text-[#8A1E2B] flex items-center justify-center gap-2">
+                                       <span>📈</span> Chi Tiết Doanh Thu Tuần
+                                     </h4>
+                                     <div className="w-16 h-1 bg-[#8A1E2B]/10 mx-auto mt-1 rounded-full" />
+                                   </div>
+
+                                   <div className="space-y-3">
+                                      {bulkDebts.map((item, index) => {
+                                        return (
+                                          <div key={item.id} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 border-b border-[#5C0612]/10 pb-2.5 pt-1 last:border-b-0">
+                                            {/* Date selection with Dot format */}
+                                            <div className="w-24 shrink-0 flex items-center gap-1.5 font-hand font-bold text-[#5C0612] bg-[#8A1E2B]/5 px-2 py-1 rounded-lg">
+                                              <span className="text-xs font-mono font-black text-[#8A1E2B]">
+                                                {formatDateDot(item.name)}
+                                              </span>
+                                              <div className="relative scale-90 hover:scale-105 transition-transform cursor-pointer w-4 h-4 flex items-center justify-center shrink-0">
+                                                <span className="text-xs">📅</span>
+                                                <input
+                                                  type="date"
+                                                  value={item.name}
+                                                  onChange={(e) => {
+                                                    const updated = [...bulkDebts];
+                                                    updated[index].name = e.target.value;
+                                                    setBulkDebts(updated);
+                                                  }}
+                                                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                                />
+                                              </div>
+                                            </div>
+                                            
+                                            {/* Amount Input */}
+                                            <div className="flex-1 min-w-[110px]">
+                                              <input
+                                                type="text"
+                                                placeholder="Doanh thu (đ)"
+                                                value={
+                                                  item.amount === "-" 
+                                                    ? "-" 
+                                                    : item.amount 
+                                                      ? Number(item.amount.replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
+                                                      : ""
+                                                }
+                                                onChange={(e) => {
+                                                  const cleanVal = e.target.value.replace(/[^0-9-]/g, "");
+                                                  const updated = [...bulkDebts];
+                                                  updated[index].amount = cleanVal;
+                                                  setBulkDebts(updated);
+                                                }}
+                                                className="w-full bg-white border-2 border-[#8A1E2B] rounded-xl px-2.5 py-1 text-xs font-hand font-extrabold text-[#5C0612] outline-none shadow-[2px_2px_0_#8A1E2B]/25 focus:bg-white transition-all"
+                                              />
+                                            </div>
+
+                                            {/* Notes Input */}
+                                            <div className="flex-1 min-w-[140px]">
+                                              <input
+                                                type="text"
+                                                placeholder="Ghi chú tuần..."
+                                                value={item.notes}
+                                                onChange={(e) => {
+                                                  const updated = [...bulkDebts];
+                                                  updated[index].notes = e.target.value;
+                                                  setBulkDebts(updated);
+                                                }}
+                                                className="w-full bg-white/70 border-2 border-[#8A1E2B]/30 focus:border-[#8A1E2B] rounded-xl px-2.5 py-1 text-xs font-hand font-bold text-[#5C0612]/90 outline-none focus:bg-white transition-all"
+                                              />
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                   </div>
+
+                                   <div className="mt-4 flex items-center justify-between border-t border-dashed border-[#5C0612]/20 pt-4">
+                                      <div className="text-xs font-hand font-black text-[#8A1E2B]">
+                                        TỔNG TUẦN: {(() => {
+                                          const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                                          return (total > 0 ? "+" : "") + total.toLocaleString("vi-VN") + " đ";
+                                        })()}
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (confirm("Đặt lại toàn bộ bảng kê doanh thu tuần này?")) {
+                                            setBulkDebts(bulkDebts.map(item => ({ ...item, amount: "", notes: "" })));
+                                          }
+                                        }}
+                                        className="px-3 py-1.5 border-2 border-[#8A1E2B] hover:bg-red-50 text-[#8A1E2B] active:scale-95 rounded-full text-[10px] font-hand font-black uppercase tracking-wider transition-all cursor-pointer"
+                                      >
+                                        ♻️ Reset Tuần
+                                      </button>
+                                   </div>
+                                </div>
+
+                                {/* TABLE 2: KÊ KHAI TIỀN MẶT */}
+                                <div className="bg-[#fcfbf7] p-4 md:p-6 border-[3px] border-dashed border-[#8A1E2B]/40 rounded-[24px]">
+                                   <div className="mb-4 text-center">
+                                     <h4 className="font-hand font-black text-lg md:text-xl uppercase tracking-wider text-[#8A1E2B] flex items-center justify-center gap-2">
+                                       <span>🪙</span> Danh Sách Mệnh Giá Tiền
+                                     </h4>
+                                     <div className="w-16 h-1 bg-[#8A1E2B]/10 mx-auto mt-1 rounded-full" />
+                                   </div>
+
+                                   <div className="space-y-1.5 max-h-[350px] overflow-y-auto pr-1">
+                                      {(() => {
+                                        const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
+                                        return VND_DENOMINATIONS.map(den => {
+                                          const qty = bulkCurrentCash[den] || 0;
+                                          const rowSum = den * qty;
+                                          return (
+                                            <div 
+                                              key={den} 
+                                              className={`flex items-center justify-between gap-1 border-b border-[#5C0612]/10 py-1.5 last:border-b-0 ${qty > 0 ? 'bg-amber-500/5 font-black text-[#8A1E2B]' : 'opacity-85 text-[#5C0612]'}`}
+                                            >
+                                              {/* Denomination label */}
+                                              <div className="w-24 shrink-0 font-hand font-black text-xs md:text-sm">
+                                                {den.toLocaleString('vi-VN')} đ
+                                              </div>
+
+                                              {/* Quantity count with interactive buttons */}
+                                              <div className="flex items-center gap-1">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    const newQty = Math.max(0, qty - 1);
+                                                    setBulkCurrentCash(prev => ({ ...prev, [den]: newQty }));
+                                                  }}
+                                                  className="w-6 h-6 rounded-lg border-2 border-[#8A1E2B] hover:bg-sky-50 text-xs font-black flex items-center justify-center font-hand shadow-[1px_1px_0_#8A1E2B] select-none cursor-pointer"
+                                                >
+                                                  −
+                                                </button>
+                                                <input
+                                                  type="number"
+                                                  min="0"
+                                                  value={qty || ""}
+                                                  placeholder="0"
+                                                  onChange={(e) => {
+                                                    const cleanNum = parseInt(e.target.value) || 0;
+                                                    setBulkCurrentCash(prev => ({ ...prev, [den]: Math.max(0, cleanNum) }));
+                                                  }}
+                                                  className="w-10 text-center font-hand font-extrabold text-xs bg-white border-2 border-[#8A1E2B]/50 rounded-lg py-0.5 outline-none focus:border-[#831816]"
+                                                />
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    const newQty = qty + 1;
+                                                    setBulkCurrentCash(prev => ({ ...prev, [den]: newQty }));
+                                                  }}
+                                                  className="w-6 h-6 rounded-lg border-2 border-[#8A1E2B] hover:bg-sky-50 text-xs font-black flex items-center justify-center font-hand shadow-[1px_1px_0_#8A1E2B] select-none cursor-pointer"
+                                                >
+                                                  +
+                                                </button>
+                                              </div>
+
+                                              {/* Subtotal */}
+                                              <div className="w-24 shrink-0 text-right font-hand font-bold text-xs">
+                                                {rowSum > 0 ? `${rowSum.toLocaleString('vi-VN')} đ` : "—"}
+                                              </div>
+
+                                              <button
+                                                type="button"
+                                                onClick={() => setBulkCurrentCash(prev => ({ ...prev, [den]: 0 }))}
+                                                disabled={qty === 0}
+                                                className={`text-xs font-hand font-black px-1.5 py-0.5 rounded ${qty > 0 ? 'text-red-600 hover:bg-red-100' : 'text-gray-300'}`}
+                                              >
+                                                ×
+                                              </button>
+                                            </div>
+                                          );
+                                        });
+                                      })()}
+                                   </div>
+
+                                   <div className="mt-4 flex items-center justify-between border-t border-dashed border-[#5C0612]/20 pt-4">
+                                      <div className="text-xs font-hand font-black text-[#8A1E2B]">
+                                        TỔNG TIỀN MẶT: {(() => {
+                                          const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
+                                          const total = VND_DENOMINATIONS.reduce((sum, den) => sum + den * (bulkCurrentCash[den] || 0), 0);
+                                          return total.toLocaleString("vi-VN") + " đ";
+                                        })()}
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (confirm("Reset toàn bộ bảng kê tiền mặt về 0?")) {
+                                            setBulkCurrentCash({});
+                                          }
+                                        }}
+                                        className="px-3 py-1.5 border-2 border-[#8A1E2B] hover:bg-red-50 text-[#8A1E2B] active:scale-95 rounded-full text-[10px] font-hand font-black uppercase tracking-wider transition-all cursor-pointer"
+                                      >
+                                        🧹 Reset Về 0
+                                      </button>
+                                   </div>
+                                </div>
+
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                  </div>
               </div>
-              <div className="bg-[#f7ebe1] p-6 border-[3px] border-[#8A1E2B] text-center rounded-[30px] rounded-tr-none">
-                 <h4 className="font-hand font-bold text-[#8A1E2B] text-sm uppercase mb-2">ĐÃ LÊN KẾ HOẠCH</h4>
-                 <p className="text-2xl font-hand font-black text-[#8A1E2B]">{totalPlannedOutflows.toLocaleString('vi-VN')} đ</p>
-              </div>
-              <div className="bg-[#f7ebe1] p-6 border-[3px] border-[#8A1E2B] text-center rounded-[30px] rounded-br-none md:col-span-1 border-dashed">
-                 <h4 className="font-hand font-bold text-[#8A1E2B] text-sm uppercase mb-2">DƯ KIẾN CÒN LẠI</h4>
-                 <p className="text-2xl font-hand font-black text-[#8A1E2B]">{remainingBalance.toLocaleString('vi-VN')} đ</p>
-              </div>
-           </div>
+            </div>
         </div>
 
       
