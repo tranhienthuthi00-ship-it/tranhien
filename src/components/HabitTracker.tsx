@@ -1302,42 +1302,42 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
   };
 
   return (
-    <div className="space-y-8 pb-12 font-sans text-ink">
+    <div className="space-y-8 pb-12 font-hand text-[#3A1412]">
       {/* HEADER */}
-      <div className="sketch-border bg-[#e8f0fe] p-6 text-center select-none shadow-md border-b-4 border-r-4 border-ink relative overflow-hidden">
+      <div className="sketch-border bg-[#f8f5ed] p-6 text-center select-none shadow-md border-b-4 border-r-4 border-[#3A1412] relative overflow-hidden">
         <div className="absolute right-4 top-2 opacity-15 rotate-12">
-          <Calendar className="w-24 h-24" />
+          <Calendar className="w-24 h-24 text-[#8A1E2B]" />
         </div>
         <div className="flex justify-center">
-          <div className="bg-[#fbcfe8] rotate-2 px-6 py-2 border-2 border-ink shadow-sm rounded-md tracking-wider relative">
-            <h1 className="text-3xl md:text-5xl font-logo font-black uppercase text-ink flex items-center justify-center gap-2">
-              <Sparkles className="w-6 h-6 text-yellow-500 animate-[bounce_1.5s_infinite]" />
+          <div className="bg-[#FAF3EB] rotate-2 px-6 py-2 border-2 border-[#3A1412] shadow-[3px_3px_0px_#3A1412] rounded-xl tracking-wider relative">
+            <h1 className="text-2xl md:text-4xl font-logo font-black uppercase text-[#3A1412] flex items-center justify-center gap-2">
+              <Sparkles className="w-6 h-6 text-[#8A1E2B] animate-[bounce_1.5s_infinite]" />
               THÓI QUEN & LỊCH TRÌNH
             </h1>
           </div>
         </div>
-        <p className="mt-4 text-sm md:text-base font-semibold italic text-ink/70">
+        <p className="mt-4 text-base md:text-lg font-bold italic text-[#8A1E2B]">
           "Kỷ luật là cầu nối giữa mục tiêu và sự thành công. Hãy lặp lại mỗi ngày!" 🎯
         </p>
 
         {/* TOP STATUS BAR */}
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-white/70 p-3 sketch-border-sm flex flex-col justify-center items-center">
-            <span className="text-2xl font-black text-crimson font-mono">{habits.filter(h => h.isActive).length}</span>
-            <span className="text-[10px] uppercase font-bold text-ink/50">Thói quen hoạt động</span>
+          <div className="bg-[#FAF3EB]/90 p-3 sketch-border-sm flex flex-col justify-center items-center shadow-xs border-r-4 border-b-4 border-[#3A1412]">
+            <span className="text-3xl font-black text-[#8A1E2B] font-hand">{habits.filter(h => h.isActive).length}</span>
+            <span className="text-[11px] uppercase font-bold text-[#3A1412]/70">Thói quen hoạt động</span>
           </div>
-          <div className="bg-white/70 p-3 sketch-border-sm flex flex-col justify-center items-center">
-            <span className="text-2xl font-black text-emerald-700 font-mono">{stats.completed}/{stats.total}</span>
-            <span className="text-[10px] uppercase font-bold text-ink/50">Tiến độ hôm nay</span>
+          <div className="bg-[#FAF3EB]/90 p-3 sketch-border-sm flex flex-col justify-center items-center shadow-xs border-r-4 border-b-4 border-[#3A1412]">
+            <span className="text-3xl font-black text-emerald-800 font-hand">{stats.completed}/{stats.total}</span>
+            <span className="text-[11px] uppercase font-bold text-[#3A1412]/70">Tiến độ hôm nay</span>
           </div>
-          <div className="bg-white/70 p-3 sketch-border-sm flex flex-col justify-center">
-            <div className="w-full bg-[#efefef] h-3 rounded-full overflow-hidden border border-ink">
+          <div className="bg-[#FAF3EB]/90 p-3 sketch-border-sm flex flex-col justify-center shadow-xs border-r-4 border-b-4 border-[#3A1412]">
+            <div className="w-full bg-white/85 h-3.5 rounded-full overflow-hidden border-2 border-[#3A1412]">
               <div 
-                className="bg-emerald-500 h-full transition-all duration-500" 
+                className="bg-emerald-600 h-full transition-all duration-500" 
                 style={{ width: `${stats.rate}%` }} 
               />
             </div>
-            <span className="text-[10px] uppercase font-black text-ink/75 mt-1 font-mono text-center">
+            <span className="text-[11px] uppercase font-black text-[#3A1412] mt-1 font-hand text-center">
               HOÀN THÀNH {stats.rate}%
             </span>
           </div>

@@ -2,7 +2,15 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useSyncedState } from "../lib/useSyncedState";
 import confetti from "canvas-confetti";
-import type { LogEntry, Task, Achievement, StudyGoal, FoodPlace, AssetCategory } from "../types";
+import type { LogEntry, Task, Achievement, StudyGoal, FoodPlace, AssetCategory, Habit } from "../types";
+import { 
+  HabitTracker,
+  getDailyCompletionsForHabit, 
+  getWeeklyCompletionsForHabit, 
+  getMonthlyCompletionsForHabit, 
+  getHabitSlots,
+  recalculateHabitStreak 
+} from "./HabitTracker";
 import { 
   Plus, 
   Trash2, 
@@ -243,6 +251,10 @@ export function DigitalJournal({
 
   const [localRenamedDefaultGoals, setLocalRenamedDefaultGoals] = useSyncedState<Record<string, string>>("studyHub_localBucketListRenamed", {});
 
+  const [localHiddenDefaultGoals, setLocalHiddenDefaultGoals] = useSyncedState<Record<string, boolean>>("studyHub_localBucketListHidden", {});
+
+  const [journalSubTab, setJournalSubTab] = useSyncedState<"journal" | "habits">("studyHub_journalSubTab", "journal");
+
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [editingGoalText, setEditingGoalText] = useState("");
 
@@ -286,6 +298,17 @@ export function DigitalJournal({
   const saveRename = async (id: string, isReal: boolean) => {
     const trimmed = editingGoalText.trim();
     if (!trimmed) {
+      if (isReal) {
+        if (goals && setGoals) {
+          await setGoals(goals.filter(g => g.id !== id));
+        }
+        if (tasks && setTasks) {
+          setTasks(tasks.filter(t => t.goalId !== id));
+        }
+      } else {
+        const updatedHidden = { ...localHiddenDefaultGoals, [id]: true };
+        setLocalHiddenDefaultGoals(updatedHidden);
+      }
       setEditingGoalId(null);
       return;
     }
@@ -445,6 +468,154 @@ export function DigitalJournal({
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }, []);
+
+  const todayHabitTasks = useMemo(() => {
+    const list: {
+      habitId: string;
+      habitName: string;
+      icon: string;
+      streak: number;
+      maxStreak: number;
+      slotId: string;
+      time: string;
+      label: string;
+      isCompleted: boolean;
+      repeatType: 'day' | 'week' | 'month';
+      summary: string;
+    }[] = [];
+
+    const todayDayIndex = new Date().getDay();
+
+    (habits || []).forEach((habit) => {
+      if (!habit.isActive) return;
+
+      const repType = habit.repeatType || 'day';
+      const firstReminder = habit.reminderTimes[0] || "08:00";
+
+      if (repType === 'day') {
+        const isScheduledToday = habit.daysOfWeek.length === 0 || habit.daysOfWeek.includes(todayDayIndex);
+        if (isScheduledToday) {
+          const slots = getHabitSlots(habit);
+          slots.forEach((slot) => {
+            const isDone = !!(habit.history[todayDateStr]?.[slot.id]);
+            list.push({
+              habitId: habit.id,
+              habitName: habit.name,
+              icon: habit.icon,
+              streak: habit.streak || 0,
+              maxStreak: habit.maxStreak || 0,
+              slotId: slot.id,
+              time: slot.time,
+              label: slot.label,
+              isCompleted: isDone,
+              repeatType: 'day',
+              summary: `Chuỗi: ${habit.streak || 0} ngày`
+            });
+          });
+        }
+      } else if (repType === 'week') {
+        const completedCount = getWeeklyCompletionsForHabit(habit, todayDateStr);
+        const target = habit.frequency || 1;
+        const isDoneToday = !!(habit.history[todayDateStr]?.[firstReminder]);
+        list.push({
+          habitId: habit.id,
+          habitName: habit.name,
+          icon: habit.icon,
+          streak: habit.streak || 0,
+          maxStreak: habit.maxStreak || 0,
+          slotId: firstReminder,
+          time: firstReminder,
+          label: firstReminder,
+          isCompleted: isDoneToday,
+          repeatType: 'week',
+          summary: `Tuần này: ${completedCount}/${target} lần`
+        });
+      } else if (repType === 'month') {
+        const completedCount = getMonthlyCompletionsForHabit(habit, todayDateStr);
+        const target = habit.frequency || 1;
+        const isDoneToday = !!(habit.history[todayDateStr]?.[firstReminder]);
+        list.push({
+          habitId: habit.id,
+          habitName: habit.name,
+          icon: habit.icon,
+          streak: habit.streak || 0,
+          maxStreak: habit.maxStreak || 0,
+          slotId: firstReminder,
+          time: firstReminder,
+          label: firstReminder,
+          isCompleted: isDoneToday,
+          repeatType: 'month',
+          summary: `Tháng này: ${completedCount}/${target} lần`
+        });
+      }
+    });
+
+    return list;
+  }, [habits, todayDateStr]);
+
+  const handleToggleHabitItem = (habitId: string, slotId: string, currentTime: string, isCompleted: boolean) => {
+    const updatedHabits = habits.map((h) => {
+      if (h.id === habitId) {
+        const dailyHistory = { ...(h.history[todayDateStr] || {}) };
+        dailyHistory[slotId] = !isCompleted;
+
+        const updatedHistory = {
+          ...h.history,
+          [todayDateStr]: dailyHistory
+        };
+
+        const tempHabit: Habit = {
+          ...h,
+          history: updatedHistory
+        };
+
+        const streakResult = recalculateHabitStreak(tempHabit, todayDateStr);
+
+        const targetFreq = h.frequency || h.reminderTimes.length || 1;
+        const todayCompletions = getDailyCompletionsForHabit(tempHabit, todayDateStr);
+        const isCompletedToday = todayCompletions >= targetFreq;
+        const lastCompleted = isCompletedToday ? todayDateStr : h.lastCompletedDate;
+
+        return {
+          ...h,
+          history: updatedHistory,
+          streak: streakResult.streak,
+          maxStreak: streakResult.maxStreak,
+          lastCompletedDate: lastCompleted
+        };
+      }
+      return h;
+    });
+
+    setHabits(updatedHabits);
+
+    if (!isCompleted) {
+      try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContext) {
+          const ctx = new AudioContext();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+          osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.08);
+          osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.16);
+          osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.24);
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.60);
+        }
+      } catch (e) {}
+
+      try {
+        confetti({ particleCount: 40, spread: 50, colors: ["#8A1E2B", "#FBBF24", "#34D399"] });
+      } catch (e) {}
+    }
+  };
 
   const monthStr = useMemo(() => {
     return `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
@@ -1012,19 +1183,37 @@ export function DigitalJournal({
   };
 
   const handleSaveTodoEdit = async () => {
-    if (!editingTodoId || !editingTodoText.trim()) {
+    if (!editingTodoId) {
+      setEditingTodoId(null);
+      setEditingTodoType(null);
+      return;
+    }
+    const trimmed = editingTodoText.trim();
+    if (!trimmed) {
+      if (editingTodoType === 'goal') {
+        if (goals && setGoals) {
+          await setGoals(goals.filter(g => g.id !== editingTodoId));
+        }
+        if (tasks && setTasks) {
+          setTasks(tasks.filter(t => t.goalId !== editingTodoId));
+        }
+      } else if (editingTodoType === 'task') {
+        if (tasks && setTasks) {
+          setTasks(tasks.filter(t => t.id !== editingTodoId));
+        }
+      }
       setEditingTodoId(null);
       setEditingTodoType(null);
       return;
     }
     if (editingTodoType === 'goal') {
       if (goals && setGoals) {
-        const updated = goals.map(g => g.id === editingTodoId ? { ...g, title: editingTodoText.trim() } : g);
+        const updated = goals.map(g => g.id === editingTodoId ? { ...g, title: trimmed } : g);
         await setGoals(updated);
       }
     } else if (editingTodoType === 'task') {
       if (tasks && setTasks) {
-        const updated = tasks.map(t => t.id === editingTodoId ? { ...t, content: editingTodoText.trim() } : t);
+        const updated = tasks.map(t => t.id === editingTodoId ? { ...t, content: trimmed } : t);
         await setTasks(updated);
       }
     }
@@ -1196,10 +1385,35 @@ export function DigitalJournal({
 
   return (
     <div className="w-full pb-20 overflow-x-hidden font-hand text-[#3A1412] mt-4">
-      <div className="w-full mx-auto px-2 md:px-4 space-y-12 animate-in fade-in duration-500">
+      <div className="w-full mx-auto px-2 md:px-4 space-y-8 animate-in fade-in duration-500">
         
-        {/* Top bar with Search */}
-        <div className="flex justify-end w-full">
+        {/* SUB-TABS NAVIGATION AT HOME */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b-4 border-[#3A1412] pb-4 mb-2">
+          <div className="flex bg-[#3A1412]/5 p-1 rounded-2xl border-2 border-[#3A1412] shadow-[2px_2px_0px_rgba(58,20,18,0.15)]">
+            <button
+              onClick={() => { setJournalSubTab("journal"); setHomeSearch(""); }}
+              className={`px-5 py-2 rounded-xl text-sm md:text-base font-hand font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+                journalSubTab === "journal"
+                  ? "bg-[#3A1412] text-[#FDFBF7] shadow-md scale-105"
+                  : "text-[#3A1412]/75 hover:text-[#3A1412] hover:bg-[#3A1412]/10"
+              }`}
+            >
+              📓 Sổ Nhật Ký & Mục Tiêu
+            </button>
+            <button
+              onClick={() => { setJournalSubTab("habits"); setHomeSearch(""); }}
+              className={`px-5 py-2 rounded-xl text-sm md:text-base font-hand font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+                journalSubTab === "habits"
+                  ? "bg-[#3A1412] text-[#FDFBF7] shadow-md scale-105"
+                  : "text-[#3A1412]/75 hover:text-[#3A1412] hover:bg-[#3A1412]/10"
+              }`}
+            >
+              🌱 Sổ Thói Quen & Lịch Trình
+            </button>
+          </div>
+          
+          {/* Top bar with Search (only shown for journal view) */}
+          {journalSubTab === "journal" && (
             <div className="flex items-center bg-[#f8f5ed] border-[3px] border-[#3A1412] px-4 py-1.5 shadow-[3px_3px_0px_#3A1412]" style={{ borderRadius: '12px 25px 12px 25px', width: '280px' }}>
                 <input 
                   type="text" 
@@ -1217,6 +1431,7 @@ export function DigitalJournal({
                   <svg className="w-6 h-6 text-[#3A1412] stroke-current stroke-[3]" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3a7 7 0 0 0-7 7 c0 3 2 5 4 6 s5 2 7-1 s4-5 1-8 s-3-4-5-4 z" /><path d="M16 16 l5 4" /></svg>
                 </button>
             </div>
+          )}
         </div>
 
                 {/* MAIN LAYOUT */}
@@ -1355,6 +1570,10 @@ export function DigitalJournal({
                           );
                         })()}
                       </div>
+                    </div>
+                  ) : journalSubTab === "habits" ? (
+                    <div className="w-full max-w-[1440px] px-2 mx-auto animate-in fade-in duration-300">
+                      <HabitTracker logs={logs} setLogs={setLogs} />
                     </div>
                   ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 xl:gap-12 items-start max-w-[1440px] px-2 mx-auto w-full">
@@ -2039,18 +2258,70 @@ export function DigitalJournal({
                 </div>
 
                 </div>
-    {/* RIGHT: EVENTS */}
-    <div className="lg:col-span-1 flex flex-col pt-16 xl:pl-4">
+    {/* RIGHT: EVENTS & HABITS */}
+    <div className="lg:col-span-1 flex flex-col pt-16 xl:pl-4 space-y-12">
+                {/* EVENTS SECTION */}
                 <div className="space-y-4">
                    <h3 className="font-hand font-black text-xl text-[#3A1412] tracking-wider uppercase mb-4">TODAY EVENT:</h3>
                    <ul className="space-y-3 list-none">
                       {logs.filter(l => l.date === new Date().toISOString().split("T")[0] && l.type === 'Event').length === 0 && (
-                          <li className="text-[#8A1E2B]/50 font-hand font-bold text-lg italic">No events today.</li>
+                          <li className="text-[#8A1E2B]/50 font-hand font-bold text-lg italic text-left">No events today.</li>
                       )}
                       {logs.filter(l => l.date === new Date().toISOString().split("T")[0] && l.type === 'Event').map(l => (
-                         <li key={l.id} className="flex items-start gap-4"><div className="w-2 h-2 mt-3 rounded-full bg-[#8A1E2B] shrink-0" /> <span className="font-hand font-black text-xl md:text-2xl text-[#8A1E2B]">{l.emoji} {l.content}</span></li>
+                         <li key={l.id} className="flex items-start gap-4 text-left"><div className="w-2 h-2 mt-3 rounded-full bg-[#8A1E2B] shrink-0" /> <span className="font-hand font-black text-xl md:text-2xl text-[#8A1E2B]">{l.emoji} {l.content}</span></li>
                       ))}
                    </ul>
+                </div>
+
+                {/* HABITS TRACKER SECTION */}
+                <div className="space-y-4 border-t-2 border-dashed border-[#8A1E2B]/15 pt-8">
+                   <h3 className="font-hand font-black text-xl text-[#3A1412] tracking-wider uppercase flex items-center gap-2 m-0" title="Đồng bộ thói quen và duy trì chuỗi liên tục">
+                     <span className="text-[#8A1E2B]">🌱</span> DAILY HABITS:
+                   </h3>
+                   
+                   <div className="space-y-3.5 mt-4 max-h-[340px] overflow-y-auto pr-1">
+                     {todayHabitTasks.length === 0 ? (
+                       <div className="text-[#8A1E2B]/50 font-hand font-bold text-lg italic text-left pl-1">
+                         Hôm nay không có thói quen nào cần hoàn thành. Hãy vào tab "Collections" để tạo thói quen mới nhé!
+                       </div>
+                     ) : (
+                       todayHabitTasks.map((item, idx) => (
+                         <div 
+                           key={`${item.habitId}-${item.slotId}-${idx}`} 
+                           onClick={() => handleToggleHabitItem(item.habitId, item.slotId, item.time, item.isCompleted)}
+                           className="flex items-center justify-between gap-3 group cursor-pointer text-left pl-1 select-none"
+                         >
+                           <div className="flex items-center gap-3 flex-1 min-w-0">
+                             {/* Custom sketchbook square hand-drawn check box */}
+                             <div className="w-7 h-7 border-[2.5px] border-[#8A1E2B] rounded-[6px] shrink-0 flex items-center justify-center bg-white shadow-xs transition-transform group-hover:scale-105 active:scale-95 duration-200">
+                                {item.isCompleted && (
+                                  <svg className="text-[#8A1E2B] w-5 h-5 stroke-[4.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                             </div>
+
+                             <div className="flex flex-col min-w-0">
+                               <span className={`font-hand font-bold text-lg md:text-xl leading-snug truncate transition-all ${item.isCompleted ? "text-[#8A1E2B]/40 line-through decoration-[#8A1E2B]/70 decoration-[1.5px]" : "text-[#8A1E2B] group-hover:text-[#5C0612]"}`}>
+                                 {item.icon} {item.habitName}
+                               </span>
+                               <span className="font-mono text-[9px] text-[#8A1E2B]/60 font-semibold leading-none flex items-center gap-1.5 mt-0.5">
+                                 <span>⏱️ {item.time}</span>
+                                 <span>•</span>
+                                 <span className="text-[#E07A5F]">{item.summary}</span>
+                                 {item.streak > 0 && (
+                                   <>
+                                     <span>•</span>
+                                     <span className="text-amber-600 font-bold">🔥 {item.streak} ngày</span>
+                                   </>
+                                 )}
+                               </span>
+                             </div>
+                           </div>
+                         </div>
+                       ))
+                     )}
+                   </div>
                 </div>
             </div>
 
@@ -2154,7 +2425,8 @@ export function DigitalJournal({
                              { id: "def-22", text: "FLOAT IN AN INNER TUBE", isReal: false },
                              { id: "def-23", text: "EAT FRENCH FRIES IN THE SUN", isReal: false },
                              { id: "def-24", text: "EXPLORE A NEW CITY'S BEST LOCAL SPOTS", isReal: false }
-                           ].map(d => ({ ...d, text: localRenamedDefaultGoals[d.id] || d.text, isCompleted: d.isCompleted || !!localCompletedDefaultGoals[d.id] }));
+                           ].filter(d => !localHiddenDefaultGoals[d.id])
+                            .map(d => ({ ...d, text: localRenamedDefaultGoals[d.id] || d.text, isCompleted: d.isCompleted || !!localCompletedDefaultGoals[d.id] }));
                            
                            const allItems = [...activeCustom, ...defaultG];
                            const half = Math.ceil(allItems.length / 2);
@@ -2170,7 +2442,7 @@ export function DigitalJournal({
                                    <input type="text" value={editingGoalText} onChange={e => setEditingGoalText(e.target.value)} onBlur={() => saveRename(item.id, item.isReal)} onKeyDown={e => { if (e.key === 'Enter') saveRename(item.id, item.isReal); else if (e.key === 'Escape') setEditingGoalId(null); }} autoFocus onClick={e => e.stopPropagation()} className="flex-1 bg-white/95 border-b-2 border-[#5C0612] px-1 py-0 rounded-none text-[11px] sm:text-[13px] md:text-[14px] font-hand font-bold text-[#5C0612] outline-none" />
                                  ) : (
                                    <span className={`font-hand font-bold text-[10px] sm:text-[12px] md:text-[14px] tracking-wide leading-tight transition-all text-[#5C0612] select-none ${item.isCompleted ? "line-through opacity-50 decoration-[1.5px]" : "group-hover:text-red-700"}`}>
-                                      {item.isReal ? `🎯 ${item.text}` : item.text}
+                                      {item.text}
                                    </span>
                                  )}
                                </div>
