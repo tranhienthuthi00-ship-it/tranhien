@@ -1302,84 +1302,84 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
   };
 
   return (
-    <div className="space-y-8 pb-12 font-hand text-[#3A1412]">
+    <div className="space-y-8 pb-12 font-sans text-ink">
       {/* HEADER */}
-      <div className="sketch-border bg-[#f8f5ed] p-6 text-center select-none shadow-md border-b-4 border-r-4 border-[#3A1412] relative overflow-hidden">
+      <div className="sketch-border bg-[#e8f0fe] p-6 text-center select-none shadow-md border-b-4 border-r-4 border-ink relative overflow-hidden">
         <div className="absolute right-4 top-2 opacity-15 rotate-12">
-          <Calendar className="w-24 h-24 text-[#8A1E2B]" />
+          <Calendar className="w-24 h-24" />
         </div>
         <div className="flex justify-center">
-          <div className="bg-[#FAF3EB] rotate-2 px-6 py-2 border-2 border-[#3A1412] shadow-[3px_3px_0px_#3A1412] rounded-xl tracking-wider relative">
-            <h1 className="text-2xl md:text-4xl font-logo font-black uppercase text-[#3A1412] flex items-center justify-center gap-2">
-              <Sparkles className="w-6 h-6 text-[#8A1E2B] animate-[bounce_1.5s_infinite]" />
+          <div className="bg-[#fbcfe8] rotate-2 px-6 py-2 border-2 border-ink shadow-sm rounded-md tracking-wider relative">
+            <h1 className="text-3xl md:text-5xl font-logo font-black uppercase text-ink flex items-center justify-center gap-2">
+              <Sparkles className="w-6 h-6 text-yellow-500 animate-[bounce_1.5s_infinite]" />
               THÓI QUEN & LỊCH TRÌNH
             </h1>
           </div>
         </div>
-        <p className="mt-4 text-base md:text-lg font-bold italic text-[#8A1E2B]">
+        <p className="mt-4 text-sm md:text-base font-semibold italic text-ink/70">
           "Kỷ luật là cầu nối giữa mục tiêu và sự thành công. Hãy lặp lại mỗi ngày!" 🎯
         </p>
 
         {/* TOP STATUS BAR */}
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-[#FAF3EB]/90 p-3 sketch-border-sm flex flex-col justify-center items-center shadow-xs border-r-4 border-b-4 border-[#3A1412]">
-            <span className="text-3xl font-black text-[#8A1E2B] font-hand">{habits.filter(h => h.isActive).length}</span>
-            <span className="text-[11px] uppercase font-bold text-[#3A1412]/70">Thói quen hoạt động</span>
+          <div className="bg-white/70 p-3 sketch-border-sm flex flex-col justify-center items-center">
+            <span className="text-2xl font-black text-crimson font-mono">{habits.filter(h => h.isActive).length}</span>
+            <span className="text-[10px] uppercase font-bold text-ink/50">Thói quen hoạt động</span>
           </div>
-          <div className="bg-[#FAF3EB]/90 p-3 sketch-border-sm flex flex-col justify-center items-center shadow-xs border-r-4 border-b-4 border-[#3A1412]">
-            <span className="text-3xl font-black text-emerald-800 font-hand">{stats.completed}/{stats.total}</span>
-            <span className="text-[11px] uppercase font-bold text-[#3A1412]/70">Tiến độ hôm nay</span>
+          <div className="bg-white/70 p-3 sketch-border-sm flex flex-col justify-center items-center">
+            <span className="text-2xl font-black text-emerald-700 font-mono">{stats.completed}/{stats.total}</span>
+            <span className="text-[10px] uppercase font-bold text-ink/50">Tiến độ hôm nay</span>
           </div>
-          <div className="bg-[#FAF3EB]/90 p-3 sketch-border-sm flex flex-col justify-center shadow-xs border-r-4 border-b-4 border-[#3A1412]">
-            <div className="w-full bg-white/85 h-3.5 rounded-full overflow-hidden border-2 border-[#3A1412]">
+          <div className="bg-white/70 p-3 sketch-border-sm flex flex-col justify-center">
+            <div className="w-full bg-[#efefef] h-3 rounded-full overflow-hidden border border-ink">
               <div 
-                className="bg-emerald-600 h-full transition-all duration-500" 
+                className="bg-emerald-500 h-full transition-all duration-500" 
                 style={{ width: `${stats.rate}%` }} 
               />
             </div>
-            <span className="text-[11px] uppercase font-black text-[#3A1412] mt-1 font-hand text-center">
+            <span className="text-[10px] uppercase font-black text-ink/75 mt-1 font-mono text-center">
               HOÀN THÀNH {stats.rate}%
             </span>
           </div>
         </div>
 
         {/* GLOBAL STREAK & DISCIPLINE LEVEL INDICATOR */}
-        <div className="mt-4 p-4 bg-[#FDFBF7] border-2 border-[#3A1412] rounded-xl text-left shadow-[3px_3px_0px_#3A1412] relative overflow-hidden">
+        <div className="mt-4 p-4 bg-[#fffbeb] border-2 border-ink rounded-lg text-left shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
           {/* Subtle graphic accent */}
-          <div className="absolute right-3 -bottom-1 text-[#3A1412]/5 pointer-events-none">
+          <div className="absolute right-3 -bottom-1 text-ink/5 pointer-events-none">
             <Award className="w-16 h-16 rotate-12" />
           </div>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full border-2 border-[#3A1412] bg-[#FAF3EB] flex items-center justify-center text-2xl shadow-sm shrink-0">
+              <div className="w-12 h-12 rounded-full border-2 border-ink bg-[#fef7e0] flex items-center justify-center text-2xl shadow-sm shrink-0">
                 {discipline.icon}
               </div>
               <div>
-                <div className="text-[10px] uppercase font-black tracking-wider text-[#8A1E2B] flex items-center gap-1">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#8A1E2B] animate-ping" />
+                <div className="text-[10px] uppercase font-black tracking-wider text-crimson flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-crimson animate-ping" />
                   Mức Độ Kỷ Luật Toàn Diện
                 </div>
-                <h3 className="text-lg md:text-xl font-black text-[#3A1412] flex items-center gap-2 uppercase tracking-tight">
+                <h3 className="text-lg md:text-xl font-black text-ink flex items-center gap-2 uppercase tracking-tight">
                   {discipline.level}
                 </h3>
-                <p className="text-[11px] font-medium text-[#3A1412]/75 leading-tight italic max-w-sm sm:max-w-md">
+                <p className="text-[11px] font-medium text-ink/75 leading-tight italic max-w-sm sm:max-w-md">
                   "{discipline.description}"
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 sm:border-l-2 border-dashed border-[#3A1412]/15 sm:pl-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 sm:border-l-2 border-dashed border-ink/15 sm:pl-4">
               <div className="text-center sm:text-right shrink-0 flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2">
-                <span className="text-[10px] uppercase font-bold text-[#3A1412]/50 tracking-wider font-hand">Tổng tích lũy:</span>
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-[#3A1412]/15 rounded-lg font-black font-mono text-[#8A1E2B] text-sm shadow-sm">
-                  <Flame className="w-4 h-4 fill-[#8A1E2B] text-[#8A1E2B] animate-[bounce_1s_infinite]" />
+                <span className="text-[10px] uppercase font-bold text-ink/50 tracking-wider">Tổng tích lũy:</span>
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-ink/15 rounded font-black font-mono text-crimson text-sm shadow-sm">
+                  <Flame className="w-4 h-4 fill-crimson text-crimson animate-[bounce_1s_infinite]" />
                   {globalStreak} chuỗi
                 </span>
               </div>
               
-              <div className="text-center sm:text-left max-w-xs text-[10px] font-semibold text-[#3A1412]/65 bg-[#FAF3EB]/60 py-1.5 px-3 rounded-lg border border-[#3A1412]/10 leading-relaxed font-mono">
-                <span className="font-bold text-[#3A1412]/85 block leading-none mb-1 text-[9px] uppercase tracking-wide">Mục tiêu tiếp:</span>
+              <div className="text-center sm:text-left max-w-xs text-[10px] font-semibold text-ink/65 bg-white/60 py-1.5 px-3 rounded border border-ink/10 leading-relaxed font-mono">
+                <span className="font-bold text-ink/80 block leading-none mb-1 text-[9px] uppercase tracking-wide">Mục tiêu tiếp:</span>
                 {discipline.nextMilestone}
               </div>
             </div>
@@ -1392,14 +1392,14 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
         
         {/* LEFT COLUMN: SELECTED DATE SCHEDULE TIMELINE (8 columns) */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="sketch-border bg-[#FCFAF5] p-5 md:p-6 shadow-md border-b-4 border-r-4 border-[#3A1412]">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-dashed border-[#3A1412]/10 pb-4 mb-4">
+          <div className="sketch-border bg-white p-5 md:p-6 shadow-md border-b-4 border-r-4 border-ink">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-dashed border-ink/10 pb-4 mb-4">
               <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2 text-[#3A1412]">
-                  <Clock className="w-6 h-6 text-[#8A1E2B]" />
+                <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2">
+                  <Clock className="w-6 h-6 text-crimson" />
                   CHI TIẾT LỊCH TRÌNH
                 </h2>
-                <p className="hand-text text-sm text-[#3A1412]/60">Theo dõi, lên lịch thói quen & sự kiện chi tiết</p>
+                <p className="hand-text text-sm opacity-60">Theo dõi, lên lịch thói quen & sự kiện chi tiết</p>
               </div>
               
               {/* Date selection & navigation */}
@@ -1411,7 +1411,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                     setSelectedDate(d.toISOString().split('T')[0]);
                   }}
                   type="button"
-                  className="px-2 py-1 text-xs font-black border-2 border-[#3A1412] rounded bg-white hover:bg-[#3A1412] hover:text-[#FDFBF7] transition-all select-none"
+                  className="px-2 py-1 text-xs font-black border-2 border-ink rounded bg-white hover:bg-ink hover:text-white transition-all select-none"
                   title="Ngày trước"
                 >
                   &larr;
@@ -1420,7 +1420,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="sketch-input font-bold text-xs py-1 px-2.5 bg-[#FAF3EB] font-mono text-center outline-none cursor-pointer border-2 border-[#3A1412] rounded select-none text-[#3A1412]"
+                  className="sketch-input font-bold text-xs py-1 px-2.5 bg-[#fef7e0] font-mono text-center outline-none cursor-pointer border-2 border-ink rounded select-none"
                 />
                 <button 
                   onClick={() => {
@@ -1429,7 +1429,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                     setSelectedDate(d.toISOString().split('T')[0]);
                   }}
                   type="button"
-                  className="px-2 py-1 text-xs font-black border-2 border-[#3A1412] rounded bg-white hover:bg-[#3A1412] hover:text-[#FDFBF7] transition-all select-none"
+                  className="px-2 py-1 text-xs font-black border-2 border-ink rounded bg-white hover:bg-ink hover:text-white transition-all select-none"
                   title="Ngày sau"
                 >
                   &rarr;
@@ -1437,7 +1437,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                 <button 
                   onClick={() => setSelectedDate(getTodayStr())}
                   type="button"
-                  className="px-2 py-1 text-xs font-black border-2 border-[#3A1412] rounded bg-[#8A1E2B]/10 text-[#8A1E2B] hover:bg-[#8A1E2B] hover:text-white transition-all select-none"
+                  className="px-2 py-1 text-xs font-black border-2 border-ink rounded bg-[#e8f0fe] hover:bg-crimson hover:text-white transition-all select-none"
                   title="Về hôm nay"
                 >
                   Hôm nay
@@ -1446,18 +1446,18 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
             </div>
 
             {/* Quick create one-off task today */}
-            <form onSubmit={handleAddQuickTask} className="bg-[#FAF3EB]/50 p-3 border-2 border-dashed border-[#3A1412]/20 rounded-xl mb-6 space-y-3">
+            <form onSubmit={handleAddQuickTask} className="bg-[#fdfbf7] p-3 border-2 border-dashed border-ink/20 rounded-md mb-6 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 {/* Type Choice */}
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase text-[#3A1412]/40 tracking-wider">Cách thức:</span>
-                  <div className="flex border-2 border-[#3A1412] rounded-xl overflow-hidden text-xs bg-white">
+                  <span className="text-[10px] font-black uppercase text-ink/40 tracking-wider">Cách thức:</span>
+                  <div className="flex border-2 border-ink rounded overflow-hidden text-xs bg-white">
                     <button
                       type="button"
                       onClick={() => setQuickTaskType('task')}
                       className={cn(
                         "px-3 py-1 font-bold transition-all",
-                        quickTaskType === 'task' ? "bg-[#3A1412] text-white" : "hover:bg-[#3A1412]/5"
+                        quickTaskType === 'task' ? "bg-ink text-white" : "hover:bg-ink/5"
                       )}
                     >
                       ⚡ Công việc
@@ -1467,7 +1467,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                       onClick={() => setQuickTaskType('event')}
                       className={cn(
                         "px-3 py-1 font-bold transition-all",
-                        quickTaskType === 'event' ? "bg-[#8A1E2B] text-white" : "hover:bg-[#3A1412]/5"
+                        quickTaskType === 'event' ? "bg-[#3367d6] text-white" : "hover:bg-ink/5"
                       )}
                     >
                       📅 Lịch sự kiện
@@ -1476,13 +1476,13 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                 </div>
 
                 {/* Specific date / deadline picker */}
-                <div className="flex items-center gap-1.5 text-xs text-[#3A1412]">
-                  <span className="text-[10px] font-black uppercase text-[#3A1412]/40 tracking-wider">Hạn thực hiện (Deadline):</span>
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-[10px] font-black uppercase text-ink/40 tracking-wider">Hạn thực hiện (Deadline):</span>
                   <input
                     type="date"
                     value={quickTaskDate}
                     onChange={(e) => setQuickTaskDate(e.target.value)}
-                    className="sketch-input py-0.5 px-2 bg-white font-mono text-[11px] text-center w-32 border border-[#3A1412] text-[#3A1412]"
+                    className="sketch-input py-0.5 px-2 bg-white font-mono text-[11px] text-center w-32 border border-ink"
                     required
                   />
                 </div>
@@ -1499,7 +1499,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                         ? "Điền công việc cần làm... (ví dụ: Đi họp nhóm, Gửi báo cáo)" 
                         : "Điền sự kiện ghi chép... (ví dụ: Kiểm tra sức khoẻ định kỳ, Sinh nhật mẹ)"
                     }
-                    className="sketch-input bg-white py-1.5 px-2.5 text-xs w-full text-[#3A1412]"
+                    className="sketch-input bg-white py-1.5 px-2.5 text-xs w-full"
                     required
                   />
                 </div>
@@ -1508,14 +1508,14 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                     type="time"
                     value={quickTaskTime}
                     onChange={(e) => setQuickTaskTime(e.target.value)}
-                    className="sketch-input bg-white py-1.5 px-2.5 text-xs w-full font-mono text-center text-[#3A1412]"
+                    className="sketch-input bg-white py-1.5 px-2.5 text-xs w-full font-mono text-center"
                   />
                 </div>
                 <button 
                   type="submit" 
                   className={cn(
-                    "sketch-button py-1.5 px-4 text-xs font-black uppercase transition-all w-full sm:w-auto shrink-0 flex items-center justify-center gap-1.5 border-2 border-[#3A1412]",
-                    quickTaskType === 'task' ? "bg-[#8A1E2B]/10 text-[#8A1E2B] hover:bg-[#8A1E2B] hover:text-white" : "bg-[#FAF3EB] text-[#3A1412] hover:bg-[#3A1412] hover:text-white"
+                    "sketch-button py-1.5 px-4 text-xs font-black uppercase transition-all w-full sm:w-auto shrink-0 flex items-center justify-center gap-1.5 border-2 border-ink",
+                    quickTaskType === 'task' ? "bg-[#fbcfe8] hover:bg-crimson hover:text-white" : "bg-[#d2e3fc] hover:bg-[#1a73e8] hover:text-white text-[#1a73e8]"
                   )}
                 >
                   <Plus className="w-4 h-4" /> {quickTaskType === 'task' ? "Thêm việc" : "Thêm sự kiện"}
@@ -1525,9 +1525,9 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
 
             {/* Timeline wrapper */}
             {selectedDateTasksList.length === 0 ? (
-              <div className="text-center py-12 px-4 bg-[#FDFBF7]/35 rounded border border-dashed border-[#3A1412]/10">
-                <Smile className="w-12 h-12 text-[#3A1412]/20 mx-auto mb-3" />
-                <p className="text-sm font-semibold text-[#3A1412]/50">Không có thói quen, công việc hay sự kiện nào được lên lịch cho ngày này.</p>
+              <div className="text-center py-12 px-4 bg-paper/35 rounded border border-dashed border-ink/10">
+                <Smile className="w-12 h-12 text-ink/20 mx-auto mb-3" />
+                <p className="text-sm font-semibold text-ink/50">Không có thói quen, công việc hay sự kiện nào được lên lịch cho ngày này.</p>
                 <p className="text-xs text-ink/40 mt-1">Dùng công cụ phía trên hoặc bật thói quen bất kỳ!</p>
               </div>
             ) : (
