@@ -272,7 +272,6 @@ export function DigitalJournal({
   const [editingTodoType, setEditingTodoType] = useState<'goal' | 'task' | null>(null);
   const [newSubTaskTexts, setNewSubTaskTexts] = useState<Record<string, string>>({});
   const [newTodoGoalTitle, setNewTodoGoalTitle] = useState("");
-  const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
 
   const handleSaveTitle = () => {
     const finalSub = editTitlePrefix.trim() || "🍉 SUMMER";
@@ -1764,357 +1763,279 @@ export function DigitalJournal({
                    </div>
 
                    {/* Goal-directed Nested Todo list */}
-                   <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
-                      {(() => {
-                         // Find all custom goals
-                         const activeGoals = goals || [];
-                         
-                         // Map tasks that have a goalId. If they don't match or look empty, put under general
-                         const generalTasks = tasks.filter(t => !t.goalId || !activeGoals.some(g => g.id === t.goalId));
-                         
-                         return (
-                           <>
-                             {/* Group 1: All active Goals and their sub-tasks */}
-                             {activeGoals.map((goal) => {
-                               const subTasks = tasks.filter(t => t.goalId === goal.id);
-                               const isExpanded = expandedGoalId === goal.id;
-                               const completedSubTasks = subTasks.filter(t => t.completed).length;
-                               const totalSubTasks = subTasks.length;
-                               
-                               return (
-                                 <div key={goal.id} className="border-b border-[#8A1E2B]/10 py-3 last:border-0 text-left">
-                                   {/* Main Goal Item Row (Flat styling) */}
-                                   <div 
-                                     onDoubleClick={(e) => {
-                                       e.stopPropagation();
-                                       setExpandedGoalId(isExpanded ? null : goal.id);
-                                       setEditingTodoId(goal.id);
-                                       setEditingTodoText(goal.title);
-                                       setEditingTodoType('goal');
-                                     }}
-                                     className="flex items-center gap-4 cursor-pointer group"
-                                     title="Nhấp đúp để Xem chi tiết, Sửa hoặc Xóa mục tiêu"
-                                   >
-                                     {/* Big Handdrawn Checkbox */}
-                                     <div 
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         handleToggleRealGoal(goal.id);
-                                       }}
-                                       className="w-8 h-8 border-[2.5px] border-[#8A1E2B] rounded-[4px] shrink-0 flex items-center justify-center transition-all group-hover:scale-105 bg-white shadow-sm overflow-hidden relative"
-                                     >
-                                       <AnimatePresence>
-                                         {goal.isCompleted && (
-                                           <motion.div
-                                             initial={{ scale: 0, opacity: 0 }}
-                                             animate={{ scale: 1, opacity: 1 }}
-                                             exit={{ scale: 0, opacity: 0 }}
-                                             className="w-full h-full bg-transparent flex items-center justify-center"
-                                           >
-                                             <svg className="text-[#8A1E2B] w-6 h-6 stroke-[4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                               <motion.path 
-                                                 strokeLinecap="round" 
-                                                 strokeLinejoin="round" 
-                                                 d="M4 14 Q9 18 10 18 Q15 11 20 6"
-                                                 initial={{ pathLength: 0 }}
-                                                 animate={{ pathLength: 1 }}
-                                                 transition={{ duration: 0.2 }}
-                                               />
-                                             </svg>
-                                           </motion.div>
-                                         )}
-                                       </AnimatePresence>
-                                     </div>
+                   <div className="space-y-6 max-h-[420px] overflow-y-auto pr-1">
+                     {(() => {
+                        // Find all custom goals
+                        const activeGoals = goals || [];
+                        
+                        // Map tasks that have a goalId. If they don'\''t match or look empty, put under general
+                        const generalTasks = tasks.filter(t => !t.goalId || !activeGoals.some(g => g.id === t.goalId));
+                        
+                        return (
+                          <>
+                            {/* Group 1: All active Goals and their sub-tasks */}
+                            {activeGoals.map((goal) => {
+                              const subTasks = tasks.filter(t => t.goalId === goal.id);
+                              const isEditingThisGoal = editingTodoId === goal.id && editingTodoType === 'goal';
+                              
+                              return (
+                                <div key={goal.id} className="border-b border-[#8A1E2B]/10 pb-4 last:border-0 text-left">
+                                  {/* Goal title header */}
+                                  <div 
+                                    onDoubleClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingTodoId(goal.id);
+                                      setEditingTodoText(goal.title);
+                                      setEditingTodoType('goal');
+                                    }}
+                                    className="flex items-center justify-between gap-3 group cursor-pointer"
+                                    title="Nhấp đúp để Sửa/Xóa mục tiêu này"
+                                  >
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <span className="text-xl">🎯</span>
+                                      {isEditingThisGoal ? (
+                                        <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
+                                          <input 
+                                            type="text" 
+                                            value={editingTodoText} 
+                                            onChange={e => setEditingTodoText(e.target.value)} 
+                                            onKeyDown={e => {
+                                              if (e.key === 'Enter') handleSaveTodoEdit();
+                                              else if (e.key === 'Escape') { setEditingTodoId(null); setEditingTodoType(null); }
+                                            }}
+                                            className="flex-1 bg-white border-b border-[#8A1E2B] px-1 py-0.5 text-lg font-hand font-bold text-[#8A1E2B] outline-none"
+                                            autoFocus
+                                          />
+                                          <button 
+                                            onClick={handleSaveTodoEdit}
+                                            className="px-2 py-0.5 bg-green-700 text-white rounded text-[11px] font-bold font-sans uppercase shrink-0"
+                                          >
+                                            Lưu
+                                          </button>
+                                          <button 
+                                            onClick={() => handleDeleteTodoGoal(goal.id)}
+                                            className="px-2 py-0.5 bg-red-700 text-white rounded text-[11px] font-bold font-sans uppercase shrink-0"
+                                            title="Xóa mục tiêu"
+                                          >
+                                            Xóa
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <span className={`font-hand font-black text-xl md:text-2xl transition-all select-none ${goal.isCompleted ? "text-[#8A1E2B]/40 line-through decoration-[#8A1E2B]" : "text-[#8A1E2B] group-hover:text-red-700"}`}>
+                                          {goal.title}
+                                        </span>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Quick completion toggle */}
+                                    {!isEditingThisGoal && (
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleToggleRealGoal(goal.id);
+                                        }}
+                                        className={`w-6 h-6 rounded-full border-2 border-[#8A1E2B] flex items-center justify-center transition-all hover:scale-105 shrink-0 ${goal.isCompleted ? 'bg-[#8A1E2B]' : ''}`}
+                                        title={goal.isCompleted ? "Chọn chưa hoàn thành" : "Hoàn thành mục tiêu"}
+                                      >
+                                        {goal.isCompleted && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                                      </button>
+                                    )}
+                                  </div>
 
-                                     {/* Title text & Indicator */}
-                                     <div className="flex-1 flex items-center justify-between gap-2 max-w-full overflow-hidden">
-                                       <span className={`font-hand font-black text-xl md:text-2xl transition-all select-none truncate ${goal.isCompleted ? "text-[#8A1E2B]/50 line-through decoration-[#8A1E2B] decoration-[2px]" : "text-[#8A1E2B] group-hover:text-red-700"}`}>
-                                         🎯 {goal.title}
-                                       </span>
-                                       
-                                       <div className="flex items-center gap-2 shrink-0">
-                                         {totalSubTasks > 0 && (
-                                           <span className="font-hand font-bold text-sm text-[#8A1E2B]/70 bg-[#8A1E2B]/10 px-2 py-0.5 rounded-full">
-                                             {completedSubTasks}/{totalSubTasks}
-                                           </span>
-                                         )}
-                                         <span className="text-xs text-[#8A1E2B]/40 group-hover:text-[#8A1E2B]/70 transition-colors">
-                                           {isExpanded ? "▲" : "▼"}
-                                         </span>
-                                       </div>
-                                     </div>
-                                   </div>
+                                  {/* Subtasks under this goal */}
+                                  <div className="pl-6 mt-2 space-y-2.5">
+                                    {subTasks.map((t) => {
+                                      const isEditingThisTask = editingTodoId === t.id && editingTodoType === 'task';
+                                      return (
+                                        <div 
+                                          key={t.id} 
+                                          onDoubleClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingTodoId(t.id);
+                                            setEditingTodoText(t.content);
+                                            setEditingTodoType('task');
+                                          }}
+                                          className="flex items-center justify-between gap-3 group cursor-pointer pl-2 border-l border-dashed border-[#8A1E2B]/20"
+                                          title="Nhấp đúp để Sửa/Xóa sub-task này"
+                                        >
+                                          <div className="flex items-center gap-3 flex-1 text-left">
+                                            {/* Checkbox */}
+                                            <div 
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleToggleTask(t.id);
+                                              }}
+                                              className="w-6 h-6 border-2 border-[#8A1E2B]/70 rounded-[4px] shrink-0 flex items-center justify-center bg-white shadow-xs overflow-hidden"
+                                            >
+                                              {t.completed && (
+                                                <svg className="text-[#8A1E2B] w-4 h-4 stroke-[4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                              )}
+                                            </div>
 
-                                   {/* Details (Expanded on Double-Click) */}
-                                   <AnimatePresence>
-                                     {isExpanded && (
-                                       <motion.div
-                                         initial={{ height: 0, opacity: 0 }}
-                                         animate={{ height: "auto", opacity: 1 }}
-                                         exit={{ height: 0, opacity: 0 }}
-                                         transition={{ duration: 0.25 }}
-                                         className="overflow-hidden pl-12 pr-2 mt-3"
-                                       >
-                                         <div className="bg-[#8A1E2B]/5 rounded-xl p-4 border border-dashed border-[#8A1E2B]/20 space-y-4">
-                                           {/* Title Editing inputs & controls */}
-                                           <div className="flex items-center gap-2">
-                                             <input 
-                                               type="text" 
-                                               value={editingTodoText} 
-                                               onChange={e => setEditingTodoText(e.target.value)}
-                                               onKeyDown={e => {
-                                                 if (e.key === 'Enter') handleSaveTodoEdit();
-                                                 else if (e.key === 'Escape') setExpandedGoalId(null);
-                                               }}
-                                               className="flex-1 bg-white border border-[#8A1E2B]/30 rounded-lg px-3 py-1 font-hand font-bold text-lg text-[#8A1E2B] outline-none"
-                                               placeholder="Sửa tên mục tiêu..."
-                                             />
-                                             <button 
-                                               onClick={handleSaveTodoEdit}
-                                               className="px-3 py-1 bg-green-700 hover:bg-green-800 text-white rounded-lg text-sm font-bold font-sans uppercase shrink-0 transition-all"
-                                             >
-                                               Lưu
-                                             </button>
-                                             <button 
-                                               onClick={() => {
-                                                 handleDeleteTodoGoal(goal.id);
-                                                 setExpandedGoalId(null);
-                                               }}
-                                               className="px-3 py-1 bg-red-700 hover:bg-red-800 text-white rounded-lg text-sm font-bold font-sans uppercase shrink-0 transition-all"
-                                             >
-                                               Xóa
-                                             </button>
-                                           </div>
+                                            {isEditingThisTask ? (
+                                              <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
+                                                <input 
+                                                  type="text" 
+                                                  value={editingTodoText} 
+                                                  onChange={e => setEditingTodoText(e.target.value)} 
+                                                  onKeyDown={e => {
+                                                    if (e.key === 'Enter') handleSaveTodoEdit();
+                                                    else if (e.key === 'Escape') { setEditingTodoId(null); setEditingTodoType(null); }
+                                                  }}
+                                                  className="flex-1 bg-white border-b-2 border-[#8A1E2B] px-1 text-base font-hand font-bold text-[#8A1E2B] outline-none"
+                                                  autoFocus
+                                                />
+                                                <button 
+                                                  onClick={handleSaveTodoEdit}
+                                                  className="px-1.5 py-0.5 bg-green-700 text-white rounded text-[10px] font-bold font-sans uppercase shrink-0"
+                                                >
+                                                  Lưu
+                                                </button>
+                                                <button 
+                                                  onClick={() => handleDeleteTodoTask(t.id)}
+                                                  className="px-1.5 py-0.5 bg-red-700 text-white rounded text-[10px] font-bold font-sans uppercase shrink-0"
+                                                >
+                                                  Xóa
+                                               </button>
+                                              </div>
+                                            ) : (
+                                              <span className={`font-hand font-medium text-lg md:text-xl transition-all select-none ${t.completed ? "text-[#8A1E2B]/55 line-through decoration-[#8A1E2B] decoration-[1.5px]" : "text-[#8A1E2B] group-hover:text-red-700"}`}>
+                                                {t.content}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
 
-                                           {/* Sub-tasks checklist */}
-                                           <div className="space-y-2">
-                                             <div className="text-[#8A1E2B]/70 font-hand font-black text-xs uppercase tracking-wider text-left pl-1">
-                                               DANH SÁCH VIỆC CẦN LÀM (SUB-TASKS):
-                                             </div>
-
-                                             <div className="space-y-2.5 pl-1">
-                                               {subTasks.map((t) => {
-                                                 const isEditingThisTask = editingTodoId === t.id && editingTodoType === 'task';
-                                                 return (
-                                                   <div 
-                                                     key={t.id} 
-                                                     onDoubleClick={(e) => {
-                                                       e.stopPropagation();
-                                                       setEditingTodoId(t.id);
-                                                       setEditingTodoText(t.content);
-                                                       setEditingTodoType('task');
-                                                     }}
-                                                     className="flex items-center justify-between gap-3 group/sub cursor-pointer"
-                                                     title="Nhấp đúp hành động sửa/xóa subtask"
-                                                   >
-                                                     <div className="flex items-center gap-3 flex-1 text-left">
-                                                       {/* Subtask Checkbox */}
-                                                       <div 
-                                                         onClick={(e) => {
-                                                           e.stopPropagation();
-                                                           handleToggleTask(t.id);
-                                                         }}
-                                                         className="w-6 h-6 border-2 border-[#8A1E2B]/70 rounded-[4px] shrink-0 flex items-center justify-center bg-white shadow-xs overflow-hidden"
-                                                       >
-                                                         {t.completed && (
-                                                           <svg className="text-[#8A1E2B] w-4 h-4 stroke-[4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                           </svg>
-                                                         )}
-                                                       </div>
-
-                                                       {isEditingThisTask ? (
-                                                         <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
-                                                           <input 
-                                                             type="text" 
-                                                             value={editingTodoText} 
-                                                             onChange={e => setEditingTodoText(e.target.value)} 
-                                                             onKeyDown={e => {
-                                                               if (e.key === 'Enter') handleSaveTodoEdit();
-                                                               else if (e.key === 'Escape') { setEditingTodoId(null); setEditingTodoType(null); }
-                                                             }}
-                                                             className="flex-1 bg-white border-b-2 border-[#8A1E2B] px-1 text-base font-hand font-bold text-[#8A1E2B] outline-none"
-                                                             autoFocus
-                                                           />
-                                                           <button 
-                                                             onClick={handleSaveTodoEdit}
-                                                             className="px-1.5 py-0.5 bg-green-700 text-white rounded text-[10px] font-bold font-sans uppercase shrink-0"
-                                                           >
-                                                             Lưu
-                                                           </button>
-                                                           <button 
-                                                             onClick={() => handleDeleteTodoTask(t.id)}
-                                                             className="px-1.5 py-0.5 bg-red-700 text-white rounded text-[10px] font-bold font-sans uppercase shrink-0"
-                                                           >
-                                                             Xóa
-                                                           </button>
-                                                         </div>
-                                                       ) : (
-                                                         <span className={`font-hand font-medium text-lg md:text-xl transition-all select-none ${t.completed ? "text-[#8A1E2B]/55 line-through decoration-[#8A1E2B] decoration-[1.5px]" : "text-[#8A1E2B]/90 group-hover/sub:text-[#8A1E2B]"}`}>
-                                                           {t.content}
-                                                         </span>
-                                                       )}
-                                                     </div>
-                                                   </div>
-                                                 );
-                                               })}
-
-                                               {/* Inline form to Add Subtask */}
-                                               <form 
-                                                 onSubmit={(e) => {
-                                                   e.preventDefault();
-                                                   const currentText = newSubTaskTexts[goal.id] || "";
-                                                   handleAddSubTask(goal.id, currentText);
-                                                 }}
-                                                 className="flex items-center gap-2 pt-1 border-t border-dashed border-[#8A1E2B]/10"
-                                               >
-                                                 <span className="text-[#8A1E2B]/50 font-bold text-lg">+</span>
-                                                 <input 
-                                                   type="text" 
-                                                   placeholder="Thêm to-do (sub-task)..." 
-                                                   value={newSubTaskTexts[goal.id] || ""} 
-                                                   onChange={e => setNewSubTaskTexts(prev => ({ ...prev, [goal.id]: e.target.value }))}
-                                                   className="bg-transparent border-none outline-none font-hand font-medium text-base text-[#8A1E2B]/80 placeholder-[#8A1E2B]/40 w-full"
-                                                 />
-                                               </form>
-                                             </div>
-                                           </div>
-                                         </div>
-                                       </motion.div>
-                                     )}
-                                   </AnimatePresence>
-                                 </div>
-                               );
-                             })}
-
-                             {/* Group 2: General Tasks (with no Goal associations) if any */}
-                             {generalTasks.length > 0 && (
-                               <div className="border-t border-[#8A1E2B]/10 pt-4 mt-4 text-left">
-                                 <div className="flex items-center gap-2 mb-2 pr-1">
-                                   <span className="text-xl">📌</span>
-                                   <span className="font-hand font-black text-xl md:text-2xl text-[#8A1E2B] opacity-80 uppercase select-none">
-                                     Việc Chung / Khác
-                                   </span>
-                                 </div>
-
-                                 <div className="space-y-3">
-                                   {generalTasks.map((t) => {
-                                     const isExpanded = expandedGoalId === t.id;
-                                     const isEditingThisTask = editingTodoId === t.id && editingTodoType === 'task';
-                                     
-                                     return (
-                                       <div key={t.id} className="border-b border-[#8A1E2B]/10 py-1 last:border-0 text-left">
-                                         {/* Flat General Task block */}
-                                         <div 
-                                           onDoubleClick={(e) => {
-                                             e.stopPropagation();
-                                             setExpandedGoalId(isExpanded ? null : t.id);
-                                             setEditingTodoId(t.id);
-                                             setEditingTodoText(t.content);
-                                             setEditingTodoType('task');
-                                           }}
-                                           className="flex items-center gap-4 cursor-pointer group"
-                                           title="Nhấp đúp để Sửa hoặc Xóa việc chung này"
-                                         >
-                                           <div 
-                                             onClick={(e) => {
-                                               e.stopPropagation();
-                                               handleToggleTask(t.id);
-                                             }}
-                                             className="w-8 h-8 border-[2.5px] border-[#8A1E2B] rounded-[4px] shrink-0 flex items-center justify-center bg-white shadow-sm overflow-hidden"
-                                           >
-                                             {t.completed && (
-                                               <svg className="text-[#8A1E2B] w-6 h-6 stroke-[4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                               </svg>
-                                             )}
-                                           </div>
-
-                                           <div className="flex-1 flex items-center justify-between gap-2 max-w-full overflow-hidden">
-                                             <span className={`font-hand font-black text-xl md:text-2xl transition-all select-none truncate ${t.completed ? "text-[#8A1E2B]/55 line-through decoration-[#8A1E2B] decoration-[1.5px]" : "text-[#8A1E2B] group-hover:text-red-700"}`}>
-                                               {t.content}
-                                             </span>
-                                             <span className="text-xs text-[#8A1E2B]/40 group-hover:text-[#8A1E2B]/70 shrink-0">
-                                               {isExpanded ? "▲" : "▼"}
-                                             </span>
-                                           </div>
-                                         </div>
-
-                                         {/* Edit General Task Box */}
-                                         <AnimatePresence>
-                                           {isExpanded && (
-                                             <motion.div
-                                               initial={{ height: 0, opacity: 0 }}
-                                               animate={{ height: "auto", opacity: 1 }}
-                                               exit={{ height: 0, opacity: 0 }}
-                                               transition={{ duration: 0.2 }}
-                                               className="overflow-hidden pl-12 pr-2 mt-2"
-                                             >
-                                               <div className="bg-[#8A1E2B]/5 rounded-xl p-3 border border-dashed border-[#8A1E2B]/20 flex items-center gap-2">
-                                                 {isEditingThisTask ? (
-                                                   <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
-                                                     <input 
-                                                       type="text" 
-                                                       value={editingTodoText} 
-                                                       onChange={e => setEditingTodoText(e.target.value)} 
-                                                       onKeyDown={e => {
-                                                         if (e.key === 'Enter') handleSaveTodoEdit();
-                                                         else if (e.key === 'Escape') setExpandedGoalId(null);
-                                                       }}
-                                                       className="flex-1 bg-white border border-[#8A1E2B]/30 rounded px-2 py-1 text-base font-hand font-bold text-[#8A1E2B] outline-none"
-                                                       autoFocus
-                                                     />
-                                                     <button 
-                                                       onClick={handleSaveTodoEdit}
-                                                       className="px-2 py-1 bg-green-700 text-white rounded text-xs font-bold font-sans uppercase shrink-0 hover:bg-green-800 transition-colors"
-                                                     >
-                                                       Lưu
-                                                     </button>
-                                                     <button 
-                                                       onClick={() => {
-                                                         handleDeleteTodoTask(t.id);
-                                                         setExpandedGoalId(null);
-                                                       }}
-                                                       className="px-2 py-1 bg-red-700 text-white rounded text-xs font-bold font-sans uppercase shrink-0 hover:bg-red-800 transition-colors"
-                                                     >
-                                                       Xóa
-                                                     </button>
-                                                   </div>
-                                                 ) : (
-                                                   <span className="font-hand font-medium text-lg text-[#8A1E2B]/70 italic">Nhấp đúp để chỉnh sửa mục này</span>
-                                                 )}
-                                               </div>
-                                             </motion.div>
-                                           )}
-                                         </AnimatePresence>
-                                       </div>
-                                     );
-                                   })}
-                                 </div>
-                               </div>
-                             )}
-
-                             {activeGoals.length === 0 && generalTasks.length === 0 && (
-                               <div className="py-6 text-center text-[#8A1E2B]/60 italic font-hand font-medium text-lg">
-                                 Chưa có mục tiêu hoặc to-do nào. Gõ vào ô bên dưới để thêm mục tiêu đầu tiên nhé!
+                                    {/* Simple Inline Form to Add a Todo (Sub-task) under this Goal */}
+                                    <form 
+                                      onSubmit={(e) => {
+                                        e.preventDefault();
+                                        const currentText = newSubTaskTexts[goal.id] || "";
+                                        handleAddSubTask(goal.id, currentText);
+                                      }}
+                                      className="flex items-center gap-2 pl-2"
+                                    >
+                                      <span className="text-[#8A1E2B]/50 font-bold text-lg">+</span>
+                                      <input 
+                                        type="text" 
+                                        placeholder="Thêm to-do (sub-task)..." 
+                                        value={newSubTaskTexts[goal.id] || ""} 
+                                        onChange={e => setNewSubTaskTexts(prev => ({ ...prev, [goal.id]: e.target.value }))}
+                                        className="bg-transparent border-none outline-none font-hand font-medium text-base text-[#8A1E2B]/80 placeholder-[#8A1E2B]/40 w-full"
+                                      />
+                                    </form>
+                                  </div>
                                 </div>
-                             )}
-                           </>
-                         )
-                       })()}
-                    </div>
-                     
-                    {/* Add a NEW Main Goal/Task (Mục tiêu) Form */}
-                    <form onSubmit={handleAddTodoGoal} className="flex items-center gap-3 mt-6 pt-4 border-t-2 border-[#8A1E2B]/20 border-dashed w-full">
-                      <span className="text-[#8A1E2B] font-black text-2xl" title="Thêm mục tiêu mới">+</span>
-                      <input 
-                        type="text" 
-                        placeholder="Thêm mục tiêu mới..." 
-                        value={newTodoGoalTitle} 
-                        onChange={e => setNewTodoGoalTitle(e.target.value)} 
-                        className="bg-transparent border-none outline-none font-hand font-black text-xl md:text-2xl text-[#8A1E2B] placeholder-[#8A1E2B]/40 w-full uppercase" 
-                      />
-                    </form>
+                              );
+                            })}
+
+                            {/* Group 2: General Tasks (with no Goal associations) if any */}
+                            {generalTasks.length > 0 && (
+                              <div className="border-b border-[#8A1E2B]/10 pb-4 last:border-0 mt-4 text-left">
+                                <div className="flex items-center gap-2 mb-2 pr-1">
+                                  <span className="text-xl">📌</span>
+                                  <span className="font-hand font-black text-xl md:text-2xl text-[#8A1E2B] opacity-80 uppercase select-none">
+                                    Việc Chung / Khác
+                                  </span>
+                                </div>
+
+                                <div className="pl-6 space-y-2.5">
+                                  {generalTasks.map((t) => {
+                                    const isEditingThisTask = editingTodoId === t.id && editingTodoType === 'task';
+                                    return (
+                                      <div 
+                                        key={t.id} 
+                                        onDoubleClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingTodoId(t.id);
+                                          setEditingTodoText(t.content);
+                                          setEditingTodoType('task');
+                                        }}
+                                        className="flex items-center justify-between gap-3 group cursor-pointer pl-2 border-l border-dashed border-[#8A1E2B]/20"
+                                        title="Nhấp đúp để Sửa/Xóa sub-task chung này"
+                                      >
+                                        <div className="flex items-center gap-3 flex-1 text-left">
+                                          <div 
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleToggleTask(t.id);
+                                            }}
+                                            className="w-6 h-6 border-2 border-[#8A1E2B]/70 rounded-[4px] shrink-0 flex items-center justify-center bg-white shadow-xs overflow-hidden"
+                                          >
+                                            {t.completed && (
+                                              <svg className="text-[#8A1E2B] w-4 h-4 stroke-[4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                              </svg>
+                                            )}
+                                          </div>
+
+                                          {isEditingThisTask ? (
+                                            <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
+                                              <input 
+                                                type="text" 
+                                                value={editingTodoText} 
+                                                onChange={e => setEditingTodoText(e.target.value)} 
+                                                onKeyDown={e => {
+                                                  if (e.key === 'Enter') handleSaveTodoEdit();
+                                                  else if (e.key === 'Escape') { setEditingTodoId(null); setEditingTodoType(null); }
+                                                }}
+                                                className="flex-1 bg-white border-b border-[#8A1E2B] px-1 text-base font-hand font-bold text-[#8A1E2B] outline-none"
+                                                autoFocus
+                                              />
+                                              <button 
+                                                onClick={handleSaveTodoEdit}
+                                                className="px-1.5 py-0.5 bg-green-700 text-white rounded text-[10px] font-bold font-sans uppercase shrink-0"
+                                              >
+                                                Lưu
+                                              </button>
+                                              <button 
+                                                onClick={() => handleDeleteTodoTask(t.id)}
+                                                className="px-1.5 py-0.5 bg-red-700 text-white rounded text-[10px] font-bold font-sans uppercase shrink-0"
+                                              >
+                                                Xóa
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <span className={`font-hand font-medium text-lg md:text-xl transition-all select-none ${t.completed ? "text-[#8A1E2B]/55 line-through decoration-[#8A1E2B] decoration-[1.5px]" : "text-[#8A1E2B] group-hover:text-red-700"}`}>
+                                              {t.content}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {activeGoals.length === 0 && generalTasks.length === 0 && (
+                              <div className="py-6 text-center text-[#8A1E2B]/60 italic font-hand font-medium text-lg">
+                                Chưa có mục tiêu hoặc to-do nào. Gõ vào ô bên dưới để thêm mục tiêu đầu tiên nhé!
+                               </div>
+                            )}
+                          </>
+                        )
+                      })()}
+                   </div>
+                    
+                   {/* Add a NEW Main Goal/Task (Mục tiêu) Form */}
+                   <form onSubmit={handleAddTodoGoal} className="flex items-center gap-3 mt-6 pt-4 border-t-2 border-[#8A1E2B]/20 border-dashed w-full">
+                     <span className="text-[#8A1E2B] font-black text-2xl" title="Thêm mục tiêu mới">+</span>
+                     <input 
+                       type="text" 
+                       placeholder="Thêm mục tiêu mới (Task)..." 
+                       value={newTodoGoalTitle} 
+                       onChange={e => setNewTodoGoalTitle(e.target.value)} 
+                       className="bg-transparent border-none outline-none font-hand font-bold text-xl text-[#8A1E2B] placeholder-[#8A1E2B]/40 w-full uppercase" 
+                     />
+
+                     <span className="text-[#8A1E2B] font-black text-2xl">+</span>
+                     <input type="text" placeholder="Add new task..." value={newTaskContent} onChange={e => setNewTaskContent(e.target.value)} className="bg-transparent outline-none font-hand font-bold text-xl text-[#8A1E2B] placeholder-[#8A1E2B]/50 w-full uppercase" />
+                   </form>
                 </div>
 
                 </div>
