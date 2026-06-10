@@ -435,6 +435,75 @@ export function PolaroidPreset({ type, className }: { type: string, className?: 
           <polygon points="58,59 55,63 61,63" fill="#38BDF8" stroke="none" />
         </svg>
       );
+    case 'pizza':
+      return (
+        <svg className={cn("w-7 h-7 text-amber-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 50 15 L 15 75 A 50 50 0 0 0 85 75 Z" fill="#FEF08A" />
+          <path d="M 15 75 Q 50 82 85 75 M 15 75 Q 50 86 85 75" fill="#EF4444" strokeWidth="4" />
+          <circle cx="50" cy="40" r="5" fill="#DC2626" stroke="none" />
+          <circle cx="38" cy="58" r="5" fill="#DC2626" stroke="none" />
+          <circle cx="62" cy="58" r="5" fill="#DC2626" stroke="none" />
+          <circle cx="48" cy="74" r="2.5" fill="#FBBF24" stroke="none" />
+          <circle cx="56" cy="72" r="2.5" fill="#FBBF24" stroke="none" />
+        </svg>
+      );
+    case 'burger':
+      return (
+        <svg className={cn("w-7 h-7 text-amber-800", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 20 42 A 30 30 0 0 1 80 42 Z" fill="#F59E0B" />
+          <path d="M 16 46 Q 30 42 44 46 Q 58 42 72 46 Q 84 42 84 46" stroke="#22C55E" strokeWidth="5" />
+          <rect x="22" y="52" width="56" height="10" rx="3" fill="#78350F" />
+          <path d="M 24 52 L 40 58 L 56 52 L 76 52" stroke="#EAB308" strokeWidth="4" />
+          <path d="M 24 66 H 76 L 72 78 H 28 Z" fill="#F59E0B" />
+          <circle cx="38" cy="28" r="1.5" fill="#FEF3C7" stroke="none" />
+          <circle cx="50" cy="24" r="1.5" fill="#FEF3C7" stroke="none" />
+          <circle cx="62" cy="28" r="1.5" fill="#FEF3C7" stroke="none" />
+        </svg>
+      );
+    case 'ramen':
+      return (
+        <svg className={cn("w-7 h-7 text-red-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 20 45 Q 20 85 50 85 Q 80 85 80 45 Z" fill="#EF4444" />
+          <path d="M 16 45 H 84" strokeWidth="6" stroke="#DC2626" />
+          <path d="M 20 45 Q 35 38 50 45 Q 65 38 80 45" stroke="#EAB308" strokeWidth="4" fill="none" />
+          <circle cx="40" cy="40" r="9" fill="#FFF" stroke="#EAB308" strokeWidth="2" />
+          <circle cx="40" cy="40" r="4.5" fill="#F97316" stroke="none" />
+          <rect x="58" y="38" width="5" height="5" fill="#22C55E" stroke="none" />
+          <rect x="66" y="44" width="5" height="5" fill="#22C55E" stroke="none" />
+          <line x1="75" y1="20" x2="35" y2="52" stroke="#78350F" strokeWidth="3" />
+          <line x1="80" y1="22" x2="40" y2="54" stroke="#78350F" strokeWidth="3" />
+        </svg>
+      );
+    case 'cookie':
+      return (
+        <svg className={cn("w-7 h-7 text-amber-700", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="50" cy="50" r="35" fill="#F59E0B" />
+          <path d="M 75 25 A 15 15 0 0 0 85 50" stroke="#FCFBF7" strokeWidth="15" />
+          <circle cx="34" cy="42" r="4" fill="#451A03" stroke="none" />
+          <circle cx="50" cy="30" r="3" fill="#451A03" stroke="none" />
+          <circle cx="62" cy="46" r="4.5" fill="#451A03" stroke="none" />
+          <circle cx="46" cy="62" r="3.5" fill="#451A03" stroke="none" />
+          <circle cx="30" cy="60" r="3" fill="#451A03" stroke="none" />
+        </svg>
+      );
+    case 'avocado':
+      return (
+        <svg className={cn("w-7 h-7 text-emerald-700", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 50 15 C 32 15 30 45 30 62 C 30 78 40 88 50 88 C 60 88 70 78 70 62 C 70 45 68 15 50 15 Z" fill="#065F46" />
+          <path d="M 50 21 C 36 21 35 48 35 62 C 35 74 42 82 50 82 C 58 82 65 74 65 62 C 65 48 64 21 50 21 Z" fill="#A7F3D0" stroke="none" />
+          <circle cx="50" cy="62" r="11" fill="#78350F" />
+        </svg>
+      );
+    case 'bread':
+      return (
+        <svg className={cn("w-7 h-7 text-amber-800", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 25 35 Q 25 22 50 22 Q 75 22 75 35 V 75 H 25 Z" fill="#FEF3C7" />
+          <path d="M 25 35 Q 18 35 25 25 Q 50 12 75 25 Q 82 35 75 35" stroke="#D97706" strokeWidth="6" fill="none" />
+          <ellipse cx="40" cy="40" rx="4" ry="1.5" fill="#F59E0B" stroke="none" />
+          <ellipse cx="60" cy="45" rx="4" ry="1.5" fill="#F59E0B" stroke="none" />
+          <ellipse cx="46" cy="55" rx="4" ry="1.5" fill="#F59E0B" stroke="none" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -466,6 +535,12 @@ export const STICKER_PRESETS = [
   { id: "beach", label: "🏖️ Bãi Biển", visual: "beach" },
   { id: "watermelon", label: "🍉 Dưa Hấu", visual: "watermelon" },
   { id: "icecream", label: "🍦 Kem Mát", visual: "icecream" },
+  { id: "pizza", label: "🍕 Pizza Phô Mai", visual: "pizza" },
+  { id: "burger", label: "🍔 Hamburger Ngon", visual: "burger" },
+  { id: "ramen", label: "🍜 Mì Ramen", visual: "ramen" },
+  { id: "cookie", label: "🍪 Bánh Quy Cookie", visual: "cookie" },
+  { id: "avocado", label: "🥑 Trái Bơ Sáp", visual: "avocado" },
+  { id: "bread", label: "🍞 Bánh Mì Gối", visual: "bread" },
   { id: "airplane", label: "✈️ Du Lịch", visual: "airplane" },
   { id: "cat", label: "🐱 Mèo Con", visual: "cat" },
   { id: "music", label: "🎵 Âm Nhạc", visual: "music" },
