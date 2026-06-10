@@ -335,6 +335,106 @@ export function PolaroidPreset({ type, className }: { type: string, className?: 
           <path d="M 75 75 L 80 85 L 90 90 L 80 95 L 75 105 L 70 95 L 60 90 L 70 85 Z" fill="#FDE047" strokeWidth="2" />
         </svg>
       );
+    case 'yogurt':
+      return (
+        <svg className={cn("w-7 h-7 text-sky-600", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 35 30 L 40 85 Q 50 90 60 85 L 65 30 Z" fill="#F0F9FF" />
+          <path d="M 30 30 H 70" strokeWidth="7" stroke="#38BDF8" />
+          <ellipse cx="50" cy="30" rx="20" ry="6" fill="#BAE6FD" />
+          <text x="35" y="60" fill="#0284C7" stroke="none" fontWeight="black" fontSize="16" fontFamily="sans-serif">YOG</text>
+          <path d="M 45 30 L 35 12" strokeWidth="5" stroke="#94A3B8" />
+          <circle cx="50" cy="74" r="3" fill="#38BDF8" stroke="none" />
+        </svg>
+      );
+    case 'milk':
+      return (
+        <svg className={cn("w-7 h-7 text-indigo-700", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 30 38 L 50 20 L 70 38 L 70 85 L 30 85 Z" fill="#EEF2FF" />
+          <path d="M 30 38 H 70" strokeWidth="4" />
+          <line x1="50" y1="20" x2="50" y2="38" strokeWidth="4" />
+          <rect x="38" y="48" width="24" height="24" fill="#818CF8" rx="2" stroke="none" />
+          <path d="M 42 62 Q 50 54 58 62" strokeWidth="3" stroke="#fff" />
+        </svg>
+      );
+    case 'cupcake':
+      return (
+        <svg className={cn("w-7 h-7 text-rose-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 30 55 L 35 85 Q 50 90 65 85 L 70 55 Z" fill="#FDE047" />
+          <path d="M 24 55 Q 50 35 76 55 Z" fill="#FBCFE8" />
+          <circle cx="50" cy="35" r="8" fill="#F43F5E" />
+          <line x1="40" y1="55" x2="42" y2="85" strokeWidth="2.5" stroke="#CABF45" />
+          <line x1="50" y1="55" x2="50" y2="85" strokeWidth="2.5" stroke="#CABF45" />
+          <line x1="60" y1="55" x2="58" y2="85" strokeWidth="2.5" stroke="#CABF45" />
+        </svg>
+      );
+    case 'strawberry':
+      return (
+        <svg className={cn("w-7 h-7 text-red-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 50 15 C 20 15 20 70 50 90 C 80 70 80 15 50 15 Z" fill="#FECDD3" />
+          <path d="M 40 15 Q 50 8 60 15 Q 50 25 40 15 Z" fill="#22C55E" />
+          <circle cx="38" cy="40" r="2.5" fill="#EF4444" stroke="none" />
+          <circle cx="62" cy="40" r="2.5" fill="#EF4444" stroke="none" />
+          <circle cx="50" cy="52" r="2.5" fill="#EF4444" stroke="none" />
+          <circle cx="42" cy="65" r="2.5" fill="#EF4444" stroke="none" />
+          <circle cx="58" cy="65" r="2.5" fill="#EF4444" stroke="none" />
+        </svg>
+      );
+    case 'lemon':
+      return (
+        <svg className={cn("w-7 h-7 text-yellow-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <ellipse cx="50" cy="50" rx="35" ry="25" fill="#FEF08A" />
+          <path d="M 15 50 C 15 50 10 44 15 38" />
+          <path d="M 85 50 C 85 50 90 56 85 62" />
+          <circle cx="50" cy="50" r="18" fill="#FFFDF0" stroke="none" />
+          <line x1="50" y1="32" x2="50" y2="68" strokeWidth="2.5" stroke="#B45309" />
+          <line x1="32" y1="50" x2="68" y2="50" strokeWidth="2.5" stroke="#B45309" />
+        </svg>
+      );
+    case 'cloud':
+      return (
+        <svg className={cn("w-7 h-7 text-sky-400", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 25 65 Q 15 65 18 50 Q 20 32 40 35 Q 50 20 65 28 Q 82 28 80 48 Q 85 65 65 65 Z" fill="#F0F9FF" />
+          <circle cx="38" cy="48" r="2" fill="#0EA5E9" stroke="none" />
+          <circle cx="54" cy="48" r="2" fill="#0EA5E9" stroke="none" />
+          <path d="M 43 54 Q 46 57 49 54" strokeWidth="2.5" stroke="#0EA5E9" />
+        </svg>
+      );
+    case 'rainbow':
+      return (
+        <svg className={cn("w-7 h-7 text-rose-400", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 15 75 A 35 35 0 0 1 85 75" stroke="#F43F5E" strokeWidth="8" />
+          <path d="M 23 75 A 27 27 0 0 1 77 75" stroke="#FB923C" strokeWidth="8" />
+          <path d="M 31 75 A 19 19 0 0 1 69 75" stroke="#38BDF8" strokeWidth="8" />
+        </svg>
+      );
+    case 'moon':
+      return (
+        <svg className={cn("w-7 h-7 text-indigo-400", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 30 20 A 35 35 0 1 0 80 70 A 28 28 0 1 1 30 20 Z" fill="#FEF08A" />
+          <circle cx="68" cy="25" r="1.5" fill="#FEE2E2" stroke="none" />
+          <circle cx="78" cy="40" r="2" fill="#FEE2E2" stroke="none" />
+        </svg>
+      );
+    case 'catclaw':
+      return (
+        <svg className={cn("w-7 h-7 text-pink-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="50" cy="62" r="20" fill="#FDF2F8" />
+          <ellipse cx="50" cy="65" rx="11" ry="8" fill="#F472B6" stroke="none" />
+          <ellipse cx="32" cy="45" rx="5" ry="4.5" fill="#F472B6" stroke="none" />
+          <ellipse cx="68" cy="45" rx="5" ry="4.5" fill="#F472B6" stroke="none" />
+          <ellipse cx="50" cy="36" rx="5.5" ry="5" fill="#F472B6" stroke="none" />
+        </svg>
+      );
+    case 'balloon':
+      return (
+        <svg className={cn("w-7 h-7 text-sky-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="42" cy="35" r="15" fill="#F43F5E" />
+          <circle cx="58" cy="45" r="14" fill="#38BDF8" />
+          <path d="M 42 50 L 50 85 M 58 59 L 50 85" strokeWidth="3" stroke="#94A3B8" />
+          <polygon points="42,50 39,54 45,54" fill="#F43F5E" stroke="none" />
+          <polygon points="58,59 55,63 61,63" fill="#38BDF8" stroke="none" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -342,6 +442,16 @@ export function PolaroidPreset({ type, className }: { type: string, className?: 
 
 export const STICKER_PRESETS = [
   { id: "none", label: "❌ Không Sticker" },
+  { id: "yogurt", label: "🥛 Hũ Sữa Chua", visual: "yogurt" },
+  { id: "milk", label: "🥛 Hộp Sữa Giấy", visual: "milk" },
+  { id: "cupcake", label: "🧁 Bánh Bông Lan", visual: "cupcake" },
+  { id: "strawberry", label: "🍓 Quả Dâu Tây", visual: "strawberry" },
+  { id: "lemon", label: "🍋 Quả Chanh Vàng", visual: "lemon" },
+  { id: "cloud", label: "☁️ Đám Mây", visual: "cloud" },
+  { id: "rainbow", label: "🌈 Cầu Vồng Cute", visual: "rainbow" },
+  { id: "moon", label: "🌙 Trăng Khuyết", visual: "moon" },
+  { id: "catclaw", label: "🐾 Bàn Chân Mèo", visual: "catclaw" },
+  { id: "balloon", label: "🎈 Chùm Bóng Bay", visual: "balloon" },
   { id: "notebook", label: "📔 Sổ Mở", visual: "notebook" },
   { id: "grocery", label: "🥖 Túi Đỏ An", visual: "grocery" },
   { id: "flowers", label: "💐 Bó Hoa", visual: "flowers" },
