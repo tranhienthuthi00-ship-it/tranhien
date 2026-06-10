@@ -453,7 +453,7 @@ export const STICKER_PRESETS = [
   { id: "catclaw", label: "🐾 Bàn Chân Mèo", visual: "catclaw" },
   { id: "balloon", label: "🎈 Chùm Bóng Bay", visual: "balloon" },
   { id: "notebook", label: "📔 Sổ Mở", visual: "notebook" },
-  { id: "grocery", label: "🥖 Túi Đỏ An", visual: "grocery" },
+  { id: "grocery", label: "🥖 Túi Đồ Ăn", visual: "grocery" },
   { id: "flowers", label: "💐 Bó Hoa", visual: "flowers" },
   { id: "journal", label: "📕 Tập Nhật Ký", visual: "journal" },
   { id: "closet", label: "👗 Váy Xinh", visual: "closet" },

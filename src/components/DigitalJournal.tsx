@@ -1898,18 +1898,18 @@ export function DigitalJournal({
                       >
                            <h2 className="text-[#5C0612] font-hand font-black text-3xl md:text-4xl tracking-normal leading-none rotate-[-1deg] select-none flex flex-col items-center group-hover:scale-[1.02] transition-transform">
                              <span className="text-base md:text-lg block tracking-[0.2em] text-[#7D1E2B]/85 font-extrabold rotate-[2deg] opacity-95">💰 FINANCE OVERALL</span>
-                             <span className="text-3xl md:text-[45px] font-black block mt-2 tracking-tighter drop-shadow-sm uppercase">SỔ TỔNG HỢP TÀI CHÍNH</span>
+                             <span className="text-3xl md:text-[45px] font-black block mt-2 tracking-tighter drop-shadow-sm">Sổ Tổng Hợp Tài Chính</span>
                            </h2>
                            <div className="w-24 h-1.5 bg-[#5C0612] mx-auto mt-4 rounded-full rotate-[1deg] opacity-10" />
-                           <span className="text-[10px] font-hand font-black uppercase tracking-wider text-[#8A1E2B] block mt-2 animate-pulse">
-                             {isFinanceOverallOpen ? "Ấn vào đây để ĐÓNG SỔ 🔒" : "Ấn vào đây để MỞ SỔ CHI TIẾT 🔓"}
+                           <span className="text-[11px] font-hand font-black tracking-wider text-[#8A1E2B] block mt-2 animate-pulse">
+                             {isFinanceOverallOpen ? "Ấn vào đây để đóng sổ 🔒" : "Ấn vào đây để mở sổ chi tiết 🔓"}
                            </span>
                       </div>
 
                       {/* Always show high level summary row */}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto w-full relative z-10 my-6">
                          <div className="bg-[#fcf8f2] p-4 border-[3px] border-[#8A1E2B] text-center rounded-[20px] shadow-[3px_3px_0_rgba(138,30,43,0.1)]">
-                            <h4 className="font-hand font-black text-[#8A1E2B] text-xs uppercase mb-1">TỔNG THU NHẬP</h4>
+                            <h4 className="font-hand font-black text-[#8A1E2B] text-xs mb-1">Tổng thu nhập</h4>
                             <p className="text-lg md:text-xl font-hand font-black text-[#5C0612]">
                               {(() => {
                                 const baseSalaryVal = parseFloat(salaryInput.replace(/,/g, '')) || 0;
@@ -1918,7 +1918,7 @@ export function DigitalJournal({
                             </p>
                          </div>
                          <div className="bg-[#fcf8f2] p-4 border-[3px] border-[#8A1E2B] text-center rounded-[20px] shadow-[3px_3px_0_rgba(138,30,43,0.1)]">
-                            <h4 className="font-hand font-black text-[#8A1E2B] text-xs uppercase mb-1">DOANH THU TUẦN</h4>
+                            <h4 className="font-hand font-black text-[#8A1E2B] text-xs mb-1">Doanh thu tuần</h4>
                             <p className="text-lg md:text-xl font-hand font-black text-[#5C0612]/90">
                               {(() => {
                                 const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
@@ -1927,7 +1927,7 @@ export function DigitalJournal({
                             </p>
                          </div>
                          <div className="bg-[#fcf8f2] p-4 border-[3px] border-[#8A1E2B] text-center rounded-[20px] shadow-[3px_3px_0_rgba(138,30,43,0.1)]">
-                            <h4 className="font-hand font-black text-[#8A1E2B] text-xs uppercase mb-1">KÊ KHAI TIỀN MẶT</h4>
+                            <h4 className="font-hand font-black text-[#8A1E2B] text-xs mb-1">Kê khai tiền mặt</h4>
                             <p className="text-lg md:text-xl font-hand font-black text-[#5C0612]/90">
                               {(() => {
                                 const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
@@ -1954,37 +1954,64 @@ export function DigitalJournal({
                                 {/* TABLE 1: DOANH THU TUẦN */}
                                 <div className="bg-[#fcfbf7] p-4 md:p-6 border-[3px] border-dashed border-[#8A1E2B]/40 rounded-[24px]">
                                    <div className="mb-4 text-center">
-                                     <h4 className="font-hand font-black text-lg md:text-xl uppercase tracking-wider text-[#8A1E2B] flex items-center justify-center gap-2">
-                                       <span>📈</span> Chi Tiết Doanh Thu Tuần
+                                     <h4 className="font-hand font-black text-lg md:text-xl tracking-wider text-[#8A1E2B] flex items-center justify-center gap-2">
+                                       <span>📈</span> Chi tiết doanh thu tuần
                                      </h4>
                                      <div className="w-16 h-1 bg-[#8A1E2B]/10 mx-auto mt-1 rounded-full" />
                                    </div>
 
                                    <div className="space-y-3">
                                       {bulkDebts.map((item, index) => {
+                                        const isFirstDay = index === 0;
                                         return (
                                           <div key={item.id} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 border-b border-[#5C0612]/10 pb-2.5 pt-1 last:border-b-0">
-                                            {/* Date selection with Dot format */}
-                                            <div className="w-24 shrink-0 flex items-center gap-1.5 font-hand font-bold text-[#5C0612] bg-[#8A1E2B]/5 px-2 py-1 rounded-lg">
-                                              <span className="text-xs font-mono font-black text-[#8A1E2B]">
-                                                {formatDateDot(item.name)}
-                                              </span>
-                                              <div className="relative scale-90 hover:scale-105 transition-transform cursor-pointer w-4 h-4 flex items-center justify-center shrink-0">
-                                                <span className="text-xs">📅</span>
+                                            {/* Date component - selecting first day allows sequential updates */}
+                                            {isFirstDay ? (
+                                              <div className="w-24 shrink-0 flex items-center justify-between font-hand font-bold text-[#5C0612] bg-[#8A1E2B]/10 hover:bg-[#8A1E2B]/20 px-2 py-1 rounded-lg relative cursor-pointer transition-all">
+                                                <span className="text-xs font-mono font-black text-[#8A1E2B]">
+                                                  {formatDateDot(item.name)}
+                                                </span>
+                                                <span className="text-[10px] opacity-70">✏️</span>
                                                 <input
                                                   type="date"
                                                   value={item.name}
                                                   onChange={(e) => {
-                                                    const updated = [...bulkDebts];
-                                                    updated[index].name = e.target.value;
-                                                    setBulkDebts(updated);
+                                                    const val = e.target.value;
+                                                    if (val) {
+                                                      const updated = [...bulkDebts];
+                                                      updated[0].name = val;
+                                                      const dateParts = val.split("-");
+                                                      if (dateParts.length === 3) {
+                                                        const year = parseInt(dateParts[0], 10);
+                                                        const month = parseInt(dateParts[1], 10) - 1;
+                                                        const day = parseInt(dateParts[2], 10);
+                                                        const baseDate = new Date(year, month, day);
+                                                        
+                                                        for (let i = 1; i < updated.length; i++) {
+                                                          const nextDate = new Date(baseDate);
+                                                          nextDate.setDate(baseDate.getDate() + i);
+                                                          
+                                                          const y = nextDate.getFullYear();
+                                                          const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+                                                          const d = String(nextDate.getDate()).padStart(2, '0');
+                                                          updated[i].name = `${y}-${m}-${d}`;
+                                                        }
+                                                      }
+                                                      setBulkDebts(updated);
+                                                    }
                                                   }}
                                                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                                                 />
                                               </div>
-                                            </div>
+                                            ) : (
+                                              <div className="w-24 shrink-0 flex items-center justify-center font-hand font-bold text-[#5C0612]/75 bg-[#8A1E2B]/5 px-2 py-1 rounded-lg">
+                                                <span className="text-xs font-mono font-black text-[#8A1E2B]/75">
+                                                  {formatDateDot(item.name)}
+                                                </span>
+                                              </div>
+                                            )}
                                             
-                                            {/* Amount Input */}
+                                            {/* Amount Input with simplified underline */}
                                             <div className="flex-1 min-w-[110px]">
                                               <input
                                                 type="text"
@@ -2002,22 +2029,22 @@ export function DigitalJournal({
                                                   updated[index].amount = cleanVal;
                                                   setBulkDebts(updated);
                                                 }}
-                                                className="w-full bg-white border-2 border-[#8A1E2B] rounded-xl px-2.5 py-1 text-xs font-hand font-extrabold text-[#5C0612] outline-none shadow-[2px_2px_0_#8A1E2B]/25 focus:bg-white transition-all"
+                                                className="w-full bg-transparent border-b border-dashed border-[#8A1E2B]/40 focus:border-[#8A1E2B] rounded-none px-1 py-1 text-xs font-hand font-extrabold text-[#5C0612] outline-none transition-all placeholder-[#5C0612]/30"
                                               />
                                             </div>
 
-                                            {/* Notes Input */}
+                                            {/* Notes Input styled to match */}
                                             <div className="flex-1 min-w-[140px]">
                                               <input
                                                 type="text"
-                                                placeholder="Ghi chú tuần..."
+                                                placeholder="Ghi chú ngày..."
                                                 value={item.notes}
                                                 onChange={(e) => {
                                                   const updated = [...bulkDebts];
                                                   updated[index].notes = e.target.value;
                                                   setBulkDebts(updated);
                                                 }}
-                                                className="w-full bg-white/70 border-2 border-[#8A1E2B]/30 focus:border-[#8A1E2B] rounded-xl px-2.5 py-1 text-xs font-hand font-bold text-[#5C0612]/90 outline-none focus:bg-white transition-all"
+                                                className="w-full bg-transparent border-b border-dashed border-[#8A1E2B]/20 focus:border-[#8A1E2B]/50 rounded-none px-1 py-1 text-xs font-hand font-bold text-[#5C0612]/85 outline-none transition-all placeholder-[#5C0612]/30"
                                               />
                                             </div>
                                           </div>
@@ -2026,8 +2053,8 @@ export function DigitalJournal({
                                    </div>
 
                                    <div className="mt-4 flex items-center justify-between border-t border-dashed border-[#5C0612]/20 pt-4">
-                                      <div className="text-xs font-hand font-black text-[#8A1E2B]">
-                                        TỔNG TUẦN: {(() => {
+                                      <div className="text-sm font-hand font-black text-[#8A1E2B]">
+                                        Tổng tuần: {(() => {
                                           const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
                                           return (total > 0 ? "+" : "") + total.toLocaleString("vi-VN") + " đ";
                                         })()}
@@ -2041,7 +2068,7 @@ export function DigitalJournal({
                                         }}
                                         className="px-3 py-1.5 border-2 border-[#8A1E2B] hover:bg-red-50 text-[#8A1E2B] active:scale-95 rounded-full text-[10px] font-hand font-black uppercase tracking-wider transition-all cursor-pointer"
                                       >
-                                        ♻️ Reset Tuần
+                                        ♻️ Đặt lại tuần
                                       </button>
                                    </div>
                                 </div>
@@ -2049,8 +2076,8 @@ export function DigitalJournal({
                                 {/* TABLE 2: KÊ KHAI TIỀN MẶT */}
                                 <div className="bg-[#fcfbf7] p-4 md:p-6 border-[3px] border-dashed border-[#8A1E2B]/40 rounded-[24px]">
                                    <div className="mb-4 text-center">
-                                     <h4 className="font-hand font-black text-lg md:text-xl uppercase tracking-wider text-[#8A1E2B] flex items-center justify-center gap-2">
-                                       <span>🪙</span> Danh Sách Mệnh Giá Tiền
+                                     <h4 className="font-hand font-black text-lg md:text-xl tracking-wider text-[#8A1E2B] flex items-center justify-center gap-2">
+                                       <span>🪙</span> Danh sách mệnh giá tiền
                                      </h4>
                                      <div className="w-16 h-1 bg-[#8A1E2B]/10 mx-auto mt-1 rounded-full" />
                                    </div>
@@ -2126,8 +2153,8 @@ export function DigitalJournal({
                                    </div>
 
                                    <div className="mt-4 flex items-center justify-between border-t border-dashed border-[#5C0612]/20 pt-4">
-                                      <div className="text-xs font-hand font-black text-[#8A1E2B]">
-                                        TỔNG TIỀN MẶT: {(() => {
+                                      <div className="text-sm font-hand font-black text-[#8A1E2B]">
+                                        Tổng tiền mặt: {(() => {
                                           const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
                                           const total = VND_DENOMINATIONS.reduce((sum, den) => sum + den * (bulkCurrentCash[den] || 0), 0);
                                           return total.toLocaleString("vi-VN") + " đ";
@@ -2142,7 +2169,7 @@ export function DigitalJournal({
                                         }}
                                         className="px-3 py-1.5 border-2 border-[#8A1E2B] hover:bg-red-50 text-[#8A1E2B] active:scale-95 rounded-full text-[10px] font-hand font-black uppercase tracking-wider transition-all cursor-pointer"
                                       >
-                                        🧹 Reset Về 0
+                                        🧹 Xóa sạch về 0
                                       </button>
                                    </div>
                                 </div>
