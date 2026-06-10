@@ -1470,12 +1470,21 @@ export function DigitalJournal({
                
                {/* Puppy drawing relative to top */}
                <div className="absolute -top-12 -right-8 w-16 h-16 pointer-events-none opacity-80 rotate-12">
-                  <svg viewBox="0 0 100 100" fill="none" stroke="#8A1E2B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20,50 Q30,40 40,50 Q50,45 60,50 Q70,40 80,45 Q75,55 85,60 Q80,70 65,70 Q55,65 40,65 Q30,70 20,60 Q25,55 15,45 Z" />
-                    <circle cx="30" cy="50" r="2.5" fill="#8A1E2B"/>
-                    <path d="M25,55 Q35,60 40,55" />
-                    <path d="M30,35 L25,20 L40,30" />
-                    <path d="M50,80 L50,90 M70,75 L75,85 M25,75 L20,85 M35,80 L35,90" />
+                  <svg viewBox="0 0 100 100" fill="none" stroke="#8A1E2B" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                    {/* Head */}
+                    <path d="M 40 50 C 35 45, 30 45, 25 50 C 20 54, 20 62, 25 66 Q 35 72, 45 66 C 55 60, 50 54, 40 50 Z" />
+                    {/* Sleepy eye */}
+                    <path d="M 27 57 Q 30 59 33 57" strokeWidth="2.2" />
+                    {/* Ears */}
+                    <path d="M 28 48 L 22 36 L 18 46" />
+                    <path d="M 38 48 L 42 36 L 46 46" />
+                    {/* Sleeping curly body */}
+                    <path d="M 42 55 Q 60 45, 75 52 Q 85 58, 80 68 Q 72 75, 45 68" />
+                    {/* Tail curled around body */}
+                    <path d="M 80 62 Q 92 60, 88 50 Q 82 45, 75 48" />
+                    {/* Cute tiny sleep paws */}
+                    <circle cx="50" cy="69" r="3" />
+                    <circle cx="62" cy="69" r="3" />
                   </svg>
                </div>
             </div>
@@ -1489,7 +1498,7 @@ export function DigitalJournal({
                       <h3 className="font-hand font-black text-xl text-[#3A1412] tracking-wider uppercase m-0 flex-1">TODAY TO DO LIST:</h3>
                       
                       {/* Mascot */}
-                     <div className="w-24 h-24 pointer-events-none relative -mt-9 shrink-0 -mr-4" style={{ zIndex: 50 }}>
+                     <div className="w-24 h-24 relative -mt-9 shrink-0 -mr-4 cursor-pointer group" style={{ zIndex: 50 }} title="Gõ nhẹ để xem tâm trạng của thỏ béo nha!">
                         {(() => {
                             const allDisplayTasks = [
                               ...tasks.map(t => ({ id: t.id, text: t.content, done: t.completed, isReal: true })),
@@ -1501,131 +1510,157 @@ export function DigitalJournal({
                             const ratio = totalDisplayTasks === 0 ? 0 : completedCount / totalDisplayTasks;
 
                             return (
-                              <svg viewBox="0 0 100 110" className="w-full h-full stroke-[#4A2D2A] stroke-[2.2]" strokeLinecap="round" strokeLinejoin="round" style={{ overflow: 'visible' }}>
-                                 {/* 1. Long Curly Hair (Back Mass) */}
-                                 <path 
-                                   d="M 24 45 
-                                      C 8 50, 4 65, 8 75
-                                      C 2 82, 4 92, 12 98
-                                      C 20 104, 30 100, 28 92
-                                      C 32 98, 48 100, 48 92
-                                      C 48 98, 64 98, 68 92
-                                      C 66 100, 76 104, 84 98
-                                      C 92 92, 94 82, 88 75
-                                      C 92 65, 88 50, 74 45 Z" 
-                                   fill="#5C3B30" stroke="#3A1412" strokeWidth="2.5" 
-                                 />
-                                 
-                                 {/* Fluffy Disney hair curls back-drawn details */}
-                                 <path d="M 12 62 Q 4 72 16 80" fill="none" stroke="#3A1412" strokeWidth="2.2" />
-                                 <path d="M 10 65 Q 2 75 14 83" fill="none" stroke="#FABBA7" strokeWidth="1.5" />
-                                 <path d="M 88 62 Q 96 72 84 80" fill="none" stroke="#3A1412" strokeWidth="2.2" />
-                                 <path d="M 90 65 Q 98 75 86 83" fill="none" stroke="#FABBA7" strokeWidth="1.5" />
-                                 
-                                 {/* Detailed strands across center of mass */}
-                                 <path d="M 32 30 C 22 45, 30 55, 22 75" fill="none" stroke="#3A1412" strokeWidth="1.8" />
-                                 <path d="M 34 32 C 24 47, 32 57, 24 77" fill="none" stroke="#FABBA7" strokeWidth="1.2" />
-                                 <path d="M 68 30 C 78 45, 70 55, 78 75" fill="none" stroke="#3A1412" strokeWidth="1.8" />
-                                 <path d="M 66 32 C 76 47, 68 57, 76 77" fill="none" stroke="#FABBA7" strokeWidth="1.2" />
+                              <svg viewBox="0 0 100 100" className="w-full h-full stroke-[#4A2D2A] stroke-[2.2]" strokeLinecap="round" strokeLinejoin="round" style={{ overflow: 'visible' }}>
+                                 {/* Left Ear Outer & Inner */}
+                                 <path d="M 28 40 C 18 12, 12 -12, 23 -12 C 34 -12, 34 15, 34 40" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.5" />
+                                 <path d="M 26 35 C 20 15, 17 0, 23 0 C 29 0, 29 20, 29 35" fill="#FBCFE8" opacity="0.8" stroke="none" />
 
-                                 {/* 2. Hand-drawn shoulders/body */}
-                                 <path 
-                                   d="M 30 85 Q 50 88 70 85 L 75 110 L 25 110 Z" 
-                                   fill="#FFEFE5" stroke="#3A1412" strokeWidth="2.5" 
-                                 />
-                                 {/* Hand-drawn striped shirt */}
-                                 <path d="M 28 92 L 72 92" stroke="#8A1E2B" strokeWidth="2" />
-                                 <path d="M 26 100 L 74 100" stroke="#8A1E2B" strokeWidth="2" />
-                                 <path d="M 25 108 L 75 108" stroke="#8A1E2B" strokeWidth="2" />
+                                 {/* Right Ear Outer & Inner */}
+                                 <path d="M 72 40 C 82 12, 88 -12, 77 -12 C 66 -12, 66 15, 66 40" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.5" />
+                                 <path d="M 74 35 C 80 15, 83 0, 77 0 C 71 0, 71 20, 71 35" fill="#FBCFE8" opacity="0.8" stroke="none" />
 
-                                 {/* 3. Face/Head (Slightly uneven hand-drawn sketch) */}
-                                 <path 
-                                    d="M 28 45 C 28 28, 72 28, 72 45 C 72 63, 62 70, 50 70 C 38 70, 28 63, 28 45 Z" 
-                                    fill="#FFF4EE" stroke="#3A1412" strokeWidth="2.5"
-                                 />
-
-                                 {/* 4. Front Curly Hair Bangs and side locks */}
-                                 <path 
-                                   d="M 28 45 C 32 32, 45 30, 50 36 C 55 30, 68 32, 72 45 Q 60 36, 50 38 Q 40 36, 28 45 Z" 
-                                   fill="#5C3B30" stroke="#3A1412" strokeWidth="2.5" 
-                                 />
-                                 {/* Front Bang waves highlights/shimmer */}
-                                 <path d="M 33 34 C 42 31, 48 34, 46 39" fill="none" stroke="#FABBA7" strokeWidth="1.8" />
-                                 <path d="M 67 34 C 58 31, 52 34, 54 39" fill="none" stroke="#FABBA7" strokeWidth="1.8" />
-
-                                 {/* Cascading bouncy princess ringlets (Left side) */}
-                                 <path d="M 29 45 C 16 52, 14 62, 22 68 C 30 74, 12 78, 18 88 T 14 100" fill="none" stroke="#3A1412" strokeWidth="2.5" />
-                                 <path d="M 26 50 C 12 58, 16 68, 12 78 T 16 94" fill="none" stroke="#FABBA7" strokeWidth="1.5" />
-                                 
-                                 {/* Cascading bouncy princess ringlets (Right side) */}
-                                 <path d="M 71 45 C 84 52, 86 62, 78 68 C 70 74, 88 78, 82 88 T 86 100" fill="none" stroke="#3A1412" strokeWidth="2.5" />
-                                 <path d="M 74 50 C 88 58, 84 68, 88 78 T 84 94" fill="none" stroke="#FABBA7" strokeWidth="1.5" />
-
-                                 {/* 5. Rosy peach cheeks blush */}
-                                 <ellipse cx="33" cy="56" rx="5" ry="3.2" fill="#FFA5A5" opacity="0.6" />
-                                 <ellipse cx="67" cy="56" rx="5" ry="3.2" fill="#FFA5A5" opacity="0.6" />
-
-                                 {/* Doodle Eyebrows */}
-                                 <path d="M 33 42 Q 38 40 42 43" fill="none" stroke="#3A1412" strokeWidth="1.8" />
-                                 <path d="M 58 43 Q 62 40 67 42" fill="none" stroke="#3A1412" strokeWidth="1.8" />
-
-                                 {/* 6. Dynamic Doodle Eyes */}
-                                 {ratio >= 0.75 ? (
+                                 {/* Little sleeping hat or accessories */}
+                                 {ratio === 0 && (
                                    <>
-                                     {/* Happy closed arched eyes */}
-                                     <path d="M 33 48 Q 38 42 43 48" fill="none" stroke="#3A1412" strokeWidth="2.8" strokeLinecap="round" />
-                                     <path d="M 57 48 Q 62 42 67 48" fill="none" stroke="#3A1412" strokeWidth="2.8" strokeLinecap="round" />
-                                   </>
-                                 ) : (
-                                   <>
-                                     {/* Simple big expressive dots */}
-                                     <circle cx="38" cy="48" r="3.5" fill="#3A1412" />
-                                     <circle cx="62" cy="48" r="3.5" fill="#3A1412" />
-                                     <circle cx="39.2" cy="46.5" r="1" fill="#FFFFFF" />
-                                     <circle cx="63.2" cy="46.5" r="1" fill="#FFFFFF" />
+                                     <path d="M 26 -2 C 16 -12, 10 -4, 15 6 Z" fill="#93C5FD" stroke="#4A2D2A" strokeWidth="1.8" />
+                                     <circle cx="12" cy="-9" r="3" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="1.5" />
                                    </>
                                  )}
 
-                                 {/* Small Curve Nose */}
-                                 <path d="M 48 53 Q 50 51 51 53" fill="none" stroke="#3A1412" strokeWidth="2" strokeLinecap="round" />
+                                 {/* Sweater / Knit body garment */}
+                                 <path d="M 22 78 C 22 78, 50 82, 78 78 L 81 100 L 19 100 Z" fill="#FCA5A5" stroke="#4A2D2A" strokeWidth="2.5" />
+                                 <path d="M 21 85 Q 50 88 79 85" fill="none" stroke="#FEF08A" strokeWidth="3" />
+                                 <path d="M 19 93 Q 50 96 81 93" fill="none" stroke="#FEF08A" strokeWidth="3" />
 
-                                 {/* 7. Dynamic Hand-drawn Smile (Saves ratio level) */}
+                                 {/* Head */}
+                                 <ellipse cx="50" cy="51" rx="36" ry="30" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.5" />
+
+                                 {/* Hands / Paws */}
+                                 {ratio > 0.34 && ratio <= 0.74 ? (
+                                   /* Waving paw */
+                                   <path d="M 18 72 Q 10 65 14 58 Q 20 54 22 66 Z" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.5" />
+                                 ) : ratio >= 0.75 ? (
+                                   /* Both paws raised with joy */
+                                   <>
+                                     <path d="M 18 68 Q 10 58 15 52 Q 22 48 24 62 Z" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.5" />
+                                     <path d="M 82 68 Q 90 58 85 52 Q 78 48 76 62 Z" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.5" />
+                                   </>
+                                 ) : (
+                                   /* Little cozy hands meeting in front */
+                                   <>
+                                     <circle cx="38" cy="74" r="4" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.2" />
+                                     <circle cx="62" cy="74" r="4" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.2" />
+                                   </>
+                                 )}
+
+                                 {/* Crown for Triumph state */}
+                                 {ratio >= 0.75 && (
+                                   <g>
+                                     <path d="M 38 23 L 42 15 L 50 20 L 58 15 L 62 23 Z" fill="#FBBF24" stroke="#4A2D2A" strokeWidth="2" strokeLinejoin="round" />
+                                     <circle cx="50" cy="11" r="2.5" fill="#F59E0B" stroke="#4A2D2A" strokeWidth="1.5" />
+                                   </g>
+                                 )}
+
+                                 {/* Eyes, cheeks, and mouth depending on state */}
                                  {(() => {
-                                    if (ratio === 0) {
-                                      // No completed tasks: neutral straight line
-                                      return <path d="M 44 61 Q 50 61 56 61" fill="none" stroke="#3A1412" strokeWidth="2.5" strokeLinecap="round" />;
-                                    } else if (ratio <= 0.34) {
-                                      // Few completed tasks: tiny modest smile
-                                      return <path d="M 44 60 Q 50 63 56 60" fill="none" stroke="#3A1412" strokeWidth="2.5" strokeLinecap="round" />;
-                                    } else if (ratio <= 0.75) {
-                                      // Medium completed tasks: beautiful warm smile
-                                      return <path d="M 42 59 Q 50 67 58 59" fill="none" stroke="#3A1412" strokeWidth="2.5" strokeLinecap="round" />;
-                                    } else {
-                                      // A lot of completed tasks: full happy open laughing mouth
-                                      return (
-                                        <g>
-                                          <path d="M 41 58 Q 50 71 59 58 Z" fill="#E56B6F" stroke="#3A1412" strokeWidth="2.5" strokeLinejoin="round" />
-                                          {/* Cute tongue */}
-                                          <path d="M 45 65 Q 50 61 55 65 Q 50 71 45 65" fill="#FFA5A5" />
-                                        </g>
-                                      );
-                                    }
+                                   if (ratio === 0) {
+                                     return (
+                                       <>
+                                         {/* Sleeping arches */}
+                                         <path d="M 29 48 Q 34 52 39 48" fill="none" stroke="#4A2D2A" strokeWidth="2.8" strokeLinecap="round" />
+                                         <path d="M 61 48 Q 66 52 71 48" fill="none" stroke="#4A2D2A" strokeWidth="2.8" strokeLinecap="round" />
+                                         
+                                         {/* Soft blush */}
+                                         <circle cx="22" cy="55" r="4.5" fill="#FFB3C1" opacity="0.6" stroke="none" />
+                                         <circle cx="78" cy="55" r="4.5" fill="#FFB3C1" opacity="0.6" stroke="none" />
+
+                                         {/* Cute little sleeping snout */}
+                                         <path d="M 48 57 Q 50 59 52 57" fill="none" stroke="#4A2D2A" strokeWidth="2" strokeLinecap="round" />
+                                         <path d="M 47 62 Q 50 64 53 62" fill="none" stroke="#4A2D2A" strokeWidth="1.8" strokeLinecap="round" />
+
+                                         {/* Sleep bubbles Zzz */}
+                                         <g className="animate-pulse">
+                                           <text x="82" y="24" fill="#3B82F6" fontSize="10" fontWeight="black" fontFamily="monospace" stroke="none">z</text>
+                                           <text x="88" y="15" fill="#60A5FA" fontSize="13" fontWeight="black" fontFamily="monospace" stroke="none">Z</text>
+                                         </g>
+                                       </>
+                                     );
+                                   } else if (ratio <= 0.34) {
+                                     return (
+                                       <>
+                                         {/* Curious round glassy eyes */}
+                                         <circle cx="34" cy="50" r="5" fill="#3A1412" />
+                                         <circle cx="32" cy="48" r="1.8" fill="#FFF" />
+                                         <circle cx="35.5" cy="52" r="0.7" fill="#FFF" />
+
+                                         <circle cx="66" cy="50" r="5" fill="#3A1412" />
+                                         <circle cx="64" cy="48" r="1.8" fill="#FFF" />
+                                         <circle cx="67.5" cy="52" r="0.7" fill="#FFF" />
+
+                                         {/* Cute pink blush */}
+                                         <circle cx="21" cy="56" r="5" fill="#FBCFE8" opacity="0.7" stroke="none" />
+                                         <circle cx="79" cy="56" r="5" fill="#FBCFE8" opacity="0.7" stroke="none" />
+
+                                         {/* Cute 'w' mouth */}
+                                         <path d="M 48 56 Q 50 58 52 56" fill="none" stroke="#4A2D2A" strokeWidth="2" strokeLinecap="round" />
+                                         <path d="M 45 60 Q 47.5 62.5 50 60 Q 52.5 62.5 55 60" fill="none" stroke="#4A2D2A" strokeWidth="2.2" strokeLinecap="round" />
+                                       </>
+                                     );
+                                   } else if (ratio <= 0.74) {
+                                     return (
+                                       <>
+                                         {/* Happy smiles eyes */}
+                                         <path d="M 29 49 Q 34 42 39 49" fill="none" stroke="#4A2D2A" strokeWidth="3" strokeLinecap="round" />
+                                         <path d="M 61 49 Q 66 42 71 49" fill="none" stroke="#4A2D2A" strokeWidth="3" strokeLinecap="round" />
+
+                                         {/* Blushing cheeks */}
+                                         <circle cx="21" cy="56" r="6" fill="#F9A8D4" opacity="0.8" stroke="none" />
+                                         <circle cx="79" cy="56" r="6" fill="#F9A8D4" opacity="0.8" stroke="none" />
+
+                                         {/* Little nose */}
+                                         <path d="M 48 56 Q 50 57.5 52 56" fill="none" stroke="#4A2D2A" strokeWidth="2" strokeLinecap="round" />
+
+                                         {/* Sweet warm open smiling mouth */}
+                                         <path d="M 45 60 Q 50 67 55 60 Z" fill="#F43F5E" stroke="#4A2D2A" strokeWidth="2" strokeLinejoin="round" />
+                                       </>
+                                     );
+                                   } else {
+                                     return (
+                                       <>
+                                         {/* Twinkly stars eyes */}
+                                         <path d="M 34 42 L 36 47 L 41 48 L 37 51 L 38 56 L 34 53 L 30 56 L 31 51 L 27 48 L 32 47 Z" fill="#F59E0B" stroke="#4A2D2A" strokeWidth="1.5" />
+                                         <path d="M 66 42 L 68 47 L 73 48 L 69 51 L 70 56 L 66 53 L 62 56 L 63 51 L 59 48 L 64 47 Z" fill="#F59E0B" stroke="#4A2D2A" strokeWidth="1.5" />
+
+                                         {/* Energetic cheeks */}
+                                         <ellipse cx="20" cy="56" rx="7.5" ry="4.5" fill="#EC4899" opacity="0.6" stroke="none" />
+                                         <ellipse cx="80" cy="56" rx="7.5" ry="4.5" fill="#EC4899" opacity="0.6" stroke="none" />
+
+                                         {/* Cute nose */}
+                                         <path d="M 48 55 Q 50 56.5 52 55" fill="none" stroke="#4A2D2A" strokeWidth="2" strokeLinecap="round" />
+
+                                         {/* Excited laughing mouth with tongue */}
+                                         <g>
+                                           <path d="M 43 59 Q 50 71 57 59 Z" fill="#E11D48" stroke="#4A2D2A" strokeWidth="2" strokeLinejoin="round" />
+                                           <path d="M 46 65 Q 50 62.5 54 65" fill="none" stroke="#FDA4AF" strokeWidth="2.5" />
+                                         </g>
+                                       </>
+                                     );
+                                   }
                                  })()}
 
-                                 {/* Cute hand-drawn decorative heart if extreme happy */}
+                                 {/* Floating hearts / stars sparkles for triumphant ratio */}
                                  <AnimatePresence>
-                                  {ratio >= 0.75 && (
-                                     <motion.g
-                                       initial={{ opacity: 0, scale: 0, rotate: -15 }}
-                                       animate={{ opacity: 1, scale: 1, rotate: [0, -5, 5, 0] }}
-                                       exit={{ opacity: 0, scale: 0 }}
-                                       transition={{ duration: 0.4 }}
-                                     >
-                                        {/* Golden sparkles in background of happy hand-drawn girl */}
-                                        <path d="M 5 20 Q 10 10 15 20 T 25 25 T 15 30 T 10 40 T 5 30 T -5 25 Z" fill="#FFA39E" stroke="none" transform="scale(0.4) translate(10, 20)"/>
-                                        <path d="M 85 20 Q 90 10 95 20 T 105 25 T 95 30 T 90 40 T 85 30 T 75 25 Z" fill="#EAB308" stroke="none" transform="scale(0.4) translate(110, 30)"/>
-                                     </motion.g>
-                                  )}
+                                   {ratio >= 0.75 && (
+                                      <motion.g
+                                        initial={{ opacity: 0, scale: 0, y: 5 }}
+                                        animate={{ opacity: 1, scale: 1, y: [0, -4, 0] }}
+                                        exit={{ opacity: 0, scale: 0 }}
+                                        transition={{ duration: 0.5, repeat: Infinity, repeatType: 'reverse' }}
+                                      >
+                                         <path d="M 8 18 Q 12 11 15 18 T 22 21 T 15 24 T 12 31 T 8 24 T 1 21 Q 5 21 8 18 Z" fill="#FBBF24" stroke="none" transform="scale(0.5) translate(10, 10)"/>
+                                         <path d="M 82 18 Q 86 11 89 18 T 96 21 T 89 24 T 86 31 T 82 24 T 75 21 Q 79 21 82 18 Z" fill="#EC4899" stroke="none" transform="scale(0.5) translate(110, 15)"/>
+                                      </motion.g>
+                                   )}
                                  </AnimatePresence>
                               </svg>
                             );
