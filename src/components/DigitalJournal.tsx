@@ -251,6 +251,17 @@ export function DigitalJournal({
   const [bucketListSubtitle, setBucketListSubtitle] = useSyncedState("studyHub_bucketListSubtitle", "🍉 SUMMER");
   const [bucketListTitle, setBucketListTitle] = useSyncedState("studyHub_bucketListTitle", "BUCKET LIST");
   const [isFinanceOverallOpen, setIsFinanceOverallOpen] = useSyncedState("studyHub_isFinanceOverallOpen_home", false);
+  
+  // Finance list titles
+  const [financeRevenueTitle, setFinanceRevenueTitle] = useSyncedState("studyHub_financeRevenueTitle", "Chi tiết doanh thu tuần");
+  const [financeCashTitle, setFinanceCashTitle] = useSyncedState("studyHub_financeCashTitle", "Danh sách mệnh giá tiền");
+
+  const [isEditingRevenueTitle, setIsEditingRevenueTitle] = useState(false);
+  const [tempRevenueTitle, setTempRevenueTitle] = useState("");
+
+  const [isEditingCashTitle, setIsEditingCashTitle] = useState(false);
+  const [tempCashTitle, setTempCashTitle] = useState("");
+
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitlePrefix, setEditTitlePrefix] = useState("");
   const [editTitleMain, setEditTitleMain] = useState("");
@@ -1511,54 +1522,54 @@ export function DigitalJournal({
                             const ratio = totalDisplayTasks === 0 ? 0 : completedCount / totalDisplayTasks;
 
                             return (
-                              <svg viewBox="0 0 100 100" className="w-full h-full stroke-[#4A2D2A] stroke-[2.2]" strokeLinecap="round" strokeLinejoin="round" style={{ overflow: 'visible' }}>
+                              <svg viewBox="0 0 100 100" className="w-full h-full stroke-[#8A1E2B] stroke-[2.2]" strokeLinecap="round" strokeLinejoin="round" style={{ overflow: 'visible' }}>
                                  {/* Left Ear Outer & Inner */}
-                                 <path d="M 28 40 C 18 12, 12 -12, 23 -12 C 34 -12, 34 15, 34 40" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.5" />
+                                 <path d="M 28 40 C 18 12, 12 -12, 23 -12 C 34 -12, 34 15, 34 40" fill="#FAF3EB" stroke="#8A1E2B" strokeWidth="2.5" />
                                  <path d="M 26 35 C 20 15, 17 0, 23 0 C 29 0, 29 20, 29 35" fill="#FBCFE8" opacity="0.8" stroke="none" />
 
                                  {/* Right Ear Outer & Inner */}
-                                 <path d="M 72 40 C 82 12, 88 -12, 77 -12 C 66 -12, 66 15, 66 40" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.5" />
+                                 <path d="M 72 40 C 82 12, 88 -12, 77 -12 C 66 -12, 66 15, 66 40" fill="#FAF3EB" stroke="#8A1E2B" strokeWidth="2.5" />
                                  <path d="M 74 35 C 80 15, 83 0, 77 0 C 71 0, 71 20, 71 35" fill="#FBCFE8" opacity="0.8" stroke="none" />
 
                                  {/* Little sleeping hat or accessories */}
                                  {ratio === 0 && (
                                    <>
-                                     <path d="M 26 -2 C 16 -12, 10 -4, 15 6 Z" fill="#93C5FD" stroke="#4A2D2A" strokeWidth="1.8" />
-                                     <circle cx="12" cy="-9" r="3" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="1.5" />
+                                     <path d="M 26 -2 C 16 -12, 10 -4, 15 6 Z" fill="#E9D8A6" stroke="#8A1E2B" strokeWidth="1.8" />
+                                     <circle cx="12" cy="-9" r="3" fill="#FAF3EB" stroke="#8A1E2B" strokeWidth="1.5" />
                                    </>
                                  )}
 
                                  {/* Sweater / Knit body garment */}
-                                 <path d="M 22 78 C 22 78, 50 82, 78 78 L 81 100 L 19 100 Z" fill="#FCA5A5" stroke="#4A2D2A" strokeWidth="2.5" />
-                                 <path d="M 21 85 Q 50 88 79 85" fill="none" stroke="#FEF08A" strokeWidth="3" />
-                                 <path d="M 19 93 Q 50 96 81 93" fill="none" stroke="#FEF08A" strokeWidth="3" />
+                                 <path d="M 22 78 C 22 78, 50 82, 78 78 L 81 100 L 19 100 Z" fill="#E0A96D" stroke="#8A1E2B" strokeWidth="2.5" />
+                                 <path d="M 21 85 Q 50 88 79 85" fill="none" stroke="#8A1E2B" strokeWidth="1.8" />
+                                 <path d="M 19 93 Q 50 96 81 93" fill="none" stroke="#8A1E2B" strokeWidth="1.8" />
 
                                  {/* Head */}
-                                 <ellipse cx="50" cy="51" rx="36" ry="30" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.5" />
+                                 <ellipse cx="50" cy="51" rx="36" ry="30" fill="#FAF3EB" stroke="#8A1E2B" strokeWidth="2.5" />
 
                                  {/* Hands / Paws */}
                                  {ratio > 0.34 && ratio <= 0.74 ? (
                                    /* Waving paw */
-                                   <path d="M 18 72 Q 10 65 14 58 Q 20 54 22 66 Z" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.5" />
+                                   <path d="M 18 72 Q 10 65 14 58 Q 20 54 22 66 Z" fill="#FAF3EB" stroke="#8A1E2B" strokeWidth="2.5" />
                                  ) : ratio >= 0.75 ? (
                                    /* Both paws raised with joy */
                                    <>
-                                     <path d="M 18 68 Q 10 58 15 52 Q 22 48 24 62 Z" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.5" />
-                                     <path d="M 82 68 Q 90 58 85 52 Q 78 48 76 62 Z" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.5" />
+                                     <path d="M 18 68 Q 10 58 15 52 Q 22 48 24 62 Z" fill="#FAF3EB" stroke="#8A1E2B" strokeWidth="2.5" />
+                                     <path d="M 82 68 Q 90 58 85 52 Q 78 48 76 62 Z" fill="#FAF3EB" stroke="#8A1E2B" strokeWidth="2.5" />
                                    </>
                                  ) : (
                                    /* Little cozy hands meeting in front */
                                    <>
-                                     <circle cx="38" cy="74" r="4" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.2" />
-                                     <circle cx="62" cy="74" r="4" fill="#FFFDFC" stroke="#4A2D2A" strokeWidth="2.2" />
+                                     <circle cx="38" cy="74" r="4" fill="#FAF3EB" stroke="#8A1E2B" strokeWidth="2.2" />
+                                     <circle cx="62" cy="74" r="4" fill="#FAF3EB" stroke="#8A1E2B" strokeWidth="2.2" />
                                    </>
                                  )}
 
                                  {/* Crown for Triumph state */}
                                  {ratio >= 0.75 && (
                                    <g>
-                                     <path d="M 38 23 L 42 15 L 50 20 L 58 15 L 62 23 Z" fill="#FBBF24" stroke="#4A2D2A" strokeWidth="2" strokeLinejoin="round" />
-                                     <circle cx="50" cy="11" r="2.5" fill="#F59E0B" stroke="#4A2D2A" strokeWidth="1.5" />
+                                     <path d="M 38 23 L 42 15 L 50 20 L 58 15 L 62 23 Z" fill="#E9D8A6" stroke="#8A1E2B" strokeWidth="2" strokeLinejoin="round" />
+                                     <circle cx="50" cy="11" r="2.5" fill="#8A1E2B" stroke="#8A1E2B" strokeWidth="1.5" />
                                    </g>
                                  )}
 
@@ -1568,21 +1579,21 @@ export function DigitalJournal({
                                      return (
                                        <>
                                          {/* Sleeping arches */}
-                                         <path d="M 29 48 Q 34 52 39 48" fill="none" stroke="#4A2D2A" strokeWidth="2.8" strokeLinecap="round" />
-                                         <path d="M 61 48 Q 66 52 71 48" fill="none" stroke="#4A2D2A" strokeWidth="2.8" strokeLinecap="round" />
+                                         <path d="M 29 48 Q 34 52 39 48" fill="none" stroke="#8A1E2B" strokeWidth="2.8" strokeLinecap="round" />
+                                         <path d="M 61 48 Q 66 52 71 48" fill="none" stroke="#8A1E2B" strokeWidth="2.8" strokeLinecap="round" />
                                          
                                          {/* Soft blush */}
                                          <circle cx="22" cy="55" r="4.5" fill="#FFB3C1" opacity="0.6" stroke="none" />
                                          <circle cx="78" cy="55" r="4.5" fill="#FFB3C1" opacity="0.6" stroke="none" />
 
                                          {/* Cute little sleeping snout */}
-                                         <path d="M 48 57 Q 50 59 52 57" fill="none" stroke="#4A2D2A" strokeWidth="2" strokeLinecap="round" />
-                                         <path d="M 47 62 Q 50 64 53 62" fill="none" stroke="#4A2D2A" strokeWidth="1.8" strokeLinecap="round" />
+                                         <path d="M 48 57 Q 50 59 52 57" fill="none" stroke="#8A1E2B" strokeWidth="2" strokeLinecap="round" />
+                                         <path d="M 47 62 Q 50 64 53 62" fill="none" stroke="#8A1E2B" strokeWidth="1.8" strokeLinecap="round" />
 
                                          {/* Sleep bubbles Zzz */}
                                          <g className="animate-pulse">
-                                           <text x="82" y="24" fill="#3B82F6" fontSize="10" fontWeight="black" fontFamily="monospace" stroke="none">z</text>
-                                           <text x="88" y="15" fill="#60A5FA" fontSize="13" fontWeight="black" fontFamily="monospace" stroke="none">Z</text>
+                                           <text x="82" y="24" fill="#8A1E2B" fontSize="10" fontWeight="black" fontFamily="monospace" stroke="none">z</text>
+                                           <text x="88" y="15" fill="#8A1E2B" fontSize="13" fontWeight="black" fontFamily="monospace" stroke="none">Z</text>
                                          </g>
                                        </>
                                      );
@@ -1590,11 +1601,11 @@ export function DigitalJournal({
                                      return (
                                        <>
                                          {/* Curious round glassy eyes */}
-                                         <circle cx="34" cy="50" r="5" fill="#3A1412" />
+                                         <circle cx="34" cy="50" r="5" fill="#8A1E2B" />
                                          <circle cx="32" cy="48" r="1.8" fill="#FFF" />
                                          <circle cx="35.5" cy="52" r="0.7" fill="#FFF" />
 
-                                         <circle cx="66" cy="50" r="5" fill="#3A1412" />
+                                         <circle cx="66" cy="50" r="5" fill="#8A1E2B" />
                                          <circle cx="64" cy="48" r="1.8" fill="#FFF" />
                                          <circle cx="67.5" cy="52" r="0.7" fill="#FFF" />
 
@@ -1603,45 +1614,45 @@ export function DigitalJournal({
                                          <circle cx="79" cy="56" r="5" fill="#FBCFE8" opacity="0.7" stroke="none" />
 
                                          {/* Cute 'w' mouth */}
-                                         <path d="M 48 56 Q 50 58 52 56" fill="none" stroke="#4A2D2A" strokeWidth="2" strokeLinecap="round" />
-                                         <path d="M 45 60 Q 47.5 62.5 50 60 Q 52.5 62.5 55 60" fill="none" stroke="#4A2D2A" strokeWidth="2.2" strokeLinecap="round" />
+                                         <path d="M 48 56 Q 50 58 52 56" fill="none" stroke="#8A1E2B" strokeWidth="2" strokeLinecap="round" />
+                                         <path d="M 45 60 Q 47.5 62.5 50 60 Q 52.5 62.5 55 60" fill="none" stroke="#8A1E2B" strokeWidth="2.2" strokeLinecap="round" />
                                        </>
                                      );
                                    } else if (ratio <= 0.74) {
                                      return (
                                        <>
                                          {/* Happy smiles eyes */}
-                                         <path d="M 29 49 Q 34 42 39 49" fill="none" stroke="#4A2D2A" strokeWidth="3" strokeLinecap="round" />
-                                         <path d="M 61 49 Q 66 42 71 49" fill="none" stroke="#4A2D2A" strokeWidth="3" strokeLinecap="round" />
+                                         <path d="M 29 49 Q 34 42 39 49" fill="none" stroke="#8A1E2B" strokeWidth="3" strokeLinecap="round" />
+                                         <path d="M 61 49 Q 66 42 71 49" fill="none" stroke="#8A1E2B" strokeWidth="3" strokeLinecap="round" />
 
                                          {/* Blushing cheeks */}
                                          <circle cx="21" cy="56" r="6" fill="#F9A8D4" opacity="0.8" stroke="none" />
                                          <circle cx="79" cy="56" r="6" fill="#F9A8D4" opacity="0.8" stroke="none" />
 
                                          {/* Little nose */}
-                                         <path d="M 48 56 Q 50 57.5 52 56" fill="none" stroke="#4A2D2A" strokeWidth="2" strokeLinecap="round" />
+                                         <path d="M 48 56 Q 50 57.5 52 56" fill="none" stroke="#8A1E2B" strokeWidth="2" strokeLinecap="round" />
 
                                          {/* Sweet warm open smiling mouth */}
-                                         <path d="M 45 60 Q 50 67 55 60 Z" fill="#F43F5E" stroke="#4A2D2A" strokeWidth="2" strokeLinejoin="round" />
+                                         <path d="M 45 60 Q 50 67 55 60 Z" fill="#F43F5E" stroke="#8A1E2B" strokeWidth="2" strokeLinejoin="round" />
                                        </>
                                      );
                                    } else {
                                      return (
                                        <>
                                          {/* Twinkly stars eyes */}
-                                         <path d="M 34 42 L 36 47 L 41 48 L 37 51 L 38 56 L 34 53 L 30 56 L 31 51 L 27 48 L 32 47 Z" fill="#F59E0B" stroke="#4A2D2A" strokeWidth="1.5" />
-                                         <path d="M 66 42 L 68 47 L 73 48 L 69 51 L 70 56 L 66 53 L 62 56 L 63 51 L 59 48 L 64 47 Z" fill="#F59E0B" stroke="#4A2D2A" strokeWidth="1.5" />
+                                         <path d="M 34 42 L 36 47 L 41 48 L 37 51 L 38 56 L 34 53 L 30 56 L 31 51 L 27 48 L 32 47 Z" fill="#E9D8A6" stroke="#8A1E2B" strokeWidth="1.5" />
+                                         <path d="M 66 42 L 68 47 L 73 48 L 69 51 L 70 56 L 66 53 L 62 56 L 63 51 L 59 48 L 64 47 Z" fill="#E9D8A6" stroke="#8A1E2B" strokeWidth="1.5" />
 
                                          {/* Energetic cheeks */}
                                          <ellipse cx="20" cy="56" rx="7.5" ry="4.5" fill="#EC4899" opacity="0.6" stroke="none" />
                                          <ellipse cx="80" cy="56" rx="7.5" ry="4.5" fill="#EC4899" opacity="0.6" stroke="none" />
 
                                          {/* Cute nose */}
-                                         <path d="M 48 55 Q 50 56.5 52 55" fill="none" stroke="#4A2D2A" strokeWidth="2" strokeLinecap="round" />
+                                         <path d="M 48 55 Q 50 56.5 52 55" fill="none" stroke="#8A1E2B" strokeWidth="2" strokeLinecap="round" />
 
                                          {/* Excited laughing mouth with tongue */}
                                          <g>
-                                           <path d="M 43 59 Q 50 71 57 59 Z" fill="#E11D48" stroke="#4A2D2A" strokeWidth="2" strokeLinejoin="round" />
+                                           <path d="M 43 59 Q 50 71 57 59 Z" fill="#E11D48" stroke="#8A1E2B" strokeWidth="2" strokeLinejoin="round" />
                                            <path d="M 46 65 Q 50 62.5 54 65" fill="none" stroke="#FDA4AF" strokeWidth="2.5" />
                                          </g>
                                        </>
@@ -1951,14 +1962,47 @@ export function DigitalJournal({
                             <div className="border-t-2 border-dashed border-[#5C0612]/20 my-6 pt-6">
                               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-left font-hand text-[#5C0612]">
                                 
-                                {/* TABLE 1: DOANH THU TUẦN */}
-                                <div className="bg-[#fcfbf7] p-4 md:p-6 border-[3px] border-dashed border-[#8A1E2B]/40 rounded-[24px]">
-                                   <div className="mb-4 text-center">
-                                     <h4 className="font-hand font-black text-lg md:text-xl tracking-wider text-[#8A1E2B] flex items-center justify-center gap-2">
-                                       <span>📈</span> Chi tiết doanh thu tuần
-                                     </h4>
-                                     <div className="w-16 h-1 bg-[#8A1E2B]/10 mx-auto mt-1 rounded-full" />
-                                   </div>
+                                 {/* TABLE 1: DOANH THU TUẦN */}
+                                 <div className="bg-[#fcfbf7] p-4 md:p-6 border-[3px] border-dashed border-[#8A1E2B]/40 rounded-[24px]">
+                                    <div className="mb-4 text-center">
+                                      {isEditingRevenueTitle ? (
+                                        <input
+                                          type="text"
+                                          value={tempRevenueTitle}
+                                          onChange={(e) => setTempRevenueTitle(e.target.value)}
+                                          onBlur={() => {
+                                            const finalTitle = tempRevenueTitle.trim() || "Chi tiết doanh thu tuần";
+                                            setFinanceRevenueTitle(finalTitle);
+                                            setIsEditingRevenueTitle(false);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              const finalTitle = tempRevenueTitle.trim() || "Chi tiết doanh thu tuần";
+                                              setFinanceRevenueTitle(finalTitle);
+                                              setIsEditingRevenueTitle(false);
+                                            } else if (e.key === 'Escape') {
+                                              setIsEditingRevenueTitle(false);
+                                            }
+                                          }}
+                                          className="bg-white border-2 border-[#8A1E2B] text-[#8A1E2B] text-center font-hand font-black text-sm md:text-base px-2 py-0.5 rounded-lg outline-none max-w-xs mx-auto block"
+                                          autoFocus
+                                        />
+                                      ) : (
+                                        <h4 
+                                          onDoubleClick={() => {
+                                            setTempRevenueTitle(financeRevenueTitle);
+                                            setIsEditingRevenueTitle(true);
+                                          }}
+                                          className="font-hand font-black text-lg md:text-xl tracking-wider text-[#8A1E2B] flex items-center justify-center gap-2 cursor-pointer select-none group"
+                                          title="Nhấp đúp để sửa tiêu đề"
+                                        >
+                                          <span>📈</span> 
+                                          <span>{financeRevenueTitle}</span>
+                                          <span className="text-xs opacity-0 group-hover:opacity-75 transition-opacity">✏️</span>
+                                        </h4>
+                                      )}
+                                      <div className="w-16 h-1 bg-[#8A1E2B]/10 mx-auto mt-1 rounded-full" />
+                                    </div>
 
                                    <div className="space-y-3">
                                       {bulkDebts.map((item, index) => {
@@ -2024,9 +2068,16 @@ export function DigitalJournal({
                                                       : ""
                                                 }
                                                 onChange={(e) => {
-                                                  const cleanVal = e.target.value.replace(/[^0-9-]/g, "");
+                                                  const rawVal = e.target.value;
+                                                  const cleanVal = rawVal.replace(/[^0-9-]/g, "");
                                                   const updated = [...bulkDebts];
-                                                  updated[index].amount = cleanVal;
+                                                  // Xoá về 0 -> Reset layout daily entries
+                                                  if (cleanVal === "" || cleanVal === "0") {
+                                                    updated[index].amount = "";
+                                                    updated[index].notes = "";
+                                                  } else {
+                                                    updated[index].amount = cleanVal;
+                                                  }
                                                   setBulkDebts(updated);
                                                 }}
                                                 className="w-full bg-transparent border-b border-dashed border-[#8A1E2B]/40 focus:border-[#8A1E2B] rounded-none px-1 py-1 text-xs font-hand font-extrabold text-[#5C0612] outline-none transition-all placeholder-[#5C0612]/30"
@@ -2052,12 +2103,12 @@ export function DigitalJournal({
                                       })}
                                    </div>
 
-                                   <div className="mt-4 flex items-center justify-between border-t border-dashed border-[#5C0612]/20 pt-4">
-                                      <div className="text-sm font-hand font-black text-[#8A1E2B]">
-                                        Tổng tuần: {(() => {
+                                   <div className="mt-4 flex flex-col sm:flex-row gap-3 items-center justify-between border-t border-dashed border-[#5C0612]/20 pt-4">
+                                      <div className="text-base md:text-lg font-hand font-black text-[#8A1E2B] bg-[#8A1E2B]/5 px-3 py-1.5 rounded-xl border border-dashed border-[#8A1E2B]/20 shadow-[1px_1px_0_rgba(138,30,43,0.05)]">
+                                        Tổng tuần: <span className="text-lg md:text-2xl font-black underline underline-offset-4 decoration-[#8A1E2B] decoration-2 ml-1">{(() => {
                                           const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
                                           return (total > 0 ? "+" : "") + total.toLocaleString("vi-VN") + " đ";
-                                        })()}
+                                        })()}</span>
                                       </div>
                                       <button
                                         type="button"
@@ -2066,113 +2117,168 @@ export function DigitalJournal({
                                             setBulkDebts(bulkDebts.map(item => ({ ...item, amount: "", notes: "" })));
                                           }
                                         }}
-                                        className="px-3 py-1.5 border-2 border-[#8A1E2B] hover:bg-red-50 text-[#8A1E2B] active:scale-95 rounded-full text-[10px] font-hand font-black uppercase tracking-wider transition-all cursor-pointer"
+                                        className="px-3 py-1.5 border-2 border-[#8A1E2B] hover:bg-red-50 text-[#8A1E2B] active:scale-95 rounded-full text-[10px] font-hand font-black uppercase tracking-wider transition-all cursor-pointer shadow-[1.5px_1.5px_0_#8A1E2B]"
                                       >
                                         ♻️ Đặt lại tuần
                                       </button>
                                    </div>
                                 </div>
 
-                                {/* TABLE 2: KÊ KHAI TIỀN MẶT */}
-                                <div className="bg-[#fcfbf7] p-4 md:p-6 border-[3px] border-dashed border-[#8A1E2B]/40 rounded-[24px]">
-                                   <div className="mb-4 text-center">
-                                     <h4 className="font-hand font-black text-lg md:text-xl tracking-wider text-[#8A1E2B] flex items-center justify-center gap-2">
-                                       <span>🪙</span> Danh sách mệnh giá tiền
-                                     </h4>
-                                     <div className="w-16 h-1 bg-[#8A1E2B]/10 mx-auto mt-1 rounded-full" />
-                                   </div>
+                                 {/* TABLE 2: KÊ KHAI TIỀN MẶT */}
+                                 <div className="bg-[#fcfbf7] p-4 md:p-6 border-[3px] border-dashed border-[#8A1E2B]/40 rounded-[24px]">
+                                    <div className="mb-4 text-center">
+                                      {isEditingCashTitle ? (
+                                        <input
+                                          type="text"
+                                          value={tempCashTitle}
+                                          onChange={(e) => setTempCashTitle(e.target.value)}
+                                          onBlur={() => {
+                                            const finalTitle = tempCashTitle.trim() || "Danh sách mệnh giá tiền";
+                                            setFinanceCashTitle(finalTitle);
+                                            setIsEditingCashTitle(false);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              const finalTitle = tempCashTitle.trim() || "Danh sách mệnh giá tiền";
+                                              setFinanceCashTitle(finalTitle);
+                                              setIsEditingCashTitle(false);
+                                            } else if (e.key === 'Escape') {
+                                              setIsEditingCashTitle(false);
+                                            }
+                                          }}
+                                          className="bg-white border-2 border-[#8A1E2B] text-[#8A1E2B] text-center font-hand font-black text-sm md:text-base px-2 py-0.5 rounded-lg outline-none max-w-xs mx-auto block"
+                                          autoFocus
+                                        />
+                                      ) : (
+                                        <h4 
+                                          onDoubleClick={() => {
+                                            setTempCashTitle(financeCashTitle);
+                                            setIsEditingCashTitle(true);
+                                          }}
+                                          className="font-hand font-black text-lg md:text-xl tracking-wider text-[#8A1E2B] flex items-center justify-center gap-2 cursor-pointer select-none group"
+                                          title="Nhấp đúp để sửa tiêu đề"
+                                        >
+                                          <span>🪙</span> 
+                                          <span>{financeCashTitle}</span>
+                                          <span className="text-xs opacity-0 group-hover:opacity-75 transition-opacity">✏️</span>
+                                        </h4>
+                                      )}
+                                      <div className="w-16 h-1 bg-[#8A1E2B]/10 mx-auto mt-1 rounded-full" />
+                                    </div>
 
-                                   <div className="space-y-1.5 max-h-[350px] overflow-y-auto pr-1">
-                                      {(() => {
-                                        const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
-                                        return VND_DENOMINATIONS.map(den => {
-                                          const qty = bulkCurrentCash[den] || 0;
-                                          const rowSum = den * qty;
-                                          return (
-                                            <div 
-                                              key={den} 
-                                              className={`flex items-center justify-between gap-1 border-b border-[#5C0612]/10 py-1.5 last:border-b-0 ${qty > 0 ? 'bg-amber-500/5 font-black text-[#8A1E2B]' : 'opacity-85 text-[#5C0612]'}`}
-                                            >
-                                              {/* Denomination label */}
-                                              <div className="w-24 shrink-0 font-hand font-black text-xs md:text-sm">
-                                                {den.toLocaleString('vi-VN')} đ
-                                              </div>
+                                    <div className="space-y-1.5 max-h-[350px] overflow-y-auto pr-1">
+                                       {(() => {
+                                         const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
+                                         return VND_DENOMINATIONS.map(den => {
+                                           const qty = bulkCurrentCash[den] || 0;
+                                           const rowSum = den * qty;
+                                           return (
+                                             <div 
+                                               key={den} 
+                                               className={`flex items-center justify-between gap-1 border-b border-[#5C0612]/10 py-1.5 last:border-b-0 ${qty > 0 ? 'bg-amber-500/5 font-black text-[#8A1E2B]' : 'opacity-85 text-[#5C0612]'}`}
+                                             >
+                                               {/* Denomination label */}
+                                               <div className="w-24 shrink-0 font-hand font-black text-xs md:text-sm">
+                                                 {den.toLocaleString('vi-VN')} đ
+                                               </div>
 
-                                              {/* Quantity count with interactive buttons */}
-                                              <div className="flex items-center gap-1">
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const newQty = Math.max(0, qty - 1);
-                                                    setBulkCurrentCash(prev => ({ ...prev, [den]: newQty }));
-                                                  }}
-                                                  className="w-6 h-6 rounded-lg border-2 border-[#8A1E2B] hover:bg-sky-50 text-xs font-black flex items-center justify-center font-hand shadow-[1px_1px_0_#8A1E2B] select-none cursor-pointer"
-                                                >
-                                                  −
-                                                </button>
-                                                <input
-                                                  type="number"
-                                                  min="0"
-                                                  value={qty || ""}
-                                                  placeholder="0"
-                                                  onChange={(e) => {
-                                                    const cleanNum = parseInt(e.target.value) || 0;
-                                                    setBulkCurrentCash(prev => ({ ...prev, [den]: Math.max(0, cleanNum) }));
-                                                  }}
-                                                  className="w-10 text-center font-hand font-extrabold text-xs bg-white border-2 border-[#8A1E2B]/50 rounded-lg py-0.5 outline-none focus:border-[#831816]"
-                                                />
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const newQty = qty + 1;
-                                                    setBulkCurrentCash(prev => ({ ...prev, [den]: newQty }));
-                                                  }}
-                                                  className="w-6 h-6 rounded-lg border-2 border-[#8A1E2B] hover:bg-sky-50 text-xs font-black flex items-center justify-center font-hand shadow-[1px_1px_0_#8A1E2B] select-none cursor-pointer"
-                                                >
-                                                  +
-                                                </button>
-                                              </div>
+                                               {/* Quantity count with interactive buttons */}
+                                               <div className="flex items-center gap-1">
+                                                 <button
+                                                   type="button"
+                                                   onClick={() => {
+                                                     const newQty = Math.max(0, qty - 1);
+                                                     if (newQty === 0) {
+                                                       setBulkCurrentCash(prev => {
+                                                         const updated = { ...prev };
+                                                         delete updated[den];
+                                                         return updated;
+                                                       });
+                                                     } else {
+                                                       setBulkCurrentCash(prev => ({ ...prev, [den]: newQty }));
+                                                     }
+                                                   }}
+                                                   className="w-6 h-6 rounded-lg border-2 border-[#8A1E2B] hover:bg-sky-50 text-xs font-black flex items-center justify-center font-hand shadow-[1px_1px_0_#8A1E2B] select-none cursor-pointer"
+                                                 >
+                                                   −
+                                                 </button>
+                                                 <input
+                                                   type="number"
+                                                   min="0"
+                                                   value={qty || ""}
+                                                   placeholder="0"
+                                                   onChange={(e) => {
+                                                     const rawVal = e.target.value;
+                                                     const cleanNum = parseInt(rawVal, 10);
+                                                     // Xoá về 0 -> Reset (clear back to blank and remove entry)
+                                                     if (rawVal === "" || cleanNum === 0 || isNaN(cleanNum)) {
+                                                       setBulkCurrentCash(prev => {
+                                                         const updated = { ...prev };
+                                                         delete updated[den];
+                                                         return updated;
+                                                       });
+                                                     } else {
+                                                       setBulkCurrentCash(prev => ({ ...prev, [den]: Math.max(0, cleanNum) }));
+                                                     }
+                                                   }}
+                                                   className="w-10 text-center font-hand font-extrabold text-xs bg-white border-2 border-[#8A1E2B]/50 rounded-lg py-0.5 outline-none focus:border-[#831816]"
+                                                 />
+                                                 <button
+                                                   type="button"
+                                                   onClick={() => {
+                                                     const newQty = qty + 1;
+                                                     setBulkCurrentCash(prev => ({ ...prev, [den]: newQty }));
+                                                   }}
+                                                   className="w-6 h-6 rounded-lg border-2 border-[#8A1E2B] hover:bg-sky-50 text-xs font-black flex items-center justify-center font-hand shadow-[1px_1px_0_#8A1E2B] select-none cursor-pointer"
+                                                 >
+                                                   +
+                                                 </button>
+                                               </div>
 
-                                              {/* Subtotal */}
-                                              <div className="w-24 shrink-0 text-right font-hand font-bold text-xs">
-                                                {rowSum > 0 ? `${rowSum.toLocaleString('vi-VN')} đ` : "—"}
-                                              </div>
+                                               {/* Subtotal */}
+                                               <div className="w-24 shrink-0 text-right font-hand font-bold text-xs">
+                                                 {rowSum > 0 ? `${rowSum.toLocaleString('vi-VN')} đ` : "—"}
+                                               </div>
 
-                                              <button
-                                                type="button"
-                                                onClick={() => setBulkCurrentCash(prev => ({ ...prev, [den]: 0 }))}
-                                                disabled={qty === 0}
-                                                className={`text-xs font-hand font-black px-1.5 py-0.5 rounded ${qty > 0 ? 'text-red-600 hover:bg-red-100' : 'text-gray-300'}`}
-                                              >
-                                                ×
-                                              </button>
-                                            </div>
-                                          );
-                                        });
-                                      })()}
-                                   </div>
+                                               <button
+                                                 type="button"
+                                                 onClick={() => setBulkCurrentCash(prev => {
+                                                   const updated = { ...prev };
+                                                   delete updated[den];
+                                                   return updated;
+                                                 })}
+                                                 disabled={qty === 0}
+                                                 className={`text-xs font-hand font-black px-1.5 py-0.5 rounded ${qty > 0 ? 'text-red-600 hover:bg-red-100' : 'text-gray-300'}`}
+                                               >
+                                                 ×
+                                               </button>
+                                             </div>
+                                           );
+                                         });
+                                       })()}
+                                    </div>
 
-                                   <div className="mt-4 flex items-center justify-between border-t border-dashed border-[#5C0612]/20 pt-4">
-                                      <div className="text-sm font-hand font-black text-[#8A1E2B]">
-                                        Tổng tiền mặt: {(() => {
-                                          const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
-                                          const total = VND_DENOMINATIONS.reduce((sum, den) => sum + den * (bulkCurrentCash[den] || 0), 0);
-                                          return total.toLocaleString("vi-VN") + " đ";
-                                        })()}
-                                      </div>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          if (confirm("Reset toàn bộ bảng kê tiền mặt về 0?")) {
-                                            setBulkCurrentCash({});
-                                          }
-                                        }}
-                                        className="px-3 py-1.5 border-2 border-[#8A1E2B] hover:bg-red-50 text-[#8A1E2B] active:scale-95 rounded-full text-[10px] font-hand font-black uppercase tracking-wider transition-all cursor-pointer"
-                                      >
-                                        🧹 Xóa sạch về 0
-                                      </button>
-                                   </div>
-                                </div>
+                                    <div className="mt-4 flex flex-col sm:flex-row gap-3 items-center justify-between border-t border-dashed border-[#5C0612]/20 pt-4">
+                                       <div className="text-base md:text-lg font-hand font-black text-[#8A1E2B] bg-[#8A1E2B]/5 px-3 py-1.5 rounded-xl border border-dashed border-[#8A1E2B]/20 shadow-[1px_1px_0_rgba(138,30,43,0.05)]">
+                                         Tổng tiền mặt: <span className="text-lg md:text-2xl font-black underline underline-offset-4 decoration-[#8A1E2B] decoration-2 ml-1">{(() => {
+                                           const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
+                                           const total = VND_DENOMINATIONS.reduce((sum, den) => sum + den * (bulkCurrentCash[den] || 0), 0);
+                                           return total.toLocaleString("vi-VN") + " đ";
+                                         })()}</span>
+                                       </div>
+                                       <button
+                                         type="button"
+                                         onClick={() => {
+                                           if (confirm("Reset toàn bộ bảng kê tiền mặt về 0?")) {
+                                             setBulkCurrentCash({});
+                                           }
+                                         }}
+                                         className="px-3 py-1.5 border-2 border-[#8A1E2B] hover:bg-red-50 text-[#8A1E2B] active:scale-95 rounded-full text-[10px] font-hand font-black uppercase tracking-wider transition-all cursor-pointer shadow-[1.5px_1.5px_0_#8A1E2B]"
+                                       >
+                                         🧹 Xóa sạch về 0
+                                       </button>
+                                    </div>
+                                 </div>
 
                               </div>
                             </div>
