@@ -345,6 +345,7 @@ export function DigitalJournal({
       try {
         confetti({ particleCount: 70, spread: 60, colors: ["#5C0612", "#EFAEBB", "#ED7CB8", "#fbbf24"] });
       } catch(e){}
+      setCelebratedGoal(completedGoal);
     }
     await setGoals(updated);
   };
@@ -775,6 +776,32 @@ export function DigitalJournal({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (celebratedGoal) {
+      // Periodic celebration bursts
+      const interval = setInterval(() => {
+        try {
+          confetti({
+            particleCount: 35,
+            angle: 60,
+            spread: 60,
+            origin: { x: 0, y: 0.8 },
+            colors: ["#5C0612", "#EFAEBB", "#fbbf24", "#F43F5E"]
+          });
+          confetti({
+            particleCount: 35,
+            angle: 120,
+            spread: 60,
+            origin: { x: 1, y: 0.8 },
+            colors: ["#5C0612", "#EFAEBB", "#fbbf24", "#F43F5E"]
+          });
+        } catch(e){}
+      }, 1500);
+
+      return () => clearInterval(interval);
+    }
+  }, [celebratedGoal]);
   
   // Quick Log entry state for interactive calendar
   const [quickLogContent, setQuickLogContent] = useState("");
@@ -824,6 +851,45 @@ export function DigitalJournal({
   const [newTaskPriority, setNewTaskPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
   const [newTaskGoalId, setNewTaskGoalId] = useState("");
   const [showAddTask, setShowAddTask] = useState(false);
+
+  // Synced sorting order for Todo list
+  const [todoSortOrder, setTodoSortOrder] = useSyncedState<'default' | 'priority' | 'difficulty'>("studyHub_todoSortOrder", "default");
+
+  // State to hold newly completed goal for the Scrapbook themed "Vinh Danh" Celebration modal
+  const [celebratedGoal, setCelebratedGoal] = useState<StudyGoal | null>(null);
+
+  const handleCyclePriority = (id: string) => {
+    if (!setTasks) return;
+    const updated = tasks.map(t => {
+      if (t.id === id) {
+        const nextMap: Record<'Low' | 'Medium' | 'High', 'Low' | 'Medium' | 'High'> = {
+          'Low': 'Medium',
+          'Medium': 'High',
+          'High': 'Low'
+        };
+        return { ...t, priority: nextMap[t.priority || 'Medium'] };
+      }
+      return t;
+    });
+    setTasks(updated);
+  };
+
+  const handleCycleDifficulty = (id: string) => {
+    if (!setTasks) return;
+    const updated = tasks.map(t => {
+      if (t.id === id) {
+        const nextMap: Record<'Easy' | 'Medium' | 'Hard', 'Easy' | 'Medium' | 'Hard'> = {
+          'Easy': 'Medium',
+          'Medium': 'Hard',
+          'Hard': 'Easy'
+        };
+        const current = t.difficulty || 'Medium';
+        return { ...t, difficulty: nextMap[current] };
+      }
+      return t;
+    });
+    setTasks(updated);
+  };
 
   // ---------------- TODAY'S HABITS STATE & SYNC ----------------
   // Synced from useFirebase context
@@ -1917,20 +1983,66 @@ export function DigitalJournal({
                      </div>
                    </div>
 
-                   {/* Goal-directed Nested Todo list */}
+                   {/* Sorting Toggles at the top of the Todo list */}
+                  <div className="flex flex-wrap gap-2 items-center text-xs font-hand font-bold mb-3 px-2 py-1.5 bg-[#FAF3EB]/45 rounded-xl border border-[#8A1E2B]/10 max-w-full overflow-hidden shrink-0">
+                    <span className="text-[#8A1E2B]/70 select-none">Sắp xếp:</span>
+                    <button 
+                      type="button"
+                      onClick={() => setTodoSortOrder('default')}
+                      className={`px-2 py-0.5 rounded-[4px] border border-[#8A1E2B]/20 transition-colors cursor-pointer text-[11px] font-bold uppercase ${todoSortOrder === 'default' ? 'bg-[#8A1E2B] text-[#FAF3EB]' : 'bg-transparent text-[#8A1E2B] hover:bg-[#8A1E2B]/5'}`}
+                    >
+                      Mặc định
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setTodoSortOrder('priority')}
+                      className={`px-2 py-0.5 rounded-[4px] border border-[#8A1E2B]/20 transition-colors cursor-pointer text-[11px] font-bold uppercase ${todoSortOrder === 'priority' ? 'bg-[#8A1E2B] text-[#FAF3EB]' : 'bg-transparent text-[#8A1E2B] hover:bg-[#8A1E2B]/5'}`}
+                    >
+                      🎯 Ưu tiên
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setTodoSortOrder('difficulty')}
+                      className={`px-2 py-0.5 rounded-[4px] border border-[#8A1E2B]/20 transition-colors cursor-pointer text-[11px] font-bold uppercase ${todoSortOrder === 'difficulty' ? 'bg-[#8A1E2B] text-[#FAF3EB]' : 'bg-transparent text-[#8A1E2B] hover:bg-[#8A1E2B]/5'}`}
+                    >
+                      🔥 Độ khó
+                    </button>
+                  </div>
+
+                  {/* Goal-directed Nested Todo list */}
                    <div className="space-y-6 max-h-[420px] overflow-y-auto pr-1">
                      {(() => {
                         // Find all custom goals
                         const activeGoals = goals || [];
+
+                        const getSortedTasks = (taskList: Task[]) => {
+                          const listCopy = [...taskList];
+                          if (todoSortOrder === 'priority') {
+                            const priorityMap: Record<string, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
+                            listCopy.sort((a, b) => {
+                              const pA = priorityMap[a.priority || 'Medium'] || 2;
+                              const pB = priorityMap[b.priority || 'Medium'] || 2;
+                              return pB - pA;
+                            });
+                          } else if (todoSortOrder === 'difficulty') {
+                            const difficultyMap: Record<string, number> = { 'Hard': 3, 'Medium': 2, 'Easy': 1 };
+                            listCopy.sort((a, b) => {
+                              const dA = difficultyMap[a.difficulty || 'Easy'] || 1;
+                              const dB = difficultyMap[b.difficulty || 'Easy'] || 1;
+                              return dB - dA;
+                            });
+                          }
+                          return listCopy;
+                        };
                         
                         // Map tasks that have a goalId. If they don'\''t match or look empty, put under general
-                        const generalTasks = tasks.filter(t => !t.goalId || !activeGoals.some(g => g.id === t.goalId));
+                        const generalTasks = getSortedTasks(tasks.filter(t => !t.goalId || !activeGoals.some(g => g.id === t.goalId)));
                         
                         return (
                           <>
                             {/* Group 1: All active Goals and their sub-tasks */}
-                            {activeGoals.map((goal) => {
-                              const subTasks = tasks.filter(t => t.goalId === goal.id);
+                            {activeGoals.map((goal, index) => {
+                              const subTasks = getSortedTasks(tasks.filter(t => t.goalId === goal.id));
                               const isEditingThisGoal = editingTodoId === goal.id && editingTodoType === 'goal';
                               
                               return (
@@ -1947,7 +2059,7 @@ export function DigitalJournal({
                                     title="Nhấp đúp để Sửa/Xóa mục tiêu này"
                                   >
                                     <div className="flex items-center gap-2 flex-1">
-                                      <span className="text-xl">🎯</span>
+                                      <span className="font-hand font-black text-xl md:text-2xl text-[#8A1E2B] min-w-[28px] inline-block">{index + 1}.</span>
                                       {isEditingThisGoal ? (
                                         <div className="flex items-center gap-2 flex-1" onClick={e => e.stopPropagation()}>
                                           <input 
@@ -2056,9 +2168,32 @@ export function DigitalJournal({
                                                </button>
                                               </div>
                                             ) : (
-                                              <span className={`font-hand font-medium text-lg md:text-xl transition-all select-none ${t.completed ? "text-[#8A1E2B]/55 line-through decoration-[#8A1E2B] decoration-[1.5px]" : "text-[#8A1E2B] group-hover:text-red-700"}`}>
-                                                {t.content}
-                                              </span>
+                                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
+                                                <span className={`font-hand font-medium text-lg md:text-xl transition-all select-none leading-none ${t.completed ? "text-[#8A1E2B]/55 line-through decoration-[#8A1E2B] decoration-[1.5px]" : "text-[#8A1E2B] group-hover:text-red-700"}`}>
+                                                  {t.content}
+                                                </span>
+                                                
+                                                {/* Interactive priority & difficulty badges */}
+                                                <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                                                  {/* Priority badge */}
+                                                  {t.priority === 'High' ? (
+                                                    <span onClick={() => handleCyclePriority(t.id)} title="Độ ưu tiên: Cao • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-red-100 text-red-700 border border-red-200 font-bold font-sans hover:bg-red-200 cursor-pointer select-none leading-none">🔴 Cao</span>
+                                                  ) : t.priority === 'Low' ? (
+                                                    <span onClick={() => handleCyclePriority(t.id)} title="Độ ưu tiên: Thấp • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-blue-100 text-blue-700 border border-blue-200 font-bold font-sans hover:bg-blue-200 cursor-pointer select-none leading-none">🔵 Thấp</span>
+                                                  ) : (
+                                                    <span onClick={() => handleCyclePriority(t.id)} title="Độ ưu tiên: Vừa • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-amber-100 text-amber-700 border border-amber-200 font-bold font-sans hover:bg-amber-200 cursor-pointer select-none leading-none">🟡 Vừa</span>
+                                                  )}
+
+                                                  {/* Difficulty badge */}
+                                                  {t.difficulty === 'Hard' ? (
+                                                    <span onClick={() => handleCycleDifficulty(t.id)} title="Độ khó: Khó • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-purple-100 text-purple-700 border border-purple-200 font-bold font-sans hover:bg-purple-200 cursor-pointer select-none leading-none">🔥 Khó</span>
+                                                  ) : t.difficulty === 'Easy' ? (
+                                                    <span onClick={() => handleCycleDifficulty(t.id)} title="Độ khó: Dễ • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-green-100 text-green-700 border border-green-200 font-bold font-sans hover:bg-green-200 cursor-pointer select-none leading-none">🌱 Dễ</span>
+                                                  ) : (
+                                                    <span onClick={() => handleCycleDifficulty(t.id)} title="Độ khó: Trung bình • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-orange-100 text-orange-700 border border-orange-200 font-bold font-sans hover:bg-orange-200 cursor-pointer select-none leading-none">⚡ Vừa</span>
+                                                  )}
+                                                </div>
+                                              </div>
                                             )}
                                           </div>
                                         </div>
@@ -2155,9 +2290,32 @@ export function DigitalJournal({
                                               </button>
                                             </div>
                                           ) : (
-                                            <span className={`font-hand font-medium text-lg md:text-xl transition-all select-none ${t.completed ? "text-[#8A1E2B]/55 line-through decoration-[#8A1E2B] decoration-[1.5px]" : "text-[#8A1E2B] group-hover:text-red-700"}`}>
-                                              {t.content}
-                                            </span>
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
+                                              <span className={`font-hand font-medium text-lg md:text-xl transition-all select-none leading-none ${t.completed ? "text-[#8A1E2B]/55 line-through decoration-[#8A1E2B] decoration-[1.5px]" : "text-[#8A1E2B] group-hover:text-red-700"}`}>
+                                                {t.content}
+                                              </span>
+                                              
+                                              {/* Interactive priority & difficulty badges */}
+                                              <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                                                {/* Priority badge */}
+                                                {t.priority === 'High' ? (
+                                                  <span onClick={() => handleCyclePriority(t.id)} title="Độ ưu tiên: Cao • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-red-100 text-red-700 border border-red-200 font-bold font-sans hover:bg-red-200 cursor-pointer select-none leading-none">🔴 Cao</span>
+                                                ) : t.priority === 'Low' ? (
+                                                  <span onClick={() => handleCyclePriority(t.id)} title="Độ ưu tiên: Thấp • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-blue-100 text-blue-700 border border-blue-200 font-bold font-sans hover:bg-blue-200 cursor-pointer select-none leading-none">🔵 Thấp</span>
+                                                ) : (
+                                                  <span onClick={() => handleCyclePriority(t.id)} title="Độ ưu tiên: Vừa • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-amber-100 text-amber-700 border border-amber-200 font-bold font-sans hover:bg-amber-200 cursor-pointer select-none leading-none">🟡 Vừa</span>
+                                                )}
+
+                                                {/* Difficulty badge */}
+                                                {t.difficulty === 'Hard' ? (
+                                                  <span onClick={() => handleCycleDifficulty(t.id)} title="Độ khó: Khó • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-purple-100 text-purple-700 border border-purple-200 font-bold font-sans hover:bg-purple-200 cursor-pointer select-none leading-none">🔥 Khó</span>
+                                                ) : t.difficulty === 'Easy' ? (
+                                                  <span onClick={() => handleCycleDifficulty(t.id)} title="Độ khó: Dễ • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-green-100 text-green-700 border border-green-200 font-bold font-sans hover:bg-green-200 cursor-pointer select-none leading-none">🌱 Dễ</span>
+                                                ) : (
+                                                  <span onClick={() => handleCycleDifficulty(t.id)} title="Độ khó: Trung bình • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-orange-100 text-orange-700 border border-orange-200 font-bold font-sans hover:bg-orange-200 cursor-pointer select-none leading-none">⚡ Vừa</span>
+                                                )}
+                                              </div>
+                                            </div>
                                           )}
                                         </div>
                                       </div>
@@ -2377,7 +2535,7 @@ export function DigitalJournal({
                                    <input type="text" value={editingGoalText} onChange={e => setEditingGoalText(e.target.value)} onBlur={() => saveRename(item.id, item.isReal)} onKeyDown={e => { if (e.key === 'Enter') saveRename(item.id, item.isReal); else if (e.key === 'Escape') setEditingGoalId(null); }} autoFocus onClick={e => e.stopPropagation()} className="flex-1 bg-white/95 border-b-2 border-[#5C0612] px-1 py-0 rounded-none text-[11px] sm:text-[13px] md:text-[14px] font-hand font-bold text-[#5C0612] outline-none" />
                                  ) : (
                                    <span className={`font-hand font-bold text-[10px] sm:text-[12px] md:text-[14px] tracking-wide leading-tight transition-all text-[#5C0612] select-none ${item.isCompleted ? "line-through opacity-50 decoration-[1.5px]" : "group-hover:text-red-700"}`}>
-                                      {item.isReal ? `🎯 ${item.text}` : item.text}
+                                      {item.text}
                                    </span>
                                  )}
                                </div>
