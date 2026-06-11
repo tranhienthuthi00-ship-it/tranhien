@@ -245,6 +245,9 @@ export function DigitalJournal({
   setBulkCurrentCash
 }: DigitalJournalProps) {
   
+  // State to hold newly completed goal for the Scrapbook themed "Vinh Danh" Celebration modal
+  const [celebratedGoal, setCelebratedGoal] = useState<StudyGoal | null>(null);
+
   // ---------------- BUCKET LIST PREVIEW STATE ----------------
   const [localCompletedDefaultGoals, setLocalCompletedDefaultGoals] = useSyncedState<Record<string, boolean>>("studyHub_localBucketListDefaultDone", {});
 
@@ -854,9 +857,6 @@ export function DigitalJournal({
 
   // Synced sorting order for Todo list
   const [todoSortOrder, setTodoSortOrder] = useSyncedState<'default' | 'priority' | 'difficulty'>("studyHub_todoSortOrder", "default");
-
-  // State to hold newly completed goal for the Scrapbook themed "Vinh Danh" Celebration modal
-  const [celebratedGoal, setCelebratedGoal] = useState<StudyGoal | null>(null);
 
   const handleCyclePriority = (id: string) => {
     if (!setTasks) return;
