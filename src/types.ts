@@ -18,6 +18,7 @@ export interface Task {
   content: string;
   completed: boolean;
   priority: 'Low' | 'Medium' | 'High';
+  difficulty?: 'Easy' | 'Medium' | 'Hard';
   createdAt?: number;
   completedAt?: number;
   goalId?: string;
