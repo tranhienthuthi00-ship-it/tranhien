@@ -882,13 +882,23 @@ export function PersonalGoals({
                           </p>
                           <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                             <span className={cn(
-                              "text-[7px] uppercase font-black tracking-widest px-1.5 py-0.5 rounded shadow-sm border",
-                              task.completed ? "bg-ink/5 text-ink/20 border-transparent" :
-                              task.priority === 'High' ? "bg-white text-crimson border-crimson" : 
-                              task.priority === 'Medium' ? "bg-white text-yellow-600 border-yellow-500" : "bg-white text-ink/40 border-ink/20"
-                            )}>
-                              {task.priority}
-                            </span>
+                               "text-[7px] uppercase font-black tracking-widest px-1.5 py-0.5 rounded shadow-sm border",
+                               task.completed ? "bg-ink/5 text-ink/20 border-transparent" :
+                               task.priority === 'High' ? "bg-white text-crimson border-crimson" : 
+                               task.priority === 'Medium' ? "bg-white text-yellow-600 border-yellow-500" : "bg-white text-ink/40 border-ink/20"
+                             )}>
+                               {task.priority}
+                             </span>
+                             {task.difficulty && (
+                               <span className={cn(
+                                 "text-[7px] uppercase font-black tracking-widest px-1.5 py-0.5 rounded shadow-sm border",
+                                 task.completed ? "bg-ink/5 text-ink/20 border-transparent" :
+                                 task.difficulty === 'Hard' ? "bg-white text-purple-600 border-purple-300" :
+                                 task.difficulty === 'Easy' ? "bg-white text-green-600 border-green-300" : "bg-white text-orange-600 border-orange-200"
+                               )}>
+                                 Độ khó: {task.difficulty === 'Hard' ? 'Khó' : task.difficulty === 'Easy' ? 'Dễ' : 'Vừa'}
+                               </span>
+                             )}
                             {task.goalId && (() => {
                               const associatedGoal = goals.find(g => g.id === task.goalId);
                               if (!associatedGoal) return null;
@@ -1141,12 +1151,22 @@ export function PersonalGoals({
                                           </span>
                                         </div>
 
-                                        <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow-sm border ${
-                                          t.priority === 'High' ? "bg-crimson/10 text-crimson border-crimson" :
-                                          t.priority === 'Medium' ? "bg-yellow-105 text-yellow-700 border-yellow-300" : "bg-gray-100 text-gray-500 border-gray-200"
-                                        }`}>
-                                          Ưu tiên: {t.priority}
-                                        </span>
+                                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                                           <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow-sm border ${
+                                             t.priority === 'High' ? "bg-crimson/10 text-crimson border-crimson" :
+                                             t.priority === 'Medium' ? "bg-yellow-105 text-yellow-700 border-yellow-300" : "bg-gray-100 text-gray-500 border-gray-200"
+                                           }`}>
+                                             Ưu tiên: {t.priority}
+                                           </span>
+                                           {t.difficulty && (
+                                             <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow-sm border ${
+                                               t.difficulty === 'Hard' ? "bg-purple-100 text-purple-700 border-purple-200" :
+                                               t.difficulty === 'Easy' ? "bg-green-105 text-green-700 border-green-200" : "bg-orange-100 text-orange-700 border-orange-200"
+                                             }`}>
+                                               Độ khó: ${t.difficulty === 'Hard' ? 'Khó' : t.difficulty === 'Easy' ? 'Dễ' : 'Vừa'}
+                                             </span>
+                                           )}
+                                         </div>
                                       </div>
                                     ))}
                                   </div>

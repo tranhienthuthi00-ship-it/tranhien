@@ -2209,12 +2209,12 @@ export function DigitalJournal({
                                               </div>
                                             ) : (
                                               <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
-                                                <span className={`font-hand font-medium text-lg md:text-xl transition-all select-none leading-none ${t.completed ? "text-[#8A1E2B]/55 line-through decoration-[#8A1E2B] decoration-[1.5px]" : "text-[#8A1E2B] group-hover:text-red-700"}`}>
+                                                <span className={`font-hand font-medium text-lg md:text-xl transition-all select-none leading-none ${t.completed ? "text-black/55 line-through decoration-black decoration-[1.5px]" : "text-black group-hover:text-neutral-800"}`}>
                                                   {t.content}
                                                 </span>
                                                 
                                                 {/* Interactive priority & difficulty badges */}
-                                                <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                                                <div className="hidden flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
                                                   {/* Priority badge */}
                                                   {t.priority === 'High' ? (
                                                     <span onClick={() => handleCyclePriority(t.id)} title="Độ ưu tiên: Cao • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-red-100 text-red-700 border border-red-200 font-bold font-sans hover:bg-red-200 cursor-pointer select-none leading-none">🔴 Cao</span>
@@ -2331,12 +2331,12 @@ export function DigitalJournal({
                                             </div>
                                           ) : (
                                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
-                                              <span className={`font-hand font-medium text-lg md:text-xl transition-all select-none leading-none ${t.completed ? "text-[#8A1E2B]/55 line-through decoration-[#8A1E2B] decoration-[1.5px]" : "text-[#8A1E2B] group-hover:text-red-700"}`}>
+                                              <span className={`font-hand font-medium text-lg md:text-xl transition-all select-none leading-none ${t.completed ? "text-black/55 line-through decoration-black decoration-[1.5px]" : "text-black group-hover:text-neutral-800"}`}>
                                                 {t.content}
                                               </span>
                                               
                                               {/* Interactive priority & difficulty badges */}
-                                              <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                                              <div className="hidden flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
                                                 {/* Priority badge */}
                                                 {t.priority === 'High' ? (
                                                   <span onClick={() => handleCyclePriority(t.id)} title="Độ ưu tiên: Cao • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-red-100 text-red-700 border border-red-200 font-bold font-sans hover:bg-red-200 cursor-pointer select-none leading-none">🔴 Cao</span>
