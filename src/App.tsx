@@ -18,7 +18,6 @@ import { TranslationPractice } from "./components/TranslationPractice";
 import { ReflexPractice } from "./components/ReflexPractice";
 import Flashcards from "./components/Flashcards";
 import { PictureDescriptionPractice } from "./components/PictureDescriptionPractice";
-import { QuentinSketchStudio } from "./components/QuentinSketchStudio";
 import { HabitTracker } from "./components/HabitTracker";
 import { DigitalJournal } from "./components/DigitalJournal";
 import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
@@ -301,7 +300,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>("Journal");
   const [collectionSearchQuery, setCollectionSearchQuery] = useState("");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
-  const [activePracticeSubTab, setActivePracticeSubTab] = useState<"Dictation" | "Speech" | "Translation" | "Reflex" | "SRS" | "Picture" | "Sketch">("Dictation");
+  const [activePracticeSubTab, setActivePracticeSubTab] = useState<"Dictation" | "Speech" | "Translation" | "Reflex" | "SRS">("Dictation");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Habits" | "Places" | "Content" | "Assets">("Lists");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
@@ -412,7 +411,6 @@ function AppContent() {
                       { id: "Reflex", label: "⚡ Phản xạ", name: "Reflex" },
                       { id: "SRS", label: "🧠 Ghi nhớ (SRS)", name: "SRS" },
                       { id: "Picture", label: "🖼️ Miêu tả tranh", name: "Picture" },
-                      { id: "Sketch", label: "🎨 Vẽ tay Charlie", name: "Sketch" },
                     ].map(tab => (
                       <button
                         key={tab.id}
@@ -441,7 +439,6 @@ function AppContent() {
                   {activePracticeSubTab === "Reflex" && <ReflexPractice />}
                   {activePracticeSubTab === "SRS" && <Flashcards words={words} setWords={setWords} />}
                   {activePracticeSubTab === "Picture" && <PictureDescriptionPractice />}
-                  {activePracticeSubTab === "Sketch" && <QuentinSketchStudio />}
                 </>
               )}
             </div>
