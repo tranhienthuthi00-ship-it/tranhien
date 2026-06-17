@@ -1274,21 +1274,23 @@ export function PersonalGoals({
 
                                     <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-none font-sans">
                                       {Object.entries(
-                                        (goal.journey || []).reduce((acc, entry) => {
-                                          const date = format(new Date(entry.timestamp), 'dd/MM/yyyy');
-                                          if (!acc[date]) acc[date] = [];
-                                          acc[date].push(entry);
-                                          return acc;
-                                        }, {} as { [key: string]: any[] })
-                                      ).sort((a,b) => b[0].localeCompare(a[0])).map(([date, entries]) => (
-                                        <div key={date} className="space-y-2 font-sans">
-                                          <div className="flex items-center gap-2">
-                                            <div className="h-px bg-crimson/10 flex-1" />
-                                            <span className="text-[8px] font-black text-crimson uppercase tracking-widest bg-white px-2.5 py-0.5 border border-crimson/15 rounded-full font-sans">{date}</span>
-                                            <div className="h-px bg-crimson/10 flex-1" />
-                                          </div>
-                                          <div className="space-y-3">
-                                            {entries.map((entry) => (
+                                         (goal.journey || []).reduce((acc, entry) => {
+                                           const dateKey = format(new Date(entry.timestamp), 'yyyy-MM-dd');
+                                           if (!acc[dateKey]) acc[dateKey] = [];
+                                           acc[dateKey].push(entry);
+                                           return acc;
+                                         }, {} as { [key: string]: any[] })
+                                       ).sort((a, b) => b[0].localeCompare(a[0])).map(([dateKey, entries]) => (
+                                         <div key={dateKey} className="space-y-2 font-sans">
+                                           <div className="flex items-center gap-2">
+                                             <div className="h-px bg-crimson/10 flex-1" />
+                                             <span className="text-[8px] font-black text-crimson uppercase tracking-widest bg-white px-2.5 py-0.5 border border-crimson/15 rounded-full font-sans">
+                                               {format(new Date(dateKey + 'T00:00:00'), 'dd/MM/yyyy')}
+                                             </span>
+                                             <div className="h-px bg-crimson/10 flex-1" />
+                                           </div>
+                                           <div className="space-y-3">
+                                             {[...entries].sort((a, b) => b.timestamp - a.timestamp).map((entry) => (
                                               <motion.div 
                                                 key={entry.id}
                                                 initial={{ opacity: 0, x: -10 }}
@@ -1556,7 +1558,7 @@ export function PersonalGoals({
                                     <History size={12} style={{ filter: 'url(#hand-drawn-filter)' }} /> Hành trình đã ghi lại
                                   </label>
                                   <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 scrollbar-none border-l-2 border-ink/5 pl-3">
-                                    {linkedGoal.journey.map(entry => (
+                                    {([...linkedGoal.journey].sort((a, b) => b.timestamp - a.timestamp)).map(entry => (
                                       <div key={entry.id} className="space-y-0.5">
                                         <div className="text-[7px] font-bold text-ink/20 uppercase">
                                           {format(new Date(entry.timestamp), 'dd/MM/yyyy')}
@@ -1775,7 +1777,7 @@ export function PersonalGoals({
                           <History size={14} style={{ filter: 'url(#hand-drawn-filter)' }} /> Các dấu mốc hành trình
                         </label>
                         <div className="space-y-3 max-h-[150px] overflow-y-auto pr-2 scrollbar-none border-l-2 border-ink/10 pl-4 py-1">
-                          {goal.journey.map(entry => (
+                          {([...goal.journey].sort((a, b) => b.timestamp - a.timestamp)).map(entry => (
                             <div key={entry.id} className="space-y-0.5 font-sans relative group/modal-entry">
                               <div className="absolute -left-[21.5px] top-1.5 w-1.5 h-1.5 rounded-full bg-crimson" />
                               <div className="text-[8px] font-bold text-ink/30 uppercase tracking-wider">
