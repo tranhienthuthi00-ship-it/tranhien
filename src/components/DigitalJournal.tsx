@@ -246,6 +246,14 @@ export function DigitalJournal({
   setBulkCurrentCash
 }: DigitalJournalProps) {
   
+  const todayDateStr = useMemo(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
   // State to hold newly completed goal for the Scrapbook themed "Vinh Danh" Celebration modal
   const [celebratedGoal, setCelebratedGoal] = useState<StudyGoal | null>(null);
 
@@ -381,8 +389,184 @@ export function DigitalJournal({
     salaryInput,
     setSalaryInput,
     plannedExpenses,
-    setPlannedExpenses
+    setPlannedExpenses,
+    kvStore,
+    setKvStoreTarget
   } = useFirebase();
+
+  // Daily Challenge state & sync helpers
+  const getYesterdayDateStr = (dateStr: string) => {
+    const d = new Date(dateStr + "T12:00:00");
+    d.setDate(d.getDate() - 1);
+    const yr = d.getFullYear();
+    const mt = String(d.getMonth() + 1).padStart(2, '0');
+    const dy = String(d.getDate()).padStart(2, '0');
+    return `${yr}-${mt}-${dy}`;
+  };
+
+  const CHALLENGE_PRESETS = [
+    "Uống đủ 2 lít nước lọc hôm nay 💧",
+    "Luyện phát âm tiếng Anh 5 phút trước gương 🗣️",
+    "Đọc ít nhất 5 trang sách học tập hoặc phát triển bản thân 📖",
+    "Tự viết 3 câu tiếng Anh nói về chủ đề thời tiết hoặc tâm trạng ✏️",
+    "Dọn dẹp góc làm việc hoặc học tập sạch thoáng 🧹",
+    "Viết 1 điều biết ơn hoặc tích cực vào Nhật ký 💖",
+    "Học thêm 3 từ vựng tiếng Anh mới bất kỳ 🧠",
+    "Không sử dụng điện thoại khi ăn cơm 📱❌",
+    "Đi bộ nhẹ nhàng hoặc tập thể dục 15 phút 🚶‍♀️",
+    "Luyện nghe tiếng Anh chậm qua YouTube 5 phút 🎧",
+    "Tặng 1 lời khen chân thành cho đồng nghiệp hoặc bạn bè 🌸",
+    "Hạn chế đồ uống có ga hoặc nhiều đường hôm nay 🚫🥤",
+    "Đi ngủ trước 23h để tái tạo năng lượng 😴",
+    "Ăn thêm một phần trái cây hoặc rau xanh tươi ngon 🥗",
+    "Lập kế hoạch cho 3 nhiệm vụ quan trọng ngày mai 📝"
+  ];
+
+  const [isEditingDailyChallenge, setIsEditingDailyChallenge] = useState(false);
+  const [customDailyChallengeText, setCustomDailyChallengeText] = useState("");
+
+  const dailyChallengeObj = useMemo(() => {
+    return kvStore?.dailyChallenge || {
+      date: "",
+      challenge: "Uống đủ 2 lít nước lọc hôm nay 💧",
+      completed: false,
+      streak: 0,
+      completedDates: []
+    };
+  }, [kvStore]);
+
+  // Synchronize Daily Challenge for a new day
+  useEffect(() => {
+    if (!kvStore || !setKvStoreTarget) return;
+
+    const currentChallenge = kvStore.dailyChallenge;
+    if (!currentChallenge || currentChallenge.date !== todayDateStr) {
+      // Pick a random preset
+      const randomIndex = Math.floor(Math.random() * CHALLENGE_PRESETS.length);
+      const randomChallenge = CHALLENGE_PRESETS[randomIndex];
+      
+      const existingCompletedDates = currentChallenge?.completedDates || [];
+      
+      // Calculate yesterday string to check if streak is preserved
+      const yesterdayStr = getYesterdayDateStr(todayDateStr);
+      let calculatedStreak = currentChallenge?.streak || 0;
+      
+      const completedYesterday = existingCompletedDates.includes(yesterdayStr);
+      const completedToday = existingCompletedDates.includes(todayDateStr);
+      
+      if (!completedYesterday && !completedToday) {
+        calculatedStreak = 0;
+      }
+
+      setKvStoreTarget('dailyChallenge', {
+        date: todayDateStr,
+        challenge: randomChallenge,
+        completed: false,
+        streak: calculatedStreak,
+        completedDates: existingCompletedDates
+      });
+    }
+  }, [todayDateStr, !!kvStore, setKvStoreTarget]);
+
+  const handleToggleDailyChallenge = async () => {
+    if (!kvStore || !setKvStoreTarget) return;
+
+    const current = kvStore.dailyChallenge || {
+      date: todayDateStr,
+      challenge: "Uống đủ 2 lít nước lọc hôm nay 💧",
+      completed: false,
+      completedDates: []
+    };
+
+    const nextCompleted = !current.completed;
+    
+    let nextCompletedDates = [...(current.completedDates || [])];
+    if (nextCompleted) {
+      if (!nextCompletedDates.includes(todayDateStr)) {
+        nextCompletedDates.push(todayDateStr);
+      }
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 60,
+          colors: ["#5C0612", "#EFAEBB", "#ED7CB8", "#fbbf24"],
+          origin: { y: 0.8 }
+        });
+      } catch (e) {}
+    } else {
+      nextCompletedDates = nextCompletedDates.filter(d => d !== todayDateStr);
+    }
+
+    // Recalculate streak based on nextCompletedDates
+    let computedStreak = 0;
+    let checkDate = todayDateStr;
+    
+    if (!nextCompletedDates.includes(todayDateStr)) {
+      checkDate = getYesterdayDateStr(todayDateStr);
+    }
+    
+    while (nextCompletedDates.includes(checkDate)) {
+      computedStreak++;
+      checkDate = getYesterdayDateStr(checkDate);
+    }
+
+    setKvStoreTarget('dailyChallenge', {
+      ...current,
+      completed: nextCompleted,
+      streak: computedStreak,
+      completedDates: nextCompletedDates
+    });
+  };
+
+  const handleRerollDailyChallenge = () => {
+    if (!kvStore || !setKvStoreTarget) return;
+    
+    const current = kvStore.dailyChallenge || {
+      date: todayDateStr,
+      challenge: "",
+      completed: false,
+      completedDates: []
+    };
+    
+    const filteredPresets = CHALLENGE_PRESETS.filter(p => p !== current.challenge);
+    const randomIndex = Math.floor(Math.random() * (filteredPresets.length || CHALLENGE_PRESETS.length));
+    const newChallengeText = (filteredPresets.length > 0 ? filteredPresets : CHALLENGE_PRESETS)[randomIndex];
+    
+    const nextCompletedDates = (current.completedDates || []).filter(d => d !== todayDateStr);
+    
+    let computedStreak = 0;
+    let checkDate = getYesterdayDateStr(todayDateStr);
+    while (nextCompletedDates.includes(checkDate)) {
+      computedStreak++;
+      checkDate = getYesterdayDateStr(checkDate);
+    }
+
+    setKvStoreTarget('dailyChallenge', {
+      ...current,
+      challenge: newChallengeText,
+      completed: false,
+      streak: computedStreak,
+      completedDates: nextCompletedDates
+    });
+  };
+
+  const handleSaveCustomDailyChallenge = () => {
+    if (!customDailyChallengeText.trim()) return;
+    if (!kvStore || !setKvStoreTarget) return;
+
+    const current = kvStore.dailyChallenge || {
+      date: todayDateStr,
+      challenge: "",
+      completed: false,
+      completedDates: []
+    };
+
+    setKvStoreTarget('dailyChallenge', {
+      ...current,
+      challenge: customDailyChallengeText.trim()
+    });
+    setIsEditingDailyChallenge(false);
+  };
 
   // Local helper states for Salary Planner inline adding
   const [newExpName, setNewExpName] = useState("");
@@ -449,14 +633,6 @@ export function DigitalJournal({
   const [selectedDateStr, setSelectedDateStr] = useState(() => new Date().toISOString().split("T")[0]);
   const [isCalendarDetailsOpen, setIsCalendarDetailsOpen] = useState(false);
   const calendarContainerRef = useRef<HTMLDivElement>(null);
-
-  const todayDateStr = useMemo(() => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }, []);
 
   const todayHabitTasks = useMemo(() => {
     const list: {
@@ -2394,6 +2570,100 @@ export function DigitalJournal({
                 </div>
     {/* RIGHT: EVENTS & HABITS */}
     <div className="lg:col-span-1 flex flex-col pt-16 xl:pl-4 space-y-12">
+                {/* DAILY CHALLENGE SECTION */}
+                <div className="space-y-4 border-b-2 border-dashed border-[#8A1E2B]/15 pb-8">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-hand font-black text-xl text-[#3A1412] tracking-wider uppercase m-0 flex items-center gap-1.5">
+                      🎯 THỬ THÁCH HẰNG NGÀY:
+                    </h3>
+                    
+                    {dailyChallengeObj.streak > 0 && (
+                      <span className="flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 py-0.5 px-2.5 rounded-full font-sans text-[10px] font-black uppercase tracking-wide animate-pulse shadow-xs">
+                        🔥 Chuỗi {dailyChallengeObj.streak} ngày
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-4 border-[2.5px] border-[#8A1E2B] rounded-2xl bg-white p-5 shadow-[4px_4px_0_rgba(138,30,43,0.15)] relative overflow-hidden group select-none">
+                    {/* Decorative tape or binder rings at top */}
+                    <div className="absolute top-0 inset-x-0 h-2 bg-[#8A1E2B]/5 border-b-[1.5px] border-[#8A1E2B]" />
+
+                    {isEditingDailyChallenge ? (
+                      <div className="space-y-3 font-sans mt-2">
+                        <textarea
+                          rows={2}
+                          value={customDailyChallengeText}
+                          onChange={(e) => setCustomDailyChallengeText(e.target.value)}
+                          placeholder="Nhập thử thách tùy chỉnh của bạn hôm nay..."
+                          className="w-full text-sm p-2 border-[2px] border-[#8A1E2B] rounded-lg font-hand font-bold text-lg text-[#8A1E2B] bg-[#FCFAF5] placeholder-[#8A1E2B]/40 outline-none resize-none"
+                        />
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingDailyChallenge(false)}
+                            className="px-2.5 py-1 text-xs font-bold text-[#8A1E2B] hover:bg-[#8A1E2B]/5 rounded border border-[#8A1E2B]/20 transition-colors uppercase"
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSaveCustomDailyChallenge}
+                            className="px-3 py-1 text-xs font-extrabold text-white bg-[#8A1E2B] hover:bg-[#5C0612] rounded transition-colors uppercase shadow-xs"
+                          >
+                            Lưu lại
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-4 mt-2">
+                        {/* Cutest handcheck checkbox */}
+                        <button
+                          type="button"
+                          onClick={handleToggleDailyChallenge}
+                          className="w-8 h-8 rounded-lg border-[2.5px] border-[#8A1E2B] bg-white flex items-center justify-center shrink-0 shadow-xs transition-transform hover:scale-105 active:scale-95 duration-200"
+                        >
+                          {dailyChallengeObj.completed && (
+                            <svg className="text-[#8A1E2B] w-5 h-5 stroke-[4.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-hand font-bold text-xl md:text-2xl leading-snug transition-all ${dailyChallengeObj.completed ? "text-[#8A1E2B]/40 line-through decoration-[#8A1E2B]/70 decoration-[2.5px]" : "text-[#8A1E2B] group-hover:text-[#5C0612]"}`}>
+                            {dailyChallengeObj.challenge}
+                          </p>
+
+                          <div className="flex items-center gap-3 mt-3">
+                            {/* Reroll button */}
+                            <button
+                              type="button"
+                              onClick={handleRerollDailyChallenge}
+                              className="text-[10px] font-bold text-[#8A1E2B]/60 hover:text-[#8A1E2B] transition-colors flex items-center gap-1 uppercase tracking-wider bg-neutral-50 px-2 py-0.5 rounded border border-neutral-100"
+                              title="Thay đổi thử thách mới phát sinh ngẫu nhiên"
+                            >
+                              🔀 Đổi thử thách
+                            </button>
+
+                            {/* Edit manually button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCustomDailyChallengeText(dailyChallengeObj.challenge);
+                                setIsEditingDailyChallenge(true);
+                              }}
+                              className="text-[10px] font-bold text-[#8A1E2B]/60 hover:text-[#8A1E2B] transition-colors flex items-center gap-1 uppercase tracking-wider bg-neutral-50 px-2 py-0.5 rounded border border-neutral-100"
+                              title="Tự định nghĩa thử thách của riêng bạn"
+                            >
+                              ✏️ Tự soạn
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* EVENTS SECTION */}
                 <div className="space-y-4">
                    <h3 className="font-hand font-black text-xl text-[#3A1412] tracking-wider uppercase mb-4">TODAY EVENT:</h3>
