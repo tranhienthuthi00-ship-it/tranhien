@@ -48,6 +48,8 @@ export function PersonalGoals({
   const [journeyInput, setJourneyInput] = useState<{ [key: string]: string }>({});
   const [editingJourneyId, setEditingJourneyId] = useState<string | null>(null);
   const [editJourneyContent, setEditJourneyContent] = useState("");
+  const [editJourneyDate, setEditJourneyDate] = useState("");
+  const [editJourneyTime, setEditJourneyTime] = useState("");
 
   // Task related states
   const [newTask, setNewTask] = useState("");
@@ -99,7 +101,25 @@ export function PersonalGoals({
         if (editingJourneyId) {
           return {
             ...g,
-            journey: g.journey?.map(e => e.id === editingJourneyId ? { ...e, content: text.trim() } : e)
+            journey: g.journey?.map(e => {
+              if (e.id === editingJourneyId) {
+                let timestamp = e.timestamp;
+                if (editJourneyDate) {
+                  const [y, m, d] = editJourneyDate.split('-').map(Number);
+                  const [hh, mm] = (editJourneyTime || "00:00").split(':').map(Number);
+                  const newDt = new Date(y, m - 1, d, hh, mm);
+                  if (!isNaN(newDt.getTime())) {
+                    timestamp = newDt.getTime();
+                  }
+                }
+                return {
+                  ...e,
+                  content: text.trim(),
+                  timestamp
+                };
+              }
+              return e;
+            })
           };
         }
         const newEntry = {
@@ -119,14 +139,26 @@ export function PersonalGoals({
     if (editingJourneyId) {
       setEditingJourneyId(null);
       setEditJourneyContent("");
+      setEditJourneyDate("");
+      setEditJourneyTime("");
     } else {
       setJourneyInput(prev => ({ ...prev, [goalId]: "" }));
     }
   };
 
-  const startEditJourney = (entry: { id: string, content: string }) => {
+  const startEditJourney = (entry: { id: string, content: string, timestamp: number }) => {
     setEditingJourneyId(entry.id);
     setEditJourneyContent(cleanJourneyContent(entry.content));
+    
+    const dt = new Date(entry.timestamp);
+    const yyyy = dt.getFullYear();
+    const mm = String(dt.getMonth() + 1).padStart(2, '0');
+    const dd = String(dt.getDate()).padStart(2, '0');
+    setEditJourneyDate(`${yyyy}-${mm}-${dd}`);
+    
+    const hh = String(dt.getHours()).padStart(2, '0');
+    const min = String(dt.getMinutes()).padStart(2, '0');
+    setEditJourneyTime(`${hh}:${min}`);
   };
 
   const removeJourneyEntry = async (goalId: string, entryId: string) => {
@@ -1264,48 +1296,98 @@ export function PersonalGoals({
                                                 className="flex gap-3 items-start group/entry"
                                               >
                                                 <div className="w-1.5 h-1.5 rounded-full bg-crimson/30 mt-2 shrink-0 group-hover/entry:scale-150 transition-transform" />
-                                                <div className="flex-1 min-w-0">
+                                                <div 
+                                                  className="flex-1 min-w-0"
+                                                  onDoubleClick={(e) => {
+                                                    if (editingJourneyId !== entry.id) {
+                                                      startEditJourney(entry);
+                                                    }
+                                                  }}
+                                                  title="Nhấn đúp để đổi ngày / thêm nội dung"
+                                                >
                                                   <div className="flex items-center justify-between gap-2">
-                                                    <div className="text-[8px] font-bold text-ink/20 uppercase tracking-widest mb-0.5">
+                                                    <div className="text-[8px] font-bold text-ink/20 uppercase tracking-widest mb-0.5 select-none">
                                                       {new Date(entry.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                       <button 
-                                                        onClick={() => startEditJourney(entry)}
+                                                        onClick={(e) => { e.stopPropagation(); startEditJourney(entry); }}
+                                                        onDoubleClick={(e) => e.stopPropagation()}
                                                         className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-ink transition-all p-0.5 cursor-pointer"
+                                                        title="Sửa chặng hành trình"
                                                       >
                                                         <Edit2 size={10} />
                                                       </button>
                                                       <button 
-                                                        onClick={() => removeJourneyEntry(goal.id, entry.id)}
+                                                        onClick={(e) => { e.stopPropagation(); removeJourneyEntry(goal.id, entry.id); }}
+                                                        onDoubleClick={(e) => e.stopPropagation()}
                                                         className="text-ink/0 group-hover/entry:text-ink/20 hover:!text-crimson transition-all p-0.5 cursor-pointer"
+                                                        title="Xóa chặng hành trình"
                                                       >
                                                         <X size={10} />
                                                       </button>
                                                     </div>
                                                   </div>
                                                   {editingJourneyId === entry.id ? (
-                                                    <div className="flex gap-2 mt-1">
-                                                      <input 
-                                                        type="text" 
-                                                        value={editJourneyContent}
-                                                        onChange={e => setEditJourneyContent(e.target.value)}
-                                                        onKeyDown={e => {
-                                                          if (e.key === 'Enter') addJourneyEntry(goal.id);
-                                                          if (e.key === 'Escape') setEditingJourneyId(null);
-                                                        }}
-                                                        autoFocus
-                                                        className="flex-1 bg-white sketch-border-sm p-1 text-xs font-sans focus:outline-none"
-                                                      />
-                                                      <button 
-                                                        onClick={() => addJourneyEntry(goal.id)}
-                                                        className="text-emerald-600 hover:text-emerald-700 cursor-pointer"
-                                                      >
-                                                        <CheckCircle2 size={14} />
-                                                      </button>
+                                                    <div 
+                                                      className="flex flex-col gap-2 mt-2 bg-paper/20 p-2 sketch-border-sm"
+                                                      onDoubleClick={(e) => e.stopPropagation()}
+                                                    >
+                                                      <div className="flex flex-wrap gap-2 items-center">
+                                                        <span className="text-[9px] font-black text-ink/40 uppercase">Ngày:</span>
+                                                        <input 
+                                                          type="date" 
+                                                          value={editJourneyDate}
+                                                          onChange={e => setEditJourneyDate(e.target.value)}
+                                                          className="bg-white px-2 py-0.5 text-xs font-sans sketch-border-sm focus:outline-none"
+                                                        />
+                                                        <span className="text-[9px] font-black text-ink/40 uppercase">Giờ:</span>
+                                                        <input 
+                                                          type="time" 
+                                                          value={editJourneyTime}
+                                                          onChange={e => setEditJourneyTime(e.target.value)}
+                                                          className="bg-white px-2 py-0.5 text-xs font-sans sketch-border-sm focus:outline-none"
+                                                        />
+                                                      </div>
+                                                      <div className="flex gap-2">
+                                                        <textarea 
+                                                          rows={2}
+                                                          value={editJourneyContent}
+                                                          onChange={e => setEditJourneyContent(e.target.value)}
+                                                          onKeyDown={e => {
+                                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                              e.preventDefault();
+                                                              addJourneyEntry(goal.id);
+                                                            }
+                                                            if (e.key === 'Escape') setEditingJourneyId(null);
+                                                          }}
+                                                          autoFocus
+                                                          className="flex-1 bg-white sketch-border-sm p-1.5 text-xs font-sans focus:outline-none resize-none"
+                                                          placeholder="Nội dung hành trình..."
+                                                        />
+                                                        <div className="flex flex-col gap-1.5 justify-end">
+                                                          <button 
+                                                            onClick={(e) => { e.stopPropagation(); addJourneyEntry(goal.id); }}
+                                                            className="p-1 text-emerald-600 hover:text-emerald-700 cursor-pointer flex items-center justify-center bg-white sketch-border-sm"
+                                                            title="Lưu (Enter)"
+                                                          >
+                                                            <CheckCircle2 size={13} />
+                                                          </button>
+                                                          <button 
+                                                            onClick={(e) => { e.stopPropagation(); setEditingJourneyId(null); }}
+                                                            className="p-1 text-rose-600 hover:text-rose-700 cursor-pointer flex items-center justify-center bg-white sketch-border-sm"
+                                                            title="Hủy (Esc)"
+                                                          >
+                                                            <X size={13} />
+                                                          </button>
+                                                        </div>
+                                                      </div>
+                                                      <span className="text-[8px] text-ink/30 italic text-right select-none">Enter để lưu, Shift+Enter xuống dòng, Esc để hủy</span>
                                                     </div>
                                                   ) : (
-                                                    <p className="text-sm text-ink/80 leading-relaxed font-sans break-words">{cleanJourneyContent(entry.content)}</p>
+                                                    <p className="text-sm text-ink/80 leading-relaxed font-sans break-words hover:bg-ink/5 rounded px-1 -mx-1 transition-all select-none">
+                                                      {cleanJourneyContent(entry.content)}
+                                                    </p>
                                                   )}
                                                 </div>
                                               </motion.div>
