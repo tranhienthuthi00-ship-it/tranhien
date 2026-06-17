@@ -504,6 +504,36 @@ export function PolaroidPreset({ type, className }: { type: string, className?: 
           <ellipse cx="46" cy="55" rx="4" ry="1.5" fill="#F59E0B" stroke="none" />
         </svg>
       );
+    case 'braces':
+      return (
+        <svg className={cn("w-7 h-7 text-slate-500", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M 20 45 Q 50 82 80 45 Q 50 35 20 45" fill="#FFF1F2" stroke="currentColor" strokeWidth="5" />
+          <line x1="20" y1="45" x2="80" y2="45" stroke="currentColor" strokeWidth="4" />
+          <line x1="32" y1="41" x2="32" y2="49" stroke="currentColor" strokeWidth="3" />
+          <line x1="44" y1="39" x2="44" y2="51" stroke="currentColor" strokeWidth="3" />
+          <line x1="56" y1="39" x2="56" y2="51" stroke="currentColor" strokeWidth="3" />
+          <line x1="68" y1="41" x2="68" y2="49" stroke="currentColor" strokeWidth="3" />
+          <path d="M 23 45 Q 50 51 77 45" stroke="#94A3B8" strokeWidth="3.5" fill="none" />
+          <rect x="29" y="42" width="6" height="6" fill="#94A3B8" rx="1" stroke="currentColor" strokeWidth="2" />
+          <rect x="41" y="42" width="6" height="6" fill="#94A3B8" rx="1" stroke="currentColor" strokeWidth="2" />
+          <rect x="53" y="42" width="6" height="6" fill="#94A3B8" rx="1" stroke="currentColor" strokeWidth="2" />
+          <rect x="65" y="42" width="6" height="6" fill="#94A3B8" rx="1" stroke="currentColor" strokeWidth="2" />
+        </svg>
+      );
+    case 'money':
+      return (
+        <svg className={cn("w-7 h-7 text-emerald-600", className)} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="20" y="22" width="60" height="38" rx="4" fill="#DCFCE7" stroke="currentColor" strokeWidth="5" />
+          <circle cx="50" cy="41" r="9" fill="#86EFAC" stroke="currentColor" strokeWidth="4" />
+          <text x="44" y="48" fill="#15803D" stroke="none" fontWeight="black" fontSize="18" fontFamily="sans-serif">đ</text>
+          <path d="M 28 30 H 32" stroke="currentColor" strokeWidth="3" />
+          <path d="M 68 30 H 72" stroke="currentColor" strokeWidth="3" />
+          <ellipse cx="35" cy="74" rx="14" ry="7" fill="#FEF08A" stroke="currentColor" strokeWidth="4" />
+          <ellipse cx="35" cy="69" rx="14" ry="7" fill="#FEF08A" stroke="currentColor" strokeWidth="4" />
+          <ellipse cx="65" cy="74" rx="14" ry="7" fill="#FEF08A" stroke="currentColor" strokeWidth="4" />
+          <ellipse cx="65" cy="69" rx="14" ry="7" fill="#FEF08A" stroke="currentColor" strokeWidth="4" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -511,6 +541,8 @@ export function PolaroidPreset({ type, className }: { type: string, className?: 
 
 export const STICKER_PRESETS = [
   { id: "none", label: "❌ Không Sticker" },
+  { id: "braces", label: "😬 Niềng Răng", visual: "braces" },
+  { id: "money", label: "💰 Tiền Bạc", visual: "money" },
   { id: "yogurt", label: "🥛 Hũ Sữa Chua", visual: "yogurt" },
   { id: "milk", label: "🥛 Hộp Sữa Giấy", visual: "milk" },
   { id: "cupcake", label: "🧁 Bánh Bông Lan", visual: "cupcake" },
