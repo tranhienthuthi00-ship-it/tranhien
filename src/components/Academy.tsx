@@ -4,15 +4,16 @@ import type { Word, WordTag } from "@/types";
 import { cn } from "@/lib/utils";
 import { CEFRVocabulary } from "./CEFRVocabulary";
 import { motion, AnimatePresence } from "motion/react";
+import { useSyncedState } from "../lib/useSyncedState";
 
 const WORD_TYPE_CHIPS = [
-  { label: "Danh từ", val: "noun", emoji: "📝" },
-  { label: "Động từ", val: "verb", emoji: "🔌" },
-  { label: "Tính từ", val: "adj", emoji: "✨" },
-  { label: "Trạng từ", val: "adv", emoji: "🚀" },
-  { label: "Thành ngữ", val: "idiom", emoji: "🌟" },
-  { label: "Cụm từ", val: "phrase", emoji: "💬" },
-  { label: "Câu mẫu", val: "sentence", emoji: "📖" }
+  { label: "Danh từ (n)", val: "noun", emoji: "📝" },
+  { label: "Động từ (v)", val: "verb", emoji: "🔌" },
+  { label: "Tính từ (adj)", val: "adj", emoji: "✨" },
+  { label: "Trạng từ (adv)", val: "adv", emoji: "🚀" },
+  { label: "Thành ngữ (idiom)", val: "idiom", emoji: "🌟" },
+  { label: "Cụm từ (phrase)", val: "phrase", emoji: "💬" },
+  { label: "Câu mẫu (sentence)", val: "sentence", emoji: "📖" }
 ];
 
 const QUICK_TAG_CHIPS = [
@@ -49,14 +50,14 @@ export function Academy({
   const [onlyDueForReview, setOnlyDueForReview] = useState(false);
 
   // Form input state
-  const [editingWordId, setEditingWordId] = useState<string | null>(null);
-  const [vocab, setVocab] = useState("");
-  const [type, setType] = useState("noun");
-  const [ipa, setIpa] = useState("");
-  const [definition, setDefinition] = useState("");
-  const [example, setExample] = useState("");
-  const [activeTags, setActiveTags] = useState<WordTag[]>([]);
-  const [newTagInput, setNewTagInput] = useState("");
+  const [editingWordId, setEditingWordId] = useSyncedState<string | null>("studyHub_academy_editingWordId", null);
+  const [vocab, setVocab] = useSyncedState<string>("studyHub_academy_vocab", "");
+  const [type, setType] = useSyncedState<string>("studyHub_academy_type", "noun");
+  const [ipa, setIpa] = useSyncedState<string>("studyHub_academy_ipa", "");
+  const [definition, setDefinition] = useSyncedState<string>("studyHub_academy_definition", "");
+  const [example, setExample] = useSyncedState<string>("studyHub_academy_example", "");
+  const [activeTags, setActiveTags] = useSyncedState<WordTag[]>("studyHub_academy_activeTags", []);
+  const [newTagInput, setNewTagInput] = useSyncedState<string>("studyHub_academy_newTagInput", "");
 
   // Interactive Learning Session Overlay States
   const [isLearningActive, setIsLearningActive] = useState(false);
@@ -84,9 +85,16 @@ export function Academy({
 
   // Map database wordType code to friendly label
   const getFriendlyTypeLabel = (t: string) => {
-    const chip = WORD_TYPE_CHIPS.find(c => c.val === t);
-    if (chip) return `${chip.emoji} ${chip.label}`;
-    return t;
+    switch (t) {
+      case "noun": return "(n)";
+      case "verb": return "(v)";
+      case "adj": return "(adj)";
+      case "adv": return "(adv)";
+      case "idiom": return "(idiom)";
+      case "phrase": return "(phrase)";
+      case "sentence": return "(sent)";
+      default: return t ? `(${t})` : "";
+    }
   };
 
   // Browser speech synthesis function
@@ -670,8 +678,8 @@ export function Academy({
                           <th className="p-3 font-sans font-black text-xs uppercase tracking-wider text-center w-12">Tick</th>
                           <th className="p-3 font-sans font-black text-xs uppercase tracking-wider">Từ vựng & Loại</th>
                           <th className="p-3 font-sans font-black text-xs uppercase tracking-wider">Phiên âm</th>
-                          <th className="p-3 font-sans font-black text-xs uppercase tracking-wider">Định nghĩa tiếng Việt</th>
-                          <th className="p-3 font-sans font-black text-xs uppercase tracking-wider">Ví dụ minh họa</th>
+                          <th className="p-3 font-sans font-black text-xs uppercase tracking-wider w-[28%]">Định nghĩa tiếng Việt</th>
+                          <th className="p-3 font-sans font-black text-xs uppercase tracking-wider w-[28%]">Ví dụ minh họa</th>
                           <th className="p-3 font-sans font-black text-xs uppercase tracking-wider text-center w-24">Hành động</th>
                         </tr>
                       </thead>
@@ -736,12 +744,12 @@ export function Academy({
                                 </td>
 
                                 {/* TRANSLATION */}
-                                <td className="p-3 font-sans text-sm text-[#3A1412] font-semibold">
+                                <td className="p-3 font-sans text-sm text-[#3A1412] font-semibold w-[28%] min-w-[150px] max-w-[320px] break-words">
                                   {word.definition}
                                 </td>
 
                                 {/* EXAMPLES */}
-                                <td className="p-3 font-hand text-base text-[#3A1412]/80 leading-snug italic max-w-[200px] break-words">
+                                <td className="p-3 font-hand text-base text-[#3A1412]/80 leading-snug italic w-[28%] min-w-[150px] max-w-[320px] break-words">
                                   {word.examples?.[0] ? `"${word.examples[0]}"` : "—"}
                                 </td>
 

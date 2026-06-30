@@ -261,6 +261,18 @@ export function CEFRVocabulary({
 }) {
   const [activeLevel, setActiveLevel] = useState("A1");
 
+  const getFriendlyType = (t: string) => {
+    const norm = t.toLowerCase().trim();
+    if (norm === "noun") return "(n)";
+    if (norm === "verb") return "(v)";
+    if (norm === "adj" || norm === "adjective") return "(adj)";
+    if (norm === "adv" || norm === "adverb") return "(adv)";
+    if (norm === "idiom") return "(idiom)";
+    if (norm === "phrase") return "(phrase)";
+    if (norm === "sentence") return "(sent)";
+    return `(${norm})`;
+  };
+
   const addWord = (w: CEFRWord) => {
     // Check if already in bank
     if (words.some(existing => existing.vocabulary.toLowerCase() === w.vocabulary.toLowerCase())) {
@@ -324,7 +336,7 @@ export function CEFRVocabulary({
               <div>
                 <h4 className="text-xl font-bold text-ink">{word.vocabulary}</h4>
                 <div className="flex gap-2 items-center text-[10px] uppercase font-bold text-ink/40 tracking-widest">
-                  <span className="bg-ink/5 px-1.5 py-0.5 rounded italic">{word.wordType}</span>
+                  <span className="bg-ink/5 px-1.5 py-0.5 rounded italic">{getFriendlyType(word.wordType)}</span>
                   <span>{word.ipa}</span>
                 </div>
               </div>
