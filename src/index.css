@@ -192,8 +192,7 @@ svg.lucide, .hand-drawn-svg {
    ========================================================================== */
 .theme-minimal {
   font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-  background-color: #F4F5F6 !important; /* Elegant very soft gray background */
-  background-image: none !important; /* Remove sketchy background gradients */
+  /* Keep the warm original background colors and images */
   color: #2D2D2D !important;
 }
 
@@ -236,10 +235,7 @@ svg.lucide, .hand-drawn-svg {
 
 /* Smooth inputs to look simple and elegant */
 .theme-minimal .sketch-input,
-.theme-minimal input[type="text"],
-.theme-minimal input[type="number"],
-.theme-minimal input[type="date"],
-.theme-minimal input[type="url"],
+.theme-minimal input,
 .theme-minimal textarea,
 .theme-minimal select {
   border: 1px solid rgba(0, 0, 0, 0.12) !important;
@@ -310,4 +306,77 @@ svg.lucide, .hand-drawn-svg {
 .theme-minimal [class*="rotate-[15deg]"] {
   transform: none !important;
 }
+
+/* Category & Tag overrides in theme-minimal */
+.theme-minimal .category-badge,
+.theme-minimal .tag-badge {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+}
+
+.theme-minimal .tag-badge {
+  color: #8A1E2B !important;
+}
+
+.theme-minimal .tag-icon-prefix {
+  display: none !important;
+}
+
+.theme-minimal .tag-badge::before {
+  content: "#" !important;
+}
+
+/* Priority Indicators overrides in theme-minimal (No border, No bg, color from Red -> Green) */
+.theme-minimal .bg-white.text-crimson.border-crimson,
+.theme-minimal .bg-rose-50.text-rose-700.border-rose-200,
+.theme-minimal .bg-red-100.text-red-700.border-red-200,
+.theme-minimal .bg-crimson\/10.text-crimson.border-crimson,
+.theme-minimal .priority-high {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  color: #DC2626 !important; /* Rich Red for High */
+  font-weight: 800 !important;
+}
+
+.theme-minimal .bg-white.text-yellow-600.border-yellow-500,
+.theme-minimal .bg-amber-50.text-amber-600.border-amber-200,
+.theme-minimal .bg-amber-100.text-amber-700.border-amber-200,
+.theme-minimal .bg-yellow-105.text-yellow-700.border-yellow-300,
+.theme-minimal .priority-medium {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  color: #D97706 !important; /* Solid Orange/Yellow for Medium */
+  font-weight: 800 !important;
+}
+
+.theme-minimal .bg-white.text-ink\/40.border-ink\/20,
+.theme-minimal .bg-zinc-100.text-zinc-500,
+.theme-minimal .bg-blue-100.text-blue-700.border-blue-200,
+.theme-minimal .bg-gray-100.text-gray-500.border-gray-200,
+.theme-minimal .priority-low {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  color: #059669 !important; /* Fresh Green for Low */
+  font-weight: 800 !important;
+}
+
 

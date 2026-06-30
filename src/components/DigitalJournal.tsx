@@ -3104,7 +3104,7 @@ export function DigitalJournal({
                               </td>
 
                               <td className="p-3 font-hand font-bold text-lg text-[#8A1E2B] whitespace-nowrap">
-                                <span className="bg-[#8A1E2B]/5 border border-[#8A1E2B]/15 px-2.5 py-1 rounded-lg">
+                                <span className="bg-[#8A1E2B]/5 border border-[#8A1E2B]/15 px-2.5 py-1 rounded-lg category-badge">
                                   {record.category}
                                 </span>
                               </td>
@@ -3142,8 +3142,8 @@ export function DigitalJournal({
                               <td className="p-3">
                                 <div className="flex flex-wrap gap-1">
                                   {tagList.map((t, idx) => (
-                                    <span key={idx} className="bg-pink-50 border border-pink-200 text-[#8A1E2B] text-[9px] font-sans font-black uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap shadow-xs">
-                                      🏷️ {t}
+                                    <span key={idx} className="bg-pink-50 border border-pink-200 text-[#8A1E2B] text-[9px] font-sans font-black uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap shadow-xs tag-badge">
+                                      <span className="tag-icon-prefix">🏷️ </span>{t}
                                     </span>
                                   ))}
                                 </div>
