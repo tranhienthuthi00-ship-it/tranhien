@@ -305,7 +305,7 @@ export function CEFRVocabulary({
             key={level}
             onClick={() => setActiveLevel(level)}
             className={cn(
-              "px-4 py-2 rounded-lg font-bold text-sm tracking-widest transition-all sketch-border",
+               "px-4 py-2 rounded-lg font-bold text-sm tracking-widest transition-all sketch-border outline-none focus:outline-none focus:ring-0",
               activeLevel === level 
                 ? "bg-crimson text-white border-crimson shadow-md scale-105" 
                 : "bg-white text-ink/60 border-ink/10 hover:border-ink/30"

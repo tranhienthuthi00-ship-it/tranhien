@@ -288,10 +288,44 @@ export function DigitalJournal({
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteTitleText, setEditingNoteTitleText] = useState("");
 
+  // Local state for notebook content typing without lag or cursor jumps
+  const [localNoteContent, setLocalNoteContent] = useState("");
+  const notebookTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastLoadedNoteIdRef = useRef<string>("");
+
   // Multi-note computed states
   const activeNote = useMemo(() => {
     return quickNotes.find(n => n.id === activeNoteId) || quickNotes[0];
   }, [quickNotes, activeNoteId]);
+
+  // Sync activeNote.content into localNoteContent if note changed, or if not focused
+  useEffect(() => {
+    if (activeNote) {
+      const isNoteChanged = activeNote.id !== lastLoadedNoteIdRef.current;
+      const isFocused = document.activeElement === notebookTextareaRef.current;
+      if (isNoteChanged) {
+        setLocalNoteContent(activeNote.content || "");
+        lastLoadedNoteIdRef.current = activeNote.id;
+      } else if (!isFocused) {
+        if (activeNote.content !== localNoteContent) {
+          setLocalNoteContent(activeNote.content || "");
+        }
+      }
+    } else {
+      setLocalNoteContent("");
+      lastLoadedNoteIdRef.current = "";
+    }
+  }, [activeNote?.content, activeNote?.id]);
+
+  // Sync back local content to quickNotes with a short debounce (e.g. 500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (activeNote && localNoteContent !== activeNote.content) {
+        setQuickNotes(prev => prev.map(n => n.id === activeNote.id ? { ...n, content: localNoteContent } : n));
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localNoteContent]);
 
   // Backwards compatibility & Initialization
   useEffect(() => {
@@ -312,6 +346,7 @@ export function DigitalJournal({
 
   const updateActiveNoteContent = (newContent: string) => {
     if (!activeNote) return;
+    setLocalNoteContent(newContent);
     setQuickNotes(prev => prev.map(n => n.id === activeNote.id ? { ...n, content: newContent } : n));
   };
 
@@ -3673,8 +3708,9 @@ export function DigitalJournal({
               )}
 
               <textarea
-                value={activeNote?.content || ""}
-                onChange={e => updateActiveNoteContent(e.target.value)}
+                ref={notebookTextareaRef}
+                value={localNoteContent}
+                onChange={e => setLocalNoteContent(e.target.value)}
                 placeholder="Gõ ghi chú tự do tại đây... Sổ tay này lưu tự động và không bị ảnh hưởng bởi bảng phân loại theo tag."
                 className={cn(
                   "w-full min-h-[300px] bg-transparent border-none outline-none focus:outline-none focus:ring-0 font-hand font-bold py-6 pr-6 text-[#3A1412] resize-y leading-[32px]",

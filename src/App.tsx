@@ -410,7 +410,7 @@ function AppContent() {
                       <button
                         key={tab}
                         onClick={() => setActiveEnglishSubTab(tab)}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300 ${activeEnglishSubTab === tab ? "bg-amber-500 text-white shadow-sm" : "text-amber-800/60 hover:text-amber-700 hover:bg-amber-100"}`}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300 outline-none focus:outline-none focus:ring-0 ${activeEnglishSubTab === tab ? "bg-amber-500 text-white shadow-sm" : "text-amber-800/60 hover:text-amber-700 hover:bg-amber-100"}`}
                       >
                         {tab}
                       </button>
@@ -432,7 +432,7 @@ function AppContent() {
                       <button
                         key={tab.id}
                         onClick={() => setActivePracticeSubTab(tab.id as any)}
-                        className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg border-2 transition-all ${activePracticeSubTab === tab.id ? "bg-white text-ink border-ink" : "bg-white/50 text-ink/40 border-transparent hover:border-ink/20"}`}
+                        className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg border-2 transition-all outline-none focus:outline-none focus:ring-0 ${activePracticeSubTab === tab.id ? "bg-white text-ink border-ink" : "bg-white/50 text-ink/40 border-transparent hover:border-ink/20"}`}
                       >
                         {tab.label}
                       </button>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Search, BookA, Tag as TagIcon, Plus, X, Check, Layers, Volume2, HelpCircle, ArrowRight, RotateCcw, Award, CheckCircle, GraduationCap, ChevronLeft, ChevronRight, Edit2, Trash2 } from "lucide-react";
 import type { Word, WordTag } from "@/types";
 import { cn } from "@/lib/utils";
@@ -58,6 +58,72 @@ export function Academy({
   const [example, setExample] = useSyncedState<string>("studyHub_academy_example", "");
   const [activeTags, setActiveTags] = useSyncedState<WordTag[]>("studyHub_academy_activeTags", []);
   const [newTagInput, setNewTagInput] = useSyncedState<string>("studyHub_academy_newTagInput", "");
+
+  // Local state for smooth typing without cursor jumps
+  const [localVocab, setLocalVocab] = useState(vocab);
+  const [localIpa, setLocalIpa] = useState(ipa);
+  const [localDefinition, setLocalDefinition] = useState(definition);
+  const [localExample, setLocalExample] = useState(example);
+  const [localNewTagInput, setLocalNewTagInput] = useState(newTagInput);
+
+  const vocabInputRef = useRef<HTMLInputElement>(null);
+  const ipaInputRef = useRef<HTMLInputElement>(null);
+  const definitionInputRef = useRef<HTMLTextAreaElement>(null);
+  const exampleInputRef = useRef<HTMLTextAreaElement>(null);
+  const newTagInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync from cloud if not focused
+  useEffect(() => {
+    if (document.activeElement !== vocabInputRef.current) setLocalVocab(vocab);
+  }, [vocab]);
+  useEffect(() => {
+    if (document.activeElement !== ipaInputRef.current) setLocalIpa(ipa);
+  }, [ipa]);
+  useEffect(() => {
+    if (document.activeElement !== definitionInputRef.current) setLocalDefinition(definition);
+  }, [definition]);
+  useEffect(() => {
+    if (document.activeElement !== exampleInputRef.current) setLocalExample(example);
+  }, [example]);
+  useEffect(() => {
+    if (document.activeElement !== newTagInputRef.current) setLocalNewTagInput(newTagInput);
+  }, [newTagInput]);
+
+  // Sync to cloud with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localVocab !== vocab) setVocab(localVocab);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localVocab]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localIpa !== ipa) setIpa(localIpa);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localIpa]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localDefinition !== definition) setDefinition(localDefinition);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localDefinition]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localExample !== example) setExample(localExample);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localExample]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localNewTagInput !== newTagInput) setNewTagInput(localNewTagInput);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localNewTagInput]);
 
   // Interactive Learning Session Overlay States
   const [isLearningActive, setIsLearningActive] = useState(false);
@@ -135,29 +201,31 @@ export function Academy({
   // Form submission: save or update word
   const handleSaveWord = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!vocab.trim() || !definition.trim()) return;
+    const cleanVocab = localVocab.trim();
+    const cleanDef = localDefinition.trim();
+    if (!cleanVocab || !cleanDef) return;
 
     const formattedTags = activeTags.map(t => stripEmojis(t).trim()).filter(Boolean);
 
     if (editingWordId) {
       setWords(words.map(w => w.id === editingWordId ? {
         ...w,
-        vocabulary: vocab.trim(),
+        vocabulary: cleanVocab,
         wordType: type,
-        ipa: ipa.trim(),
-        definition: definition.trim(),
-        examples: example.trim() ? [example.trim()] : [],
+        ipa: localIpa.trim(),
+        definition: cleanDef,
+        examples: localExample.trim() ? [localExample.trim()] : [],
         tags: formattedTags,
       } : w));
       setEditingWordId(null);
     } else {
       const newWord: Word = {
         id: Date.now().toString(),
-        vocabulary: vocab.trim(),
+        vocabulary: cleanVocab,
         wordType: type,
-        ipa: ipa.trim(),
-        definition: definition.trim(),
-        examples: example.trim() ? [example.trim()] : [],
+        ipa: localIpa.trim(),
+        definition: cleanDef,
+        examples: localExample.trim() ? [localExample.trim()] : [],
         tags: formattedTags,
         difficulty: 2.5, // Standard starting easiness factor
         lastReviewed: new Date().toISOString(),
@@ -168,9 +236,13 @@ export function Academy({
 
     // Reset Form & active tags list
     setVocab("");
+    setLocalVocab("");
     setIpa("");
+    setLocalIpa("");
     setDefinition("");
+    setLocalDefinition("");
     setExample("");
+    setLocalExample("");
     setActiveTags([]);
     
     // Smooth scroll back to table
@@ -183,10 +255,14 @@ export function Academy({
   const startEditWord = (word: Word) => {
     setEditingWordId(word.id);
     setVocab(word.vocabulary);
+    setLocalVocab(word.vocabulary);
     setType(word.wordType);
     setIpa(word.ipa || "");
+    setLocalIpa(word.ipa || "");
     setDefinition(word.definition);
+    setLocalDefinition(word.definition);
     setExample(word.examples?.[0] || "");
+    setLocalExample(word.examples?.[0] || "");
     setActiveTags(word.tags || []);
 
     const formElement = document.getElementById("english-log-form");
@@ -200,7 +276,15 @@ export function Academy({
       setWords(words.filter(w => w.id !== id));
       if (editingWordId === id) {
         setEditingWordId(null);
-        setVocab(""); setIpa(""); setDefinition(""); setExample(""); setActiveTags([]);
+        setVocab("");
+        setLocalVocab("");
+        setIpa("");
+        setLocalIpa("");
+        setDefinition("");
+        setLocalDefinition("");
+        setExample("");
+        setLocalExample("");
+        setActiveTags([]);
       }
     }
   };
@@ -217,7 +301,7 @@ export function Academy({
 
   // Add tag globally if it doesn't exist
   const handleAddNewTag = () => {
-    const cleanInput = stripEmojis(newTagInput).trim();
+    const cleanInput = stripEmojis(localNewTagInput).trim();
     if (cleanInput) {
       const exists = tags.some(t => stripEmojis(t).toLowerCase() === cleanInput.toLowerCase());
       if (!exists) {
@@ -227,6 +311,7 @@ export function Academy({
         setActiveTags([...activeTags, cleanInput]);
       }
       setNewTagInput("");
+      setLocalNewTagInput("");
     }
   };
 
@@ -327,7 +412,7 @@ export function Academy({
         <button
           onClick={() => setActiveTab('personal')}
           className={cn(
-            "text-lg md:text-xl font-hand font-black transition-all pb-1 flex items-center gap-2 border-b-4",
+            "text-lg md:text-xl font-hand font-black transition-all pb-1 flex items-center gap-2 border-b-4 outline-none focus:outline-none focus:ring-0",
             activeTab === 'personal' ? "opacity-100 border-[#8A1E2B] text-[#8A1E2B]" : "opacity-40 hover:opacity-70 border-transparent text-[#3A1412]"
           )}
         >
@@ -336,7 +421,7 @@ export function Academy({
         <button
           onClick={() => setActiveTab('cefr')}
           className={cn(
-            "text-lg md:text-xl font-hand font-black transition-all pb-1 flex items-center gap-2 border-b-4",
+            "text-lg md:text-xl font-hand font-black transition-all pb-1 flex items-center gap-2 border-b-4 outline-none focus:outline-none focus:ring-0",
             activeTab === 'cefr' ? "opacity-100 border-[#8A1E2B] text-[#8A1E2B]" : "opacity-40 hover:opacity-70 border-transparent text-[#3A1412]"
           )}
         >
@@ -415,8 +500,9 @@ export function Academy({
                     <input 
                       type="text"
                       required
-                      value={vocab}
-                      onChange={e => setVocab(e.target.value)}
+                      ref={vocabInputRef}
+                      value={localVocab}
+                      onChange={e => setLocalVocab(e.target.value)}
                       placeholder="Ví dụ: itinerary, break a leg..."
                       className="w-full font-hand font-bold text-lg text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white transition-all shadow-xs"
                     />
@@ -448,8 +534,9 @@ export function Academy({
                     </label>
                     <input 
                       type="text"
-                      value={ipa}
-                      onChange={e => setIpa(e.target.value)}
+                      ref={ipaInputRef}
+                      value={localIpa}
+                      onChange={e => setLocalIpa(e.target.value)}
                       placeholder="/aɪˈtɪnərəri/"
                       className="w-full font-sans font-bold text-sm text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white transition-all shadow-xs"
                     />
@@ -462,8 +549,9 @@ export function Academy({
                     </label>
                     <textarea 
                       required
-                      value={definition}
-                      onChange={e => setDefinition(e.target.value)}
+                      ref={definitionInputRef}
+                      value={localDefinition}
+                      onChange={e => setLocalDefinition(e.target.value)}
                       placeholder="Nhập giải nghĩa hoặc bản dịch..."
                       rows={2}
                       className="w-full font-sans font-semibold text-sm text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white resize-none transition-all shadow-xs"
@@ -476,8 +564,9 @@ export function Academy({
                       📖 Ví dụ minh họa (Tiếng Anh):
                     </label>
                     <textarea 
-                      value={example}
-                      onChange={e => setExample(e.target.value)}
+                      ref={exampleInputRef}
+                      value={localExample}
+                      onChange={e => setLocalExample(e.target.value)}
                       placeholder="Ví dụ: We review the itinerary before the cruise departs."
                       rows={2}
                       className="w-full font-hand font-bold text-lg text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white resize-none transition-all shadow-xs"
@@ -510,8 +599,9 @@ export function Academy({
                     <div className="flex items-center gap-1.5 pt-1">
                       <input 
                         type="text"
-                        value={newTagInput}
-                        onChange={e => setNewTagInput(e.target.value)}
+                        ref={newTagInputRef}
+                        value={localNewTagInput}
+                        onChange={e => setLocalNewTagInput(e.target.value)}
                         placeholder="Thêm nhãn tự do..."
                         className="flex-1 font-sans font-bold text-xs text-[#8A1E2B] bg-[#FCFAF5] border border-dashed border-[#8A1E2B] rounded-lg px-2.5 py-1 outline-none focus:bg-white"
                         onKeyDown={e => {
