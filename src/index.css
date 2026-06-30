@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@400;700&family=Patrick+Hand&family=Itim&family=Mali:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Alata&family=Quicksand:wght@400;500;600;700&family=Baloo+2:wght@700;800&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@400;700&family=Patrick+Hand&family=Itim&family=Mali:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @font-face {
@@ -186,3 +186,128 @@ svg.lucide, .hand-drawn-svg {
 .clip-ribbon {
   clip-path: polygon(100% 0, 100% 100%, 50% 88%, 0 100%, 0 0);
 }
+
+/* ==========================================================================
+   THEME MINIMAL - MODERN SIMPLICITY OVERRIDES
+   ========================================================================== */
+.theme-minimal {
+  font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  background-color: #FAF9F6 !important; /* Elegant off-white background */
+  background-image: none !important; /* Remove sketchy background gradients */
+  color: #2D2D2D !important;
+}
+
+/* Force Alata font for headings, logo elements, hand-written fonts, and buttons */
+.theme-minimal h1,
+.theme-minimal h2,
+.theme-minimal h3,
+.theme-minimal h4,
+.theme-minimal h5,
+.theme-minimal h6,
+.theme-minimal .font-logo,
+.theme-minimal .font-hand,
+.theme-minimal .font-handwriting,
+.theme-minimal .font-caveat,
+.theme-minimal .font-serif,
+.theme-minimal .hand-text,
+.theme-minimal button,
+.theme-minimal select,
+.theme-minimal input,
+.theme-minimal textarea,
+.theme-minimal .tab-btn {
+  font-family: 'Alata', sans-serif !important;
+}
+
+/* Remove sketchy/handdrawn displace filter on SVGs in minimal theme */
+.theme-minimal svg.lucide,
+.theme-minimal .hand-drawn-svg {
+  filter: none !important;
+}
+
+/* Smooth out sketchy borders into crisp modern borders */
+.theme-minimal .sketch-border,
+.theme-minimal [class*="sketch-border"] {
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02) !important;
+  background-image: none !important;
+  background-color: #ffffff !important;
+}
+
+/* Smooth inputs to look simple and elegant */
+.theme-minimal .sketch-input,
+.theme-minimal input[type="text"],
+.theme-minimal input[type="number"],
+.theme-minimal input[type="date"],
+.theme-minimal input[type="url"],
+.theme-minimal textarea,
+.theme-minimal select {
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  border-radius: 8px !important;
+  background-color: #ffffff !important;
+  box-shadow: none !important;
+  font-family: 'Quicksand', sans-serif !important;
+}
+
+.theme-minimal .sketch-input:focus,
+.theme-minimal input:focus,
+.theme-minimal textarea:focus,
+.theme-minimal select:focus {
+  border-color: #AF1E2D !important;
+  box-shadow: 0 0 0 2px rgba(175, 30, 45, 0.08) !important;
+}
+
+/* Crisp button design */
+.theme-minimal .sketch-button,
+.theme-minimal button.sketch-button {
+  border: 1px solid #1A1A1A !important;
+  border-radius: 8px !important;
+  background-color: transparent !important;
+  font-weight: 600 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+.theme-minimal .sketch-button:hover,
+.theme-minimal button.sketch-button:hover {
+  background-color: #1A1A1A !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+}
+
+.theme-minimal .sketch-button-primary,
+.theme-minimal button.sketch-button-primary {
+  background-color: #1A1A1A !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+}
+
+/* Calm down heavy cartoon offset shadows into smooth professional shadows */
+.theme-minimal [class*="shadow-["],
+.theme-minimal .shadow-md,
+.theme-minimal .shadow-sm {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.01) !important;
+}
+
+/* Flatten hand drawn multi-layered borders */
+.theme-minimal [class*="border-b-4"],
+.theme-minimal [class*="border-r-4"],
+.theme-minimal [class*="border-l-4"],
+.theme-minimal [class*="border-t-4"] {
+  border-width: 1px !important;
+}
+
+/* Clean border line colors */
+.theme-minimal [class*="border-ink"],
+.theme-minimal [class*="border-[#3A1412]"] {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Hide sketchy absolute decorations */
+.theme-minimal .absolute-doodles,
+.theme-minimal .absolute-tape,
+.theme-minimal [class*="rotate-[-12deg]"],
+.theme-minimal [class*="rotate-[15deg]"] {
+  transform: none !important;
+}
+

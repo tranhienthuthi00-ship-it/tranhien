@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { cn } from "./lib/utils";
 import { NavBar, type Tab } from "./components/NavBar";
 import { Academy } from "./components/Academy";
 import { MyList } from "./components/MyList";
@@ -297,6 +298,10 @@ function AppContent() {
     }
   }, [bulkCurrentCash, assetCategories, assets, setAssets]);
 
+  const [theme, setTheme] = useState<"handdrawn" | "minimal">(() => {
+    return (localStorage.getItem("glowup_theme") as "handdrawn" | "minimal") || "handdrawn";
+  });
+
   const [activeTab, setActiveTab] = useState<Tab>("Journal");
   const [collectionSearchQuery, setCollectionSearchQuery] = useState("");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
@@ -354,8 +359,8 @@ function AppContent() {
   const dueCount = words.filter(w => new Date(w.nextReview) <= new Date()).length;
 
   return (
-    <div className="min-h-screen pb-20 relative overflow-x-clip w-full">
-      <Doodles />
+    <div className={cn("min-h-screen pb-20 relative overflow-x-clip w-full transition-colors duration-300", theme === "minimal" ? "theme-minimal" : "")}>
+      {theme !== "minimal" && <Doodles />}
       <svg width="0" height="0" className="absolute pointer-events-none" style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
           <filter id="hand-drawn-filter" x="-20%" y="-20%" width="140%" height="140%">
@@ -364,7 +369,19 @@ function AppContent() {
           </filter>
         </defs>
       </svg>
-      <NavBar activeTab={activeTab} setActiveTab={setActiveTab} lastSaved={lastSaved} onLogout={handleLogout} dueCount={dueCount} />
+      <NavBar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        lastSaved={lastSaved} 
+        onLogout={handleLogout} 
+        dueCount={dueCount} 
+        theme={theme}
+        onToggleTheme={() => {
+          const nextTheme = theme === "handdrawn" ? "minimal" : "handdrawn";
+          setTheme(nextTheme);
+          localStorage.setItem("glowup_theme", nextTheme);
+        }}
+      />
       
       <main className="mt-4 relative z-10 overflow-x-clip w-full">
         <div className="max-w-[100vw] px-1 sm:px-2">
