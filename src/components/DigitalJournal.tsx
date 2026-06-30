@@ -271,6 +271,19 @@ export function DigitalJournal({
   const [bucketListTitle, setBucketListTitle] = useSyncedState("studyHub_bucketListTitle", "BUCKET LIST");
   const [isFinanceOverallOpen, setIsFinanceOverallOpen] = useSyncedState("studyHub_isFinanceOverallOpen_home", false);
   
+  // Quick Synced Notepad states
+  const [quickNotepadText, setQuickNotepadText] = useSyncedState("studyHub_quickSyncedNotepadText", "");
+  const [isNotepadSaving, setIsNotepadSaving] = useState(false);
+  const [notepadFontSize, setNotepadFontSize] = useSyncedState("studyHub_quickNotepadFontSize", "text-lg");
+
+  useEffect(() => {
+    if (quickNotepadText) {
+      setIsNotepadSaving(true);
+      const timer = setTimeout(() => setIsNotepadSaving(false), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [quickNotepadText]);
+
   // Finance list titles
   const [financeRevenueTitle, setFinanceRevenueTitle] = useSyncedState("studyHub_financeRevenueTitle", "Chi tiết doanh thu tuần");
   const [financeCashTitle, setFinanceCashTitle] = useSyncedState("studyHub_financeCashTitle", "Danh sách mệnh giá tiền");
@@ -569,12 +582,18 @@ export function DigitalJournal({
   };
 
   // Tagged Records states and handlers
-  const [newRecordCategory, setNewRecordCategory] = useState("Học tập 📚");
+  const stripEmojis = (str: string) => {
+    return str.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim();
+  };
+
+  const [newRecordCategory, setNewRecordCategory] = useState("Học tập");
   const [newRecordContent, setNewRecordContent] = useState("");
-  const [newRecordTag, setNewRecordTag] = useState("Quan trọng ⭐");
+  const [newRecordPriority, setNewRecordPriority] = useState("Thường");
+  const [newRecordTag, setNewRecordTag] = useState("Cá nhân");
   const [newRecordDate, setNewRecordDate] = useState(todayDateStr);
   const [newRecordLink, setNewRecordLink] = useState("");
   const [newRecordDeadline, setNewRecordDeadline] = useState("");
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [selectedFilterTag, setSelectedFilterTag] = useState("Tất cả");
   const [selectedFilterCategory, setSelectedFilterCategory] = useState("Tất cả");
   const [taggedTableSearch, setTaggedTableSearch] = useState("");
@@ -591,22 +610,53 @@ export function DigitalJournal({
 
   const handleAddRecord = () => {
     if (!newRecordContent.trim()) return;
-    const newRecord: TaggedRecord = {
-      id: 'tr_' + Date.now(),
-      category: newRecordCategory.trim() || "Học tập 📚",
-      content: newRecordContent.trim(),
-      tag: newRecordTag.trim() || "Thường",
-      createdAt: newRecordDate || todayDateStr,
-      link: newRecordLink.trim() || undefined,
-      deadline: newRecordDeadline || undefined,
-      completed: false
-    };
+    const cleanCat = stripEmojis(newRecordCategory.trim()) || "Học tập";
     
-    const updated = [newRecord, ...taggedRecords];
-    setKvStoreTarget('taggedRecords', updated);
+    if (editingRecordId) {
+      // Edit mode
+      const updated = taggedRecords.map(r => {
+        if (r.id === editingRecordId) {
+          return {
+            ...r,
+            category: cleanCat,
+            content: newRecordContent.trim(),
+            tag: newRecordTag.trim() || "",
+            priority: newRecordPriority.trim() || "Thường",
+            createdAt: newRecordDate || todayDateStr,
+            link: newRecordLink.trim() || undefined,
+            deadline: newRecordDeadline || undefined,
+          };
+        }
+        return r;
+      });
+      setKvStoreTarget('taggedRecords', updated);
+      setEditingRecordId(null);
+    } else {
+      // Add mode
+      const newRecord: TaggedRecord = {
+        id: 'tr_' + Date.now(),
+        category: cleanCat,
+        content: newRecordContent.trim(),
+        tag: newRecordTag.trim() || "",
+        priority: newRecordPriority.trim() || "Thường",
+        createdAt: newRecordDate || todayDateStr,
+        link: newRecordLink.trim() || undefined,
+        deadline: newRecordDeadline || undefined,
+        completed: false
+      };
+      const updated = [newRecord, ...taggedRecords];
+      setKvStoreTarget('taggedRecords', updated);
+    }
+    
+    // Reset inputs
     setNewRecordContent("");
     setNewRecordLink("");
     setNewRecordDeadline("");
+    setNewRecordPriority("Thường");
+    setNewRecordTag("Cá nhân");
+    setNewRecordCategory("Học tập");
+    setNewRecordDate(todayDateStr);
+    
     try {
       confetti({
         particleCount: 50,
@@ -631,6 +681,24 @@ export function DigitalJournal({
     if (window.confirm("Bạn có chắc chắn muốn xóa dòng này không?")) {
       const updated = taggedRecords.filter(r => r.id !== id);
       setKvStoreTarget('taggedRecords', updated);
+    }
+  };
+
+  const handleStartEdit = (record: TaggedRecord) => {
+    setEditingRecordId(record.id);
+    setNewRecordCategory(record.category || "Học tập");
+    setNewRecordContent(record.content || "");
+    setNewRecordPriority(record.priority || (record.tag && record.tag.toLowerCase().includes("gấp") ? "Gấp" : "Thường"));
+    setNewRecordTag(record.tag || "");
+    if (record.createdAt) {
+      setNewRecordDate(record.createdAt);
+    }
+    setNewRecordLink(record.link || "");
+    setNewRecordDeadline(record.deadline || "");
+    
+    const formElement = document.getElementById("journal-note-form");
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
 
@@ -2851,7 +2919,7 @@ export function DigitalJournal({
         )}
 
         {/* BẢNG GHI CHÚ PHÂN LOẠI THEO TAG */}
-        <div className="w-full max-w-5xl mx-auto pt-12 z-20">
+        <div className="w-full max-w-[1440px] mx-auto pt-12 z-20 px-2 md:px-4">
           <div className="bg-white rounded-3xl border-[3px] border-[#3A1412] p-6 md:p-8 shadow-[6px_6px_0_rgba(138,30,43,0.15)] relative overflow-hidden">
             {/* Tape decoration on corners */}
             <div className="absolute -top-3 -left-3 w-16 h-10 bg-amber-100/60 border-2 border-[#3A1412]/10 rotate-[-12deg] z-10" />
@@ -2888,9 +2956,9 @@ export function DigitalJournal({
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
               {/* LEFT COLUMN: Add Form */}
-              <div className="xl:col-span-1 border-b-2 xl:border-b-0 xl:border-r-2 border-dashed border-[#8A1E2B]/15 pb-6 xl:pb-0 xl:pr-6 space-y-5">
+              <div id="journal-note-form" className="xl:col-span-1 border-b-2 xl:border-b-0 xl:border-r-2 border-dashed border-[#8A1E2B]/15 pb-6 xl:pb-0 xl:pr-6 space-y-5">
                 <h3 className="font-hand font-black text-lg text-[#3A1412] uppercase tracking-wide flex items-center gap-1.5 mb-1">
-                  📌 Thêm Ghi Chú Mới:
+                  {editingRecordId ? "📝 Sửa Ghi Chú:" : "📌 Thêm Ghi Chú Mới:"}
                 </h3>
                 
                 {/* Category Input */}
@@ -2907,7 +2975,7 @@ export function DigitalJournal({
                   />
                   {/* Category Quick Selector Chips */}
                   <div className="flex flex-wrap gap-1 mt-1.5">
-                    {["Học tập 📚", "Công việc 💼", "Sức khỏe 💪", "Tài chính 💰", "Mua sắm 🛒", "Giải trí 🎮"].map(cat => (
+                    {["Học tập", "Công việc", "Sức khỏe", "Tài chính", "Mua sắm", "Giải trí"].map(cat => (
                       <button
                         key={cat}
                         type="button"
@@ -2934,6 +3002,33 @@ export function DigitalJournal({
                   />
                 </div>
 
+                {/* Priority Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest">
+                    🔥 Mức độ ưu tiên:
+                  </label>
+                  <input 
+                    type="text" 
+                    value={newRecordPriority} 
+                    onChange={e => setNewRecordPriority(e.target.value)} 
+                    placeholder="Thường, Gấp, Quan trọng..." 
+                    className="w-full font-hand font-bold text-lg text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white transition-all shadow-xs"
+                  />
+                  {/* Priority Quick Selector Chips */}
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {["Thường", "Quan trọng", "Gấp"].map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setNewRecordPriority(p)}
+                        className={`text-[9px] font-sans font-black uppercase tracking-wider px-2 py-0.5 rounded-full border transition-all ${newRecordPriority === p ? "bg-[#8A1E2B] text-white border-[#8A1E2B]" : "bg-neutral-50 hover:bg-neutral-100 text-[#3A1412]/60 border-neutral-200"}`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Tag Input */}
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest">
@@ -2943,12 +3038,12 @@ export function DigitalJournal({
                     type="text" 
                     value={newRecordTag} 
                     onChange={e => setNewRecordTag(e.target.value)} 
-                    placeholder="Gấp, Quan trọng, Cá nhân..." 
+                    placeholder="Cá nhân, Sinh hoạt, Hôm nay..." 
                     className="w-full font-hand font-bold text-lg text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white transition-all shadow-xs"
                   />
                   {/* Tag Quick Selector Chips */}
                   <div className="flex flex-wrap gap-1 mt-1.5">
-                    {["Gấp 🚨", "Quan trọng ⭐", "Cá nhân 👤", "Hôm nay 📅", "Mục tiêu 🎯"].map(t => (
+                    {["Cá nhân", "Sinh hoạt", "Hôm nay", "Mục tiêu"].map(t => (
                       <button
                         key={t}
                         type="button"
@@ -3010,13 +3105,34 @@ export function DigitalJournal({
                   />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleAddRecord}
-                  className="w-full bg-[#8A1E2B] hover:bg-[#5C0612] text-white font-hand font-black text-xl py-3 rounded-xl transition-all shadow-[4px_4px_0_rgba(138,30,43,0.15)] hover:translate-y-[-1px] active:translate-y-[1px] uppercase tracking-wider flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-5 h-5 stroke-[3]" /> Thêm Ghi Chú
-                </button>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleAddRecord}
+                    className="w-full bg-[#8A1E2B] hover:bg-[#5C0612] text-white font-hand font-black text-xl py-3 rounded-xl transition-all shadow-[4px_4px_0_rgba(138,30,43,0.15)] hover:translate-y-[-1px] active:translate-y-[1px] uppercase tracking-wider flex items-center justify-center gap-2"
+                  >
+                    {editingRecordId ? <Check className="w-5 h-5 stroke-[3]" /> : <Plus className="w-5 h-5 stroke-[3]" />}
+                    {editingRecordId ? "Cập Nhật Ghi Chú" : "Thêm Ghi Chú"}
+                  </button>
+                  {editingRecordId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingRecordId(null);
+                        setNewRecordContent("");
+                        setNewRecordLink("");
+                        setNewRecordDeadline("");
+                        setNewRecordPriority("Thường");
+                        setNewRecordTag("Cá nhân");
+                        setNewRecordCategory("Học tập");
+                        setNewRecordDate(todayDateStr);
+                      }}
+                      className="px-4 bg-neutral-200 hover:bg-neutral-300 text-[#3A1412] font-hand font-black text-lg rounded-xl transition-all"
+                    >
+                      Hủy
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* RIGHT COLUMN: Table View & Filters */}
@@ -3070,22 +3186,35 @@ export function DigitalJournal({
                       <tr className="bg-[#8A1E2B]/5 border-b-2 border-[#3A1412] text-[#3A1412]">
                         <th className="p-3 font-black text-xs uppercase tracking-wider text-center w-14">Tick</th>
                         <th className="p-3 font-black text-xs uppercase tracking-wider">Mục</th>
+                        <th className="p-3 font-black text-xs uppercase tracking-wider">Ưu tiên</th>
                         <th className="p-3 font-black text-xs uppercase tracking-wider">Nội dung</th>
                         <th className="p-3 font-black text-xs uppercase tracking-wider">Tag nhãn</th>
                         <th className="p-3 font-black text-xs uppercase tracking-wider">Ngày tạo</th>
-                        <th className="p-3 font-black text-xs uppercase tracking-wider text-center w-14">Loại bỏ</th>
+                        <th className="p-3 font-black text-xs uppercase tracking-wider text-center w-24">Hành động</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y border-[#3A1412]/10 divide-[#3A1412]/10">
                       {filteredRecords.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-8 text-center font-hand text-xl font-bold text-neutral-400 italic">
+                          <td colSpan={7} className="p-8 text-center font-hand text-xl font-bold text-neutral-400 italic">
                             Chưa có dòng ghi chú nào phù hợp bộ lọc. Hãy thêm một ghi chú mới nha!
                           </td>
                         </tr>
                       ) : (
                         filteredRecords.map(record => {
                           const tagList = record.tag ? record.tag.split(',').map(item => item.trim()).filter(Boolean) : [];
+                          const priority = record.priority || (record.tag && record.tag.toLowerCase().includes("gấp") ? "Gấp" : "Thường");
+                          const getPriorityBadgeClass = (p: string) => {
+                            const lower = p.toLowerCase();
+                            if (lower.includes("gấp")) {
+                              return "bg-rose-50 text-rose-700 border-rose-200 font-black";
+                            } else if (lower.includes("quan trọng") || lower.includes("trọng")) {
+                              return "bg-amber-50 text-amber-700 border-amber-200 font-bold";
+                            } else {
+                              return "bg-neutral-50 text-[#3A1412]/60 border-neutral-200/60 font-medium";
+                            }
+                          };
+
                           return (
                             <tr key={record.id} className={cn("transition-colors hover:bg-[#8A1E2B]/5", record.completed ? "bg-emerald-50/20" : "")}>
                               {/* TICK BOX */}
@@ -3105,11 +3234,22 @@ export function DigitalJournal({
 
                               <td className="p-3 font-hand font-bold text-lg text-[#8A1E2B] whitespace-nowrap">
                                 <span className="bg-[#8A1E2B]/5 border border-[#8A1E2B]/15 px-2.5 py-1 rounded-lg category-badge">
-                                  {record.category}
+                                  {stripEmojis(record.category)}
                                 </span>
                               </td>
 
-                              <td className="p-3 font-sans text-sm text-[#3A1412]/90 font-medium max-w-[280px] break-words">
+                              {/* PRIORITY BADGE */}
+                              <td className="p-3 whitespace-nowrap">
+                                <span className={cn("px-2 py-0.5 rounded text-[9px] border font-sans uppercase tracking-wider", getPriorityBadgeClass(priority))}>
+                                  {priority}
+                                </span>
+                              </td>
+
+                              <td 
+                                className="p-3 font-sans text-sm text-[#3A1412]/90 font-medium max-w-[280px] break-words cursor-pointer hover:bg-[#8A1E2B]/5 transition-all"
+                                onClick={() => handleStartEdit(record)}
+                                title="Nhấp vào để chỉnh sửa"
+                              >
                                 <div className={cn("transition-all duration-300", record.completed ? "line-through text-neutral-400 font-normal" : "")}>
                                   {record.content}
                                 </div>
@@ -3141,23 +3281,14 @@ export function DigitalJournal({
 
                               <td className="p-3">
                                 <div className="flex flex-wrap gap-1">
-                                  {tagList.map((t, idx) => {
-                                    const isUrgent = t.toLowerCase().includes("gấp");
-                                    return (
-                                      <span 
-                                        key={idx} 
-                                        className={cn(
-                                          "text-[9px] font-sans font-black uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap shadow-xs",
-                                          isUrgent 
-                                            ? "priority-high" 
-                                            : "bg-pink-50 border border-pink-200 text-[#8A1E2B] tag-badge"
-                                        )}
-                                      >
-                                        {!isUrgent && <span className="tag-icon-prefix">🏷️ </span>}
-                                        {t}
-                                      </span>
-                                    );
-                                  })}
+                                  {tagList.map((t, idx) => (
+                                    <span 
+                                      key={idx} 
+                                      className="bg-pink-50 border border-pink-200 text-[#8A1E2B] text-[9px] font-sans font-black uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap shadow-xs tag-badge"
+                                    >
+                                      #{t}
+                                    </span>
+                                  ))}
                                 </div>
                               </td>
 
@@ -3165,16 +3296,26 @@ export function DigitalJournal({
                                 {record.createdAt ? formatDateDot(record.createdAt) : formatDateDot(todayDateStr)}
                               </td>
 
-                              {/* REMOVE / DISCARD BUTTON */}
+                              {/* ACTIONS COLUMN */}
                               <td className="p-3 text-center whitespace-nowrap">
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteRecord(record.id)}
-                                  className="text-[#8A1E2B] hover:text-red-700 p-1.5 hover:bg-red-50 rounded-lg transition-all"
-                                  title="Loại bỏ ghi chú này"
-                                >
-                                  <X className="w-4 h-4 stroke-[3]" />
-                                </button>
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartEdit(record)}
+                                    className="text-blue-600 hover:text-blue-800 p-1.5 hover:bg-blue-50 rounded-lg transition-all"
+                                    title="Chỉnh sửa ghi chú này"
+                                  >
+                                    <Edit className="w-4 h-4 stroke-[2.5]" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRecord(record.id)}
+                                    className="text-[#8A1E2B] hover:text-red-700 p-1.5 hover:bg-red-50 rounded-lg transition-all"
+                                    title="Loại bỏ ghi chú này"
+                                  >
+                                    <X className="w-4 h-4 stroke-[3]" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -3203,6 +3344,146 @@ export function DigitalJournal({
                 </div>
 
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* SỔ TAY GHI CHÚ TỰ DO (QUICK SYNCED NOTEPAD) */}
+        <div className="w-full max-w-[1440px] mx-auto pt-12 z-20 px-2 md:px-4">
+          <div className="bg-[#FCFAF5] rounded-3xl border-[3px] border-[#3A1412] p-6 md:p-8 shadow-[6px_6px_0_rgba(138,30,43,0.15)] relative overflow-hidden">
+            {/* Corner Tape decorations */}
+            <div className="absolute -top-3 -right-3 w-16 h-10 bg-amber-100/60 border-2 border-[#3A1412]/10 rotate-[15deg] z-10" />
+            <div className="absolute -top-3 -left-3 w-16 h-10 bg-amber-100/60 border-2 border-[#3A1412]/10 rotate-[-12deg] z-10" />
+
+            {/* Binder rings illustration at the top edge */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 flex gap-4 md:gap-6 z-10 -mt-1">
+              {[...Array(12)].map((_, i) => (
+                <div key={i} className="flex flex-col items-center">
+                  <div className="w-2.5 h-6 bg-gradient-to-r from-neutral-400 to-neutral-200 border border-[#3A1412] rounded-full shadow-xs" />
+                  <div className="w-1.5 h-1.5 bg-[#3A1412] rounded-full -mt-1.5" />
+                </div>
+              ))}
+            </div>
+
+            {/* Header section */}
+            <div className="border-b-4 border-[#3A1412] pb-4 mb-6 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-hand font-black text-2xl md:text-3xl text-[#8A1E2B] tracking-wide uppercase flex items-center gap-2">
+                  <span>📓 SỔ TAY GHI CHÚ TỰ DO</span>
+                </h2>
+                <p className="text-xs text-[#3A1412]/60 font-sans font-bold uppercase mt-1">Ghi chép nhanh các ý tưởng, sự kiện hoặc ghi chú cá nhân của bạn</p>
+              </div>
+
+              {/* Autosave status indicator */}
+              <div className="flex items-center gap-2 bg-[#FCFAF5] px-3 py-1.5 rounded-xl border-2 border-[#3A1412] shadow-xs">
+                <span className="relative flex h-2.5 w-2.5">
+                  {isNotepadSaving && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  )}
+                  <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isNotepadSaving ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                </span>
+                <span className="text-[10px] font-sans font-black text-[#3A1412] uppercase tracking-wider">
+                  {isNotepadSaving ? 'Đồng bộ...' : 'Đã tự động lưu'}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Action bar & font utilities */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 bg-[#8A1E2B]/5 border-2 border-dashed border-[#8A1E2B]/20 p-3 rounded-2xl">
+              {/* Quick inserts (Chips) */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest mr-1">Chèn nhanh:</span>
+                {[
+                  { label: "💡 Ý tưởng", prefix: "💡 [Ý tưởng]: " },
+                  { label: "📅 Lịch trình", prefix: "📅 [Lịch trình]: " },
+                  { label: "🛒 Mua sắm", prefix: "🛒 [Cần mua]: " },
+                  { label: "📝 Todo", prefix: "📝 [Nhiệm vụ]: " },
+                  { label: "⭐ Quan trọng", prefix: "⭐ [Lưu ý quan trọng]: " }
+                ].map(chip => (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => {
+                      const newText = quickNotepadText 
+                        ? quickNotepadText + (quickNotepadText.endsWith('\n') ? '' : '\n') + chip.prefix 
+                        : chip.prefix;
+                      setQuickNotepadText(newText);
+                    }}
+                    className="bg-white hover:bg-neutral-100 border border-[#3A1412]/20 hover:border-[#3A1412] text-[#3A1412] font-hand font-bold text-sm px-2.5 py-1 rounded-lg transition-all shadow-xs active:translate-y-[1px]"
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Utility Tools */}
+              <div className="flex items-center gap-2">
+                {/* Font selector */}
+                <div className="flex items-center border border-[#3A1412]/20 rounded-xl overflow-hidden bg-white text-xs">
+                  {(["text-base", "text-lg", "text-xl"] as const).map(size => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setNotepadFontSize(size)}
+                      className={`px-2.5 py-1.5 font-bold uppercase tracking-wider border-r border-[#3A1412]/10 last:border-0 ${notepadFontSize === size ? 'bg-[#8A1E2B] text-white' : 'text-[#3A1412]/60 hover:bg-neutral-50'}`}
+                    >
+                      {size === 'text-base' ? 'Nhỏ' : size === 'text-lg' ? 'Vừa' : 'Lớn'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Copy button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(quickNotepadText);
+                    alert("Đã sao chép nội dung sổ tay vào clipboard!");
+                  }}
+                  title="Sao chép toàn bộ"
+                  className="bg-white hover:bg-[#8A1E2B]/10 border border-[#3A1412]/20 p-2 rounded-xl transition-all shadow-xs text-[#3A1412] flex items-center gap-1 text-xs font-bold uppercase font-sans"
+                >
+                  📋 <span className="hidden sm:inline">Sao chép</span>
+                </button>
+
+                {/* Clear button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ nội dung trong sổ tay ghi chú tự do này không?")) {
+                      setQuickNotepadText("");
+                    }
+                  }}
+                  title="Xóa sạch sổ tay"
+                  className="bg-red-50 hover:bg-red-100 border border-red-200 p-2 rounded-xl transition-all shadow-xs text-red-700 flex items-center gap-1 text-xs font-bold uppercase font-sans"
+                >
+                  🗑️ <span className="hidden sm:inline">Xóa sạch</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Notebook Lined Paper Textarea container */}
+            <div className="border-[3px] border-[#3A1412] rounded-2xl bg-white shadow-inner relative overflow-hidden">
+              {/* Vertical red margin line of lined paper */}
+              <div className="absolute top-0 bottom-0 left-10 md:left-14 border-r-2 border-rose-300 pointer-events-none z-10" />
+
+              <textarea
+                value={quickNotepadText}
+                onChange={e => setQuickNotepadText(e.target.value)}
+                placeholder="Gõ ghi chú tự do tại đây... Sổ tay này lưu tự động và không bị ảnh hưởng bởi bảng phân loại theo tag."
+                className={`w-full min-h-[300px] bg-transparent border-none outline-none font-hand font-bold py-6 pl-12 md:pl-16 pr-6 text-[#3A1412] resize-y leading-[32px] ${notepadFontSize}`}
+                style={{
+                  backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, rgba(58, 20, 18, 0.08) 31px, rgba(58, 20, 18, 0.08) 32px)',
+                  backgroundAttachment: 'local'
+                }}
+              />
+            </div>
+
+            {/* Word count and stats */}
+            <div className="flex items-center justify-between text-[10px] font-sans font-black text-[#3A1412]/40 uppercase tracking-widest mt-3 px-1">
+              <span>Được đồng bộ qua tài khoản đám mây</span>
+              <span>
+                Ký tự: {quickNotepadText.length} • Từ: {quickNotepadText.split(/\s+/).filter(Boolean).length}
+              </span>
             </div>
           </div>
         </div>

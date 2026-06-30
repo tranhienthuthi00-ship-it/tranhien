@@ -217,6 +217,7 @@ export interface TaggedRecord {
   category: string;
   content: string;
   tag: string;
+  priority?: string;
   createdAt: string;
   link?: string;
   deadline?: string;
