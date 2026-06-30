@@ -272,17 +272,93 @@ export function DigitalJournal({
   const [isFinanceOverallOpen, setIsFinanceOverallOpen] = useSyncedState("studyHub_isFinanceOverallOpen_home", false);
   
   // Quick Synced Notepad states
+  interface QuickNote {
+    id: string;
+    title: string;
+    content: string;
+    paperType: 'lined' | 'grid' | 'dotted' | 'blank';
+    createdAt: string;
+  }
+
   const [quickNotepadText, setQuickNotepadText] = useSyncedState("studyHub_quickSyncedNotepadText", "");
+  const [quickNotes, setQuickNotes] = useSyncedState<QuickNote[]>("studyHub_quickSyncedNotesList", []);
+  const [activeNoteId, setActiveNoteId] = useSyncedState<string>("studyHub_quickSyncedActiveNoteId", "");
   const [isNotepadSaving, setIsNotepadSaving] = useState(false);
   const [notepadFontSize, setNotepadFontSize] = useSyncedState("studyHub_quickNotepadFontSize", "text-lg");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteTitleText, setEditingNoteTitleText] = useState("");
+
+  // Multi-note computed states
+  const activeNote = useMemo(() => {
+    return quickNotes.find(n => n.id === activeNoteId) || quickNotes[0];
+  }, [quickNotes, activeNoteId]);
+
+  // Backwards compatibility & Initialization
+  useEffect(() => {
+    if (quickNotes.length === 0) {
+      const initialNote: QuickNote = {
+        id: "default-note",
+        title: "Ghi chú mặc định 📓",
+        content: quickNotepadText || "Chào mừng bạn đến với sổ tay ghi chú tự do! Bạn có thể thêm nhiều ghi chú và đổi loại giấy ở đây.",
+        paperType: "lined",
+        createdAt: new Date().toISOString()
+      };
+      setQuickNotes([initialNote]);
+      setActiveNoteId("default-note");
+    } else if (!activeNoteId) {
+      setActiveNoteId(quickNotes[0].id);
+    }
+  }, [quickNotes, activeNoteId]);
+
+  const updateActiveNoteContent = (newContent: string) => {
+    if (!activeNote) return;
+    setQuickNotes(prev => prev.map(n => n.id === activeNote.id ? { ...n, content: newContent } : n));
+  };
+
+  const updateActiveNotePaperType = (type: 'lined' | 'grid' | 'dotted' | 'blank') => {
+    if (!activeNote) return;
+    setQuickNotes(prev => prev.map(n => n.id === activeNote.id ? { ...n, paperType: type } : n));
+  };
+
+  const updateActiveNoteTitle = (newTitle: string) => {
+    if (!activeNote) return;
+    setQuickNotes(prev => prev.map(n => n.id === activeNote.id ? { ...n, title: newTitle } : n));
+  };
+
+  const addNewNote = () => {
+    const newId = `note-${Date.now()}`;
+    const newNote: QuickNote = {
+      id: newId,
+      title: `Ghi chú mới ${quickNotes.length + 1} 📝`,
+      content: "",
+      paperType: "lined",
+      createdAt: new Date().toISOString()
+    };
+    setQuickNotes([...quickNotes, newNote]);
+    setActiveNoteId(newId);
+  };
+
+  const deleteNote = (id: string) => {
+    if (quickNotes.length <= 1) {
+      alert("Bạn phải giữ lại ít nhất 1 ghi chú!");
+      return;
+    }
+    if (window.confirm("Bạn có chắc chắn muốn xóa ghi chú này không?")) {
+      const remaining = quickNotes.filter(n => n.id !== id);
+      setQuickNotes(remaining);
+      if (activeNoteId === id) {
+        setActiveNoteId(remaining[0].id);
+      }
+    }
+  };
 
   useEffect(() => {
-    if (quickNotepadText) {
+    if (activeNote?.content) {
       setIsNotepadSaving(true);
       const timer = setTimeout(() => setIsNotepadSaving(false), 800);
       return () => clearTimeout(timer);
     }
-  }, [quickNotepadText]);
+  }, [activeNote?.content]);
 
   // Finance list titles
   const [financeRevenueTitle, setFinanceRevenueTitle] = useSyncedState("studyHub_financeRevenueTitle", "Chi tiết doanh thu tuần");
@@ -3366,7 +3442,7 @@ export function DigitalJournal({
             </div>
 
             {/* Header section */}
-            <div className="border-b-4 border-[#3A1412] pb-4 mb-6 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="border-b-4 border-[#3A1412] pb-4 mb-4 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h2 className="font-hand font-black text-2xl md:text-3xl text-[#8A1E2B] tracking-wide uppercase flex items-center gap-2">
                   <span>📓 SỔ TAY GHI CHÚ TỰ DO</span>
@@ -3388,6 +3464,110 @@ export function DigitalJournal({
               </div>
             </div>
 
+            {/* Note Tabs Manager */}
+            <div className="flex flex-wrap items-center gap-2 mb-4 border-b-2 border-[#3A1412]/10 pb-3">
+              <span className="text-[10px] font-sans font-black text-[#3A1412]/50 uppercase tracking-widest mr-1">Danh sách ghi chú:</span>
+              <div className="flex flex-wrap items-center gap-1.5 max-w-full">
+                {quickNotes.map((note) => {
+                  const isActive = note.id === activeNoteId;
+                  const isEditing = note.id === editingNoteId;
+                  return (
+                    <div
+                      key={note.id}
+                      className={cn(
+                        "group relative flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 transition-all shadow-xs cursor-pointer text-xs font-hand font-bold",
+                        isActive
+                          ? "bg-[#8A1E2B] text-white border-[#8A1E2B] scale-102"
+                          : "bg-white hover:bg-[#FCFAF5] text-[#3A1412] border-[#3A1412]/20 hover:border-[#3A1412]"
+                      )}
+                      onClick={() => {
+                        if (!isActive) {
+                          setActiveNoteId(note.id);
+                          setEditingNoteId(null);
+                        }
+                      }}
+                    >
+                      {isEditing ? (
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="text"
+                            value={editingNoteTitleText}
+                            onChange={(e) => setEditingNoteTitleText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                updateActiveNoteTitle(editingNoteTitleText);
+                                setEditingNoteId(null);
+                              } else if (e.key === "Escape") {
+                                setEditingNoteId(null);
+                              }
+                            }}
+                            className="bg-white text-[#3A1412] text-[11px] font-sans font-bold px-1.5 py-0.5 rounded outline-none border border-[#8A1E2B] w-28"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateActiveNoteTitle(editingNoteTitleText);
+                              setEditingNoteId(null);
+                            }}
+                            className="text-emerald-500 hover:text-emerald-600 font-bold px-1 text-[11px]"
+                          >
+                            ✓
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <span>{note.title}</span>
+                          <button
+                            type="button"
+                            title="Đổi tên"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingNoteId(note.id);
+                              setEditingNoteTitleText(note.title);
+                            }}
+                            className={cn(
+                              "opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity ml-1 text-[10px]",
+                              isActive ? "text-white/80 hover:text-white" : "text-[#3A1412]/50 hover:text-[#3A1412]"
+                            )}
+                          >
+                            ✏️
+                          </button>
+                        </span>
+                      )}
+
+                      {/* Delete note button */}
+                      {quickNotes.length > 1 && (
+                        <button
+                          type="button"
+                          title="Xóa ghi chú này"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteNote(note.id);
+                          }}
+                          className={cn(
+                            "opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-[10px] ml-1 font-sans",
+                            isActive ? "text-rose-200 hover:text-rose-100" : "text-[#8A1E2B] hover:text-red-700"
+                          )}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Add new note button */}
+                <button
+                  type="button"
+                  onClick={addNewNote}
+                  className="bg-emerald-50 hover:bg-emerald-100 border border-dashed border-emerald-500/30 text-emerald-700 font-hand font-bold text-xs px-3 py-1.5 rounded-xl transition-all shadow-xs flex items-center gap-1 active:translate-y-[1px]"
+                >
+                  ➕ Thêm ghi chú mới
+                </button>
+              </div>
+            </div>
+
             {/* Quick Action bar & font utilities */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4 bg-[#8A1E2B]/5 border-2 border-dashed border-[#8A1E2B]/20 p-3 rounded-2xl">
               {/* Quick inserts (Chips) */}
@@ -3404,10 +3584,11 @@ export function DigitalJournal({
                     key={chip.label}
                     type="button"
                     onClick={() => {
-                      const newText = quickNotepadText 
-                        ? quickNotepadText + (quickNotepadText.endsWith('\n') ? '' : '\n') + chip.prefix 
+                      const currentText = activeNote?.content || "";
+                      const newText = currentText 
+                        ? currentText + (currentText.endsWith('\n') ? '' : '\n') + chip.prefix 
                         : chip.prefix;
-                      setQuickNotepadText(newText);
+                      updateActiveNoteContent(newText);
                     }}
                     className="bg-white hover:bg-neutral-100 border border-[#3A1412]/20 hover:border-[#3A1412] text-[#3A1412] font-hand font-bold text-sm px-2.5 py-1 rounded-lg transition-all shadow-xs active:translate-y-[1px]"
                   >
@@ -3417,7 +3598,30 @@ export function DigitalJournal({
               </div>
 
               {/* Utility Tools */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Paper Selector */}
+                <div className="flex items-center border border-[#3A1412]/20 rounded-xl overflow-hidden bg-white text-xs">
+                  <span className="px-2.5 py-1.5 bg-neutral-50 border-r border-[#3A1412]/10 text-[9px] font-sans font-black text-[#3A1412]/50 uppercase tracking-wider">Ruột giấy:</span>
+                  {[
+                    { val: 'lined', label: '📝 Dòng kẻ' },
+                    { val: 'grid', label: '🏁 Ô ly' },
+                    { val: 'dotted', label: '💬 Chấm' },
+                    { val: 'blank', label: '📄 Trơn' }
+                  ].map(paper => (
+                    <button
+                      key={paper.val}
+                      type="button"
+                      onClick={() => updateActiveNotePaperType(paper.val as any)}
+                      className={cn(
+                        "px-2.5 py-1.5 font-bold uppercase border-r border-[#3A1412]/10 last:border-0 text-[10px]",
+                        (activeNote?.paperType || 'lined') === paper.val ? 'bg-[#8A1E2B] text-white' : 'text-[#3A1412]/60 hover:bg-neutral-50'
+                      )}
+                    >
+                      {paper.label}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Font selector */}
                 <div className="flex items-center border border-[#3A1412]/20 rounded-xl overflow-hidden bg-white text-xs">
                   {(["text-base", "text-lg", "text-xl"] as const).map(size => (
@@ -3436,7 +3640,7 @@ export function DigitalJournal({
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.writeText(quickNotepadText);
+                    navigator.clipboard.writeText(activeNote?.content || "");
                     alert("Đã sao chép nội dung sổ tay vào clipboard!");
                   }}
                   title="Sao chép toàn bộ"
@@ -3449,8 +3653,8 @@ export function DigitalJournal({
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ nội dung trong sổ tay ghi chú tự do này không?")) {
-                      setQuickNotepadText("");
+                    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ nội dung trong sổ tay ghi chú này không?")) {
+                      updateActiveNoteContent("");
                     }
                   }}
                   title="Xóa sạch sổ tay"
@@ -3467,14 +3671,27 @@ export function DigitalJournal({
               <div className="absolute top-0 bottom-0 left-10 md:left-14 border-r-2 border-rose-300 pointer-events-none z-10" />
 
               <textarea
-                value={quickNotepadText}
-                onChange={e => setQuickNotepadText(e.target.value)}
+                value={activeNote?.content || ""}
+                onChange={e => updateActiveNoteContent(e.target.value)}
                 placeholder="Gõ ghi chú tự do tại đây... Sổ tay này lưu tự động và không bị ảnh hưởng bởi bảng phân loại theo tag."
                 className={`w-full min-h-[300px] bg-transparent border-none outline-none font-hand font-bold py-6 pl-12 md:pl-16 pr-6 text-[#3A1412] resize-y leading-[32px] ${notepadFontSize}`}
-                style={{
-                  backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, rgba(58, 20, 18, 0.08) 31px, rgba(58, 20, 18, 0.08) 32px)',
-                  backgroundAttachment: 'local'
-                }}
+                style={
+                  (activeNote?.paperType === 'grid') ? {
+                    backgroundImage: 'linear-gradient(rgba(58, 20, 18, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(58, 20, 18, 0.05) 1px, transparent 1px)',
+                    backgroundSize: '30px 30px',
+                    backgroundAttachment: 'local'
+                  } : (activeNote?.paperType === 'dotted') ? {
+                    backgroundImage: 'radial-gradient(rgba(58, 20, 18, 0.12) 1.5px, transparent 1.5px)',
+                    backgroundSize: '24px 24px',
+                    backgroundAttachment: 'local'
+                  } : (activeNote?.paperType === 'blank') ? {
+                    backgroundImage: 'none',
+                    backgroundAttachment: 'local'
+                  } : {
+                    backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, rgba(58, 20, 18, 0.08) 31px, rgba(58, 20, 18, 0.08) 32px)',
+                    backgroundAttachment: 'local'
+                  }
+                }
               />
             </div>
 
@@ -3482,7 +3699,7 @@ export function DigitalJournal({
             <div className="flex items-center justify-between text-[10px] font-sans font-black text-[#3A1412]/40 uppercase tracking-widest mt-3 px-1">
               <span>Được đồng bộ qua tài khoản đám mây</span>
               <span>
-                Ký tự: {quickNotepadText.length} • Từ: {quickNotepadText.split(/\s+/).filter(Boolean).length}
+                Ký tự: {activeNote?.content?.length || 0} • Từ: {(activeNote?.content || "").split(/\s+/).filter(Boolean).length}
               </span>
             </div>
           </div>
