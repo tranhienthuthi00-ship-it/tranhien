@@ -573,6 +573,8 @@ export function DigitalJournal({
   const [newRecordContent, setNewRecordContent] = useState("");
   const [newRecordTag, setNewRecordTag] = useState("Quan trọng ⭐");
   const [newRecordDate, setNewRecordDate] = useState(todayDateStr);
+  const [newRecordLink, setNewRecordLink] = useState("");
+  const [newRecordDeadline, setNewRecordDeadline] = useState("");
   const [selectedFilterTag, setSelectedFilterTag] = useState("Tất cả");
   const [selectedFilterCategory, setSelectedFilterCategory] = useState("Tất cả");
   const [taggedTableSearch, setTaggedTableSearch] = useState("");
@@ -594,12 +596,17 @@ export function DigitalJournal({
       category: newRecordCategory.trim() || "Học tập 📚",
       content: newRecordContent.trim(),
       tag: newRecordTag.trim() || "Thường",
-      createdAt: newRecordDate || todayDateStr
+      createdAt: newRecordDate || todayDateStr,
+      link: newRecordLink.trim() || undefined,
+      deadline: newRecordDeadline || undefined,
+      completed: false
     };
     
     const updated = [newRecord, ...taggedRecords];
     setKvStoreTarget('taggedRecords', updated);
     setNewRecordContent("");
+    setNewRecordLink("");
+    setNewRecordDeadline("");
     try {
       confetti({
         particleCount: 50,
@@ -608,6 +615,16 @@ export function DigitalJournal({
         origin: { y: 0.9 }
       });
     } catch (e) {}
+  };
+
+  const handleToggleRecordCompleted = (id: string) => {
+    const updated = taggedRecords.map(r => {
+      if (r.id === id) {
+        return { ...r, completed: !r.completed };
+      }
+      return r;
+    });
+    setKvStoreTarget('taggedRecords', updated);
   };
 
   const handleDeleteRecord = (id: string) => {
@@ -2953,6 +2970,33 @@ export function DigitalJournal({
                   </div>
                 </div>
 
+                {/* Link Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest">
+                    🔗 Link đính kèm (URL):
+                  </label>
+                  <input 
+                    type="url" 
+                    value={newRecordLink} 
+                    onChange={e => setNewRecordLink(e.target.value)} 
+                    placeholder="https://example.com..." 
+                    className="w-full font-sans font-bold text-xs text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white transition-all shadow-xs"
+                  />
+                </div>
+
+                {/* Deadline Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest">
+                    ⏰ Hạn chót (Deadline):
+                  </label>
+                  <input 
+                    type="date" 
+                    value={newRecordDeadline} 
+                    onChange={e => setNewRecordDeadline(e.target.value)} 
+                    className="w-full font-sans font-bold text-xs text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white transition-all shadow-xs"
+                  />
+                </div>
+
                 {/* Creation Date Input */}
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest">
@@ -3020,21 +3064,22 @@ export function DigitalJournal({
                 </div>
 
                 {/* Main Table */}
-                <div className="overflow-x-auto border-2 border-[#3A1412] rounded-2xl bg-[#FCFAF5] shadow-[2px_2px_0_rgba(138,30,43,0.1)] max-h-[460px] overflow-y-auto custom-scrollbar">
+                <div className="overflow-x-auto border-2 border-[#3A1412] rounded-2xl bg-[#FCFAF5] shadow-[2px_2px_0_rgba(138,30,43,0.1)] max-h-[550px] overflow-y-auto custom-scrollbar">
                   <table className="w-full text-left border-collapse font-sans text-xs">
                     <thead>
                       <tr className="bg-[#8A1E2B]/5 border-b-2 border-[#3A1412] text-[#3A1412]">
+                        <th className="p-3 font-black text-xs uppercase tracking-wider text-center w-14">Tick</th>
                         <th className="p-3 font-black text-xs uppercase tracking-wider">Mục</th>
                         <th className="p-3 font-black text-xs uppercase tracking-wider">Nội dung</th>
                         <th className="p-3 font-black text-xs uppercase tracking-wider">Tag nhãn</th>
                         <th className="p-3 font-black text-xs uppercase tracking-wider">Ngày tạo</th>
-                        <th className="p-3 font-black text-xs uppercase tracking-wider text-center">Xóa</th>
+                        <th className="p-3 font-black text-xs uppercase tracking-wider text-center w-14">Loại bỏ</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y border-[#3A1412]/10 divide-[#3A1412]/10">
                       {filteredRecords.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="p-8 text-center font-hand text-xl font-bold text-neutral-400 italic">
+                          <td colSpan={6} className="p-8 text-center font-hand text-xl font-bold text-neutral-400 italic">
                             Chưa có dòng ghi chú nào phù hợp bộ lọc. Hãy thêm một ghi chú mới nha!
                           </td>
                         </tr>
@@ -3042,15 +3087,58 @@ export function DigitalJournal({
                         filteredRecords.map(record => {
                           const tagList = record.tag ? record.tag.split(',').map(item => item.trim()).filter(Boolean) : [];
                           return (
-                            <tr key={record.id} className="hover:bg-[#8A1E2B]/5 transition-colors">
+                            <tr key={record.id} className={cn("transition-colors hover:bg-[#8A1E2B]/5", record.completed ? "bg-emerald-50/20" : "")}>
+                              {/* TICK BOX */}
+                              <td className="p-3 text-center whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleRecordCompleted(record.id)}
+                                  className={cn(
+                                    "w-6 h-6 rounded-md border-2 border-[#3A1412] flex items-center justify-center transition-all mx-auto",
+                                    record.completed ? "bg-emerald-500 text-white border-emerald-600 scale-105 shadow-xs" : "bg-white hover:bg-neutral-100 text-transparent border-[#3A1412]/40"
+                                  )}
+                                  title={record.completed ? "Đánh dấu chưa hoàn thành" : "Đánh dấu hoàn thành"}
+                                >
+                                  <Check className="w-4 h-4 stroke-[3]" />
+                                </button>
+                              </td>
+
                               <td className="p-3 font-hand font-bold text-lg text-[#8A1E2B] whitespace-nowrap">
                                 <span className="bg-[#8A1E2B]/5 border border-[#8A1E2B]/15 px-2.5 py-1 rounded-lg">
                                   {record.category}
                                 </span>
                               </td>
-                              <td className="p-3 font-hand text-lg text-[#3A1412] font-semibold max-w-[200px] break-words">
-                                {record.content}
+
+                              <td className="p-3 font-hand text-lg text-[#3A1412] font-semibold max-w-[280px] break-words">
+                                <div className={cn("transition-all duration-300", record.completed ? "line-through text-neutral-400 font-normal" : "")}>
+                                  {record.content}
+                                </div>
+                                
+                                {/* Link Display */}
+                                {record.link && (
+                                  <div className="mt-2 flex items-center gap-1 font-sans text-[11px] text-blue-600 font-bold">
+                                    <Link2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                    <a 
+                                      href={record.link.startsWith("http") ? record.link : `https://${record.link}`} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="hover:underline hover:text-blue-800 break-all"
+                                      onClick={e => e.stopPropagation()}
+                                    >
+                                      {record.link}
+                                    </a>
+                                  </div>
+                                )}
+
+                                {/* Deadline Display */}
+                                {record.deadline && (
+                                  <div className="mt-1 flex items-center gap-1 font-sans text-[11px] text-rose-600 font-black">
+                                    <CalendarIcon className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                    <span>Hạn chót: {formatDateDot(record.deadline)}</span>
+                                  </div>
+                                )}
                               </td>
+
                               <td className="p-3">
                                 <div className="flex flex-wrap gap-1">
                                   {tagList.map((t, idx) => (
@@ -3060,17 +3148,20 @@ export function DigitalJournal({
                                   ))}
                                 </div>
                               </td>
+
                               <td className="p-3 font-mono font-bold text-[#3A1412]/60 text-[11px] whitespace-nowrap">
                                 {record.createdAt ? formatDateDot(record.createdAt) : formatDateDot(todayDateStr)}
                               </td>
+
+                              {/* REMOVE / DISCARD BUTTON */}
                               <td className="p-3 text-center whitespace-nowrap">
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteRecord(record.id)}
                                   className="text-[#8A1E2B] hover:text-red-700 p-1.5 hover:bg-red-50 rounded-lg transition-all"
-                                  title="Xóa dòng này"
+                                  title="Loại bỏ ghi chú này"
                                 >
-                                  <Trash2 className="w-4 h-4 stroke-[2.5]" />
+                                  <X className="w-4 h-4 stroke-[3]" />
                                 </button>
                               </td>
                             </tr>

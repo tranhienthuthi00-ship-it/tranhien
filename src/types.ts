@@ -218,6 +218,9 @@ export interface TaggedRecord {
   content: string;
   tag: string;
   createdAt: string;
+  link?: string;
+  deadline?: string;
+  completed?: boolean;
 }
 
 export interface IngestionHabit {
