@@ -192,7 +192,7 @@ svg.lucide, .hand-drawn-svg {
    ========================================================================== */
 .theme-minimal {
   font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-  background-color: #FAF9F6 !important; /* Elegant off-white background */
+  background-color: #F4F5F6 !important; /* Elegant very soft gray background */
   background-image: none !important; /* Remove sketchy background gradients */
   color: #2D2D2D !important;
 }
@@ -204,7 +204,7 @@ svg.lucide, .hand-drawn-svg {
 .theme-minimal h4,
 .theme-minimal h5,
 .theme-minimal h6,
-.theme-minimal .font-logo,
+.theme-minimal .font-logo:not(.keep-logo-style),
 .theme-minimal .font-hand,
 .theme-minimal .font-handwriting,
 .theme-minimal .font-caveat,
