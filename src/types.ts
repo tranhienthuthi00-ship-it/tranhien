@@ -219,3 +219,19 @@ export interface TaggedRecord {
   tag: string;
   createdAt: string;
 }
+
+export interface IngestionHabit {
+  id: string;
+  name: string;
+  category: string;
+  icon: string;
+  targetDays: number;
+  createdAt: number;
+  status: 'pending' | 'active' | 'formed';
+  activatedAt?: string; // YYYY-MM-DD
+  formedAt?: string; // YYYY-MM-DD
+  history: string[]; // dates of completion YYYY-MM-DD
+  streak: number;
+  maxStreak: number;
+}
+

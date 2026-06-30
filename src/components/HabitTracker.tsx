@@ -7,7 +7,7 @@ import {
   Play, RotateCcw, Volume2, Edit2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import type { Habit, TodayTask, LogEntry } from "../types";
+import type { Habit, TodayTask, LogEntry, IngestionHabit } from "../types";
 import { cn } from "../lib/utils";
 import { useFirebase } from "../context/FirebaseContext";
 import { useSyncedState } from "../lib/useSyncedState";
@@ -462,14 +462,222 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
   // --- States ---
   const { habits, setHabits } = useFirebase();
 
-  const [oneOffTasks, setOneOffTasks] = useSyncedState<TodayTask[]>("studyHub_oneOffTasks", []);
-
   // Today "YYYY-MM-DD"
   const getTodayStr = () => new Date().toISOString().split('T')[0];
   const [todayStr, setTodayStr] = useState(getTodayStr());
 
   // Navigation and date states
   const [selectedDate, setSelectedDate] = useState(getTodayStr());
+
+  const [oneOffTasks, setOneOffTasks] = useSyncedState<TodayTask[]>("studyHub_oneOffTasks", []);
+
+  // --- Habit Formation Ingestion States ---
+  const [activeSubTab, setActiveSubTab] = useSyncedState<"timeline" | "formation">("studyHub_habitTracker_activeSubTab", "timeline");
+  const [ingestionPool, setIngestionPool] = useSyncedState<IngestionHabit[]>("studyHub_habitIngestionPool", []);
+  const [lastIngestionDate, setLastIngestionDate] = useSyncedState<string>("studyHub_lastIngestionDate", "");
+
+  // Form states for adding to the ingestion pool
+  const [poolHabitName, setPoolHabitName] = useState("");
+  const [poolHabitCategory, setPoolHabitCategory] = useState("Sức khỏe 💪");
+  const [poolHabitIcon, setPoolHabitIcon] = useState("🌱");
+  const [poolHabitTargetDays, setPoolHabitTargetDays] = useState(21);
+
+  // Helper to calculate consecutive streaks and max streaks for ingestion habits
+  const calculateStreak = (dates: string[], todayStr: string) => {
+    if (!dates || dates.length === 0) return { current: 0, max: 0 };
+    
+    const uniqueDates = Array.from(new Set(dates)).sort();
+    
+    // Max streak
+    let max = 0;
+    let currentRun = 0;
+    let prevTime: number | null = null;
+    
+    for (const dStr of uniqueDates) {
+      const currTime = new Date(dStr + "T12:00:00").getTime();
+      if (prevTime === null) {
+        currentRun = 1;
+      } else {
+        const diffDays = Math.round((currTime - prevTime) / (24 * 60 * 60 * 1000));
+        if (diffDays === 1) {
+          currentRun += 1;
+        } else if (diffDays > 1) {
+          if (currentRun > max) max = currentRun;
+          currentRun = 1;
+        }
+      }
+      prevTime = currTime;
+    }
+    if (currentRun > max) max = currentRun;
+    
+    // Current streak
+    let current = 0;
+    let checkDate = new Date(todayStr + "T12:00:00");
+    
+    const checkStr = (d: Date) => {
+      return d.toISOString().split('T')[0];
+    };
+    
+    // Is today completed?
+    if (uniqueDates.includes(todayStr)) {
+      current = 1;
+      while (true) {
+        checkDate.setDate(checkDate.getDate() - 1);
+        const s = checkStr(checkDate);
+        if (uniqueDates.includes(s)) {
+          current += 1;
+        } else {
+          break;
+        }
+      }
+    } else {
+      // If today is not completed, check if yesterday was completed
+      checkDate.setDate(checkDate.getDate() - 1);
+      const s = checkStr(checkDate);
+      if (uniqueDates.includes(s)) {
+        current = 1;
+        while (true) {
+          checkDate.setDate(checkDate.getDate() - 1);
+          const sPrev = checkStr(checkDate);
+          if (uniqueDates.includes(sPrev)) {
+            current += 1;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+    
+    return { current, max: Math.max(max, current) };
+  };
+
+  const handleAddPoolHabit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!poolHabitName.trim()) return;
+    
+    const newPoolHabit: IngestionHabit = {
+      id: `pool-${Date.now()}`,
+      name: poolHabitName.trim(),
+      category: poolHabitCategory,
+      icon: poolHabitIcon,
+      targetDays: poolHabitTargetDays,
+      createdAt: Date.now(),
+      status: 'pending',
+      history: [],
+      streak: 0,
+      maxStreak: 0
+    };
+    
+    setIngestionPool([newPoolHabit, ...ingestionPool]);
+    setPoolHabitName("");
+    
+    playSound('complete');
+    try {
+      confetti({ particleCount: 30, spread: 40, colors: ["#4ade80", "#EFAEBB"] });
+    } catch(e){}
+  };
+
+  const handleManualIngestNext = () => {
+    const pendingIndex = ingestionPool.findIndex(h => h.status === 'pending');
+    if (pendingIndex === -1) {
+      alert("Hàng chờ thói quen của bạn đang trống! Hãy thêm thói quen mới ở form bên dưới nhé.");
+      return;
+    }
+    
+    const updatedPool = [...ingestionPool];
+    const selectedHabit = updatedPool[pendingIndex];
+    updatedPool[pendingIndex] = {
+      ...selectedHabit,
+      status: 'active',
+      activatedAt: todayStr,
+      history: []
+    };
+    setIngestionPool(updatedPool);
+    setLastIngestionDate(todayStr);
+    
+    playSound('celebration');
+    try {
+      confetti({ particleCount: 60, spread: 50, colors: ["#5C0612", "#EFAEBB", "#4ade80"] });
+    } catch (e) {}
+  };
+
+  const handleToggleIngestionDay = (habitId: string, dateStr: string) => {
+    const updatedPool = ingestionPool.map(h => {
+      if (h.id === habitId) {
+        let newHistory = [...h.history];
+        if (newHistory.includes(dateStr)) {
+          newHistory = newHistory.filter(d => d !== dateStr);
+        } else {
+          newHistory.push(dateStr);
+        }
+        
+        const { current, max } = calculateStreak(newHistory, todayStr);
+        
+        let newStatus = h.status;
+        let formedAt = h.formedAt;
+        if (newHistory.length >= h.targetDays) {
+          newStatus = 'formed';
+          formedAt = todayStr;
+          
+          playSound('celebration');
+          try {
+            confetti({ particleCount: 150, spread: 80, colors: ["#EFAEBB", "#5C0612", "#fbbf24", "#4ade80"] });
+          } catch(e){}
+          
+          setTimeout(() => {
+            alert(`🎉 CHÚC MỪNG CHIẾN THẮNG! 🎉\n\nBạn đã xuất sắc duy trì và hoàn thành rèn luyện thói quen:\n🌟 "${h.name}" (${h.category}) 🌟\n\nBạn đã kiên trì vượt qua cột mốc ${h.targetDays} ngày để chính thức hình thành thói quen này. Hãy tiếp tục duy trì lối sống lành mạnh nhé! 💖`);
+          }, 300);
+        }
+        
+        return {
+          ...h,
+          history: newHistory,
+          streak: current,
+          maxStreak: max,
+          status: newStatus,
+          formedAt
+        };
+      }
+      return h;
+    });
+    
+    setIngestionPool(updatedPool);
+    playSound('complete');
+  };
+
+  const handleDeleteIngestionHabit = (id: string) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa thói quen này khỏi danh sách không?")) {
+      setIngestionPool(ingestionPool.filter(h => h.id !== id));
+      playSound('complete');
+    }
+  };
+
+  // Automatic daily ingestion effect
+  useEffect(() => {
+    if (!todayStr) return;
+    if (lastIngestionDate !== todayStr) {
+      const pendingIndex = ingestionPool.findIndex(h => h.status === 'pending');
+      if (pendingIndex !== -1) {
+        const updatedPool = [...ingestionPool];
+        const selectedHabit = updatedPool[pendingIndex];
+        updatedPool[pendingIndex] = {
+          ...selectedHabit,
+          status: 'active',
+          activatedAt: todayStr,
+          history: []
+        };
+        setIngestionPool(updatedPool);
+        setLastIngestionDate(todayStr);
+        
+        playSound('celebration');
+        try {
+          confetti({ particleCount: 60, spread: 50, colors: ["#5C0612", "#EFAEBB", "#ED7CB8", "#4ade80"] });
+        } catch (e) {}
+        
+        alert(`🌱 NGÀY MỚI RÈN LUYỆN! Hệ thống đã tự động chọn thêm 1 thói quen mới từ danh sách chờ của bạn:\n\n👉 "${selectedHabit.name}" (${selectedHabit.category})\n\nHãy cùng nỗ lực thực hiện đều đặn mỗi ngày nhé! 💪✨`);
+      }
+    }
+  }, [todayStr, lastIngestionDate, ingestionPool, setIngestionPool, setLastIngestionDate]);
 
   // Form states for new habit (or editing habit)
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1387,8 +1595,40 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
         </div>
       </div>
 
-      {/* DETAILED LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* SUB-TABS NAVIGATION */}
+      <div className="flex items-center justify-center gap-4 bg-[#FCFAF5] p-3 border-2 border-ink rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,0.15)] max-w-2xl mx-auto select-none">
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("timeline")}
+          className={cn(
+            "flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300",
+            activeSubTab === "timeline" 
+              ? "bg-[#5C0612] text-white shadow-md scale-105" 
+              : "text-[#3A1412]/60 hover:text-[#5C0612] hover:bg-[#8A1E2B]/5"
+          )}
+        >
+          <Clock className="w-4 h-4" />
+          Lịch trình & Thói quen lặp lại
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("formation")}
+          className={cn(
+            "flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300",
+            activeSubTab === "formation" 
+              ? "bg-[#8A1E2B] text-white shadow-md scale-105" 
+              : "text-[#3A1412]/60 hover:text-[#5C0612] hover:bg-[#8A1E2B]/5"
+          )}
+        >
+          <Award className="w-4 h-4 text-amber-500" />
+          21 Ngày Kiến Tạo Thói Quen (Dashboard)
+        </button>
+      </div>
+
+      {activeSubTab === "timeline" ? (
+        <>
+          {/* DETAILED LAYOUT */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* LEFT COLUMN: SELECTED DATE SCHEDULE TIMELINE (8 columns) */}
         <div className="lg:col-span-7 space-y-6">
@@ -2288,6 +2528,474 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
           </div>
         )}
       </div>
+    </>
+  ) : (
+        <div className="space-y-8">
+          {/* BENTO STATS GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="bg-[#f0fdf4] border-2 border-ink p-4 rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,1)] text-left relative overflow-hidden">
+              <div className="absolute right-2 bottom-2 text-emerald-500/10"><CheckCircle className="w-16 h-16" /></div>
+              <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">Đang hoạt động</span>
+              <h3 className="text-3xl font-black font-mono text-ink mt-1">
+                {ingestionPool.filter(h => h.status === 'active').length}
+              </h3>
+              <p className="text-[10px] text-emerald-700/70 font-semibold mt-1">Thói quen đang rèn luyện</p>
+            </div>
+
+            <div className="bg-[#fffbeb] border-2 border-ink p-4 rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,1)] text-left relative overflow-hidden">
+              <div className="absolute right-2 bottom-2 text-amber-500/10"><Flame className="w-16 h-16" /></div>
+              <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">Trong hàng chờ</span>
+              <h3 className="text-3xl font-black font-mono text-ink mt-1">
+                {ingestionPool.filter(h => h.status === 'pending').length}
+              </h3>
+              <p className="text-[10px] text-amber-700/70 font-semibold mt-1">Thói quen chờ kích hoạt</p>
+            </div>
+
+            <div className="bg-[#eff6ff] border-2 border-ink p-4 rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,1)] text-left relative overflow-hidden">
+              <div className="absolute right-2 bottom-2 text-blue-500/10"><Award className="w-16 h-16" /></div>
+              <span className="text-[10px] font-black uppercase text-blue-800 tracking-wider">Đã thành công</span>
+              <h3 className="text-3xl font-black font-mono text-ink mt-1">
+                {ingestionPool.filter(h => h.status === 'formed').length}
+              </h3>
+              <p className="text-[10px] text-blue-700/70 font-semibold mt-1">Trở thành lối sống trọn vẹn</p>
+            </div>
+
+            <div className="bg-[#fff1f2] border-2 border-ink p-4 rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,1)] text-left relative overflow-hidden">
+              <div className="absolute right-2 bottom-2 text-rose-500/10"><Sparkles className="w-16 h-16" /></div>
+              <span className="text-[10px] font-black uppercase text-rose-800 tracking-wider">Tổng ngày rèn luyện</span>
+              <h3 className="text-3xl font-black font-mono text-ink mt-1">
+                {ingestionPool.reduce((sum, h) => sum + h.history.length, 0)}
+              </h3>
+              <p className="text-[10px] text-rose-700/70 font-semibold mt-1">Tổng số ngày hoàn thành tích lũy</p>
+            </div>
+          </div>
+
+          {/* MAIN LAYOUT FOR FORMATION */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* LEFT COLUMN: ACTIVE TRACKERS & HALL OF FAME (7 columns) */}
+            <div className="lg:col-span-7 space-y-8">
+              
+              {/* ACTIVE TRACKERS */}
+              <div className="sketch-border bg-white p-5 md:p-6 shadow-md border-b-4 border-r-4 border-ink">
+                <div className="border-b-2 border-dashed border-ink/10 pb-3 mb-6">
+                  <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-orange-500 animate-[bounce_1.5s_infinite]" />
+                    HÀNH TRÌNH RÈN LUYỆN ĐANG HOẠT ĐỘNG
+                  </h2>
+                  <p className="hand-text text-xs opacity-60">Thực hiện đều đặn mỗi ngày để xây dựng liên kết não bộ mới</p>
+                </div>
+
+                {ingestionPool.filter(h => h.status === 'active').length === 0 ? (
+                  <div className="text-center p-8 bg-[#FCFAF5] rounded-xl border-2 border-dashed border-ink/10">
+                    <p className="font-hand font-bold text-lg text-ink/50 italic">
+                      Hiện chưa có thói quen nào đang hoạt động rèn luyện.
+                    </p>
+                    <p className="text-xs text-ink/40 font-semibold mt-1">
+                      Hệ thống sẽ tự động chuyển thói quen từ hàng chờ sang đây mỗi ngày, hoặc bạn có thể nhấp kích hoạt ngay trong hàng chờ ở cột bên phải!
+                    </p>
+                    {ingestionPool.some(h => h.status === 'pending') && (
+                      <button
+                        type="button"
+                        onClick={handleManualIngestNext}
+                        className="mt-4 sketch-button bg-amber-400 font-bold px-4 py-2 hover:bg-amber-500 text-xs text-ink"
+                      >
+                        🚀 Kích hoạt ngay thói quen trong hàng chờ
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {ingestionPool.filter(h => h.status === 'active').map(h => {
+                      const isTodayDone = h.history.includes(todayStr);
+                      const progressPercent = Math.min(Math.round((h.history.length / h.targetDays) * 100), 100);
+                      
+                      return (
+                        <div key={h.id} className="p-5 border-2 border-ink rounded-2xl bg-[#FCFAF5] shadow-[4px_4px_0_rgba(0,0,0,0.15)] relative overflow-hidden">
+                          {/* Corner ribbon */}
+                          <div className="absolute top-0 right-0 bg-[#8A1E2B] text-white text-[9px] font-black px-3 py-1 uppercase rounded-bl-xl tracking-wider shadow-xs">
+                            {h.category}
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-ink/10 pb-3 mb-4">
+                            <div className="flex items-center gap-3">
+                              <span className="text-3xl shrink-0">{h.icon}</span>
+                              <div>
+                                <h3 className="text-lg font-black text-ink leading-tight flex items-center gap-2">
+                                  {h.name}
+                                </h3>
+                                <div className="text-[10px] text-ink/50 font-semibold uppercase mt-0.5 flex items-center gap-2">
+                                  <span>📅 Bắt đầu: {h.activatedAt}</span>
+                                  <span>•</span>
+                                  <span className="text-[#E07A5F]">Mục tiêu: {h.targetDays} ngày</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleIngestionDay(h.id, todayStr)}
+                              className={cn(
+                                "sketch-button font-black px-4 py-2.5 text-xs tracking-wider transition-all duration-300 flex items-center gap-1.5 shrink-0 shadow-sm",
+                                isTodayDone 
+                                  ? "bg-emerald-500 text-white hover:bg-emerald-600 scale-[1.02]" 
+                                  : "bg-white text-ink border-ink hover:bg-[#8A1E2B]/5"
+                              )}
+                            >
+                              {isTodayDone ? <CheckCircle className="w-4 h-4 fill-white text-emerald-500" /> : <Flame className="w-4 h-4 text-orange-500" />}
+                              {isTodayDone ? "Đã xong hôm nay" : "Hoàn thành hôm nay"}
+                            </button>
+                          </div>
+
+                          {/* Progress and Streaks row */}
+                          <div className="grid grid-cols-2 gap-4 bg-white p-3 border border-ink/15 rounded-xl mb-4">
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-ink/40 tracking-wider">Tiến trình:</span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="flex-1 bg-neutral-100 h-2.5 rounded-full border border-ink/10 overflow-hidden">
+                                  <div 
+                                    className="bg-emerald-500 h-full transition-all duration-500"
+                                    style={{ width: `${progressPercent}%` }}
+                                  />
+                                </div>
+                                <span className="font-mono font-black text-xs text-ink/80">{h.history.length}/{h.targetDays}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-around text-center border-l border-ink/10 pl-2">
+                              <div>
+                                <span className="text-[9px] uppercase font-bold text-ink/40 block leading-none">Chuỗi ngày (Streak)</span>
+                                <span className="text-base font-black font-mono text-rose-700 flex items-center gap-0.5 justify-center mt-1">
+                                  <Flame className="w-4 h-4 fill-rose-600 text-rose-600 shrink-0" />
+                                  {h.streak} ngày
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] uppercase font-bold text-ink/40 block leading-none">Kỷ lục dài nhất</span>
+                                <span className="text-base font-black font-mono text-amber-600 flex items-center gap-0.5 justify-center mt-1">
+                                  <Award className="w-4 h-4 text-amber-500 shrink-0" />
+                                  {h.maxStreak} ngày
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 21-Day visual dots progress map */}
+                          <div className="space-y-1.5">
+                            <span className="text-[10px] uppercase font-bold text-ink/40 tracking-wider block">Bản đồ kiến tạo thói quen (Mỗi nút đại diện cho 1 ngày hoàn thành):</span>
+                            <div className="flex flex-wrap gap-2 p-3 bg-white border border-ink/10 rounded-xl justify-start">
+                              {Array.from({ length: h.targetDays }).map((_, idx) => {
+                                const isDotDone = idx < h.history.length;
+                                return (
+                                  <div
+                                    key={idx}
+                                    className={cn(
+                                      "w-8 h-8 rounded-lg flex flex-col items-center justify-center text-[10px] font-mono font-black border transition-all shadow-xs relative",
+                                      isDotDone 
+                                        ? "bg-emerald-500 border-emerald-600 text-white font-black" 
+                                        : "bg-neutral-50 hover:bg-neutral-100 text-ink/30 border-ink/10"
+                                    )}
+                                    title={isDotDone ? "Ngày đã rèn luyện thành công!" : `Ngày thứ ${idx + 1}`}
+                                  >
+                                    <span>{idx + 1}</span>
+                                    {isDotDone && <Check className="w-2.5 h-2.5 stroke-[4] absolute bottom-0.5 right-0.5" />}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Delete option */}
+                          <div className="flex justify-end mt-3">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteIngestionHabit(h.id)}
+                              className="text-[#8A1E2B]/50 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-all text-[11px] font-bold flex items-center gap-1 uppercase"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Từ bỏ thói quen
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* HALL OF FAME: SUCCESSFULLY FORMED HABITS */}
+              <div className="sketch-border bg-white p-5 md:p-6 shadow-md border-b-4 border-r-4 border-ink">
+                <div className="border-b-2 border-dashed border-ink/10 pb-3 mb-6">
+                  <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2 text-amber-600">
+                    <Award className="w-5 h-5 text-amber-500 animate-[pulse_1.5s_infinite]" />
+                    🏆 BẢNG VÀNG DANH VỌNG: ĐÃ HÌNH THÀNH THÀNH CÔNG
+                  </h2>
+                  <p className="hand-text text-xs opacity-60">Chúc mừng! Nơi lưu giữ những thói quen tốt đã rèn luyện thành công.</p>
+                </div>
+
+                {ingestionPool.filter(h => h.status === 'formed').length === 0 ? (
+                  <div className="text-center p-8 bg-[#FCFAF5] rounded-xl border-2 border-dashed border-ink/10">
+                    <p className="font-hand font-bold text-lg text-ink/40 italic">
+                      Chưa có thói quen nào chính thức được hình thành.
+                    </p>
+                    <p className="text-xs text-ink/45 font-semibold mt-1">
+                      Hãy duy trì rèn luyện đủ số ngày mục tiêu của thói quen hoạt động để lưu danh tại đây nhé! 💪🏅
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {ingestionPool.filter(h => h.status === 'formed').map(h => (
+                      <div key={h.id} className="p-4 border-2 border-yellow-500 bg-[#fffbeb] rounded-xl shadow-[4px_4px_0_rgba(245,158,11,0.15)] relative overflow-hidden">
+                        <div className="absolute right-1 bottom-1 opacity-10">
+                          <Award className="w-20 h-20 text-yellow-600" />
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <span className="text-3xl">{h.icon}</span>
+                          <div>
+                            <h3 className="text-md font-black text-[#5C0612] leading-tight">{h.name}</h3>
+                            <span className="text-[9px] uppercase font-black text-amber-800 tracking-wider bg-amber-100 border border-amber-200 px-2 py-0.5 rounded mt-1.5 inline-block">
+                              Hoàn tất {h.targetDays} ngày
+                            </span>
+                            <div className="text-[10px] text-ink/60 font-semibold mt-1.5 space-y-0.5">
+                              <div>📂 Thể loại: {h.category}</div>
+                              <div>🏆 Kỷ lục chuỗi: 🔥 {h.maxStreak} ngày</div>
+                              <div>🌟 Hoàn thành vào: {h.formedAt}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* HABIT FORMATION GRAPHICS DASHBOARD */}
+              <div className="sketch-border bg-white p-5 md:p-6 shadow-md border-b-4 border-r-4 border-ink">
+                <div className="border-b-2 border-dashed border-ink/10 pb-3 mb-6">
+                  <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-indigo-600" />
+                    📊 BIỂU ĐỒ HOÀN THÀNH TÍCH LŨY
+                  </h2>
+                  <p className="hand-text text-xs opacity-60">Theo dõi tỉ lệ thực hiện của toàn bộ hành trình thói quen</p>
+                </div>
+
+                {ingestionPool.length === 0 ? (
+                  <div className="text-center p-8 text-neutral-400 font-hand text-lg italic">
+                    Chưa có dữ liệu thống kê thói quen rèn luyện.
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="h-[240px] w-full pt-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={ingestionPool.map(h => ({
+                            name: h.name,
+                            days: h.history.length,
+                            target: h.targetDays
+                          }))}
+                          margin={{ top: 20, right: 10, left: -25, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                          <XAxis dataKey="name" stroke="#3A1412" tick={{ fontSize: 9, fontWeight: 'bold' }} />
+                          <YAxis stroke="#3A1412" tick={{ fontSize: 9 }} />
+                          <RechartsTooltip />
+                          <Legend wrapperStyle={{ fontSize: 10, fontWeight: 'bold' }} />
+                          <Bar dataKey="days" fill="#8A1E2B" radius={[4, 4, 0, 0]} name="Ngày rèn luyện" />
+                          <Bar dataKey="target" fill="#d1d5db" radius={[4, 4, 0, 0]} name="Ngày mục tiêu" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* RIGHT COLUMN: INGESTION POOL INPUT & QUEUE LIST (5 columns) */}
+            <div className="lg:col-span-5 space-y-8">
+              
+              {/* THE QUEUE FORM */}
+              <div className="sketch-border bg-white p-5 md:p-6 shadow-md border-b-4 border-r-4 border-ink">
+                <div className="border-b-2 border-dashed border-ink/10 pb-3 mb-4">
+                  <h2 className="text-lg font-black uppercase tracking-tight flex items-center gap-1.5">
+                    <Plus className="w-5 h-5 text-crimson" />
+                    Ý TƯỞNG THÓI QUEN MUỐN HÌNH THÀNH
+                  </h2>
+                  <p className="hand-text text-xs opacity-60">Thêm thói quen mơ ước vào hàng đợi kiến tạo</p>
+                </div>
+
+                <form onSubmit={handleAddPoolHabit} className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black uppercase text-ink/65 tracking-wider">Tên thói quen mong ước</label>
+                    <input
+                      type="text"
+                      className="sketch-input w-full bg-[#fdfbf7] text-xs py-2 px-3 font-bold"
+                      value={poolHabitName}
+                      onChange={(e) => setPoolHabitName(e.target.value)}
+                      placeholder="Ví dụ: Thiền định buổi sáng, Chạy bộ 2km, Đọc sách 15p..."
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black uppercase text-ink/65 tracking-wider">Mục tiêu rèn luyện</label>
+                      <select
+                        className="sketch-input w-full bg-[#fdfbf7] text-xs py-2 px-3 font-bold"
+                        value={poolHabitTargetDays}
+                        onChange={(e) => setPoolHabitTargetDays(Number(e.target.value))}
+                      >
+                        <option value={21}>Quy tắc 21 Ngày 🌟</option>
+                        <option value={30}>Mốc rèn luyện 30 Ngày 🔥</option>
+                        <option value={66}>Chu kỳ thói quen 66 Ngày 🧠</option>
+                        <option value={100}>Thử thách 100 Ngày 🏆</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black uppercase text-ink/65 tracking-wider">Icon đại diện</label>
+                      <select
+                        className="sketch-input w-full bg-[#fdfbf7] text-xs py-2 px-3 font-bold"
+                        value={poolHabitIcon}
+                        onChange={(e) => setPoolHabitIcon(e.target.value)}
+                      >
+                        {["🌱", "🧘", "🥦", "🏃‍♂️", "📚", "💧", "🛌", "🍎", "🏋️‍♂️", "✍️", "💻", "🧠", "🚭", "🚶", "🗣️", "💖"].map(i => (
+                          <option key={i} value={i}>{i} Biểu tượng</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black uppercase text-ink/65 tracking-wider">Phân loại chuyên mục</label>
+                    <div className="flex flex-wrap gap-1">
+                      {["Sức khỏe 💪", "Học tập 📚", "Cá nhân 👤", "Tâm trí 🧠", "Tài chính 💰"].map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setPoolHabitCategory(cat)}
+                          className={cn(
+                            "text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-full border transition-all",
+                            poolHabitCategory === cat 
+                              ? "bg-[#8A1E2B] text-white border-[#8A1E2B] shadow-xs" 
+                              : "bg-neutral-50 text-ink/60 border-neutral-200 hover:bg-neutral-100"
+                          )}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-[#8A1E2B] hover:bg-[#5C0612] text-white font-hand font-black text-lg py-3 rounded-xl transition-all shadow-[4px_4px_0_rgba(138,30,43,0.15)] uppercase tracking-wider flex items-center justify-center gap-1.5"
+                  >
+                    <Plus className="w-5 h-5 stroke-[3]" /> Thêm vào bể thói quen
+                  </button>
+                </form>
+              </div>
+
+              {/* THE PENDING INGESTION QUEUE LIST */}
+              <div className="sketch-border bg-white p-5 md:p-6 shadow-md border-b-4 border-r-4 border-ink">
+                <div className="border-b-2 border-dashed border-ink/10 pb-3 mb-4 flex justify-between items-center">
+                  <div>
+                    <h2 className="text-lg font-black uppercase tracking-tight flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-emerald-600" />
+                      BỂ THÓI QUEN CHỜ KÍCH HOẠT
+                    </h2>
+                    <p className="hand-text text-xs opacity-60">Hàng đợi thói quen sẽ được kích hoạt mỗi ngày</p>
+                  </div>
+                </div>
+
+                {/* Prompt Card for automation rules */}
+                <div className="bg-[#fffbeb] p-3 border-2 border-dashed border-amber-300 rounded-xl text-xs font-semibold leading-relaxed mb-4 text-[#5C0612]/90">
+                  ⚡ <strong>Quy tắc tự động:</strong> Mỗi khi bước sang ngày mới, hệ thống sẽ <strong>tự động lấy thêm 1 thói quen mới</strong> từ bể hàng chờ dưới đây đưa vào hành trình rèn luyện hoạt động. 
+                  <div className="mt-2 flex justify-start">
+                    <button
+                      type="button"
+                      onClick={handleManualIngestNext}
+                      disabled={ingestionPool.filter(h => h.status === 'pending').length === 0}
+                      className="sketch-button bg-amber-400 hover:bg-amber-500 text-[10px] font-black px-3 py-1.5 text-ink disabled:opacity-40 disabled:hover:bg-amber-400"
+                    >
+                      🚀 Kích hoạt thủ công thói quen tiếp theo
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3.5 max-h-[380px] overflow-y-auto pr-1">
+                  {ingestionPool.filter(h => h.status === 'pending').length === 0 ? (
+                    <div className="text-center p-6 bg-[#FCFAF5] rounded-xl border border-dashed border-ink/10">
+                      <p className="font-hand font-bold text-base text-ink/40 italic">
+                        Bể thói quen chờ đang trống.
+                      </p>
+                      <p className="text-[10px] text-ink/40 mt-1">
+                        Hãy điền form phía trên để đưa các thói quen bạn muốn hình thành vào hàng đợi nhé!
+                      </p>
+                    </div>
+                  ) : (
+                    ingestionPool.filter(h => h.status === 'pending').map((h, index) => (
+                      <div key={h.id} className="flex items-center justify-between gap-3 p-3 bg-[#FCFAF5] border border-ink/10 rounded-xl hover:shadow-xs transition-shadow">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-2xl shrink-0">{h.icon}</span>
+                          <div className="min-w-0">
+                            <span className="text-xs font-black text-ink leading-tight block truncate">
+                              {h.name}
+                            </span>
+                            <span className="text-[9px] font-bold text-ink/50 uppercase tracking-wider block mt-0.5">
+                              {h.category} • {h.targetDays} Ngày • #{index + 1} Hàng đợi
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updatedPool: IngestionHabit[] = ingestionPool.map(item => {
+                                if (item.id === h.id) {
+                                  return { ...item, status: 'active' as const, activatedAt: todayStr };
+                                }
+                                return item;
+                              });
+                              setIngestionPool(updatedPool);
+                              playSound('celebration');
+                              try { confetti({ particleCount: 50, colors: ["#5C0612", "#4ade80"] }); } catch(e){}
+                            }}
+                            className="sketch-button bg-[#e8f0fe] hover:bg-emerald-500 hover:text-white px-2 py-1 text-[9px] font-black text-ink shadow-xs"
+                            title="Kích hoạt ngay lập tức"
+                          >
+                            🚀 Luyện ngay
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteIngestionHabit(h.id)}
+                            className="text-[#8A1E2B]/60 hover:text-red-700 p-1.5 hover:bg-red-50 rounded"
+                            title="Xóa khỏi hàng đợi"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* SCIENTIFIC ADVICE BLOCK */}
+              <div className="sketch-border bg-e8f0fe bg-[#e8f0fe] p-5 md:p-6 shadow-md border-b-4 border-r-4 border-ink text-left select-none relative overflow-hidden">
+                <div className="absolute right-2 bottom-2 text-[#3367d6]/10"><BookOpen className="w-16 h-16" /></div>
+                <h3 className="text-sm font-black uppercase text-[#3367d6] tracking-wider mb-2 flex items-center gap-1">
+                  💡 KHOA HỌC THÀNH THỨC THÓI QUEN
+                </h3>
+                <ul className="text-xs font-semibold leading-relaxed text-ink/80 space-y-2 list-disc list-inside">
+                  <li><strong>Quy tắc 21 ngày:</strong> 21 ngày là thời gian tối thiểu để não bộ làm quen với một tế bào liên kết thói quen mới, giúp giảm bớt sức kháng cự tinh thần.</li>
+                  <li><strong>Tính nhất quán quan trọng hơn cường độ:</strong> Thực hiện 5 phút mỗi ngày hiệu quả hơn là 1 tiếng nhưng ngắt quãng. Đừng để đứt chuỗi!</li>
+                  <li><strong>Tự động gối đầu:</strong> Việc mỗi ngày nạp thêm 1 thói quen từ bể mong ước giúp bạn dần nâng cấp phong cách sống mà không bị choáng ngợp bởi việc bắt đầu tất cả cùng một lúc.</li>
+                </ul>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FLOATING AND ABSOLUTE CHANGER ALARM REMINDER OVERLAY POPUP */}
       <AnimatePresence>
