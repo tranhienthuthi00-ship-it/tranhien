@@ -3465,7 +3465,7 @@ export function DigitalJournal({
             </div>
 
             {/* Note Tabs Manager */}
-            <div className="flex flex-wrap items-center gap-2 mb-4 border-b-2 border-[#3A1412]/10 pb-3">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               <span className="text-[10px] font-sans font-black text-[#3A1412]/50 uppercase tracking-widest mr-1">Danh sách ghi chú:</span>
               <div className="flex flex-wrap items-center gap-1.5 max-w-full">
                 {quickNotes.map((note) => {
@@ -3561,7 +3561,7 @@ export function DigitalJournal({
                 <button
                   type="button"
                   onClick={addNewNote}
-                  className="bg-emerald-50 hover:bg-emerald-100 border border-dashed border-emerald-500/30 text-emerald-700 font-hand font-bold text-xs px-3 py-1.5 rounded-xl transition-all shadow-xs flex items-center gap-1 active:translate-y-[1px]"
+                  className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-500/20 text-emerald-700 font-hand font-bold text-xs px-3 py-1.5 rounded-xl transition-all shadow-xs flex items-center gap-1 active:translate-y-[1px]"
                 >
                   ➕ Thêm ghi chú mới
                 </button>
@@ -3569,7 +3569,7 @@ export function DigitalJournal({
             </div>
 
             {/* Quick Action bar & font utilities */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 bg-[#8A1E2B]/5 border-2 border-dashed border-[#8A1E2B]/20 p-3 rounded-2xl">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 bg-[#8A1E2B]/5 border border-[#8A1E2B]/15 p-3 rounded-2xl">
               {/* Quick inserts (Chips) */}
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest mr-1">Chèn nhanh:</span>
@@ -3667,14 +3667,20 @@ export function DigitalJournal({
 
             {/* Notebook Lined Paper Textarea container */}
             <div className="border-[3px] border-[#3A1412] rounded-2xl bg-white shadow-inner relative overflow-hidden">
-              {/* Vertical red margin line of lined paper */}
-              <div className="absolute top-0 bottom-0 left-10 md:left-14 border-r-2 border-rose-300 pointer-events-none z-10" />
+              {/* Vertical red margin line of lined paper - only visible for lined paper */}
+              {(activeNote?.paperType === 'lined' || !activeNote?.paperType) && (
+                <div className="absolute top-0 bottom-0 left-10 md:left-14 border-r-2 border-rose-300 pointer-events-none z-10" />
+              )}
 
               <textarea
                 value={activeNote?.content || ""}
                 onChange={e => updateActiveNoteContent(e.target.value)}
                 placeholder="Gõ ghi chú tự do tại đây... Sổ tay này lưu tự động và không bị ảnh hưởng bởi bảng phân loại theo tag."
-                className={`w-full min-h-[300px] bg-transparent border-none outline-none font-hand font-bold py-6 pl-12 md:pl-16 pr-6 text-[#3A1412] resize-y leading-[32px] ${notepadFontSize}`}
+                className={cn(
+                  "w-full min-h-[300px] bg-transparent border-none outline-none focus:outline-none focus:ring-0 font-hand font-bold py-6 pr-6 text-[#3A1412] resize-y leading-[32px]",
+                  (activeNote?.paperType === 'lined' || !activeNote?.paperType) ? "pl-12 md:pl-16" : "pl-6 md:pl-8",
+                  notepadFontSize
+                )}
                 style={
                   (activeNote?.paperType === 'grid') ? {
                     backgroundImage: 'linear-gradient(rgba(58, 20, 18, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(58, 20, 18, 0.05) 1px, transparent 1px)',
