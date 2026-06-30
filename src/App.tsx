@@ -477,7 +477,7 @@ function AppContent() {
                   {tab === "Content" && <Lightbulb className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Assets" && <Wallet className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
                   {tab === "Lists" && "MỤC TIÊU & NHIỆM VỤ"}
-                  {tab === "Habits" && "THÓI QUEN & LỊCH TRÌNH"}
+                  {tab === "Habits" && "HÀNH TRÌNH GLOW UP"}
                   {tab === "Places" && "ĐỊA ĐIỂM & ĂN UỐNG"}
                   {tab === "Content" && "Ý TƯỞNG & SÁNG TẠO"}
                   {tab === "Assets" && "TÀI SẢN & TÀI CHÍNH"}

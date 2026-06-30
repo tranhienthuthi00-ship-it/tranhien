@@ -615,7 +615,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
         
         let newStatus = h.status;
         let formedAt = h.formedAt;
-        if (newHistory.length >= h.targetDays) {
+        if (h.targetDays !== 9999 && newHistory.length >= h.targetDays) {
           newStatus = 'formed';
           formedAt = todayStr;
           
@@ -1520,7 +1520,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
           <div className="bg-[#fbcfe8] rotate-2 px-6 py-2 border-2 border-ink shadow-sm rounded-md tracking-wider relative">
             <h1 className="text-3xl md:text-5xl font-logo font-black uppercase text-ink flex items-center justify-center gap-2">
               <Sparkles className="w-6 h-6 text-yellow-500 animate-[bounce_1.5s_infinite]" />
-              THÓI QUEN & LỊCH TRÌNH
+              HÀNH TRÌNH GLOW UP
             </h1>
           </div>
         </div>
@@ -2626,7 +2626,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                                 <div className="text-[10px] text-ink/50 font-semibold uppercase mt-0.5 flex items-center gap-2">
                                   <span>📅 Bắt đầu: {h.activatedAt}</span>
                                   <span>•</span>
-                                  <span className="text-[#E07A5F]">Mục tiêu: {h.targetDays} ngày</span>
+                                  <span className="text-[#E07A5F]">Mục tiêu: {h.targetDays === 9999 ? "Mãi mãi ♾️" : `${h.targetDays} ngày`}</span>
                                 </div>
                               </div>
                             </div>
@@ -2653,11 +2653,16 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                               <div className="flex items-center gap-2 mt-1">
                                 <div className="flex-1 bg-neutral-100 h-2.5 rounded-full border border-ink/10 overflow-hidden">
                                   <div 
-                                    className="bg-emerald-500 h-full transition-all duration-500"
-                                    style={{ width: `${progressPercent}%` }}
+                                    className={cn(
+                                      "h-full transition-all duration-500",
+                                      h.targetDays === 9999 ? "bg-amber-500 animate-pulse" : "bg-emerald-500"
+                                    )}
+                                    style={{ width: `${h.targetDays === 9999 ? 100 : progressPercent}%` }}
                                   />
                                 </div>
-                                <span className="font-mono font-black text-xs text-ink/80">{h.history.length}/{h.targetDays}</span>
+                                <span className="font-mono font-black text-xs text-ink/80 shrink-0">
+                                  {h.targetDays === 9999 ? `${h.history.length} ngày (Mãi mãi ♾️)` : `${h.history.length}/${h.targetDays}`}
+                                </span>
                               </div>
                             </div>
                             <div className="flex items-center justify-around text-center border-l border-ink/10 pl-2">
@@ -2682,8 +2687,10 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                           <div className="space-y-1.5">
                             <span className="text-[10px] uppercase font-bold text-ink/40 tracking-wider block">Bản đồ kiến tạo thói quen (Mỗi nút đại diện cho 1 ngày hoàn thành):</span>
                             <div className="flex flex-wrap gap-2 p-3 bg-white border border-ink/10 rounded-xl justify-start">
-                              {Array.from({ length: h.targetDays }).map((_, idx) => {
+                              {Array.from({ length: h.targetDays === 9999 ? Math.max(h.history.length + 5, 14) : h.targetDays }).map((_, idx) => {
                                 const isDotDone = idx < h.history.length;
+                                const totalDots = h.targetDays === 9999 ? Math.max(h.history.length + 5, 14) : h.targetDays;
+                                const isInfinityPlaceholder = h.targetDays === 9999 && idx === totalDots - 1;
                                 return (
                                   <div
                                     key={idx}
@@ -2691,11 +2698,11 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                                       "w-8 h-8 rounded-lg flex flex-col items-center justify-center text-[10px] font-mono font-black border transition-all shadow-xs relative",
                                       isDotDone 
                                         ? "bg-emerald-500 border-emerald-600 text-white font-black" 
-                                        : "bg-neutral-50 hover:bg-neutral-100 text-ink/30 border-ink/10"
+                                        : isInfinityPlaceholder ? "bg-amber-50 border-amber-200 text-amber-600 font-bold" : "bg-neutral-50 hover:bg-neutral-100 text-ink/30 border-ink/10"
                                     )}
-                                    title={isDotDone ? "Ngày đã rèn luyện thành công!" : `Ngày thứ ${idx + 1}`}
+                                    title={isInfinityPlaceholder ? "Mãi mãi vô tận!" : (isDotDone ? "Ngày đã rèn luyện thành công!" : `Ngày thứ ${idx + 1}`)}
                                   >
-                                    <span>{idx + 1}</span>
+                                    <span>{isInfinityPlaceholder ? "♾️" : idx + 1}</span>
                                     {isDotDone && <Check className="w-2.5 h-2.5 stroke-[4] absolute bottom-0.5 right-0.5" />}
                                   </div>
                                 );
@@ -2788,7 +2795,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                           data={ingestionPool.map(h => ({
                             name: h.name,
                             days: h.history.length,
-                            target: h.targetDays
+                            target: h.targetDays === 9999 ? Math.max(h.history.length + 5, 21) : h.targetDays
                           }))}
                           margin={{ top: 20, right: 10, left: -25, bottom: 5 }}
                         >
@@ -2846,6 +2853,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                         <option value={30}>Mốc rèn luyện 30 Ngày 🔥</option>
                         <option value={66}>Chu kỳ thói quen 66 Ngày 🧠</option>
                         <option value={100}>Thử thách 100 Ngày 🏆</option>
+                        <option value={9999}>Mãi mãi ♾️</option>
                       </select>
                     </div>
 
@@ -2940,7 +2948,7 @@ export function HabitTracker({ logs = [], setLogs }: HabitTrackerProps) {
                               {h.name}
                             </span>
                             <span className="text-[9px] font-bold text-ink/50 uppercase tracking-wider block mt-0.5">
-                              {h.category} • {h.targetDays} Ngày • #{index + 1} Hàng đợi
+                              {h.category} • {h.targetDays === 9999 ? "Mãi mãi ♾️" : `${h.targetDays} ngày`} • #{index + 1} Hàng đợi
                             </span>
                           </div>
                         </div>
