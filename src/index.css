@@ -146,8 +146,8 @@ body {
   border-radius: 3px;
 }
 
-svg.lucide, .hand-drawn-svg {
-  filter: url(#hand-drawn-filter);
+svg:not(.keep-logo-style), .hand-drawn-svg {
+  filter: url(#hand-drawn-filter) !important;
 }
 
 .perspective-1000 {
@@ -218,7 +218,7 @@ svg.lucide, .hand-drawn-svg {
 }
 
 /* Remove sketchy/handdrawn displace filter on SVGs in minimal theme */
-.theme-minimal svg.lucide,
+.theme-minimal svg,
 .theme-minimal .hand-drawn-svg {
   filter: none !important;
 }
