@@ -321,6 +321,7 @@ svg.lucide, .hand-drawn-svg {
   font-weight: 700 !important;
 }
 
+.theme-minimal .category-badge,
 .theme-minimal .tag-badge {
   color: #8A1E2B !important;
 }
@@ -329,6 +330,7 @@ svg.lucide, .hand-drawn-svg {
   display: none !important;
 }
 
+.theme-minimal .category-badge::before,
 .theme-minimal .tag-badge::before {
   content: "#" !important;
 }

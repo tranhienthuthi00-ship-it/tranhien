@@ -2507,7 +2507,7 @@ export function DigitalJournal({
                                                 </span>
                                                 
                                                 {/* Interactive priority & difficulty badges */}
-                                                <div className="hidden flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                                                <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
                                                   {/* Priority badge */}
                                                   {t.priority === 'High' ? (
                                                     <span onClick={() => handleCyclePriority(t.id)} title="Độ ưu tiên: Cao • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-red-100 text-red-700 border border-red-200 font-bold font-sans hover:bg-red-200 cursor-pointer select-none leading-none">🔴 Cao</span>
@@ -2629,7 +2629,7 @@ export function DigitalJournal({
                                               </span>
                                               
                                               {/* Interactive priority & difficulty badges */}
-                                              <div className="hidden flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                                              <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
                                                 {/* Priority badge */}
                                                 {t.priority === 'High' ? (
                                                   <span onClick={() => handleCyclePriority(t.id)} title="Độ ưu tiên: Cao • Nhấp để đổi" className="px-1.5 py-0.5 rounded text-[9px] bg-red-100 text-red-700 border border-red-200 font-bold font-sans hover:bg-red-200 cursor-pointer select-none leading-none">🔴 Cao</span>
@@ -3109,7 +3109,7 @@ export function DigitalJournal({
                                 </span>
                               </td>
 
-                              <td className="p-3 font-hand text-lg text-[#3A1412] font-semibold max-w-[280px] break-words">
+                              <td className="p-3 font-sans text-sm text-[#3A1412]/90 font-medium max-w-[280px] break-words">
                                 <div className={cn("transition-all duration-300", record.completed ? "line-through text-neutral-400 font-normal" : "")}>
                                   {record.content}
                                 </div>
@@ -3141,15 +3141,27 @@ export function DigitalJournal({
 
                               <td className="p-3">
                                 <div className="flex flex-wrap gap-1">
-                                  {tagList.map((t, idx) => (
-                                    <span key={idx} className="bg-pink-50 border border-pink-200 text-[#8A1E2B] text-[9px] font-sans font-black uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap shadow-xs tag-badge">
-                                      <span className="tag-icon-prefix">🏷️ </span>{t}
-                                    </span>
-                                  ))}
+                                  {tagList.map((t, idx) => {
+                                    const isUrgent = t.toLowerCase().includes("gấp");
+                                    return (
+                                      <span 
+                                        key={idx} 
+                                        className={cn(
+                                          "text-[9px] font-sans font-black uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap shadow-xs",
+                                          isUrgent 
+                                            ? "priority-high" 
+                                            : "bg-pink-50 border border-pink-200 text-[#8A1E2B] tag-badge"
+                                        )}
+                                      >
+                                        {!isUrgent && <span className="tag-icon-prefix">🏷️ </span>}
+                                        {t}
+                                      </span>
+                                    );
+                                  })}
                                 </div>
                               </td>
 
-                              <td className="p-3 font-mono font-bold text-[#3A1412]/60 text-[11px] whitespace-nowrap">
+                              <td className="p-3 font-sans font-normal text-[#3A1412]/50 text-[11px] whitespace-nowrap">
                                 {record.createdAt ? formatDateDot(record.createdAt) : formatDateDot(todayDateStr)}
                               </td>
 
