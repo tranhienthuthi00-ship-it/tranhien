@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useSyncedState } from "../lib/useSyncedState";
 import confetti from "canvas-confetti";
-import type { LogEntry, Task, Achievement, StudyGoal, FoodPlace, AssetCategory, Habit } from "../types";
+import type { LogEntry, Task, Achievement, StudyGoal, FoodPlace, AssetCategory, Habit, TaggedRecord } from "../types";
 import { 
   getDailyCompletionsForHabit, 
   getWeeklyCompletionsForHabit, 
@@ -567,6 +567,106 @@ export function DigitalJournal({
     });
     setIsEditingDailyChallenge(false);
   };
+
+  // Tagged Records states and handlers
+  const [newRecordCategory, setNewRecordCategory] = useState("Học tập 📚");
+  const [newRecordContent, setNewRecordContent] = useState("");
+  const [newRecordTag, setNewRecordTag] = useState("Quan trọng ⭐");
+  const [newRecordDate, setNewRecordDate] = useState(todayDateStr);
+  const [selectedFilterTag, setSelectedFilterTag] = useState("Tất cả");
+  const [selectedFilterCategory, setSelectedFilterCategory] = useState("Tất cả");
+  const [taggedTableSearch, setTaggedTableSearch] = useState("");
+
+  const taggedRecords = useMemo(() => {
+    return (kvStore?.taggedRecords || []) as TaggedRecord[];
+  }, [kvStore]);
+
+  useEffect(() => {
+    if (todayDateStr) {
+      setNewRecordDate(todayDateStr);
+    }
+  }, [todayDateStr]);
+
+  const handleAddRecord = () => {
+    if (!newRecordContent.trim()) return;
+    const newRecord: TaggedRecord = {
+      id: 'tr_' + Date.now(),
+      category: newRecordCategory.trim() || "Học tập 📚",
+      content: newRecordContent.trim(),
+      tag: newRecordTag.trim() || "Thường",
+      createdAt: newRecordDate || todayDateStr
+    };
+    
+    const updated = [newRecord, ...taggedRecords];
+    setKvStoreTarget('taggedRecords', updated);
+    setNewRecordContent("");
+    try {
+      confetti({
+        particleCount: 50,
+        spread: 40,
+        colors: ["#8A1E2B", "#FBCFE8", "#3A1412"],
+        origin: { y: 0.9 }
+      });
+    } catch (e) {}
+  };
+
+  const handleDeleteRecord = (id: string) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa dòng này không?")) {
+      const updated = taggedRecords.filter(r => r.id !== id);
+      setKvStoreTarget('taggedRecords', updated);
+    }
+  };
+
+  const allUniqueTags = useMemo(() => {
+    const tags = new Set<string>();
+    taggedRecords.forEach(r => {
+      if (r.tag) {
+        r.tag.split(',').forEach(t => {
+          const trimmed = t.trim();
+          if (trimmed) tags.add(trimmed);
+        });
+      }
+    });
+    return ["Tất cả", ...Array.from(tags)];
+  }, [taggedRecords]);
+
+  const allUniqueCategories = useMemo(() => {
+    const cats = new Set<string>();
+    taggedRecords.forEach(r => {
+      if (r.category) {
+        cats.add(r.category.trim());
+      }
+    });
+    return ["Tất cả", ...Array.from(cats)];
+  }, [taggedRecords]);
+
+  const filteredRecords = useMemo(() => {
+    return taggedRecords.filter(r => {
+      // Tag filter
+      let matchTag = true;
+      if (selectedFilterTag !== "Tất cả") {
+        const recordTags = r.tag ? r.tag.split(',').map(t => t.trim().toLowerCase()) : [];
+        matchTag = recordTags.includes(selectedFilterTag.toLowerCase());
+      }
+      
+      // Category filter
+      let matchCategory = true;
+      if (selectedFilterCategory !== "Tất cả") {
+        matchCategory = r.category && r.category.trim().toLowerCase() === selectedFilterCategory.toLowerCase();
+      }
+      
+      // Search text filter
+      let matchSearch = true;
+      if (taggedTableSearch.trim()) {
+        const q = taggedTableSearch.toLowerCase().trim();
+        matchSearch = (r.content && r.content.toLowerCase().includes(q)) || 
+                      (r.category && r.category.toLowerCase().includes(q)) || 
+                      (r.tag && r.tag.toLowerCase().includes(q));
+      }
+      
+      return matchTag && matchCategory && matchSearch;
+    });
+  }, [taggedRecords, selectedFilterTag, selectedFilterCategory, taggedTableSearch]);
 
   // Local helper states for Salary Planner inline adding
   const [newExpName, setNewExpName] = useState("");
@@ -2732,6 +2832,277 @@ export function DigitalJournal({
             
         </div>
         )}
+
+        {/* BẢNG GHI CHÚ PHÂN LOẠI THEO TAG */}
+        <div className="w-full max-w-5xl mx-auto pt-12 z-20">
+          <div className="bg-white rounded-3xl border-[3px] border-[#3A1412] p-6 md:p-8 shadow-[6px_6px_0_rgba(138,30,43,0.15)] relative overflow-hidden">
+            {/* Tape decoration on corners */}
+            <div className="absolute -top-3 -left-3 w-16 h-10 bg-amber-100/60 border-2 border-[#3A1412]/10 rotate-[-12deg] z-10" />
+            <div className="absolute -top-3 -right-3 w-16 h-10 bg-amber-100/60 border-2 border-[#3A1412]/10 rotate-[15deg] z-10" />
+
+            {/* Header section */}
+            <div className="border-b-4 border-[#3A1412] pb-4 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-hand font-black text-2xl md:text-3xl text-[#8A1E2B] tracking-wide uppercase flex items-center gap-2">
+                  <span>🏷️ BẢNG GHI CHÚ PHÂN LOẠI THEO TAG</span>
+                </h2>
+                <p className="text-xs text-[#3A1412]/60 font-sans font-bold uppercase mt-1">Lọc ghi chú và nhiệm vụ nhanh bằng các nhãn màu sắc</p>
+              </div>
+              
+              {/* Search Input inside Tagged Table */}
+              <div className="flex items-center bg-[#FCFAF5] border-2 border-[#3A1412] px-3 py-1.5 rounded-xl w-full md:max-w-xs">
+                <svg className="w-4 h-4 text-[#3A1412]/50 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input 
+                  type="text" 
+                  value={taggedTableSearch} 
+                  onChange={e => setTaggedTableSearch(e.target.value)} 
+                  placeholder="Tìm kiếm nhanh..." 
+                  className="bg-transparent border-none outline-none text-xs font-sans font-bold text-[#3A1412] placeholder-[#3A1412]/40 w-full"
+                />
+                {taggedTableSearch && (
+                  <button type="button" onClick={() => setTaggedTableSearch("")} className="hover:scale-110 ml-1">
+                    <X className="w-3.5 h-3.5 text-[#3A1412]/50" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
+              {/* LEFT COLUMN: Add Form */}
+              <div className="xl:col-span-1 border-b-2 xl:border-b-0 xl:border-r-2 border-dashed border-[#8A1E2B]/15 pb-6 xl:pb-0 xl:pr-6 space-y-5">
+                <h3 className="font-hand font-black text-lg text-[#3A1412] uppercase tracking-wide flex items-center gap-1.5 mb-1">
+                  📌 Thêm Ghi Chú Mới:
+                </h3>
+                
+                {/* Category Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest">
+                    📂 Mục / Chuyên đề:
+                  </label>
+                  <input 
+                    type="text" 
+                    value={newRecordCategory} 
+                    onChange={e => setNewRecordCategory(e.target.value)} 
+                    placeholder="Học tập, Công việc, Sức khỏe..." 
+                    className="w-full font-hand font-bold text-lg text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white transition-all shadow-xs"
+                  />
+                  {/* Category Quick Selector Chips */}
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {["Học tập 📚", "Công việc 💼", "Sức khỏe 💪", "Tài chính 💰", "Mua sắm 🛒", "Giải trí 🎮"].map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setNewRecordCategory(cat)}
+                        className={`text-[9px] font-sans font-black uppercase tracking-wider px-2 py-0.5 rounded-full border transition-all ${newRecordCategory === cat ? "bg-[#8A1E2B] text-white border-[#8A1E2B]" : "bg-neutral-50 hover:bg-neutral-100 text-[#3A1412]/60 border-neutral-200"}`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Content Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest">
+                    ✍️ Nội dung ghi chú:
+                  </label>
+                  <textarea 
+                    value={newRecordContent} 
+                    onChange={e => setNewRecordContent(e.target.value)} 
+                    placeholder="Nhập ghi chú hoặc công việc quan trọng..." 
+                    rows={3}
+                    className="w-full font-hand font-bold text-lg text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white resize-none transition-all shadow-xs"
+                  />
+                </div>
+
+                {/* Tag Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest">
+                    🏷️ Tag / Nhãn (ngăn cách bởi dấu phẩy):
+                  </label>
+                  <input 
+                    type="text" 
+                    value={newRecordTag} 
+                    onChange={e => setNewRecordTag(e.target.value)} 
+                    placeholder="Gấp, Quan trọng, Cá nhân..." 
+                    className="w-full font-hand font-bold text-lg text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white transition-all shadow-xs"
+                  />
+                  {/* Tag Quick Selector Chips */}
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {["Gấp 🚨", "Quan trọng ⭐", "Cá nhân 👤", "Hôm nay 📅", "Mục tiêu 🎯"].map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => {
+                          if (!newRecordTag.trim()) {
+                            setNewRecordTag(t);
+                          } else {
+                            const parts = newRecordTag.split(',').map(item => item.trim());
+                            if (!parts.includes(t)) {
+                              setNewRecordTag([...parts, t].join(', '));
+                            }
+                          }
+                        }}
+                        className="text-[9px] font-sans font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-neutral-50 hover:bg-neutral-100 text-[#3A1412]/60 border-neutral-200 transition-all"
+                      >
+                        +{t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Creation Date Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest">
+                    📅 Ngày tạo:
+                  </label>
+                  <input 
+                    type="date" 
+                    value={newRecordDate} 
+                    onChange={e => setNewRecordDate(e.target.value)} 
+                    className="w-full font-sans font-bold text-xs text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white transition-all shadow-xs"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddRecord}
+                  className="w-full bg-[#8A1E2B] hover:bg-[#5C0612] text-white font-hand font-black text-xl py-3 rounded-xl transition-all shadow-[4px_4px_0_rgba(138,30,43,0.15)] hover:translate-y-[-1px] active:translate-y-[1px] uppercase tracking-wider flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-5 h-5 stroke-[3]" /> Thêm Ghi Chú
+                </button>
+              </div>
+
+              {/* RIGHT COLUMN: Table View & Filters */}
+              <div className="xl:col-span-2 space-y-6">
+                
+                {/* Active Filters Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-neutral-50 p-4 rounded-2xl border-2 border-dashed border-[#8A1E2B]/10">
+                  {/* Filter by tags */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-sans font-black text-[#3A1412]/50 uppercase tracking-widest flex items-center gap-1">
+                      <Filter className="w-3.5 h-3.5 text-[#8A1E2B]" /> Lọc theo nhãn (Tag):
+                    </span>
+                    <div className="flex flex-wrap gap-1 max-h-[70px] overflow-y-auto pr-1">
+                      {allUniqueTags.map(tag => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => setSelectedFilterTag(tag)}
+                          className={`px-2 py-0.5 text-[10px] font-sans font-black uppercase tracking-wide rounded-full border transition-all cursor-pointer ${selectedFilterTag === tag ? "bg-[#8A1E2B] text-white border-[#8A1E2B] shadow-xs" : "bg-white hover:bg-neutral-100 text-[#8A1E2B] border-[#8A1E2B]/15"}`}
+                        >
+                          {tag === "Tất cả" ? "🌟 Tất cả nhãn" : `🏷️ ${tag}`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Filter by Categories */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-sans font-black text-[#3A1412]/50 uppercase tracking-widest flex items-center gap-1">
+                      📂 Lọc theo mục (Category):
+                    </span>
+                    <div className="flex flex-wrap gap-1 max-h-[70px] overflow-y-auto pr-1">
+                      {allUniqueCategories.map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setSelectedFilterCategory(cat)}
+                          className={`px-2 py-0.5 text-[10px] font-sans font-black uppercase tracking-wide rounded-full border transition-all cursor-pointer ${selectedFilterCategory === cat ? "bg-[#8A1E2B] text-white border-[#8A1E2B] shadow-xs" : "bg-white hover:bg-neutral-100 text-[#8A1E2B] border-[#8A1E2B]/15"}`}
+                        >
+                          {cat === "Tất cả" ? "📂 Tất cả mục" : cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main Table */}
+                <div className="overflow-x-auto border-2 border-[#3A1412] rounded-2xl bg-[#FCFAF5] shadow-[2px_2px_0_rgba(138,30,43,0.1)] max-h-[460px] overflow-y-auto custom-scrollbar">
+                  <table className="w-full text-left border-collapse font-sans text-xs">
+                    <thead>
+                      <tr className="bg-[#8A1E2B]/5 border-b-2 border-[#3A1412] text-[#3A1412]">
+                        <th className="p-3 font-black text-xs uppercase tracking-wider">Mục</th>
+                        <th className="p-3 font-black text-xs uppercase tracking-wider">Nội dung</th>
+                        <th className="p-3 font-black text-xs uppercase tracking-wider">Tag nhãn</th>
+                        <th className="p-3 font-black text-xs uppercase tracking-wider">Ngày tạo</th>
+                        <th className="p-3 font-black text-xs uppercase tracking-wider text-center">Xóa</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y border-[#3A1412]/10 divide-[#3A1412]/10">
+                      {filteredRecords.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center font-hand text-xl font-bold text-neutral-400 italic">
+                            Chưa có dòng ghi chú nào phù hợp bộ lọc. Hãy thêm một ghi chú mới nha!
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredRecords.map(record => {
+                          const tagList = record.tag ? record.tag.split(',').map(item => item.trim()).filter(Boolean) : [];
+                          return (
+                            <tr key={record.id} className="hover:bg-[#8A1E2B]/5 transition-colors">
+                              <td className="p-3 font-hand font-bold text-lg text-[#8A1E2B] whitespace-nowrap">
+                                <span className="bg-[#8A1E2B]/5 border border-[#8A1E2B]/15 px-2.5 py-1 rounded-lg">
+                                  {record.category}
+                                </span>
+                              </td>
+                              <td className="p-3 font-hand text-lg text-[#3A1412] font-semibold max-w-[200px] break-words">
+                                {record.content}
+                              </td>
+                              <td className="p-3">
+                                <div className="flex flex-wrap gap-1">
+                                  {tagList.map((t, idx) => (
+                                    <span key={idx} className="bg-pink-50 border border-pink-200 text-[#8A1E2B] text-[9px] font-sans font-black uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap shadow-xs">
+                                      🏷️ {t}
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="p-3 font-mono font-bold text-[#3A1412]/60 text-[11px] whitespace-nowrap">
+                                {record.createdAt ? formatDateDot(record.createdAt) : formatDateDot(todayDateStr)}
+                              </td>
+                              <td className="p-3 text-center whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRecord(record.id)}
+                                  className="text-[#8A1E2B] hover:text-red-700 p-1.5 hover:bg-red-50 rounded-lg transition-all"
+                                  title="Xóa dòng này"
+                                >
+                                  <Trash2 className="w-4 h-4 stroke-[2.5]" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Quick status line */}
+                <div className="flex justify-between items-center text-[10px] font-sans font-black text-[#3A1412]/40 uppercase tracking-widest px-2">
+                  <span>Hiển thị: {filteredRecords.length} / {taggedRecords.length} ghi chú</span>
+                  {taggedRecords.length > 0 && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ ghi chú trong bảng không?")) {
+                          setKvStoreTarget('taggedRecords', []);
+                        }
+                      }}
+                      className="hover:text-[#8A1E2B] transition-colors"
+                    >
+                      🗑️ Xóa tất cả
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* BOTTOM: BUCKET LIST */}
         <div className="pt-24 z-20 w-full max-w-5xl mx-auto">

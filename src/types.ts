@@ -211,3 +211,11 @@ export interface CardSpend {
   amount: string;
   notes: string;
 }
+
+export interface TaggedRecord {
+  id: string;
+  category: string;
+  content: string;
+  tag: string;
+  createdAt: string;
+}
