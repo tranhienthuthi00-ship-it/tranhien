@@ -34,12 +34,14 @@ export function Academy({
   words,
   setWords,
   tags,
-  setTags
+  setTags,
+  isSentencesMode = false
 }: {
   words: Word[];
   setWords: (words: Word[]) => void;
   tags: string[];
   setTags: (tags: string[]) => void;
+  isSentencesMode?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<'personal' | 'cefr'>('personal');
   
@@ -49,15 +51,18 @@ export function Academy({
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [onlyDueForReview, setOnlyDueForReview] = useState(false);
 
+  // Dynamic prefix for state persistence keys
+  const prefix = isSentencesMode ? "studyHub_sentences_" : "studyHub_academy_";
+
   // Form input state
-  const [editingWordId, setEditingWordId] = useSyncedState<string | null>("studyHub_academy_editingWordId", null);
-  const [vocab, setVocab] = useSyncedState<string>("studyHub_academy_vocab", "");
-  const [type, setType] = useSyncedState<string>("studyHub_academy_type", "noun");
-  const [ipa, setIpa] = useSyncedState<string>("studyHub_academy_ipa", "");
-  const [definition, setDefinition] = useSyncedState<string>("studyHub_academy_definition", "");
-  const [example, setExample] = useSyncedState<string>("studyHub_academy_example", "");
-  const [activeTags, setActiveTags] = useSyncedState<WordTag[]>("studyHub_academy_activeTags", []);
-  const [newTagInput, setNewTagInput] = useSyncedState<string>("studyHub_academy_newTagInput", "");
+  const [editingWordId, setEditingWordId] = useSyncedState<string | null>(prefix + "editingWordId", null);
+  const [vocab, setVocab] = useSyncedState<string>(prefix + "vocab", "");
+  const [type, setType] = useSyncedState<string>(prefix + "type", isSentencesMode ? "sentence" : "noun");
+  const [ipa, setIpa] = useSyncedState<string>(prefix + "ipa", "");
+  const [definition, setDefinition] = useSyncedState<string>(prefix + "definition", "");
+  const [example, setExample] = useSyncedState<string>(prefix + "example", "");
+  const [activeTags, setActiveTags] = useSyncedState<WordTag[]>(prefix + "activeTags", []);
+  const [newTagInput, setNewTagInput] = useSyncedState<string>(prefix + "newTagInput", "");
 
   // Local state for smooth typing without cursor jumps
   const [localVocab, setLocalVocab] = useState(vocab);
@@ -396,10 +401,18 @@ export function Academy({
     e.preventDefault();
     if (!typeInput.trim()) return;
 
-    const correctWord = learningList[learningIndex].vocabulary.toLowerCase().trim();
-    const userWord = typeInput.toLowerCase().trim();
+    const correctWord = learningList[learningIndex].vocabulary;
+    const userWord = typeInput;
 
-    const isMatch = correctWord === userWord;
+    const normalize = (str: string) => {
+      return str
+        .toLowerCase()
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"]/g, "") // strip punctuation
+        .replace(/\s+/g, " ") // normalize spacing
+        .trim();
+    };
+
+    const isMatch = normalize(correctWord) === normalize(userWord);
     setTypeIsCorrect(isMatch);
     setTypeShowFeedback(true);
   };
@@ -408,26 +421,28 @@ export function Academy({
     <div className="w-full max-w-[1440px] px-2 md:px-4 mx-auto pb-20">
       
       {/* SECTION NAV TABS */}
-      <div className="flex justify-center gap-4 md:gap-8 mb-8">
-        <button
-          onClick={() => setActiveTab('personal')}
-          className={cn(
-            "text-lg md:text-xl font-hand font-black transition-all pb-1 flex items-center gap-2 border-b-4 outline-none focus:outline-none focus:ring-0",
-            activeTab === 'personal' ? "opacity-100 border-[#8A1E2B] text-[#8A1E2B]" : "opacity-40 hover:opacity-70 border-transparent text-[#3A1412]"
-          )}
-        >
-          📖 Sổ Từ Cá Nhân
-        </button>
-        <button
-          onClick={() => setActiveTab('cefr')}
-          className={cn(
-            "text-lg md:text-xl font-hand font-black transition-all pb-1 flex items-center gap-2 border-b-4 outline-none focus:outline-none focus:ring-0",
-            activeTab === 'cefr' ? "opacity-100 border-[#8A1E2B] text-[#8A1E2B]" : "opacity-40 hover:opacity-70 border-transparent text-[#3A1412]"
-          )}
-        >
-          🎓 Thư Viện Từ CEFR
-        </button>
-      </div>
+      {!isSentencesMode && (
+        <div className="flex justify-center gap-4 md:gap-8 mb-8">
+          <button
+            onClick={() => setActiveTab('personal')}
+            className={cn(
+              "text-lg md:text-xl font-hand font-black transition-all pb-1 flex items-center gap-2 border-b-4 outline-none focus:outline-none focus:ring-0",
+              activeTab === 'personal' ? "opacity-100 border-[#8A1E2B] text-[#8A1E2B]" : "opacity-40 hover:opacity-70 border-transparent text-[#3A1412]"
+            )}
+          >
+            📖 Sổ Từ Cá Nhân
+          </button>
+          <button
+            onClick={() => setActiveTab('cefr')}
+            className={cn(
+              "text-lg md:text-xl font-hand font-black transition-all pb-1 flex items-center gap-2 border-b-4 outline-none focus:outline-none focus:ring-0",
+              activeTab === 'cefr' ? "opacity-100 border-[#8A1E2B] text-[#8A1E2B]" : "opacity-40 hover:opacity-70 border-transparent text-[#3A1412]"
+            )}
+          >
+            🎓 Thư Viện Từ CEFR
+          </button>
+        </div>
+      )}
 
       {activeTab === 'cefr' && (
         <div className="bg-white rounded-3xl border-[3px] border-[#3A1412] p-6 shadow-[6px_6px_0_rgba(138,30,43,0.15)]">
@@ -446,10 +461,12 @@ export function Academy({
             <div className="text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="space-y-2">
                 <h1 className="font-hand font-black text-2xl md:text-4xl text-[#8A1E2B] tracking-tight uppercase flex items-center justify-center md:justify-start gap-3">
-                  <span>📓 Sổ Tay Từ Vựng Tiếng Anh Chủ Động</span>
+                  <span>{isSentencesMode ? "📓 1000 writing sentences" : "📓 Sổ Tay Từ Vựng Tiếng Anh Chủ Động"}</span>
                 </h1>
                 <p className="text-sm text-[#3A1412]/80 font-sans font-bold max-w-2xl">
-                  Ghi chú các từ mới, cụm từ, hoặc mẫu câu học được hàng ngày. Lọc theo chủ đề hoặc mức độ và bấm nút <strong className="text-[#8A1E2B]">Học Ngay</strong> để bắt đầu ôn luyện Flashcard / Ghi nhớ siêu tốc!
+                  {isSentencesMode 
+                    ? "Tích lũy các mẫu câu giao tiếp hoặc câu luyện viết tiếng Anh hàng ngày. Lọc theo chủ đề hoặc nhãn nhãn và bấm nút Học Ngay để bắt đầu ôn luyện Flashcard / Ghi nhớ siêu tốc!"
+                    : "Ghi chú các từ mới, cụm từ, hoặc mẫu câu học được hàng ngày. Lọc theo chủ đề hoặc mức độ và bấm nút Học Ngay để bắt đầu ôn luyện Flashcard / Ghi nhớ siêu tốc!"}
                 </p>
               </div>
 
@@ -487,7 +504,9 @@ export function Academy({
               {/* LEFT COLUMN: Input Form */}
               <div id="english-log-form" className="xl:col-span-1 border-b-2 xl:border-b-0 xl:border-r-2 border-dashed border-[#8A1E2B]/15 pb-6 xl:pb-0 xl:pr-6 space-y-5">
                 <h3 className="font-hand font-black text-xl text-[#3A1412] uppercase tracking-wide flex items-center gap-2 mb-1">
-                  <span>{editingWordId ? "📝 Chỉnh Sửa Từ Vựng:" : "📌 Ghi Chú Từ Mới:"}</span>
+                  <span>{editingWordId 
+                    ? (isSentencesMode ? "📝 Chỉnh Sửa Câu Viết:" : "📝 Chỉnh Sửa Từ Vựng:") 
+                    : (isSentencesMode ? "📌 Ghi Chú Câu Mới:" : "📌 Ghi Chú Từ Mới:")}</span>
                 </h3>
 
                 <form onSubmit={handleSaveWord} className="space-y-4">
@@ -495,7 +514,7 @@ export function Academy({
                   {/* Word / Phrase / Sentence */}
                   <div className="space-y-1.5">
                     <label className="block text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest">
-                      💬 Từ vựng / Cụm từ / Câu mẫu * :
+                      💬 {isSentencesMode ? "Câu mẫu Tiếng Anh * :" : "Từ vựng / Cụm từ / Câu mẫu * :"}
                     </label>
                     <input 
                       type="text"
@@ -503,7 +522,7 @@ export function Academy({
                       ref={vocabInputRef}
                       value={localVocab}
                       onChange={e => setLocalVocab(e.target.value)}
-                      placeholder="Ví dụ: itinerary, break a leg..."
+                      placeholder={isSentencesMode ? "Ví dụ: I have a reservation under the name John." : "Ví dụ: itinerary, break a leg..."}
                       className="w-full font-hand font-bold text-lg text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white transition-all shadow-xs"
                     />
                   </div>
@@ -545,14 +564,14 @@ export function Academy({
                   {/* Definition / Vietnamese interpretation */}
                   <div className="space-y-1.5">
                     <label className="block text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest">
-                      ✍️ Nghĩa tiếng Việt / Định nghĩa * :
+                      ✍️ {isSentencesMode ? "Nghĩa tiếng Việt / Bản dịch * :" : "Nghĩa tiếng Việt / Định nghĩa * :"}
                     </label>
                     <textarea 
                       required
                       ref={definitionInputRef}
                       value={localDefinition}
                       onChange={e => setLocalDefinition(e.target.value)}
-                      placeholder="Nhập giải nghĩa hoặc bản dịch..."
+                      placeholder={isSentencesMode ? "Nhập giải nghĩa hoặc bản dịch câu tiếng Việt..." : "Nhập giải nghĩa hoặc bản dịch..."}
                       rows={2}
                       className="w-full font-sans font-semibold text-sm text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white resize-none transition-all shadow-xs"
                     />
@@ -561,13 +580,13 @@ export function Academy({
                   {/* Example sentence */}
                   <div className="space-y-1.5">
                     <label className="block text-[11px] font-sans font-black text-[#3A1412]/60 uppercase tracking-widest">
-                      📖 Ví dụ minh họa (Tiếng Anh):
+                      📖 {isSentencesMode ? "Ghi chú ngữ pháp / Ngữ cảnh:" : "Ví dụ minh họa (Tiếng Anh):"}
                     </label>
                     <textarea 
                       ref={exampleInputRef}
                       value={localExample}
                       onChange={e => setLocalExample(e.target.value)}
-                      placeholder="Ví dụ: We review the itinerary before the cruise departs."
+                      placeholder={isSentencesMode ? "Ví dụ: Dùng khi đặt phòng khách sạn, trang trọng lịch sự..." : "Ví dụ: We review the itinerary before the cruise departs."}
                       rows={2}
                       className="w-full font-hand font-bold text-lg text-[#8A1E2B] bg-[#FCFAF5] border-2 border-[#8A1E2B] rounded-xl px-3 py-2 outline-none focus:bg-white resize-none transition-all shadow-xs"
                     />
@@ -645,7 +664,9 @@ export function Academy({
                       className="w-full bg-[#8A1E2B] hover:bg-[#5C0612] text-white font-hand font-black text-xl py-3 rounded-xl transition-all shadow-[4px_4px_0_rgba(138,30,43,0.15)] hover:translate-y-[-1px] active:translate-y-[1px] uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {editingWordId ? <Check className="w-5 h-5 stroke-[3]" /> : <Plus className="w-5 h-5 stroke-[3]" />}
-                      {editingWordId ? "Cập Nhật Từ" : "Lưu Vào Sổ"}
+                      {editingWordId 
+                        ? (isSentencesMode ? "Cập Nhật Câu" : "Cập Nhật Từ") 
+                        : (isSentencesMode ? "Lưu Vào Sổ Câu" : "Lưu Vào Sổ")}
                     </button>
                     {editingWordId && (
                       <button
@@ -753,8 +774,8 @@ export function Academy({
                   >
                     <GraduationCap className="w-6 h-6 animate-bounce group-hover:scale-110 transition-transform" />
                     <div className="text-left">
-                      <div className="font-hand font-black text-xl md:text-2xl uppercase tracking-wider leading-none">📖 BẮT ĐẦU HỌC NGAY ({filteredWords.length} TỪ)</div>
-                      <div className="text-[10px] font-sans font-bold uppercase opacity-85 tracking-widest mt-1">Luyện flashcard và gõ ghi nhớ các từ đã lọc</div>
+                      <div className="font-hand font-black text-xl md:text-2xl uppercase tracking-wider leading-none">📖 BẮT ĐẦU HỌC NGAY ({filteredWords.length} {isSentencesMode ? "CÂU" : "TỪ"})</div>
+                      <div className="text-[10px] font-sans font-bold uppercase opacity-85 tracking-widest mt-1">{isSentencesMode ? "Luyện flashcard và gõ dịch ghi nhớ các câu đã lọc" : "Luyện flashcard và gõ ghi nhớ các từ đã lọc"}</div>
                     </div>
                   </button>
                 )}
@@ -766,10 +787,10 @@ export function Academy({
                       <thead>
                         <tr className="bg-[#8A1E2B]/5 border-b-2 border-[#3A1412] text-[#3A1412]">
                           <th className="p-3 font-sans font-black text-xs uppercase tracking-wider text-center w-12">Tick</th>
-                          <th className="p-3 font-sans font-black text-xs uppercase tracking-wider">Từ vựng & Loại</th>
-                          <th className="p-3 font-sans font-black text-xs uppercase tracking-wider">Phiên âm</th>
-                          <th className="p-3 font-sans font-black text-xs uppercase tracking-wider w-[28%]">Định nghĩa tiếng Việt</th>
-                          <th className="p-3 font-sans font-black text-xs uppercase tracking-wider w-[28%]">Ví dụ minh họa</th>
+                          <th className="p-3 font-sans font-black text-xs uppercase tracking-wider">{isSentencesMode ? "Câu Tiếng Anh" : "Từ vựng & Loại"}</th>
+                          <th className="p-3 font-sans font-black text-xs uppercase tracking-wider">{isSentencesMode ? "Phân loại" : "Phiên âm"}</th>
+                          <th className="p-3 font-sans font-black text-xs uppercase tracking-wider w-[28%]">{isSentencesMode ? "Bản dịch tiếng Việt" : "Định nghĩa tiếng Việt"}</th>
+                          <th className="p-3 font-sans font-black text-xs uppercase tracking-wider w-[28%]">{isSentencesMode ? "Ghi chú ngữ cảnh" : "Ví dụ minh họa"}</th>
                           <th className="p-3 font-sans font-black text-xs uppercase tracking-wider text-center w-24">Hành động</th>
                         </tr>
                       </thead>
@@ -777,7 +798,7 @@ export function Academy({
                         {filteredWords.length === 0 ? (
                           <tr>
                             <td colSpan={6} className="p-12 text-center font-hand text-xl font-bold text-neutral-400 italic">
-                              Chưa có từ vựng nào phù hợp bộ lọc của bạn. Hãy tạo mới nha!
+                              {isSentencesMode ? "Chưa có câu viết nào phù hợp bộ lọc của bạn. Hãy tạo mới nha!" : "Chưa có từ vựng nào phù hợp bộ lọc của bạn. Hãy tạo mới nha!"}
                             </td>
                           </tr>
                         ) : (
@@ -1019,7 +1040,9 @@ export function Academy({
                       /* WRITING TEST INTERACTIVE CANVAS */
                       <div className="w-full bg-white rounded-3xl border-[3px] border-[#3A1412] shadow-[6px_6px_0_#3A1412] p-6 space-y-5">
                         <div className="text-center space-y-1">
-                          <span className="text-[9px] font-sans font-black uppercase tracking-widest text-[#3A1412]/40 block">Dịch từ / Điền từ hoàn thành câu:</span>
+                          <span className="text-[9px] font-sans font-black uppercase tracking-widest text-[#3A1412]/40 block">
+                            {isSentencesMode ? "Dịch câu tiếng Việt sau sang tiếng Anh:" : "Dịch từ / Điền từ hoàn thành câu:"}
+                          </span>
                           <h4 className="font-sans font-black text-lg md:text-xl text-[#8A1E2B]">
                             {learningList[learningIndex].definition}
                           </h4>
@@ -1031,15 +1054,23 @@ export function Academy({
                         {/* Highlight Context Sentence with gap */}
                         <div className="bg-[#FFF9F0] border-2 border-dashed border-[#3A1412]/10 p-4 rounded-xl text-center">
                           <p className="font-hand font-bold text-xl text-[#3A1412]/80 leading-relaxed italic">
-                            {learningList[learningIndex].examples?.[0] ? (
-                              <>
-                                "{learningList[learningIndex].examples[0].replace(
-                                  new RegExp(learningList[learningIndex].vocabulary, 'gi'),
-                                  "________"
-                                )}"
-                              </>
+                            {isSentencesMode ? (
+                              learningList[learningIndex].examples?.[0] ? (
+                                <>Ghi chú câu: "{learningList[learningIndex].examples[0]}"</>
+                              ) : (
+                                "Hãy gõ bản dịch Tiếng Anh của câu trên thật chính xác!"
+                              )
                             ) : (
-                              "Chưa có câu mẫu ví dụ cho từ này. Hãy gõ từ chuẩn xác!"
+                              learningList[learningIndex].examples?.[0] ? (
+                                <>
+                                  "{learningList[learningIndex].examples[0].replace(
+                                    new RegExp(learningList[learningIndex].vocabulary, 'gi'),
+                                    "________"
+                                  )}"
+                                </>
+                              ) : (
+                                "Chưa có câu mẫu ví dụ cho từ này. Hãy gõ từ chuẩn xác!"
+                              )
                             )}
                           </p>
                         </div>
@@ -1051,7 +1082,7 @@ export function Academy({
                               type="text"
                               value={typeInput}
                               onChange={e => setTypeInput(e.target.value)}
-                              placeholder="Nhập từ vựng tiếng Anh chính xác..."
+                              placeholder={isSentencesMode ? "Nhập câu tiếng Anh chính xác..." : "Nhập từ vựng tiếng Anh chính xác..."}
                               className="flex-1 font-sans font-bold text-sm bg-[#FCFAF5] border-2 border-[#3A1412] rounded-xl px-4 py-2.5 outline-none focus:bg-white transition-all shadow-inner"
                               disabled={typeShowFeedback}
                               autoFocus
@@ -1179,10 +1210,10 @@ export function Academy({
                     <CheckCircle className="w-10 h-10 text-emerald-600" />
                   </div>
 
-                  <div className="space-y-2">
+                   <div className="space-y-2">
                     <h2 className="font-hand font-black text-3xl md:text-4xl text-[#8A1E2B] uppercase">XUẤT SẮC HOÀN THÀNH!</h2>
                     <p className="font-hand font-bold text-xl text-[#3A1412]/80">
-                      Bạn đã hoàn thành ôn tập toàn bộ <span className="text-[#8A1E2B] font-extrabold font-mono text-2xl">{learningCompletedCount}</span> từ vựng đã chọn!
+                      Bạn đã hoàn thành ôn tập toàn bộ <span className="text-[#8A1E2B] font-extrabold font-mono text-2xl">{learningCompletedCount}</span> {isSentencesMode ? "câu viết" : "từ vựng"} đã chọn!
                     </p>
                     <p className="text-xs text-[#3A1412]/50 font-sans font-bold uppercase tracking-wider pt-1">Lịch ôn tập thông minh đã được tính toán tự động lưu trữ</p>
                   </div>
@@ -1191,7 +1222,11 @@ export function Academy({
                   <div className="bg-amber-50 border-2 border-dashed border-amber-300 p-4 rounded-2xl max-w-sm mx-auto shadow-xs text-center space-y-1">
                     <Award className="w-8 h-8 text-amber-500 mx-auto" />
                     <p className="font-sans font-black text-xs text-[#3A1412] uppercase tracking-wider">Kỷ lục gia thông thái</p>
-                    <p className="font-hand text-base text-[#3A1412]/70">"Kiên trì tích lũy từng từ vựng mỗi ngày là chiếc chìa khóa mở cánh cửa tri thức vươn ra thế giới."</p>
+                    <p className="font-hand text-base text-[#3A1412]/70">
+                      {isSentencesMode 
+                        ? '"Kiên trì học và luyện viết mỗi ngày là nền tảng vững chắc để làm chủ tiếng Anh một cách tự nhiên nhất."'
+                        : '"Kiên trì tích lũy từng từ vựng mỗi ngày là chiếc chìa khóa mở cánh cửa tri thức vươn ra thế giới."'}
+                    </p>
                   </div>
 
                   <button
@@ -1199,7 +1234,7 @@ export function Academy({
                     onClick={() => setIsLearningActive(false)}
                     className="bg-[#3A1412] hover:bg-[#5C0612] text-white font-sans font-black text-sm uppercase tracking-wider px-8 py-3 rounded-xl transition-all shadow-[4px_4px_0_rgba(138,30,43,0.15)] cursor-pointer"
                   >
-                    Quay về Sổ Tay Từ Vựng
+                    {isSentencesMode ? "Quay về Sổ Tay Luyện Viết" : "Quay về Sổ Tay Từ Vựng"}
                   </button>
                 </div>
               )}

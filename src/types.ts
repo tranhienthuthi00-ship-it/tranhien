@@ -13,6 +13,8 @@ export interface Word {
   nextReview: string; // ISO date
 }
 
+export type WritingSentence = Word;
+
 export interface Task {
   id: string;
   content: string;

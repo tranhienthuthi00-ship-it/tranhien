@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory, VideoDictation, CustomSentence, PracticeParagraph, StudyGoal, Achievement } from '../types';
+import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory, VideoDictation, CustomSentence, PracticeParagraph, StudyGoal, Achievement, WritingSentence } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -82,6 +82,7 @@ export function useFirebaseSync() {
 
   // States
   const [words, setWords] = useState<Word[]>([]);
+  const [writingSentences, setWritingSentences] = useState<WritingSentence[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -288,6 +289,9 @@ export function useFirebaseSync() {
     const unsubWords = onSnapshot(collection(db, `users/${user.uid}/words`), (snap) => {
       setWords(snap.docs.map(d => d.data() as Word));
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/words`));
+    const unsubWritingSentences = onSnapshot(collection(db, `users/${user.uid}/writingSentences`), (snap) => {
+      setWritingSentences(snap.docs.map(d => d.data() as WritingSentence));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/writingSentences`));
     const unsubTasks = onSnapshot(collection(db, `users/${user.uid}/tasks`), (snap) => {
       setTasks(snap.docs.map(d => d.data() as Task));
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/tasks`));
@@ -396,7 +400,7 @@ export function useFirebaseSync() {
 
     return () => {
       clearTimeout(timer);
-      unsubWords(); unsubTasks(); unsubWishlist(); unsubLogs(); unsubFood();
+      unsubWords(); unsubWritingSentences(); unsubTasks(); unsubWishlist(); unsubLogs(); unsubFood();
       unsubIdeas(); unsubAssets(); unsubCats(); unsubDictations(); unsubCustomSentences(); 
       unsubPracticeParagraphs(); unsubStudyGoals(); unsubAchievements(); unsubTags();
       unsubSalary(); unsubHabits(); unsubRewards(); unsubAssetsBulk();
@@ -405,6 +409,7 @@ export function useFirebaseSync() {
 
   // Refs for sync closures
   const wordsRef = React.useRef(words);
+  const writingSentencesRef = React.useRef(writingSentences);
   const tasksRef = React.useRef(tasks);
   const wishlistRef = React.useRef(wishlist);
   const logsRef = React.useRef(logs);
@@ -426,6 +431,7 @@ export function useFirebaseSync() {
   const bulkCurrentCashRef = React.useRef(bulkCurrentCash);
 
   useEffect(() => { wordsRef.current = words; }, [words]);
+  useEffect(() => { writingSentencesRef.current = writingSentences; }, [writingSentences]);
   useEffect(() => { habitsRef.current = habits; }, [habits]);
   useEffect(() => { customRewardsRef.current = customRewards; }, [customRewards]);
   useEffect(() => { salaryInputRef.current = salaryInput; }, [salaryInput]);
@@ -530,6 +536,7 @@ export function useFirebaseSync() {
   return {
     user, loading,
     words, setWords: createSyncSetter<Word>('words', wordsRef, setWords),
+    writingSentences, setWritingSentences: createSyncSetter<WritingSentence>('writingSentences', writingSentencesRef, setWritingSentences),
     tasks, setTasks: createSyncSetter<Task>('tasks', tasksRef, setTasks),
     wishlist, setWishlist: createSyncSetter<WishlistItem>('wishlistItems', wishlistRef, setWishlist),
     logs, setLogs: createSyncSetter<LogEntry>('logEntries', logsRef, setLogs),

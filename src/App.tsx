@@ -28,6 +28,7 @@ function AppContent() {
   const {
     user, loading,
     words, setWords,
+    writingSentences, setWritingSentences,
     tasks, setTasks,
     wishlist, setWishlist,
     logs, setLogs,
@@ -304,7 +305,7 @@ function AppContent() {
 
   const [activeTab, setActiveTab] = useState<Tab>("Journal");
   const [collectionSearchQuery, setCollectionSearchQuery] = useState("");
-  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
+  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "1000 Sentences" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
   const [activePracticeSubTab, setActivePracticeSubTab] = useState<"Dictation" | "Speech" | "Translation" | "Reflex" | "SRS">("Dictation");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Habits" | "Places" | "Content" | "Assets">("Lists");
 
@@ -405,14 +406,14 @@ function AppContent() {
                     </h3>
                   </div>
 
-                  <div className="flex bg-amber-100/50 p-1 rounded-xl">
-                    {(["Từ Vựng", "Luyện Tập", "Trò Chơi"] as const).map(tab => (
+                  <div className="flex flex-wrap gap-1 bg-amber-100/50 p-1 rounded-xl justify-center">
+                    {(["Từ Vựng", "1000 Sentences", "Luyện Tập", "Trò Chơi"] as const).map(tab => (
                       <button
                         key={tab}
                         onClick={() => setActiveEnglishSubTab(tab)}
                         className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300 outline-none focus:outline-none focus:ring-0 ${activeEnglishSubTab === tab ? "bg-amber-500 text-white shadow-sm" : "text-amber-800/60 hover:text-amber-700 hover:bg-amber-100"}`}
                       >
-                        {tab}
+                        {tab === "1000 Sentences" ? "1000 Writing Sentences" : tab}
                       </button>
                     ))}
                   </div>
@@ -443,6 +444,7 @@ function AppContent() {
 
               <div className="w-full px-2 md:px-6">
               {activeEnglishSubTab === "Từ Vựng" && <Academy words={words} setWords={setWords} tags={tags} setTags={setTags} />}
+              {activeEnglishSubTab === "1000 Sentences" && <Academy words={writingSentences as any} setWords={setWritingSentences as any} tags={tags} setTags={setTags} isSentencesMode={true} />}
               {activeEnglishSubTab === "Trò Chơi" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={(val) => {
                 if(val === "Academy") setActiveEnglishSubTab("Từ Vựng");
                 else { setActiveEnglishSubTab("Luyện Tập"); setActivePracticeSubTab(val as any); }

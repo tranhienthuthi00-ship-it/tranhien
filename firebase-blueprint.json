@@ -210,9 +210,31 @@
         "goalId": { "type": "string" }
       },
       "required": ["id", "title", "description", "unlockedAt"]
+    },
+    "WritingSentence": {
+      "title": "WritingSentence",
+      "description": "A sentence entry for the 1000 writing sentences notebook.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "vocabulary": { "type": "string" },
+        "wordType": { "type": "string" },
+        "ipa": { "type": "string" },
+        "definition": { "type": "string" },
+        "examples": { "type": "array", "items": { "type": "string" } },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "difficulty": { "type": "number" },
+        "lastReviewed": { "type": "string", "description": "ISO date" },
+        "nextReview": { "type": "string", "description": "ISO date" }
+      },
+      "required": ["id", "vocabulary", "wordType", "definition", "examples", "tags", "difficulty", "lastReviewed", "nextReview"]
     }
   },
   "firestore": {
+    "users/{userId}/writingSentences/{sentenceId}": {
+      "schema": { "$ref": "#/entities/WritingSentence" },
+      "description": "Sentences in the 1000 writing sentences list."
+    },
     "users/{userId}/studyGoals/{goalId}": {
       "schema": { "$ref": "#/entities/StudyGoal" },
       "description": "Study goals."
