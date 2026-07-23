@@ -76,31 +76,41 @@ const safeLocalStorage = {
   }
 };
 
+const getLocalData = <T,>(key: string, defaultValue: T): T => {
+  try {
+    const saved = safeLocalStorage.getItem(key);
+    return saved ? JSON.parse(saved) : defaultValue;
+  } catch (e) {
+    return defaultValue;
+  }
+};
+
 export function useFirebaseSync() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   // States
-  const [words, setWords] = useState<Word[]>([]);
-  const [writingSentences, setWritingSentences] = useState<WritingSentence[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [foodPlaces, setFoodPlaces] = useState<FoodPlace[]>([]);
-  const [tags, setTags] = useState<string[]>(['Tourism', 'Hospitality', 'Cruise Industry']);
-  const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>([]);
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [dictations, setDictations] = useState<VideoDictation[]>([]);
-  const [customSentences, setCustomSentences] = useState<CustomSentence[]>([]);
-  const [practiceParagraphs, setPracticeParagraphs] = useState<PracticeParagraph[]>([]);
-  const [studyGoals, setStudyGoals] = useState<StudyGoal[]>([]);
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [assetCategories, setAssetCategories] = useState<AssetCategory[]>([
+  const [words, setWords] = useState<Word[]>(() => getLocalData('spatial_hub_words', []));
+  const [writingSentences, setWritingSentences] = useState<WritingSentence[]>(() => getLocalData('spatial_hub_writingSentences', []));
+  const [tasks, setTasks] = useState<Task[]>(() => getLocalData('spatial_hub_tasks', []));
+  const [wishlist, setWishlist] = useState<WishlistItem[]>(() => getLocalData('spatial_hub_wishlist', []));
+  const [logs, setLogs] = useState<LogEntry[]>(() => getLocalData('spatial_hub_logs', []));
+  const [foodPlaces, setFoodPlaces] = useState<FoodPlace[]>(() => getLocalData('spatial_hub_places', []));
+  const [tags, setTags] = useState<string[]>(() => getLocalData('spatial_hub_tags', ['Tourism', 'Hospitality', 'Cruise Industry']));
+  const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>(() => getLocalData('spatial_hub_content_ideas', []));
+  const [assets, setAssets] = useState<Asset[]>(() => getLocalData('spatial_hub_assets', []));
+  const [dictations, setDictations] = useState<VideoDictation[]>(() => getLocalData('spatial_hub_dictations', []));
+  const [customSentences, setCustomSentences] = useState<CustomSentence[]>(() => getLocalData('spatial_hub_custom_sentences', []));
+  const [practiceParagraphs, setPracticeParagraphs] = useState<PracticeParagraph[]>(() => getLocalData('spatial_hub_practice_paragraphs', []));
+  const [studyGoals, setStudyGoals] = useState<StudyGoal[]>(() => getLocalData('spatial_hub_study_goals', []));
+  const [achievements, setAchievements] = useState<Achievement[]>(() => getLocalData('spatial_hub_achievements', []));
+  const [kanbanTasks, setKanbanTasks] = useState<KanbanTask[]>(() => getLocalData('spatial_hub_kanban_tasks', []));
+  const [assetCategories, setAssetCategories] = useState<AssetCategory[]>(() => getLocalData('spatial_hub_asset_cats', [
     { id: 'cat-money', name: 'Tiền mặt & NH', icon: 'Wallet' },
     { id: 'cat-realestate', name: 'Bất động sản', icon: 'Home' },
     { id: 'cat-vehicles', name: 'Xe cộ', icon: 'Car' },
     { id: 'cat-tech', name: 'Công nghệ', icon: 'Laptop' }
-  ]);
+  ]));
 
   // Sync state for Salary Planner
   const [salaryInput, setSalaryInput] = useState<string>(() => {
@@ -244,6 +254,7 @@ export function useFirebaseSync() {
         'spatial_hub_custom_sentences': `users/${uid}/customSentences`,
         'spatial_hub_study_goals': `users/${uid}/studyGoals`,
         'spatial_hub_achievements': `users/${uid}/achievements`,
+        'spatial_hub_kanban_tasks': `users/${uid}/kanbanTasks`,
       };
 
       for (const [lsKey, firestorePath] of Object.entries(storageMap)) {
@@ -329,6 +340,9 @@ export function useFirebaseSync() {
     const unsubAchievements = onSnapshot(collection(db, `users/${user.uid}/achievements`), (snap) => {
       setAchievements(snap.docs.map(d => d.data() as Achievement).sort((a,b) => b.unlockedAt - a.unlockedAt));
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/achievements`));
+    const unsubKanbanTasks = onSnapshot(collection(db, `users/${user.uid}/kanbanTasks`), (snap) => {
+      setKanbanTasks(snap.docs.map(d => d.data() as KanbanTask));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/kanbanTasks`));
     const unsubTags = onSnapshot(doc(db, `users/${user.uid}/data/tags`), (docSnap) => {
       if (docSnap.exists() && docSnap.data().tags) {
         setTags(docSnap.data().tags);
@@ -402,7 +416,7 @@ export function useFirebaseSync() {
       clearTimeout(timer);
       unsubWords(); unsubWritingSentences(); unsubTasks(); unsubWishlist(); unsubLogs(); unsubFood();
       unsubIdeas(); unsubAssets(); unsubCats(); unsubDictations(); unsubCustomSentences(); 
-      unsubPracticeParagraphs(); unsubStudyGoals(); unsubAchievements(); unsubTags();
+      unsubPracticeParagraphs(); unsubStudyGoals(); unsubAchievements(); unsubKanbanTasks(); unsubTags();
       unsubSalary(); unsubHabits(); unsubRewards(); unsubAssetsBulk();
     };
   }, [user]);
@@ -422,6 +436,7 @@ export function useFirebaseSync() {
   const paragraphsRef = React.useRef(practiceParagraphs);
   const goalsRef = React.useRef(studyGoals);
   const achievementsRef = React.useRef(achievements);
+  const kanbanTasksRef = React.useRef(kanbanTasks);
   const habitsRef = React.useRef(habits);
   const customRewardsRef = React.useRef(customRewards);
   const salaryInputRef = React.useRef(salaryInput);
@@ -432,6 +447,7 @@ export function useFirebaseSync() {
 
   useEffect(() => { wordsRef.current = words; }, [words]);
   useEffect(() => { writingSentencesRef.current = writingSentences; }, [writingSentences]);
+  useEffect(() => { kanbanTasksRef.current = kanbanTasks; }, [kanbanTasks]);
   useEffect(() => { habitsRef.current = habits; }, [habits]);
   useEffect(() => { customRewardsRef.current = customRewards; }, [customRewards]);
   useEffect(() => { salaryInputRef.current = salaryInput; }, [salaryInput]);
@@ -479,8 +495,6 @@ export function useFirebaseSync() {
     isSingleDoc: boolean = false
   ) => {
     return async (newItems: T[] | string[] | ((prev: T[]) => T[])) => {
-      if (!user) return;
-
       const currentItems = itemsRef.current;
       let targetItems: T[];
 
@@ -494,6 +508,29 @@ export function useFirebaseSync() {
       if (!isSingleDoc) {
         setLocalState(targetItems);
       }
+
+      // Local storage sync mapping
+      let lsKey = collectionName;
+      if (collectionName === 'words') lsKey = 'spatial_hub_words';
+      else if (collectionName === 'writingSentences') lsKey = 'spatial_hub_writingSentences';
+      else if (collectionName === 'tasks') lsKey = 'spatial_hub_tasks';
+      else if (collectionName === 'wishlistItems') lsKey = 'spatial_hub_wishlist';
+      else if (collectionName === 'logEntries') lsKey = 'spatial_hub_logs';
+      else if (collectionName === 'foodPlaces') lsKey = 'spatial_hub_places';
+      else if (collectionName === 'contentIdeas') lsKey = 'spatial_hub_content_ideas';
+      else if (collectionName === 'assets') lsKey = 'spatial_hub_assets';
+      else if (collectionName === 'assetCategories') lsKey = 'spatial_hub_asset_cats';
+      else if (collectionName === 'dictations') lsKey = 'spatial_hub_dictations';
+      else if (collectionName === 'customSentences') lsKey = 'spatial_hub_custom_sentences';
+      else if (collectionName === 'practiceParagraphs') lsKey = 'spatial_hub_practice_paragraphs';
+      else if (collectionName === 'studyGoals') lsKey = 'spatial_hub_study_goals';
+      else if (collectionName === 'achievements') lsKey = 'spatial_hub_achievements';
+      else if (collectionName === 'kanbanTasks') lsKey = 'spatial_hub_kanban_tasks';
+      else if (collectionName === 'tags') lsKey = 'spatial_hub_tags';
+
+      safeLocalStorage.setItem(lsKey, JSON.stringify(targetItems));
+
+      if (!user) return;
 
       try {
         if (isSingleDoc) {
@@ -549,6 +586,7 @@ export function useFirebaseSync() {
     practiceParagraphs, setPracticeParagraphs: createSyncSetter<PracticeParagraph>('practiceParagraphs', paragraphsRef, setPracticeParagraphs),
     studyGoals, setStudyGoals: createSyncSetter<StudyGoal>('studyGoals', goalsRef, setStudyGoals),
     achievements, setAchievements: createSyncSetter<Achievement>('achievements', achievementsRef, setAchievements),
+    kanbanTasks, setKanbanTasks: createSyncSetter<KanbanTask>('kanbanTasks', kanbanTasksRef, setKanbanTasks),
     tags, setTags: createSyncSetter<any>('tags', React.createRef(), setTags as any, true),
     bulkDebts,
     setBulkDebts: async (valOrFunc: any) => {

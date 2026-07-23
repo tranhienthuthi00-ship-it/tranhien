@@ -21,6 +21,7 @@ import Flashcards from "./components/Flashcards";
 import { PictureDescriptionPractice } from "./components/PictureDescriptionPractice";
 import { HabitTracker } from "./components/HabitTracker";
 import { DigitalJournal } from "./components/DigitalJournal";
+import { KanbanBoard } from "./components/KanbanBoard";
 import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
 import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target, Sparkles, Flame, Search, X } from "lucide-react";
 
@@ -41,6 +42,7 @@ function AppContent() {
     practiceParagraphs, setPracticeParagraphs,
     studyGoals, setStudyGoals,
     achievements, setAchievements,
+    kanbanTasks, setKanbanTasks,
     bulkDebts, setBulkDebts,
     bulkCardSpends, setBulkCardSpends,
     bulkCurrentCash, setBulkCurrentCash
@@ -304,6 +306,7 @@ function AppContent() {
   });
 
   const [activeTab, setActiveTab] = useState<Tab>("Journal");
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [collectionSearchQuery, setCollectionSearchQuery] = useState("");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "1000 Sentences" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
   const [activePracticeSubTab, setActivePracticeSubTab] = useState<"Dictation" | "Speech" | "Translation" | "Reflex" | "SRS">("Dictation");
@@ -334,17 +337,13 @@ function AppContent() {
   };
 
   const handleLogin = () => {
-    // Rely on onAuthStateChanged in useFirebaseSync
+    setShowLoginModal(false);
   };
 
   const handleLogout = async () => {
     const { auth } = await import("./lib/firebase");
     auth.signOut();
   };
-
-  if (!user) {
-    return <Login onLogin={handleLogin} />;
-  }
 
   if (loading) {
     return (
@@ -374,7 +373,8 @@ function AppContent() {
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         lastSaved={lastSaved} 
-        onLogout={handleLogout} 
+        onLogout={user ? handleLogout : () => setShowLoginModal(true)} 
+        isLoggedIn={!!user}
         dueCount={dueCount} 
         theme={theme}
         onToggleTheme={() => {
@@ -383,6 +383,12 @@ function AppContent() {
           localStorage.setItem("glowup_theme", nextTheme);
         }}
       />
+
+      {showLoginModal && (
+        <div className="fixed inset-0 z-[100] bg-[#f4f1ea] overflow-y-auto">
+          <Login onLogin={handleLogin} onClose={() => setShowLoginModal(false)} />
+        </div>
+      )}
       
       <main className="mt-4 relative z-10 overflow-x-clip w-full">
         <div className="max-w-[100vw] px-1 sm:px-2">
@@ -538,6 +544,7 @@ function AppContent() {
         )}
         <div className="w-full px-2 md:px-6">
           {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
+          {activeTab === "Projects" && <KanbanBoard tasks={kanbanTasks} setTasks={setKanbanTasks} />}
           {activeTab === "Journal" && (
             <DigitalJournal 
               onSearch={(q) => {

@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-export type Tab = "English Hub" | "Calendar" | "Collections" | "Journal";
+export type Tab = "English Hub" | "Calendar" | "Collections" | "Journal" | "Projects";
 
 export function NavBar({ 
   activeTab, 
@@ -9,7 +9,8 @@ export function NavBar({
   onLogout, 
   dueCount = 0,
   theme = "handdrawn",
-  onToggleTheme
+  onToggleTheme,
+  isLoggedIn = false
 }: { 
   activeTab: Tab; 
   setActiveTab: (tab: Tab) => void; 
@@ -18,8 +19,9 @@ export function NavBar({
   dueCount?: number;
   theme?: "handdrawn" | "minimal";
   onToggleTheme?: () => void;
+  isLoggedIn?: boolean;
 }) {
-  const tabs: Tab[] = ["Journal", "English Hub", "Calendar", "Collections"];
+  const tabs: Tab[] = ["Journal", "English Hub", "Calendar", "Collections", "Projects"];
 
   const getTabLabel = (tab: Tab) => {
     switch (tab) {
@@ -27,6 +29,7 @@ export function NavBar({
       case "Collections": return "HUB";
       case "Calendar": return "CAL";
       case "Journal": return "HOME";
+      case "Projects": return "PRJ";
       default: return tab;
     }
   };
@@ -113,7 +116,7 @@ export function NavBar({
             onClick={onLogout}
             className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest px-2 py-1 md:px-3 md:py-1.5 rounded border border-ink/20 hover:bg-ink hover:text-paper transition-colors"
           >
-            Out
+            {isLoggedIn ? "Out" : "In"}
           </button>
         </div>
       </div>

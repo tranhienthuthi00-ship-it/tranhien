@@ -1,11 +1,11 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Lock, Unlock } from "lucide-react";
+import { Lock, Unlock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 
-export function Login({ onLogin }: { onLogin: () => void }) {
+export function Login({ onLogin, onClose }: { onLogin: () => void; onClose?: () => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -42,6 +42,15 @@ export function Login({ onLogin }: { onLogin: () => void }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[#f4f1ea]">
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="absolute top-6 right-6 p-2 rounded-full border-2 border-ink text-ink hover:bg-crimson hover:text-white transition-colors z-50 flex items-center justify-center shadow-md bg-paper"
+          aria-label="Đóng"
+        >
+          <X size={20} />
+        </button>
+      )}
       {/* Hand-drawn background elements just for login */}
       <svg className="absolute top-[10%] left-[10%] w-32 h-32 text-ink/10 -rotate-12" viewBox="0 0 100 100" fill="currentColor">
         <path d="M 50 10 C 20 10 10 40 10 50 C 10 60 20 90 50 90 C 80 90 90 60 90 50 C 90 40 80 10 50 10 Z M 35 40 A 5 5 0 1 1 45 40 A 5 5 0 1 1 35 40 M 55 40 A 5 5 0 1 1 65 40 A 5 5 0 1 1 55 40 M 35 60 Q 50 75 65 60" />

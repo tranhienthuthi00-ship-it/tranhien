@@ -214,6 +214,21 @@ export interface CardSpend {
   notes: string;
 }
 
+export interface KanbanSubtask {
+  date: string;
+  text: string;
+  money: number;
+}
+
+export interface KanbanTask {
+  id: string;
+  title: string;
+  tag: string;
+  status: 'todo' | 'doing' | 'done';
+  desc: string;
+  subtasks: KanbanSubtask[];
+}
+
 export interface TaggedRecord {
   id: string;
   category: string;
