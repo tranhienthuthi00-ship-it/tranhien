@@ -371,7 +371,7 @@ export function LearningGames({
                    onChange={(e) => setUserInput(e.target.value)} 
                    placeholder="Type the word..." 
                    className={cn(
-                     "sketch-input flex-1 text-lg md:text-xl font-serif text-center py-2 md:py-1",
+                     "sketch-input flex-1 text-lg md:text-xl font-sans text-center py-2 md:py-1",
                      feedback === 'correct' ? "border-green-600 text-green-600 bg-green-50" : 
                      feedback === 'incorrect' ? "border-crimson text-crimson bg-crimson/10" : ""
                    )}
@@ -421,7 +421,7 @@ export function LearningGames({
                    onChange={(e) => setUserInput(e.target.value)} 
                    placeholder="Type what you hear..." 
                    className={cn(
-                     "sketch-input flex-1 text-lg md:text-xl font-serif text-center py-2 md:py-1",
+                     "sketch-input flex-1 text-lg md:text-xl font-sans text-center py-2 md:py-1",
                      feedback === 'correct' ? "border-green-600 text-green-600 bg-green-50" : 
                      feedback === 'incorrect' ? "border-crimson text-crimson bg-crimson/10" : ""
                    )}

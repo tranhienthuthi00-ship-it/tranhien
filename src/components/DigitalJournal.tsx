@@ -1985,7 +1985,7 @@ export function DigitalJournal({
                                           {p.rating ? <span className="text-amber-500 text-xs">⭐{p.rating}</span> : null}
                                         </div>
                                         {p.address && <div className="text-xs text-neutral-600 mt-0.5">📍 Địa chỉ: {p.address}</div>}
-                                        {p.notes && <div className="text-xs text-neutral-500 italic mt-1 bg-amber-50/50 p-1.5 rounded font-serif">{p.notes}</div>}
+                                        {p.notes && <div className="text-xs text-neutral-500 italic mt-1 bg-amber-50/50 p-1.5 rounded font-sans">{p.notes}</div>}
                                         <div className="text-[10px] font-bold text-neutral-400 mt-1 uppercase font-semibold">Danh mục: {p.category} • {p.status === 'Visited' ? '✅ Đã ghé thăm' : 'Want to visit'}</div>
                                       </li>
                                     ))}
@@ -2018,7 +2018,7 @@ export function DigitalJournal({
                                       <li key={w.id} className="text-sm p-2 rounded bg-white border border-neutral-200">
                                         <div className="font-bold text-[#3A1412]">{w.content}</div>
                                         {w.price ? <div className="text-xs text-neutral-600 font-mono font-bold mt-0.5">Giá: {Number(w.price).toLocaleString()} ₫</div> : null}
-                                        {w.note && <div className="text-xs text-neutral-500 italic mt-1 bg-pink-50/30 p-1.5 rounded font-serif">{w.note}</div>}
+                                        {w.note && <div className="text-xs text-neutral-500 italic mt-1 bg-pink-50/30 p-1.5 rounded font-sans">{w.note}</div>}
                                         <div className="text-[10px] font-bold uppercase text-neutral-400 mt-1">Mức mong muốn: {w.necessity}</div>
                                       </li>
                                     ))}
@@ -2035,7 +2035,7 @@ export function DigitalJournal({
                                       <div key={a.id} className="text-sm p-3 rounded bg-white border border-neutral-200 shadow-sm flex flex-col justify-between">
                                         <div>
                                           <div className="font-bold text-[#3A1412]">{a.name}</div>
-                                          {a.notes && <div className="text-xs text-neutral-500 italic mt-1 font-serif bg-neutral-50 p-1 rounded">{a.notes}</div>}
+                                          {a.notes && <div className="text-xs text-neutral-500 italic mt-1 font-sans bg-neutral-50 p-1 rounded">{a.notes}</div>}
                                         </div>
                                         <div className="flex items-center justify-between mt-3 pt-2 border-t border-neutral-100">
                                           <span className="font-extrabold text-[#8A1E2B] font-mono text-base">{a.value.toLocaleString()} {a.currency || 'VND'}</span>

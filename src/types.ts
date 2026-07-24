@@ -224,6 +224,7 @@ export interface KanbanTask {
   id: string;
   title: string;
   tag: string;
+  priority?: string;
   status: 'todo' | 'doing' | 'done';
   desc: string;
   subtasks: KanbanSubtask[];

@@ -682,11 +682,11 @@ export function PictureDescriptionPractice() {
                               {activeSession.mistakes.map((m, idx) => (
                                 <div key={idx} className="p-3 bg-red-50/30 border border-red-100 rounded-xl flex flex-col gap-1.5">
                                   <div className="flex flex-wrap gap-2 items-center text-xs">
-                                    <span className="font-serif px-2 py-0.5 rounded bg-red-100 text-red-700 line-through select-text">
+                                    <span className="font-sans px-2 py-0.5 rounded bg-red-100 text-red-700 line-through select-text">
                                       {m.original}
                                     </span>
                                     <ArrowRight className="w-3.5 h-3.5 text-red-400" />
-                                    <span className="font-serif px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold select-text">
+                                    <span className="font-sans px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold select-text">
                                       {m.correction}
                                     </span>
                                   </div>
@@ -712,7 +712,7 @@ export function PictureDescriptionPractice() {
                                 <h4 className={`text-xs font-black uppercase tracking-wider mb-2 ${textColors}`}>
                                   Mẫu {levelLabel}:
                                 </h4>
-                                <p className="font-serif text-[13px] leading-relaxed text-ink select-text italic">
+                                <p className="font-sans text-[13px] leading-relaxed text-ink select-text italic">
                                   "{desc}"
                                 </p>
                               </div>
@@ -731,7 +731,7 @@ export function PictureDescriptionPractice() {
                                   {vocab.word}
                                   <span className="text-[9px] bg-indigo-50 border border-indigo-100 rounded text-indigo-700 px-1 py-0.1 font-mono">{vocab.type}</span>
                                 </h4>
-                                <span className="text-[10px] text-indigo-900/40 tracking-tight block font-serif mt-0.5 select-text">{vocab.ipa}</span>
+                                <span className="text-[10px] text-indigo-900/40 tracking-tight block font-sans mt-0.5 select-text">{vocab.ipa}</span>
                                 <p className="text-xs text-slate-800 mt-1 select-text">
                                   <strong>Mô tả:</strong> {vocab.meaning}
                                 </p>

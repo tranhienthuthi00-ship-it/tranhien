@@ -829,7 +829,7 @@ export function Academy({
                                 <td className="p-3">
                                   <div className="space-y-1">
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="font-serif font-black text-lg text-[#8A1E2B] hover:underline cursor-pointer" onClick={() => speakWord(word.vocabulary)} title="Bấm để nghe phát âm">
+                                      <span className="font-sans font-black text-lg text-[#8A1E2B] hover:underline cursor-pointer" onClick={() => speakWord(word.vocabulary)} title="Bấm để nghe phát âm">
                                         {word.vocabulary}
                                       </span>
                                       <button type="button" onClick={() => speakWord(word.vocabulary)} className="text-[#8A1E2B]/50 hover:text-[#8A1E2B]" title="Bấm để nghe phát âm">
@@ -994,7 +994,7 @@ export function Academy({
 
                         {!learningIsFlipped ? (
                           <div className="space-y-3">
-                            <h3 className="font-serif font-black text-3xl md:text-5xl text-[#8A1E2B] tracking-tight">
+                            <h3 className="font-sans font-black text-3xl md:text-5xl text-[#8A1E2B] tracking-tight">
                               {learningList[learningIndex].vocabulary}
                             </h3>
                             <div className="flex items-center justify-center gap-2">

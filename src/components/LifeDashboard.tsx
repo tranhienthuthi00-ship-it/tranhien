@@ -693,7 +693,7 @@ export function LifeDashboard() {
                 <Sparkles className="w-7 h-7 text-amber-500 fill-amber-500/10 animate-pulse" />
               </button>
               <div className="text-left">
-                <h1 className="font-serif text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-950 dark:text-white flex items-center gap-2">
+                <h1 className="font-sans text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-950 dark:text-white flex items-center gap-2">
                   Life Dashboard
                 </h1>
                 <p className="text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-500 font-bold font-mono mt-0.5 flex items-center gap-1.5">
@@ -802,7 +802,7 @@ export function LifeDashboard() {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  <h3 className="font-serif text-lg font-bold text-zinc-950 dark:text-white">
+                  <h3 className="font-sans text-lg font-bold text-zinc-950 dark:text-white">
                     Hi, {userName}!
                   </h3>
                   <p className="text-zinc-600 dark:text-zinc-400 text-xs leading-relaxed font-medium">
@@ -817,7 +817,7 @@ export function LifeDashboard() {
               <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2.5 mb-4">
                 <div className="flex items-center gap-2">
                   <ClipboardList className="w-4 h-4 text-zinc-500" />
-                  <span className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-white font-serif">Summary</span>
+                  <span className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-white font-sans">Summary</span>
                 </div>
                 <button
                   onClick={() => setAddingSummary(!addingSummary)}
@@ -939,7 +939,7 @@ export function LifeDashboard() {
               <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2.5 mb-3">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-zinc-500" />
-                  <span className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-white font-serif">Time Blocking</span>
+                  <span className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-white font-sans">Time Blocking</span>
                 </div>
                 <div className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-black font-mono">
                   ACTIVE
@@ -1000,7 +1000,7 @@ export function LifeDashboard() {
               {/* Header with flashy icon and subtitle details */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-4 mb-6">
                 <div>
-                  <h2 className="font-serif text-2xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                  <h2 className="font-sans text-2xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
                     <CheckSquare className="w-6 h-6 text-amber-500" />
                     <span>To-Do List</span>
                   </h2>
@@ -1140,7 +1140,7 @@ export function LifeDashboard() {
               <div className="space-y-3">
                 {listToRender.length === 0 ? (
                   <div className="text-center py-10 border border-dashed border-zinc-200 dark:border-zinc-805 rounded-2xl">
-                    <p className="text-sm text-zinc-400 font-serif italic">Không còn việc nào tồn đọng ở tab này rồi! Tuyệt vời Hien ơi! ✨</p>
+                    <p className="text-sm text-zinc-400 font-sans italic">Không còn việc nào tồn đọng ở tab này rồi! Tuyệt vời Hien ơi! ✨</p>
                   </div>
                 ) : (
                   listToRender.map(todo => (
@@ -1219,7 +1219,7 @@ export function LifeDashboard() {
               
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-4 mb-5">
                 <div>
-                  <h2 className="font-serif text-2xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                  <h2 className="font-sans text-2xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
                     <Calendar className="w-6 h-6 text-amber-500" />
                     <span>Planner</span>
                   </h2>
@@ -1336,7 +1336,7 @@ export function LifeDashboard() {
               ) : (
                 <div className="space-y-4">
                   <div className="bg-[#f4f4f3] dark:bg-zinc-850 p-4 rounded-2xl border text-xs">
-                    <h3 className="font-serif text-sm font-bold text-zinc-900 dark:text-white mb-2">Tháng 6, 2026 - Bản Đồ Mục Tiêu Vĩ Mô</h3>
+                    <h3 className="font-sans text-sm font-bold text-zinc-900 dark:text-white mb-2">Tháng 6, 2026 - Bản Đồ Mục Tiêu Vĩ Mô</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px] leading-relaxed">
                       <div className="p-3 bg-white dark:bg-zinc-800 rounded-xl">
                         <span className="font-black block text-amber-600">Tuần 1 (Tiêu điểm)</span>
@@ -1366,7 +1366,7 @@ export function LifeDashboard() {
               
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-4 mb-5">
                 <div>
-                  <h2 className="font-serif text-2xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                  <h2 className="font-sans text-2xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
                     <Shirt className="w-6 h-6 text-amber-500" />
                     <span>Home & Lifestyle</span>
                   </h2>
@@ -1535,7 +1535,7 @@ export function LifeDashboard() {
       {outfitEditTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-xs p-4">
           <div className="bg-white dark:bg-zinc-900 border-2 border-zinc-950 rounded-3xl p-6 max-w-sm w-full text-left shadow-[5px_5px_0px_#1a1a1a]">
-            <h3 className="font-serif text-lg font-bold text-zinc-950 dark:text-white mb-1 flex items-center gap-2">
+            <h3 className="font-sans text-lg font-bold text-zinc-950 dark:text-white mb-1 flex items-center gap-2">
               <Shirt className="w-5 h-5 text-amber-500" />
               <span>Phối Đồ Tự Do</span>
             </h3>

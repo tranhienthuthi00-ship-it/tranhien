@@ -369,20 +369,22 @@ function AppContent() {
           </filter>
         </defs>
       </svg>
-      <NavBar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        lastSaved={lastSaved} 
-        onLogout={user ? handleLogout : () => setShowLoginModal(true)} 
-        isLoggedIn={!!user}
-        dueCount={dueCount} 
-        theme={theme}
-        onToggleTheme={() => {
-          const nextTheme = theme === "handdrawn" ? "minimal" : "handdrawn";
-          setTheme(nextTheme);
-          localStorage.setItem("glowup_theme", nextTheme);
-        }}
-      />
+      {activeTab !== "Projects" && (
+        <NavBar 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          lastSaved={lastSaved} 
+          onLogout={user ? handleLogout : () => setShowLoginModal(true)} 
+          isLoggedIn={!!user}
+          dueCount={dueCount} 
+          theme={theme}
+          onToggleTheme={() => {
+            const nextTheme = theme === "handdrawn" ? "minimal" : "handdrawn";
+            setTheme(nextTheme);
+            localStorage.setItem("glowup_theme", nextTheme);
+          }}
+        />
+      )}
 
       {showLoginModal && (
         <div className="fixed inset-0 z-[100] bg-[#f4f1ea] overflow-y-auto">
@@ -390,8 +392,8 @@ function AppContent() {
         </div>
       )}
       
-      <main className="mt-4 relative z-10 overflow-x-clip w-full">
-        <div className="max-w-[100vw] px-1 sm:px-2">
+      <main className={cn("relative z-10 overflow-x-clip w-full", activeTab === "Projects" ? "mt-0" : "mt-4")}>
+        <div className={cn("max-w-[100vw]", activeTab === "Projects" ? "px-0" : "px-1 sm:px-2")}>
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -544,7 +546,7 @@ function AppContent() {
         )}
         <div className="w-full px-2 md:px-6">
           {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
-          {activeTab === "Projects" && <KanbanBoard tasks={kanbanTasks} setTasks={setKanbanTasks} />}
+          {activeTab === "Projects" && <KanbanBoard tasks={kanbanTasks} setTasks={setKanbanTasks} setActiveTab={setActiveTab} />}
           {activeTab === "Journal" && (
             <DigitalJournal 
               onSearch={(q) => {
