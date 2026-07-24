@@ -226,7 +226,8 @@ export interface KanbanTask {
   tag: string;
   hashtags?: string[];
   priority?: string;
-  status: 'todo' | 'doing' | 'done';
+  status: 'todo' | 'doing' | 'done' | 'cancel';
+  dueDate?: string;
   desc: string;
   subtasks: KanbanSubtask[];
 }

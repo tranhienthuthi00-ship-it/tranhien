@@ -24,8 +24,9 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
   const [newTaskInput, setNewTaskInput] = useState("");
   const [newTaskTag, setNewTaskTag] = useState("Công việc");
   const [newTaskPriority, setNewTaskPriority] = useState("Trung bình");
-  const [newTaskStatus, setNewTaskStatus] = useState<'todo'|'doing'|'done'>("todo");
+  const [newTaskStatus, setNewTaskStatus] = useState<'todo'|'doing'|'done'|'cancel'>("todo");
   const [newTaskHashtags, setNewTaskHashtags] = useState<string[]>([]);
+  const [newTaskDueDate, setNewTaskDueDate] = useState<string>("");
 
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -34,8 +35,9 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
   const [editingDesc, setEditingDesc] = useState("");
   const [editingTag, setEditingTag] = useState("");
   const [editingPriority, setEditingPriority] = useState("Trung bình");
-  const [editingStatus, setEditingStatus] = useState<'todo'|'doing'|'done'>("todo");
+  const [editingStatus, setEditingStatus] = useState<'todo'|'doing'|'done'|'cancel'>("todo");
   const [editingHashtags, setEditingHashtags] = useState<string[]>([]);
+  const [editingDueDate, setEditingDueDate] = useState<string>("");
 
   const [viewMode, setViewMode] = useState<'board' | 'calendar'>('board');
   const [calendarDate, setCalendarDate] = useState(new Date());
@@ -84,10 +86,35 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
   const columns = [
     { id: 'todo', title: 'Cần làm (To Do)' },
     { id: 'doing', title: 'Đang làm (In Progress)' },
-    { id: 'done', title: 'Hoàn thành (Done)' }
+    { id: 'done', title: 'Hoàn thành (Done)' },
+    { id: 'cancel', title: 'Đã hủy (Cancel)' }
   ] as const;
 
-  const AVAILABLE_HASHTAGS = ['#quan_trong', '#khan_cap', '#khach_hang', '#bao_cao', '#team_work', '#ca_nhan', '#bug', '#feature'];
+  const [availableHashtags, setAvailableHashtags] = useState<string[]>([
+    '#quan_trong', '#khan_cap', '#khach_hang', '#bao_cao', '#team_work', '#ca_nhan', '#bug', '#feature'
+  ]);
+  const [customHashtagInput, setCustomHashtagInput] = useState("");
+
+  const addCustomHashtag = (tagToAdd: string, target: 'new' | 'edit') => {
+    if (!tagToAdd.trim()) return;
+    let formatted = tagToAdd.trim();
+    if (!formatted.startsWith('#')) {
+      formatted = '#' + formatted;
+    }
+    if (!availableHashtags.includes(formatted)) {
+      setAvailableHashtags(prev => [...prev, formatted]);
+    }
+    if (target === 'new') {
+      if (!newTaskHashtags.includes(formatted)) {
+        setNewTaskHashtags(prev => [...prev, formatted]);
+      }
+    } else {
+      if (!editingHashtags.includes(formatted)) {
+        setEditingHashtags(prev => [...prev, formatted]);
+      }
+    }
+  };
+
   const [isHashtagDropdownOpen, setIsHashtagDropdownOpen] = useState(false);
   const [isNewTaskHashtagDropdownOpen, setIsNewTaskHashtagDropdownOpen] = useState(false);
   const [isEditHashtagDropdownOpen, setIsEditHashtagDropdownOpen] = useState(false);
@@ -96,7 +123,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
     e.dataTransfer.setData('taskId', id);
   };
 
-  const handleDrop = (e: React.DragEvent, status: 'todo'|'doing'|'done') => {
+  const handleDrop = (e: React.DragEvent, status: 'todo'|'doing'|'done'|'cancel') => {
     e.preventDefault();
     const id = e.dataTransfer.getData('taskId');
     if (id) {
@@ -117,6 +144,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
       tag: newTaskTag,
       priority: newTaskPriority,
       hashtags: newTaskHashtags,
+      dueDate: newTaskDueDate || undefined,
       status: newTaskStatus,
       desc: 'Chưa có mô tả chi tiết.',
       subtasks: [{ date: new Date().toISOString().split('T')[0], text: 'Khởi tạo công việc', money: 0 }]
@@ -125,6 +153,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
     setTasks(prev => [...prev, newTask]);
     setNewTaskInput("");
     setNewTaskHashtags([]);
+    setNewTaskDueDate("");
   };
 
   const deleteTask = (e: React.MouseEvent, id: string) => {
@@ -155,6 +184,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
     setEditingPriority(task.priority || 'Trung bình');
     setEditingStatus(task.status);
     setEditingHashtags(task.hashtags || []);
+    setEditingDueDate(task.dueDate || "");
     setEditingSubtasks(JSON.parse(JSON.stringify(task.subtasks || [])));
   };
 
@@ -170,6 +200,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
           priority: editingPriority,
           status: editingStatus,
           hashtags: editingHashtags,
+          dueDate: editingDueDate || undefined,
           subtasks: editingSubtasks.filter(s => s.text.trim() !== '')
         };
       }
@@ -242,9 +273,19 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
           <div className="w-[42px] h-[42px] rounded-full bg-[#f6b8db] flex items-center justify-center shrink-0 border-[2px] border-[#141414]">
             <Search size={18} className="text-[#141414]" strokeWidth={2.5} />
           </div>
-          <div className="flex flex-wrap md:flex-nowrap items-center border-[2px] border-[#141414] rounded-full px-2 py-1.5 gap-1 bg-white">
+          <div className="flex flex-wrap items-center border-[2px] border-[#141414] rounded-full px-3 py-1.5 gap-2 bg-white max-w-full">
+            <div className="flex items-center gap-2 pl-1 pr-3 border-r-[2px] border-[#141414]">
+              <Search size={15} className="text-[#666]" strokeWidth={2.5} />
+              <input 
+                type="text" 
+                placeholder="Tìm kiếm..." 
+                className="bg-transparent text-sm outline-none font-medium text-[#1A1A1A] w-[110px] sm:w-[150px]"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
             <span 
-              className={cn("px-4 py-1.5 rounded-full cursor-pointer transition-colors font-semibold text-sm", tagFilter === 'all' ? "bg-[#141414] text-white" : "bg-transparent text-[#666] hover:text-[#1A1A1A]")}
+              className={cn("px-3.5 py-1.5 rounded-full cursor-pointer transition-colors font-semibold text-sm whitespace-nowrap", tagFilter === 'all' ? "bg-[#141414] text-white" : "bg-transparent text-[#666] hover:text-[#1A1A1A]")}
               onClick={() => setTagFilter('all')}
             >
               Tất cả
@@ -252,20 +293,13 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
             {tags.map(t => (
               <span 
                 key={t}
-                className={cn("px-4 py-1.5 rounded-full cursor-pointer transition-colors font-semibold text-sm", tagFilter === t ? "bg-[#141414] text-white" : "bg-transparent text-[#666] hover:text-[#1A1A1A]")}
+                className={cn("px-3.5 py-1.5 rounded-full cursor-pointer transition-colors font-semibold text-sm whitespace-nowrap", tagFilter === t ? "bg-[#141414] text-white" : "bg-transparent text-[#666] hover:text-[#1A1A1A]")}
                 onClick={() => setTagFilter(t)}
               >
                 {t}
               </span>
             ))}
           </div>
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm..." 
-            className="hidden md:block border-[2px] border-[#141414] bg-white px-4 py-2 rounded-full text-sm outline-none font-medium text-[#1A1A1A] max-w-[200px]"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
         </div>
         <div className="flex gap-3 relative z-50">
           <button 
@@ -424,7 +458,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
           onKeyDown={e => e.key === 'Enter' && addTask()}
         />
         <select 
-          className="border-[2px] border-[#141414] bg-white px-4 py-2.5 rounded-[12px] text-sm outline-none font-medium cursor-pointer min-w-[140px]"
+          className="border-[2px] border-[#141414] bg-white px-4 py-2.5 rounded-[12px] text-sm outline-none font-medium cursor-pointer min-w-[130px]"
           value={newTaskTag}
           onChange={e => setNewTaskTag(e.target.value)}
         >
@@ -433,7 +467,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
           <option value="Học tập">📚 Học tập</option>
         </select>
         <select 
-          className="border-[2px] border-[#141414] bg-white px-4 py-2.5 rounded-[12px] text-sm outline-none font-medium cursor-pointer min-w-[140px]"
+          className="border-[2px] border-[#141414] bg-white px-4 py-2.5 rounded-[12px] text-sm outline-none font-medium cursor-pointer min-w-[130px]"
           value={newTaskPriority}
           onChange={e => setNewTaskPriority(e.target.value)}
         >
@@ -442,29 +476,69 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
           <option value="Thấp">🟢 Thấp</option>
         </select>
         <select 
-          className="border-[2px] border-[#141414] bg-white px-4 py-2.5 rounded-[12px] text-sm outline-none font-medium cursor-pointer min-w-[140px]"
+          className="border-[2px] border-[#141414] bg-white px-4 py-2.5 rounded-[12px] text-sm outline-none font-medium cursor-pointer min-w-[130px]"
           value={newTaskStatus}
           onChange={e => setNewTaskStatus(e.target.value as any)}
         >
           <option value="todo">Cần làm</option>
           <option value="doing">Đang làm</option>
           <option value="done">Hoàn thành</option>
+          <option value="cancel">Đã hủy</option>
         </select>
 
+        {/* Deadline picker */}
+        <div className="flex items-center gap-1.5 border-[2px] border-[#141414] bg-white px-3 py-2 rounded-[12px]">
+          <span className="text-xs font-bold text-[#555] whitespace-nowrap">⏰ Hạn:</span>
+          <input 
+            type="date"
+            className="bg-transparent text-xs font-semibold outline-none text-[#1A1A1A] cursor-pointer"
+            value={newTaskDueDate}
+            onChange={e => setNewTaskDueDate(e.target.value)}
+          />
+        </div>
+
+        {/* Custom Hashtags Dropdown */}
         <div className="relative">
           <button 
-            className="border-[2px] border-[#141414] bg-white px-4 py-2.5 rounded-[12px] text-sm outline-none font-medium cursor-pointer min-w-[140px] flex justify-between items-center"
+            type="button"
+            className="border-[2px] border-[#141414] bg-white px-4 py-2.5 rounded-[12px] text-sm outline-none font-medium cursor-pointer min-w-[130px] flex justify-between items-center"
             onClick={() => setIsNewTaskHashtagDropdownOpen(!isNewTaskHashtagDropdownOpen)}
           >
             <span className="truncate max-w-[100px]">
-              {newTaskHashtags.length > 0 ? newTaskHashtags.join(', ') : 'Hashtags'}
+              {newTaskHashtags.length > 0 ? newTaskHashtags.join(', ') : '# Hashtags'}
             </span>
             <span className="text-[10px] ml-2">▼</span>
           </button>
           
           {isNewTaskHashtagDropdownOpen && (
-            <div className="absolute top-full left-0 mt-2 w-[200px] bg-white border-[2px] border-[#141414] rounded-xl shadow-[4px_4px_0px_#141414] p-3 flex flex-col gap-2 z-[60] max-h-[200px] overflow-y-auto">
-              {AVAILABLE_HASHTAGS.map(ht => (
+            <div className="absolute top-full left-0 mt-2 w-[220px] bg-white border-[2px] border-[#141414] rounded-xl shadow-[4px_4px_0px_#141414] p-3 flex flex-col gap-2 z-[60] max-h-[260px] overflow-y-auto">
+              <div className="flex gap-1 mb-1 pb-2 border-b border-[#141414]/10">
+                <input 
+                  type="text" 
+                  placeholder="Tạo #hashtag mới..." 
+                  className="border border-[#141414] bg-white px-2 py-1 rounded-md text-xs outline-none grow font-medium"
+                  value={customHashtagInput}
+                  onChange={e => setCustomHashtagInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addCustomHashtag(customHashtagInput, 'new');
+                      setCustomHashtagInput('');
+                    }
+                  }}
+                />
+                <button 
+                  type="button"
+                  onClick={() => {
+                    addCustomHashtag(customHashtagInput, 'new');
+                    setCustomHashtagInput('');
+                  }}
+                  className="bg-[#141414] text-white px-2.5 py-1 rounded-md text-xs font-bold shrink-0 hover:bg-[#333]"
+                >
+                  +
+                </button>
+              </div>
+              {availableHashtags.map(ht => (
                 <label key={ht} className="flex items-center gap-2 cursor-pointer group">
                   <input 
                     type="checkbox" 
@@ -496,7 +570,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
         {columns.map(col => {
           const colTasks = filteredTasks.filter(t => t.status === col.id);
           return (
@@ -514,7 +588,8 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                 {colTasks.map(task => {
                   const totalMoney = calculateTotalMoney(task.subtasks);
                   let bgColor = 'bg-white';
-                  if (task.status === 'done') bgColor = 'bg-[#ece7d7]';
+                  if (task.status === 'cancel') bgColor = 'bg-[#f4ebeb] opacity-85';
+                  else if (task.status === 'done') bgColor = 'bg-[#ece7d7]';
                   else if (task.tag === 'Cá nhân') bgColor = 'bg-[#f6b8db]';
                   else if (task.tag === 'Học tập') bgColor = 'bg-[#b5caeb]';
 
@@ -561,6 +636,12 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                       {showMoney && totalMoney > 0 && (
                         <div className="text-sm font-bold italic text-[#1b7a3a] mb-2">
                           {formatMoney(totalMoney)}
+                        </div>
+                      )}
+
+                      {task.dueDate && (
+                        <div className="text-[11px] font-bold text-[#D9383A] bg-[#FFF0F0] border border-[#FFD0D0] px-2 py-0.5 rounded-md flex items-center gap-1 mb-2 w-fit">
+                          ⏰ Hạn: {formatDateDDMM(task.dueDate)}/{extractYear(task.dueDate)}
                         </div>
                       )}
                       
@@ -630,6 +711,13 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
               
               const eventsMap: Record<string, {task: KanbanTask, sub: KanbanSubtask}[]> = {};
               tasks.forEach(task => {
+                if (task.dueDate) {
+                  if (!eventsMap[task.dueDate]) eventsMap[task.dueDate] = [];
+                  eventsMap[task.dueDate].push({
+                    task,
+                    sub: { date: task.dueDate, text: `⏰ Deadline: ${task.title}`, money: 0 }
+                  });
+                }
                 if (task.subtasks) {
                   task.subtasks.forEach(sub => {
                     if (sub.date) {
@@ -733,6 +821,13 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                   <div className="text-xl font-extrabold text-[#141414] leading-snug mb-3 tracking-tight break-words">
                     {activeTask.title}
                   </div>
+                  
+                  {activeTask.dueDate && (
+                    <div className="text-xs font-bold text-[#D9383A] bg-[#FFF0F0] border border-[#FFD0D0] px-2.5 py-1 rounded-lg w-fit mb-3">
+                      ⏰ Hạn chót: {formatDateDDMM(activeTask.dueDate)}/{extractYear(activeTask.dueDate)}
+                    </div>
+                  )}
+
                   <div className="text-[11px] font-extrabold uppercase mb-1.5 text-[#444]">Mô tả chi tiết:</div>
                   <div className="text-[13px] text-[#333] leading-relaxed bg-[#FAFAFA] border-2 border-[#141414] p-3 rounded-xl max-h-[100px] overflow-y-auto mb-3.5 break-words">
                     {activeTask.desc || 'Không có mô tả.'}
@@ -795,6 +890,15 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                       onChange={e => setEditingDesc(e.target.value)}
                     />
                   </div>
+                  <div>
+                    <label className="text-[11px] font-extrabold uppercase text-[#444] block mb-1">Hạn chót (Deadline):</label>
+                    <input 
+                      type="date" 
+                      className="w-full border-2 border-[#141414] bg-white px-3.5 py-2.5 rounded-xl text-[13px] font-semibold outline-none text-[#141414]"
+                      value={editingDueDate}
+                      onChange={e => setEditingDueDate(e.target.value)}
+                    />
+                  </div>
                   <div className="flex flex-wrap gap-2.5">
                     <div className="flex-1 min-w-[100px]">
                       <label className="text-[11px] font-extrabold uppercase text-[#444] block mb-1">Tag:</label>
@@ -830,6 +934,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                         <option value="todo">Cần làm</option>
                         <option value="doing">Đang làm</option>
                         <option value="done">Hoàn thành</option>
+                        <option value="cancel">Đã hủy</option>
                       </select>
                     </div>
                   </div>
@@ -837,6 +942,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                   <div className="mt-1.5 relative">
                     <label className="text-[11px] font-extrabold uppercase text-[#444] block mb-1">Hashtags:</label>
                     <button 
+                      type="button"
                       className="w-full border-2 border-[#141414] bg-white px-3.5 py-2.5 rounded-xl text-[13px] font-semibold outline-none text-[#141414] cursor-pointer text-left flex justify-between items-center"
                       onClick={() => setIsEditHashtagDropdownOpen(!isEditHashtagDropdownOpen)}
                     >
@@ -846,8 +952,34 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                       <span className="text-[10px] ml-2">▼</span>
                     </button>
                     {isEditHashtagDropdownOpen && (
-                      <div className="absolute top-full left-0 mt-2 w-full bg-white border-[2px] border-[#141414] rounded-xl shadow-[4px_4px_0px_#141414] p-3 flex flex-col gap-2 z-[60] max-h-[200px] overflow-y-auto">
-                        {AVAILABLE_HASHTAGS.map(ht => (
+                      <div className="absolute top-full left-0 mt-2 w-full bg-white border-[2px] border-[#141414] rounded-xl shadow-[4px_4px_0px_#141414] p-3 flex flex-col gap-2 z-[60] max-h-[220px] overflow-y-auto">
+                        <div className="flex gap-1 mb-1 pb-2 border-b border-[#141414]/10">
+                          <input 
+                            type="text" 
+                            placeholder="Tạo #hashtag mới..." 
+                            className="border border-[#141414] bg-white px-2 py-1 rounded-md text-xs outline-none grow font-medium"
+                            value={customHashtagInput}
+                            onChange={e => setCustomHashtagInput(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addCustomHashtag(customHashtagInput, 'edit');
+                                setCustomHashtagInput('');
+                              }
+                            }}
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              addCustomHashtag(customHashtagInput, 'edit');
+                              setCustomHashtagInput('');
+                            }}
+                            className="bg-[#141414] text-white px-2.5 py-1 rounded-md text-xs font-bold shrink-0 hover:bg-[#333]"
+                          >
+                            +
+                          </button>
+                        </div>
+                        {availableHashtags.map(ht => (
                           <label key={ht} className="flex items-center gap-2 cursor-pointer group">
                             <input 
                               type="checkbox" 
@@ -940,6 +1072,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
             
             <div className={cn(
               "p-5 flex flex-wrap justify-between items-center gap-3 shrink-0 transition-colors",
+              (!isEditing && activeTask.status === 'cancel') ? "bg-[#f4ebeb]" :
               (!isEditing && activeTask.status === 'done') ? "bg-[#ece7d7]" : 
               (!isEditing && activeTask.tag === 'Cá nhân') ? "bg-[#f6b8db]" : 
               (!isEditing && activeTask.tag === 'Học tập') ? "bg-[#b5caeb]" : "bg-white"
@@ -948,7 +1081,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                 <div className="flex flex-col gap-1">
                   <span className="text-[10px] font-extrabold uppercase tracking-wide text-[#333]">Status</span>
                   <span className="text-[15px] font-extrabold text-[#141414]">
-                    {activeTask.status === 'todo' ? 'Cần làm' : activeTask.status === 'doing' ? 'Đang làm' : 'Hoàn thành'}
+                    {activeTask.status === 'todo' ? 'Cần làm' : activeTask.status === 'doing' ? 'Đang làm' : activeTask.status === 'done' ? 'Hoàn thành' : 'Đã hủy'}
                   </span>
                 </div>
               ) : <div></div>}
