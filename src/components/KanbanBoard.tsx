@@ -1,7 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KanbanTask, KanbanSubtask } from '@/types';
-import { Search, Plus, Edit2, X, Calendar } from 'lucide-react';
+import { Search, Plus, Edit2, X, Calendar, Pin, Trash2, Copy, Check, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+export interface QuickNote {
+  id: string;
+  title: string;
+  content: string;
+  color: string;
+  isPinned: boolean;
+  createdAt: string;
+}
 
 interface KanbanBoardProps {
   tasks: KanbanTask[];
@@ -39,8 +48,84 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
   const [editingHashtags, setEditingHashtags] = useState<string[]>([]);
   const [editingDueDate, setEditingDueDate] = useState<string>("");
 
-  const [viewMode, setViewMode] = useState<'board' | 'calendar'>('board');
+  const [viewMode, setViewMode] = useState<'board' | 'calendar' | 'note'>('board');
   const [calendarDate, setCalendarDate] = useState(new Date());
+
+  // Quick Notes State
+  const [notes, setNotes] = useState<QuickNote[]>(() => {
+    try {
+      const saved = localStorage.getItem('kanban_quick_notes');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        id: 'n1',
+        title: '📌 Ghi chú nhanh mẫu',
+        content: 'Chào mừng bạn đến với mục Ghi chú nhanh! Bạn có thể lưu lại ý tưởng, ghi chú cá nhân, thông tin liên hệ hoặc danh sách mua sắm tại đây.',
+        color: '#FEF08A',
+        isPinned: true,
+        createdAt: new Date().toLocaleDateString('vi-VN')
+      },
+      {
+        id: 'n2',
+        title: '💡 Ý tưởng dự án mới',
+        content: '- Tối ưu hóa bộ lọc Kanban & Hashtags\n- Thêm lịch làm việc tự động\n- Xuất báo cáo công việc',
+        color: '#FBCFE8',
+        isPinned: false,
+        createdAt: new Date().toLocaleDateString('vi-VN')
+      }
+    ];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('kanban_quick_notes', JSON.stringify(notes));
+    } catch (e) {}
+  }, [notes]);
+
+  const [newNoteTitle, setNewNoteTitle] = useState("");
+  const [newNoteContent, setNewNoteContent] = useState("");
+  const [newNoteColor, setNewNoteColor] = useState("#FEF08A");
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [editingNote, setEditingNote] = useState<QuickNote | null>(null);
+  const [copiedNoteId, setCopiedNoteId] = useState<string | null>(null);
+
+  const handleAddNote = () => {
+    if (!newNoteTitle.trim() && !newNoteContent.trim()) return;
+    const created: QuickNote = {
+      id: 'note_' + Date.now(),
+      title: newNoteTitle.trim() || 'Ghi chú mới',
+      content: newNoteContent.trim(),
+      color: newNoteColor,
+      isPinned: false,
+      createdAt: new Date().toLocaleDateString('vi-VN')
+    };
+    setNotes(prev => [created, ...prev]);
+    setNewNoteTitle("");
+    setNewNoteContent("");
+    setIsAddingNote(false);
+  };
+
+  const togglePinNote = (id: string) => {
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, isPinned: !n.isPinned } : n));
+  };
+
+  const deleteNote = (id: string) => {
+    setNotes(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handleSaveNoteEdit = () => {
+    if (!editingNote) return;
+    setNotes(prev => prev.map(n => n.id === editingNote.id ? editingNote : n));
+    setEditingNote(null);
+  };
+
+  const copyNoteText = (note: QuickNote) => {
+    const text = `${note.title}\n${note.content}`;
+    navigator.clipboard.writeText(text);
+    setCopiedNoteId(note.id);
+    setTimeout(() => setCopiedNoteId(null), 2000);
+  };
 
   const tags = ["Công việc", "Cá nhân", "Học tập"];
 
@@ -244,6 +329,9 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
             <button className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors text-left", viewMode === 'calendar' ? "bg-white/10 text-white" : "hover:bg-white/10 hover:text-white")} onClick={() => setViewMode('calendar')}>
               🗓️ Calendar
             </button>
+            <button className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors text-left", viewMode === 'note' ? "bg-white/10 text-white" : "hover:bg-white/10 hover:text-white")} onClick={() => setViewMode('note')}>
+              📝 Note
+            </button>
             <button className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-white/10 hover:text-white transition-colors text-left">
               📊 Reports
             </button>
@@ -299,24 +387,41 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                 {t}
               </span>
             ))}
+            {hashtagFilter !== 'all' && (
+              <span 
+                onClick={() => setHashtagFilter('all')}
+                className="bg-[#3B82F6] text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#141414] border border-[#141414] hover:bg-blue-600 transition-colors whitespace-nowrap ml-1"
+                title="Bấm để bỏ lọc hashtag"
+              >
+                {hashtagFilter} <X size={12} strokeWidth={3} />
+              </span>
+            )}
           </div>
         </div>
-        <div className="flex gap-3 relative z-50">
-          <button 
-            onClick={() => setViewMode(viewMode === 'board' ? 'calendar' : 'board')}
-            className="w-[42px] h-[42px] rounded-full bg-[#141414] flex items-center justify-center cursor-pointer hover:scale-105 transition-transform" 
-            title="Chuyển chế độ xem"
-          >
-            {viewMode === 'board' ? (
-              <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-white fill-none stroke-[2.5px] stroke-linecap-round stroke-linejoin-round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-white fill-none stroke-[2.5px] stroke-linecap-round stroke-linejoin-round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line>
-              </svg>
-            )}
-          </button>
+        <div className="flex gap-2 relative z-50">
+          <div className="flex bg-white border-[2px] border-[#141414] rounded-full p-1 shadow-[2px_2px_0px_#141414] shrink-0 items-center">
+            <button 
+              onClick={() => setViewMode('board')}
+              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1", viewMode === 'board' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
+              title="Xem Kanban Board"
+            >
+              📋 Board
+            </button>
+            <button 
+              onClick={() => setViewMode('calendar')}
+              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1", viewMode === 'calendar' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
+              title="Xem Lịch"
+            >
+              🗓️ Calendar
+            </button>
+            <button 
+              onClick={() => setViewMode('note')}
+              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1", viewMode === 'note' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
+              title="Xem Ghi chú nhanh"
+            >
+              📝 Note
+            </button>
+          </div>
           <div className="relative">
             <button 
               onClick={() => {
@@ -324,72 +429,114 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                 setIsSettingsDropdownOpen(false);
                 setIsHashtagDropdownOpen(false);
               }}
-              className="w-[42px] h-[42px] rounded-full bg-[#141414] flex items-center justify-center shrink-0 cursor-pointer hover:scale-105 transition-transform"
+              className="relative w-[42px] h-[42px] rounded-full bg-[#141414] flex items-center justify-center shrink-0 cursor-pointer hover:scale-105 transition-transform"
+              title="Bộ lọc"
             >
               <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-white fill-none stroke-[2.5px] stroke-linecap-round stroke-linejoin-round">
                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
               </svg>
+              {(priorityFilter !== 'all' || dueFilter !== 'all' || hashtagFilter !== 'all') && (
+                <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-[#FF5A5F] border-2 border-white rounded-full" />
+              )}
             </button>
             
             {isFilterDropdownOpen && (
-              <div className="absolute right-0 top-[52px] w-[240px] bg-[#FDFBF7] border-[2px] border-[#141414] rounded-[20px] shadow-[6px_6px_0px_#141414] p-5 flex flex-col gap-5 z-[60]">
+              <div className="absolute right-0 top-[52px] w-[250px] bg-[#FDFBF7] border-[2px] border-[#141414] rounded-[20px] shadow-[6px_6px_0px_#141414] p-5 flex flex-col gap-4 z-[60]">
                 {/* Priority filter */}
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2.5">
                   <span className="text-[11px] font-black uppercase text-[#141414] tracking-wider">Mức độ ưu tiên</span>
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="radio" name="priority" checked={priorityFilter === 'all'} onChange={() => setPriorityFilter('all')} className="hidden" />
                     <div className="w-[18px] h-[18px] rounded-full border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
                       {priorityFilter === 'all' && <div className="w-[10px] h-[10px] rounded-full bg-[#3B82F6]" />}
                     </div>
-                    <span className="text-[15px] font-semibold text-[#1A1A1A]">Tất cả ưu tiên</span>
+                    <span className="text-[14px] font-semibold text-[#1A1A1A]">Tất cả ưu tiên</span>
                   </label>
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="radio" name="priority" checked={priorityFilter === 'Cao'} onChange={() => setPriorityFilter('Cao')} className="hidden" />
                     <div className="w-[18px] h-[18px] rounded-full border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
                       {priorityFilter === 'Cao' && <div className="w-[10px] h-[10px] rounded-full bg-[#3B82F6]" />}
                     </div>
-                    <div className="w-5 h-5 rounded-full bg-[#FF5A5F] shadow-[inset_0_-2px_0_rgba(0,0,0,0.1)]" />
-                    <span className="text-[15px] font-semibold text-[#1A1A1A]">Cao</span>
+                    <div className="w-4 h-4 rounded-full bg-[#FF5A5F] shadow-[inset_0_-2px_0_rgba(0,0,0,0.1)]" />
+                    <span className="text-[14px] font-semibold text-[#1A1A1A]">Cao</span>
                   </label>
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="radio" name="priority" checked={priorityFilter === 'Trung bình'} onChange={() => setPriorityFilter('Trung bình')} className="hidden" />
                     <div className="w-[18px] h-[18px] rounded-full border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
                       {priorityFilter === 'Trung bình' && <div className="w-[10px] h-[10px] rounded-full bg-[#3B82F6]" />}
                     </div>
-                    <div className="w-5 h-5 rounded-full bg-[#FFD166] shadow-[inset_0_-2px_0_rgba(0,0,0,0.1)]" />
-                    <span className="text-[15px] font-semibold text-[#1A1A1A]">Trung bình</span>
+                    <div className="w-4 h-4 rounded-full bg-[#FFD166] shadow-[inset_0_-2px_0_rgba(0,0,0,0.1)]" />
+                    <span className="text-[14px] font-semibold text-[#1A1A1A]">Trung bình</span>
                   </label>
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="radio" name="priority" checked={priorityFilter === 'Thấp'} onChange={() => setPriorityFilter('Thấp')} className="hidden" />
                     <div className="w-[18px] h-[18px] rounded-full border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
                       {priorityFilter === 'Thấp' && <div className="w-[10px] h-[10px] rounded-full bg-[#3B82F6]" />}
                     </div>
-                    <div className="w-5 h-5 rounded-full bg-[#06D6A0] shadow-[inset_0_-2px_0_rgba(0,0,0,0.1)]" />
-                    <span className="text-[15px] font-semibold text-[#1A1A1A]">Thấp</span>
+                    <div className="w-4 h-4 rounded-full bg-[#06D6A0] shadow-[inset_0_-2px_0_rgba(0,0,0,0.1)]" />
+                    <span className="text-[14px] font-semibold text-[#1A1A1A]">Thấp</span>
                   </label>
                 </div>
                 
                 {/* Due date filter */}
-                <div className="flex flex-col gap-3 pt-1">
+                <div className="flex flex-col gap-2.5 pt-2 border-t border-[#141414]/10">
                   <span className="text-[11px] font-black uppercase text-[#141414] tracking-wider">Đến hạn</span>
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="radio" name="dueDate" checked={dueFilter === 'all'} onChange={() => setDueFilter('all')} className="hidden" />
                     <div className="w-[18px] h-[18px] rounded-full border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
                       {dueFilter === 'all' && <div className="w-[10px] h-[10px] rounded-full bg-[#3B82F6]" />}
                     </div>
-                    <span className="text-[15px] font-semibold text-[#1A1A1A]">Tất cả thời gian</span>
+                    <span className="text-[14px] font-semibold text-[#1A1A1A]">Tất cả thời gian</span>
                   </label>
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="radio" name="dueDate" checked={dueFilter === 'today'} onChange={() => setDueFilter('today')} className="hidden" />
                     <div className="w-[18px] h-[18px] rounded-full border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
                       {dueFilter === 'today' && <div className="w-[10px] h-[10px] rounded-full bg-[#3B82F6]" />}
                     </div>
-                    <span className="text-[15px] font-semibold text-[#1A1A1A] flex items-center gap-2">
-                      <Calendar size={16} className="text-[#8E8E93]" strokeWidth={2.5} />
+                    <span className="text-[14px] font-semibold text-[#1A1A1A] flex items-center gap-2">
+                      <Calendar size={15} className="text-[#8E8E93]" strokeWidth={2.5} />
                       Đến hạn hôm nay
                     </span>
                   </label>
                 </div>
+
+                {/* Hashtag filter */}
+                <div className="flex flex-col gap-2 pt-2 border-t border-[#141414]/10">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-black uppercase text-[#141414] tracking-wider">Lọc Hashtags</span>
+                    {hashtagFilter !== 'all' && (
+                      <button 
+                        onClick={() => setHashtagFilter('all')} 
+                        className="text-[11px] text-blue-600 font-bold hover:underline"
+                      >
+                        Bỏ lọc
+                      </button>
+                    )}
+                  </div>
+                  <select 
+                    value={hashtagFilter}
+                    onChange={(e) => setHashtagFilter(e.target.value)}
+                    className="w-full border-2 border-[#141414] bg-white px-3 py-2 rounded-xl text-[13px] font-semibold outline-none text-[#141414] cursor-pointer"
+                  >
+                    <option value="all">Tất cả hashtag</option>
+                    {availableHashtags.map(ht => (
+                      <option key={ht} value={ht}>{ht}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {(priorityFilter !== 'all' || dueFilter !== 'all' || hashtagFilter !== 'all') && (
+                  <button 
+                    onClick={() => {
+                      setPriorityFilter('all');
+                      setDueFilter('all');
+                      setHashtagFilter('all');
+                    }}
+                    className="mt-1 w-full text-center text-xs font-bold text-red-600 bg-red-50 border border-red-200 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    Xóa tất cả bộ lọc
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -646,9 +793,22 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                       )}
                       
                       {task.hashtags && task.hashtags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-2">
+                        <div className="flex flex-wrap gap-1.5 mb-2 z-10">
                           {task.hashtags.map(ht => (
-                            <span key={ht} className="text-[10px] font-bold text-[#3B82F6] bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md">
+                            <span 
+                              key={ht} 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setHashtagFilter(hashtagFilter === ht ? 'all' : ht);
+                              }}
+                              className={cn(
+                                "text-[10px] font-bold px-1.5 py-0.5 rounded-md cursor-pointer transition-all",
+                                hashtagFilter === ht 
+                                  ? "bg-[#3B82F6] text-white border border-[#141414] shadow-[1px_1px_0px_#141414]" 
+                                  : "text-[#3B82F6] bg-blue-50 border border-blue-200 hover:bg-blue-100"
+                              )}
+                              title="Bấm để lọc theo hashtag này"
+                            >
                               {ht}
                             </span>
                           ))}
@@ -676,7 +836,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
         })}
       </div>
         </>
-      ) : (
+      ) : viewMode === 'calendar' ? (
         <div className="flex flex-col flex-grow bg-white border-2 border-[#141414] rounded-2xl shadow-[4px_4px_0px_#141414] p-4 gap-3 min-h-[600px]">
           <div className="flex justify-between items-center flex-wrap gap-3 mb-2">
             <div className="font-extrabold text-lg text-[#141414]">
@@ -782,6 +942,296 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
               
               return cells;
             })()}
+          </div>
+        </div>
+      ) : (
+        /* Note View - Ghi chú nhanh */
+        <div className="flex flex-col gap-6">
+          <div className="bg-white border-[2px] border-[#141414] rounded-[24px] shadow-[6px_6px_0px_#141414] p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">📝</span>
+                <h2 className="text-2xl font-black text-[#141414]">Ghi chú nhanh (Notes)</h2>
+              </div>
+              <p className="text-xs text-[#666] font-semibold mt-1">Lưu trữ các ý tưởng, công việc gấp và thông tin quan trọng mọi lúc</p>
+            </div>
+            
+            <button
+              onClick={() => setIsAddingNote(!isAddingNote)}
+              className="bg-[#141414] text-white border-2 border-[#141414] px-4 py-2.5 rounded-xl font-extrabold text-sm shadow-[3px_3px_0px_rgba(0,0,0,0.2)] hover:bg-[#333] transition-all flex items-center gap-2 cursor-pointer shrink-0"
+            >
+              <Plus size={18} strokeWidth={3} />
+              {isAddingNote ? 'Đóng form' : 'Tạo ghi chú mới'}
+            </button>
+          </div>
+
+          {/* Form thêm ghi chú mới */}
+          {isAddingNote && (
+            <div className="bg-[#FEF08A] border-[3px] border-[#141414] rounded-[24px] shadow-[6px_6px_0px_#141414] p-5 sm:p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
+              <div className="flex justify-between items-center pb-2 border-b-2 border-[#141414]/10">
+                <span className="font-extrabold text-sm text-[#141414] uppercase tracking-wider flex items-center gap-2">
+                  <StickyNote size={18} /> Tạo ghi chú nhanh mới
+                </span>
+                <button onClick={() => setIsAddingNote(false)} className="text-[#141414] hover:bg-black/10 p-1 rounded-full cursor-pointer">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <input 
+                type="text" 
+                placeholder="Tiêu đề ghi chú..." 
+                className="w-full border-2 border-[#141414] bg-white px-4 py-2.5 rounded-xl text-sm font-bold outline-none text-[#141414]"
+                value={newNoteTitle}
+                onChange={e => setNewNoteTitle(e.target.value)}
+              />
+
+              <textarea 
+                placeholder="Nhập nội dung ghi chú ở đây..." 
+                rows={4}
+                className="w-full border-2 border-[#141414] bg-white px-4 py-3 rounded-xl text-xs font-semibold outline-none text-[#141414] resize-none"
+                value={newNoteContent}
+                onChange={e => setNewNoteContent(e.target.value)}
+              />
+
+              <div className="flex flex-wrap justify-between items-center gap-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[#141414]">Màu sắc:</span>
+                  {[
+                    { hex: '#FEF08A', name: 'Vàng' },
+                    { hex: '#FBCFE8', name: 'Hồng' },
+                    { hex: '#BFDBFE', name: 'Xanh' },
+                    { hex: '#BBF7D0', name: 'Lá' },
+                    { hex: '#DDD6FE', name: 'Tím' },
+                    { hex: '#FFFFFF', name: 'Trắng' },
+                  ].map(c => (
+                    <button
+                      key={c.hex}
+                      type="button"
+                      onClick={() => setNewNoteColor(c.hex)}
+                      style={{ backgroundColor: c.hex }}
+                      className={cn(
+                        "w-6 h-6 rounded-full border-2 border-[#141414] cursor-pointer transition-transform",
+                        newNoteColor === c.hex ? "scale-125 shadow-[2px_2px_0px_#141414] ring-2 ring-black" : "hover:scale-110"
+                      )}
+                      title={c.name}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setIsAddingNote(false)}
+                    className="border-2 border-[#141414] bg-white px-4 py-2 rounded-xl text-xs font-bold text-[#141414] hover:bg-gray-100 cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button 
+                    onClick={handleAddNote}
+                    className="bg-[#141414] text-white border-2 border-[#141414] px-5 py-2 rounded-xl text-xs font-extrabold shadow-[2px_2px_0px_rgba(0,0,0,0.2)] hover:bg-[#333] cursor-pointer"
+                  >
+                    Lưu ghi chú
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Danh sách Ghi chú */}
+          {(() => {
+            const filteredNotes = notes.filter(n => {
+              if (!searchQuery.trim()) return true;
+              const q = searchQuery.toLowerCase();
+              return n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q);
+            });
+
+            const pinnedNotes = filteredNotes.filter(n => n.isPinned);
+            const unpinnedNotes = filteredNotes.filter(n => !n.isPinned);
+
+            if (filteredNotes.length === 0) {
+              return (
+                <div className="bg-white border-2 border-[#141414] rounded-2xl p-8 text-center shadow-[4px_4px_0px_#141414] flex flex-col items-center gap-3">
+                  <StickyNote size={40} className="text-[#8E8E93]" />
+                  <p className="font-bold text-sm text-[#555]">
+                    {searchQuery ? 'Không tìm thấy ghi chú nào phù hợp' : 'Chưa có ghi chú nào'}
+                  </p>
+                  <button
+                    onClick={() => setIsAddingNote(true)}
+                    className="bg-[#141414] text-white text-xs font-bold px-4 py-2 rounded-xl border-2 border-[#141414] cursor-pointer"
+                  >
+                    + Tạo ghi chú ngay
+                  </button>
+                </div>
+              );
+            }
+
+            const renderNoteCard = (note: QuickNote) => (
+              <div 
+                key={note.id}
+                style={{ backgroundColor: note.color }}
+                className="border-[2px] border-[#141414] rounded-2xl p-4 shadow-[4px_4px_0px_#141414] flex flex-col justify-between gap-3 relative transition-all hover:-translate-y-1"
+              >
+                <div>
+                  <div className="flex justify-between items-start gap-2 mb-2">
+                    <h3 className="font-extrabold text-base text-[#141414] leading-snug break-words">
+                      {note.title}
+                    </h3>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button 
+                        onClick={() => togglePinNote(note.id)} 
+                        className={cn(
+                          "p-1 rounded-md border border-[#141414] transition-colors cursor-pointer",
+                          note.isPinned ? "bg-[#141414] text-yellow-300" : "bg-white/80 text-[#141414] hover:bg-white"
+                        )}
+                        title={note.isPinned ? "Bỏ ghim" : "Ghim ghi chú"}
+                      >
+                        <Pin size={13} strokeWidth={2.5} />
+                      </button>
+                      <button 
+                        onClick={() => copyNoteText(note)} 
+                        className="p-1 rounded-md border border-[#141414] bg-white/80 text-[#141414] hover:bg-white cursor-pointer"
+                        title="Sao chép nội dung"
+                      >
+                        {copiedNoteId === note.id ? <Check size={13} className="text-green-600" /> : <Copy size={13} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-xs font-medium text-[#222] leading-relaxed whitespace-pre-wrap break-words max-h-[160px] overflow-y-auto pr-1">
+                    {note.content}
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-center pt-2 border-t border-[#141414]/15 mt-2">
+                  <span className="text-[10px] font-bold text-[#555]">{note.createdAt}</span>
+                  <div className="flex gap-1.5">
+                    <button 
+                      onClick={() => setEditingNote(note)}
+                      className="p-1.5 rounded-md border border-[#141414] bg-white/90 text-[#141414] hover:bg-white text-xs font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Edit2 size={12} /> Sửa
+                    </button>
+                    <button 
+                      onClick={() => deleteNote(note.id)}
+                      className="p-1.5 rounded-md border border-[#141414] bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer"
+                      title="Xóa ghi chú"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+
+            return (
+              <div className="flex flex-col gap-6">
+                {/* Ghim */}
+                {pinnedNotes.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Pin size={16} className="text-[#FF5A5F]" />
+                      <span className="font-extrabold text-xs uppercase tracking-wider text-[#141414]">
+                        Đã ghim ({pinnedNotes.length})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {pinnedNotes.map(renderNoteCard)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tất cả ghi chú */}
+                {unpinnedNotes.length > 0 && (
+                  <div>
+                    {pinnedNotes.length > 0 && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="font-extrabold text-xs uppercase tracking-wider text-[#141414]">
+                          Ghi chú khác ({unpinnedNotes.length})
+                        </span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {unpinnedNotes.map(renderNoteCard)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Modal Chỉnh Sửa Ghi Chú Nhanh */}
+      {editingNote && (
+        <div className="fixed inset-0 bg-[#141414]/60 backdrop-blur-sm flex justify-center items-center z-[1000] p-4" onClick={() => setEditingNote(null)}>
+          <div 
+            style={{ backgroundColor: editingNote.color }}
+            className="w-full max-w-lg border-[3px] border-[#141414] rounded-3xl shadow-[8px_8px_0px_#141414] p-6 relative flex flex-col gap-4 animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center pb-2 border-b-2 border-[#141414]/15">
+              <span className="font-extrabold text-sm text-[#141414] uppercase tracking-wider flex items-center gap-2">
+                <Edit2 size={16} /> Chỉnh sửa ghi chú
+              </span>
+              <button onClick={() => setEditingNote(null)} className="p-1 rounded-full hover:bg-black/10 text-[#141414] cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <input 
+              type="text" 
+              placeholder="Tiêu đề ghi chú..." 
+              className="w-full border-2 border-[#141414] bg-white px-4 py-2.5 rounded-xl text-sm font-bold outline-none text-[#141414]"
+              value={editingNote.title}
+              onChange={e => setEditingNote({ ...editingNote, title: e.target.value })}
+            />
+
+            <textarea 
+              placeholder="Nội dung ghi chú..." 
+              rows={5}
+              className="w-full border-2 border-[#141414] bg-white px-4 py-3 rounded-xl text-xs font-semibold outline-none text-[#141414] resize-none"
+              value={editingNote.content}
+              onChange={e => setEditingNote({ ...editingNote, content: e.target.value })}
+            />
+
+            <div className="flex flex-wrap justify-between items-center gap-3 pt-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#141414]">Màu:</span>
+                {[
+                  { hex: '#FEF08A' },
+                  { hex: '#FBCFE8' },
+                  { hex: '#BFDBFE' },
+                  { hex: '#BBF7D0' },
+                  { hex: '#DDD6FE' },
+                  { hex: '#FFFFFF' },
+                ].map(c => (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    onClick={() => setEditingNote({ ...editingNote, color: c.hex })}
+                    style={{ backgroundColor: c.hex }}
+                    className={cn(
+                      "w-6 h-6 rounded-full border-2 border-[#141414] cursor-pointer transition-transform",
+                      editingNote.color === c.hex ? "scale-125 shadow-[2px_2px_0px_#141414] ring-2 ring-black" : "hover:scale-110"
+                    )}
+                  />
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setEditingNote(null)}
+                  className="border-2 border-[#141414] bg-white px-4 py-2 rounded-xl text-xs font-bold text-[#141414] hover:bg-gray-100 cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button 
+                  onClick={handleSaveNoteEdit}
+                  className="bg-[#141414] text-white border-2 border-[#141414] px-5 py-2 rounded-xl text-xs font-extrabold shadow-[2px_2px_0px_rgba(0,0,0,0.2)] hover:bg-[#333] cursor-pointer"
+                >
+                  Cập nhật
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
