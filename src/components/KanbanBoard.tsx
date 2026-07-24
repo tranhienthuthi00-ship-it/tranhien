@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { KanbanTask, KanbanSubtask } from '@/types';
-import { Search, Plus, Edit2, X } from 'lucide-react';
+import { Search, Plus, Edit2, X, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface KanbanBoardProps {
@@ -14,6 +14,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [dueFilter, setDueFilter] = useState<string>("all");
+  const [hashtagFilter, setHashtagFilter] = useState<string>("all");
   const [showTag, setShowTag] = useState(true);
   const [showPriority, setShowPriority] = useState(true);
   const [showCreated, setShowCreated] = useState(true);
@@ -24,6 +25,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
   const [newTaskTag, setNewTaskTag] = useState("Công việc");
   const [newTaskPriority, setNewTaskPriority] = useState("Trung bình");
   const [newTaskStatus, setNewTaskStatus] = useState<'todo'|'doing'|'done'>("todo");
+  const [newTaskHashtags, setNewTaskHashtags] = useState<string[]>([]);
 
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -33,6 +35,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
   const [editingTag, setEditingTag] = useState("");
   const [editingPriority, setEditingPriority] = useState("Trung bình");
   const [editingStatus, setEditingStatus] = useState<'todo'|'doing'|'done'>("todo");
+  const [editingHashtags, setEditingHashtags] = useState<string[]>([]);
 
   const [viewMode, setViewMode] = useState<'board' | 'calendar'>('board');
   const [calendarDate, setCalendarDate] = useState(new Date());
@@ -69,6 +72,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
     if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (tagFilter !== 'all' && t.tag !== tagFilter) return false;
     if (priorityFilter !== 'all' && (t.priority || 'Trung bình') !== priorityFilter) return false;
+    if (hashtagFilter !== 'all' && (!t.hashtags || !t.hashtags.includes(hashtagFilter))) return false;
     if (dueFilter === 'today') {
       const todayStr = new Date().toISOString().split('T')[0];
       const hasToday = t.subtasks && t.subtasks.some(sub => sub.date === todayStr);
@@ -82,6 +86,11 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
     { id: 'doing', title: 'Đang làm (In Progress)' },
     { id: 'done', title: 'Hoàn thành (Done)' }
   ] as const;
+
+  const AVAILABLE_HASHTAGS = ['#quan_trong', '#khan_cap', '#khach_hang', '#bao_cao', '#team_work', '#ca_nhan', '#bug', '#feature'];
+  const [isHashtagDropdownOpen, setIsHashtagDropdownOpen] = useState(false);
+  const [isNewTaskHashtagDropdownOpen, setIsNewTaskHashtagDropdownOpen] = useState(false);
+  const [isEditHashtagDropdownOpen, setIsEditHashtagDropdownOpen] = useState(false);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('taskId', id);
@@ -107,6 +116,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
       title: newTaskInput.trim(),
       tag: newTaskTag,
       priority: newTaskPriority,
+      hashtags: newTaskHashtags,
       status: newTaskStatus,
       desc: 'Chưa có mô tả chi tiết.',
       subtasks: [{ date: new Date().toISOString().split('T')[0], text: 'Khởi tạo công việc', money: 0 }]
@@ -114,6 +124,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
 
     setTasks(prev => [...prev, newTask]);
     setNewTaskInput("");
+    setNewTaskHashtags([]);
   };
 
   const deleteTask = (e: React.MouseEvent, id: string) => {
@@ -143,6 +154,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
     setEditingTag(task.tag);
     setEditingPriority(task.priority || 'Trung bình');
     setEditingStatus(task.status);
+    setEditingHashtags(task.hashtags || []);
     setEditingSubtasks(JSON.parse(JSON.stringify(task.subtasks || [])));
   };
 
@@ -157,6 +169,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
           tag: editingTag,
           priority: editingPriority,
           status: editingStatus,
+          hashtags: editingHashtags,
           subtasks: editingSubtasks.filter(s => s.text.trim() !== '')
         };
       }
@@ -226,36 +239,33 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
       <div className="flex-1 flex flex-col gap-6 overflow-hidden">
         <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-4">
         <div className="flex items-center gap-3 flex-grow">
-          <div className="w-[42px] h-[42px] rounded-full bg-[#f6b8db] flex items-center justify-center shrink-0">
+          <div className="w-[42px] h-[42px] rounded-full bg-[#f6b8db] flex items-center justify-center shrink-0 border-[2px] border-[#141414]">
             <Search size={18} className="text-[#141414]" strokeWidth={2.5} />
           </div>
-          <div className="flex flex-wrap md:flex-nowrap items-center border-2 border-[#141414] rounded-full px-4 py-2 gap-3 bg-transparent w-full max-w-[540px]">
-            <input 
-              type="text" 
-              placeholder="Search..." 
-              className="border-none bg-transparent outline-none text-sm font-medium grow text-[#1A1A1A] min-w-[100px]"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-            <div className="flex items-center gap-1.5 md:border-l border-[#D1CCD5] md:pl-3 text-xs text-[#8E8E93] overflow-x-auto whitespace-nowrap">
-              <span className="px-2">In:</span>
+          <div className="flex flex-wrap md:flex-nowrap items-center border-[2px] border-[#141414] rounded-full px-2 py-1.5 gap-1 bg-white">
+            <span 
+              className={cn("px-4 py-1.5 rounded-full cursor-pointer transition-colors font-semibold text-sm", tagFilter === 'all' ? "bg-[#141414] text-white" : "bg-transparent text-[#666] hover:text-[#1A1A1A]")}
+              onClick={() => setTagFilter('all')}
+            >
+              Tất cả
+            </span>
+            {tags.map(t => (
               <span 
-                className={cn("px-3 py-1 rounded-full cursor-pointer transition-colors font-medium", tagFilter === 'all' ? "bg-[#141414] text-white" : "bg-[#FAFAFA] border border-transparent text-[#444] hover:bg-[#EFECE6]")}
-                onClick={() => setTagFilter('all')}
+                key={t}
+                className={cn("px-4 py-1.5 rounded-full cursor-pointer transition-colors font-semibold text-sm", tagFilter === t ? "bg-[#141414] text-white" : "bg-transparent text-[#666] hover:text-[#1A1A1A]")}
+                onClick={() => setTagFilter(t)}
               >
-                All
+                {t}
               </span>
-              {tags.map(t => (
-                <span 
-                  key={t}
-                  className={cn("px-3 py-1 rounded-full cursor-pointer transition-colors font-medium", tagFilter === t ? "bg-[#141414] text-white" : "bg-[#FAFAFA] border border-transparent text-[#444] hover:bg-[#EFECE6]")}
-                  onClick={() => setTagFilter(t)}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
+            ))}
           </div>
+          <input 
+            type="text" 
+            placeholder="Tìm kiếm..." 
+            className="hidden md:block border-[2px] border-[#141414] bg-white px-4 py-2 rounded-full text-sm outline-none font-medium text-[#1A1A1A] max-w-[200px]"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
         </div>
         <div className="flex gap-3 relative z-50">
           <button 
@@ -273,18 +283,133 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
               </svg>
             )}
           </button>
-          <div className="w-[42px] h-[42px] rounded-full bg-[#141414] flex items-center justify-center shrink-0"></div>
-          <div className="w-[42px] h-[42px] rounded-full bg-[#141414] flex items-center justify-center shrink-0">
-             <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-white fill-none stroke-[2px] stroke-linecap-round stroke-linejoin-round">
-               <circle cx="12" cy="12" r="3"></circle>
-               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-             </svg>
+          <div className="relative">
+            <button 
+              onClick={() => {
+                setIsFilterDropdownOpen(!isFilterDropdownOpen);
+                setIsSettingsDropdownOpen(false);
+                setIsHashtagDropdownOpen(false);
+              }}
+              className="w-[42px] h-[42px] rounded-full bg-[#141414] flex items-center justify-center shrink-0 cursor-pointer hover:scale-105 transition-transform"
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-white fill-none stroke-[2.5px] stroke-linecap-round stroke-linejoin-round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
+            </button>
+            
+            {isFilterDropdownOpen && (
+              <div className="absolute right-0 top-[52px] w-[240px] bg-[#FDFBF7] border-[2px] border-[#141414] rounded-[20px] shadow-[6px_6px_0px_#141414] p-5 flex flex-col gap-5 z-[60]">
+                {/* Priority filter */}
+                <div className="flex flex-col gap-3">
+                  <span className="text-[11px] font-black uppercase text-[#141414] tracking-wider">Mức độ ưu tiên</span>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="radio" name="priority" checked={priorityFilter === 'all'} onChange={() => setPriorityFilter('all')} className="hidden" />
+                    <div className="w-[18px] h-[18px] rounded-full border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
+                      {priorityFilter === 'all' && <div className="w-[10px] h-[10px] rounded-full bg-[#3B82F6]" />}
+                    </div>
+                    <span className="text-[15px] font-semibold text-[#1A1A1A]">Tất cả ưu tiên</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="radio" name="priority" checked={priorityFilter === 'Cao'} onChange={() => setPriorityFilter('Cao')} className="hidden" />
+                    <div className="w-[18px] h-[18px] rounded-full border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
+                      {priorityFilter === 'Cao' && <div className="w-[10px] h-[10px] rounded-full bg-[#3B82F6]" />}
+                    </div>
+                    <div className="w-5 h-5 rounded-full bg-[#FF5A5F] shadow-[inset_0_-2px_0_rgba(0,0,0,0.1)]" />
+                    <span className="text-[15px] font-semibold text-[#1A1A1A]">Cao</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="radio" name="priority" checked={priorityFilter === 'Trung bình'} onChange={() => setPriorityFilter('Trung bình')} className="hidden" />
+                    <div className="w-[18px] h-[18px] rounded-full border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
+                      {priorityFilter === 'Trung bình' && <div className="w-[10px] h-[10px] rounded-full bg-[#3B82F6]" />}
+                    </div>
+                    <div className="w-5 h-5 rounded-full bg-[#FFD166] shadow-[inset_0_-2px_0_rgba(0,0,0,0.1)]" />
+                    <span className="text-[15px] font-semibold text-[#1A1A1A]">Trung bình</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="radio" name="priority" checked={priorityFilter === 'Thấp'} onChange={() => setPriorityFilter('Thấp')} className="hidden" />
+                    <div className="w-[18px] h-[18px] rounded-full border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
+                      {priorityFilter === 'Thấp' && <div className="w-[10px] h-[10px] rounded-full bg-[#3B82F6]" />}
+                    </div>
+                    <div className="w-5 h-5 rounded-full bg-[#06D6A0] shadow-[inset_0_-2px_0_rgba(0,0,0,0.1)]" />
+                    <span className="text-[15px] font-semibold text-[#1A1A1A]">Thấp</span>
+                  </label>
+                </div>
+                
+                {/* Due date filter */}
+                <div className="flex flex-col gap-3 pt-1">
+                  <span className="text-[11px] font-black uppercase text-[#141414] tracking-wider">Đến hạn</span>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="radio" name="dueDate" checked={dueFilter === 'all'} onChange={() => setDueFilter('all')} className="hidden" />
+                    <div className="w-[18px] h-[18px] rounded-full border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
+                      {dueFilter === 'all' && <div className="w-[10px] h-[10px] rounded-full bg-[#3B82F6]" />}
+                    </div>
+                    <span className="text-[15px] font-semibold text-[#1A1A1A]">Tất cả thời gian</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="radio" name="dueDate" checked={dueFilter === 'today'} onChange={() => setDueFilter('today')} className="hidden" />
+                    <div className="w-[18px] h-[18px] rounded-full border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
+                      {dueFilter === 'today' && <div className="w-[10px] h-[10px] rounded-full bg-[#3B82F6]" />}
+                    </div>
+                    <span className="text-[15px] font-semibold text-[#1A1A1A] flex items-center gap-2">
+                      <Calendar size={16} className="text-[#8E8E93]" strokeWidth={2.5} />
+                      Đến hạn hôm nay
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="relative">
+            <button 
+              onClick={() => {
+                setIsSettingsDropdownOpen(!isSettingsDropdownOpen);
+                setIsFilterDropdownOpen(false);
+              }}
+              className="w-[42px] h-[42px] rounded-full bg-[#141414] flex items-center justify-center shrink-0 cursor-pointer hover:scale-105 transition-transform"
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-white fill-none stroke-[2px] stroke-linecap-round stroke-linejoin-round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </button>
+            {isSettingsDropdownOpen && (
+              <div className="absolute right-0 top-[52px] w-[200px] bg-[#FDFBF7] border-[2px] border-[#141414] rounded-[20px] shadow-[6px_6px_0px_#141414] p-4 flex flex-col gap-3 z-[60]">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input type="checkbox" checked={showTag} onChange={() => setShowTag(!showTag)} className="hidden" />
+                  <div className="w-5 h-5 rounded-[6px] border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
+                    {showTag && <div className="w-[10px] h-[10px] rounded-sm bg-[#3B82F6]" />}
+                  </div>
+                  <span className="text-[14px] font-semibold text-[#1A1A1A]">Hiện hashtag</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input type="checkbox" checked={showPriority} onChange={() => setShowPriority(!showPriority)} className="hidden" />
+                  <div className="w-5 h-5 rounded-[6px] border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
+                    {showPriority && <div className="w-[10px] h-[10px] rounded-sm bg-[#3B82F6]" />}
+                  </div>
+                  <span className="text-[14px] font-semibold text-[#1A1A1A]">Hiện ưu tiên</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input type="checkbox" checked={showCreated} onChange={() => setShowCreated(!showCreated)} className="hidden" />
+                  <div className="w-5 h-5 rounded-[6px] border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
+                    {showCreated && <div className="w-[10px] h-[10px] rounded-sm bg-[#3B82F6]" />}
+                  </div>
+                  <span className="text-[14px] font-semibold text-[#1A1A1A]">Hiện ngày</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input type="checkbox" checked={showMoney} onChange={() => setShowMoney(!showMoney)} className="hidden" />
+                  <div className="w-5 h-5 rounded-[6px] border-[2px] border-[#141414] flex items-center justify-center shrink-0 bg-white group-hover:bg-blue-50 transition-colors">
+                    {showMoney && <div className="w-[10px] h-[10px] rounded-sm bg-[#3B82F6]" />}
+                  </div>
+                  <span className="text-[14px] font-semibold text-[#1A1A1A]">Hiện tài chính</span>
+                </label>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       <h1 className="text-[28px] font-bold text-[#1A1A1A] mt-2 mb-1">
-        {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, Victor
+        {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, Ms Tran Hien
       </h1>
 
       {viewMode === 'board' ? (
@@ -325,6 +450,44 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
           <option value="doing">Đang làm</option>
           <option value="done">Hoàn thành</option>
         </select>
+
+        <div className="relative">
+          <button 
+            className="border-[2px] border-[#141414] bg-white px-4 py-2.5 rounded-[12px] text-sm outline-none font-medium cursor-pointer min-w-[140px] flex justify-between items-center"
+            onClick={() => setIsNewTaskHashtagDropdownOpen(!isNewTaskHashtagDropdownOpen)}
+          >
+            <span className="truncate max-w-[100px]">
+              {newTaskHashtags.length > 0 ? newTaskHashtags.join(', ') : 'Hashtags'}
+            </span>
+            <span className="text-[10px] ml-2">▼</span>
+          </button>
+          
+          {isNewTaskHashtagDropdownOpen && (
+            <div className="absolute top-full left-0 mt-2 w-[200px] bg-white border-[2px] border-[#141414] rounded-xl shadow-[4px_4px_0px_#141414] p-3 flex flex-col gap-2 z-[60] max-h-[200px] overflow-y-auto">
+              {AVAILABLE_HASHTAGS.map(ht => (
+                <label key={ht} className="flex items-center gap-2 cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    checked={newTaskHashtags.includes(ht)} 
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setNewTaskHashtags([...newTaskHashtags, ht]);
+                      } else {
+                        setNewTaskHashtags(newTaskHashtags.filter(h => h !== ht));
+                      }
+                    }}
+                    className="hidden" 
+                  />
+                  <div className="w-4 h-4 rounded-sm border-2 border-[#141414] flex items-center justify-center bg-white group-hover:bg-blue-50 transition-colors shrink-0">
+                    {newTaskHashtags.includes(ht) && <div className="w-2 h-2 rounded-sm bg-[#3B82F6]" />}
+                  </div>
+                  <span className="text-[13px] font-semibold text-[#1A1A1A]">{ht}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
         <button 
           onClick={addTask}
           className="bg-[#141414] text-white font-semibold text-sm px-8 py-2.5 rounded-[12px] hover:scale-[1.02] transition-transform whitespace-nowrap ml-1"
@@ -401,6 +564,16 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                         </div>
                       )}
                       
+                      {task.hashtags && task.hashtags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {task.hashtags.map(ht => (
+                            <span key={ht} className="text-[10px] font-bold text-[#3B82F6] bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md">
+                              {ht}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
                       {(showTag || showCreated) && (
                         <div className="flex justify-between items-center text-xs font-semibold text-[#111] mt-auto border-t-2 border-dashed border-[#141414]/20 pt-3 gap-2 flex-wrap">
                           {showTag && (
@@ -661,6 +834,43 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
                     </div>
                   </div>
                   
+                  <div className="mt-1.5 relative">
+                    <label className="text-[11px] font-extrabold uppercase text-[#444] block mb-1">Hashtags:</label>
+                    <button 
+                      className="w-full border-2 border-[#141414] bg-white px-3.5 py-2.5 rounded-xl text-[13px] font-semibold outline-none text-[#141414] cursor-pointer text-left flex justify-between items-center"
+                      onClick={() => setIsEditHashtagDropdownOpen(!isEditHashtagDropdownOpen)}
+                    >
+                      <span className="truncate">
+                        {editingHashtags.length > 0 ? editingHashtags.join(', ') : 'Thêm hashtag'}
+                      </span>
+                      <span className="text-[10px] ml-2">▼</span>
+                    </button>
+                    {isEditHashtagDropdownOpen && (
+                      <div className="absolute top-full left-0 mt-2 w-full bg-white border-[2px] border-[#141414] rounded-xl shadow-[4px_4px_0px_#141414] p-3 flex flex-col gap-2 z-[60] max-h-[200px] overflow-y-auto">
+                        {AVAILABLE_HASHTAGS.map(ht => (
+                          <label key={ht} className="flex items-center gap-2 cursor-pointer group">
+                            <input 
+                              type="checkbox" 
+                              checked={editingHashtags.includes(ht)} 
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditingHashtags([...editingHashtags, ht]);
+                                } else {
+                                  setEditingHashtags(editingHashtags.filter(h => h !== ht));
+                                }
+                              }}
+                              className="hidden" 
+                            />
+                            <div className="w-4 h-4 rounded-sm border-2 border-[#141414] flex items-center justify-center bg-white group-hover:bg-blue-50 transition-colors shrink-0">
+                              {editingHashtags.includes(ht) && <div className="w-2 h-2 rounded-sm bg-[#3B82F6]" />}
+                            </div>
+                            <span className="text-[13px] font-semibold text-[#1A1A1A]">{ht}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="mt-1.5">
                     <label className="text-[11px] font-extrabold uppercase text-[#444] block mb-2">Timeline & Số tiền:</label>
                     <div className="flex flex-col gap-2">
