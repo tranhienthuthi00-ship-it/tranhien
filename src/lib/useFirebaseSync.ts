@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -714,7 +714,7 @@ export function useFirebaseSync() {
   }, [saveTrigger, user]);
 
   // Diff sync wrapper
-  const createSyncSetter = <T extends { id: string }>(
+  const createSyncSetter = useCallback(<T extends { id: string }>(
     collectionName: string, 
     itemsRef: React.MutableRefObject<T[]>,
     setLocalState: React.Dispatch<React.SetStateAction<T[]>>,
@@ -729,6 +729,8 @@ export function useFirebaseSync() {
       } else {
         targetItems = newItems as T[];
       }
+
+      if (targetItems === currentItems) return;
 
       // Optimistic update
       if (!isSingleDoc) {
@@ -756,11 +758,12 @@ export function useFirebaseSync() {
 
       safeLocalStorage.setItem(lsKey, JSON.stringify(targetItems));
 
-      if (!user) return;
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
 
       try {
         if (isSingleDoc) {
-          await setDoc(doc(db, `users/${user.uid}/data/${collectionName}`), { [collectionName]: targetItems });
+          await setDoc(doc(db, `users/${currentUser.uid}/data/${collectionName}`), { [collectionName]: targetItems });
           return;
         }
         
@@ -785,71 +788,91 @@ export function useFirebaseSync() {
 
         for (const item of toAddOrUpdate) {
           const cleanItem = Object.fromEntries(Object.entries(item).filter(([_, v]) => v !== undefined));
-          await setDoc(doc(db, `users/${user.uid}/${collectionName}/${item.id}`), cleanItem);
+          await setDoc(doc(db, `users/${currentUser.uid}/${collectionName}/${item.id}`), cleanItem);
         }
         for (const item of toDelete) {
-          await deleteDoc(doc(db, `users/${user.uid}/${collectionName}/${item.id}`));
+          await deleteDoc(doc(db, `users/${currentUser.uid}/${collectionName}/${item.id}`));
         }
       } catch (err: any) {
         console.error("Sync error:", err);
       }
     };
-  };
+  }, []);
+
+  const setWordsSync = useCallback(createSyncSetter<Word>('words', wordsRef, setWords), [createSyncSetter]);
+  const setWritingSentencesSync = useCallback(createSyncSetter<WritingSentence>('writingSentences', writingSentencesRef, setWritingSentences), [createSyncSetter]);
+  const setTasksSync = useCallback(createSyncSetter<Task>('tasks', tasksRef, setTasks), [createSyncSetter]);
+  const setWishlistSync = useCallback(createSyncSetter<WishlistItem>('wishlistItems', wishlistRef, setWishlist), [createSyncSetter]);
+  const setLogsSync = useCallback(createSyncSetter<LogEntry>('logEntries', logsRef, setLogs), [createSyncSetter]);
+  const setFoodPlacesSync = useCallback(createSyncSetter<FoodPlace>('foodPlaces', foodRef, setFoodPlaces), [createSyncSetter]);
+  const setContentIdeasSync = useCallback(createSyncSetter<ContentIdea>('contentIdeas', ideasRef, setContentIdeas), [createSyncSetter]);
+  const setAssetsSync = useCallback(createSyncSetter<Asset>('assets', assetsRef, setAssets), [createSyncSetter]);
+  const setAssetCategoriesSync = useCallback(createSyncSetter<AssetCategory>('assetCategories', assetCategoriesRef, setAssetCategories), [createSyncSetter]);
+  const setDictationsSync = useCallback(createSyncSetter<VideoDictation>('dictations', dictationsRef, setDictations as any), [createSyncSetter]);
+  const setCustomSentencesSync = useCallback(createSyncSetter<CustomSentence>('customSentences', sentencesRef, setCustomSentences), [createSyncSetter]);
+  const setPracticeParagraphsSync = useCallback(createSyncSetter<PracticeParagraph>('practiceParagraphs', paragraphsRef, setPracticeParagraphs), [createSyncSetter]);
+  const setStudyGoalsSync = useCallback(createSyncSetter<StudyGoal>('studyGoals', goalsRef, setStudyGoals), [createSyncSetter]);
+  const setAchievementsSync = useCallback(createSyncSetter<Achievement>('achievements', achievementsRef, setAchievements), [createSyncSetter]);
+  const setKanbanTasksSync = useCallback(createSyncSetter<KanbanTask>('kanbanTasks', kanbanTasksRef, setKanbanTasks), [createSyncSetter]);
+  const setTagsSync = useCallback(createSyncSetter<any>('tags', React.createRef(), setTags as any, true), [createSyncSetter]);
+
+  const setBulkDebtsSync = useCallback(async (valOrFunc: any) => {
+     let nextVal;
+     if (typeof valOrFunc === 'function') {
+       nextVal = valOrFunc(bulkDebtsRef.current);
+     } else {
+       nextVal = valOrFunc;
+     }
+     setBulkDebts(nextVal);
+     safeLocalStorage.setItem("studyHub_bulkDebts", JSON.stringify(nextVal));
+     setSaveTrigger(p => p + 1);
+  }, []);
+
+  const setBulkCardSpendsSync = useCallback(async (valOrFunc: any) => {
+     let nextVal;
+     if (typeof valOrFunc === 'function') {
+       nextVal = valOrFunc(bulkCardSpendsRef.current);
+     } else {
+       nextVal = valOrFunc;
+     }
+     setBulkCardSpends(nextVal);
+     safeLocalStorage.setItem("studyHub_bulkCardSpends", JSON.stringify(nextVal));
+     setSaveTrigger(p => p + 1);
+  }, []);
+
+  const setBulkCurrentCashSync = useCallback(async (valOrFunc: any) => {
+     let nextVal;
+     if (typeof valOrFunc === 'function') {
+       nextVal = valOrFunc(bulkCurrentCashRef.current);
+     } else {
+       nextVal = valOrFunc;
+     }
+     setBulkCurrentCash(nextVal);
+     safeLocalStorage.setItem("studyHub_bulkCurrentCash", JSON.stringify(nextVal));
+     setSaveTrigger(p => p + 1);
+  }, []);
 
   return {
     user, loading,
-    words, setWords: createSyncSetter<Word>('words', wordsRef, setWords),
-    writingSentences, setWritingSentences: createSyncSetter<WritingSentence>('writingSentences', writingSentencesRef, setWritingSentences),
-    tasks, setTasks: createSyncSetter<Task>('tasks', tasksRef, setTasks),
-    wishlist, setWishlist: createSyncSetter<WishlistItem>('wishlistItems', wishlistRef, setWishlist),
-    logs, setLogs: createSyncSetter<LogEntry>('logEntries', logsRef, setLogs),
-    foodPlaces, setFoodPlaces: createSyncSetter<FoodPlace>('foodPlaces', foodRef, setFoodPlaces),
-    contentIdeas, setContentIdeas: createSyncSetter<ContentIdea>('contentIdeas', ideasRef, setContentIdeas),
-    assets, setAssets: createSyncSetter<Asset>('assets', assetsRef, setAssets),
-    assetCategories, setAssetCategories: createSyncSetter<AssetCategory>('assetCategories', assetCategoriesRef, setAssetCategories),
-    dictations, setDictations: createSyncSetter<VideoDictation>('dictations', dictationsRef, setDictations as any),
-    customSentences, setCustomSentences: createSyncSetter<CustomSentence>('customSentences', sentencesRef, setCustomSentences),
-    practiceParagraphs, setPracticeParagraphs: createSyncSetter<PracticeParagraph>('practiceParagraphs', paragraphsRef, setPracticeParagraphs),
-    studyGoals, setStudyGoals: createSyncSetter<StudyGoal>('studyGoals', goalsRef, setStudyGoals),
-    achievements, setAchievements: createSyncSetter<Achievement>('achievements', achievementsRef, setAchievements),
-    kanbanTasks, setKanbanTasks: createSyncSetter<KanbanTask>('kanbanTasks', kanbanTasksRef, setKanbanTasks),
-    tags, setTags: createSyncSetter<any>('tags', React.createRef(), setTags as any, true),
-    bulkDebts,
-    setBulkDebts: async (valOrFunc: any) => {
-       let nextVal;
-       if (typeof valOrFunc === 'function') {
-         nextVal = valOrFunc(bulkDebtsRef.current);
-       } else {
-         nextVal = valOrFunc;
-       }
-       setBulkDebts(nextVal);
-       safeLocalStorage.setItem("studyHub_bulkDebts", JSON.stringify(nextVal));
-       setSaveTrigger(p => p + 1);
-    },
-    bulkCardSpends,
-    setBulkCardSpends: async (valOrFunc: any) => {
-       let nextVal;
-       if (typeof valOrFunc === 'function') {
-         nextVal = valOrFunc(bulkCardSpendsRef.current);
-       } else {
-         nextVal = valOrFunc;
-       }
-       setBulkCardSpends(nextVal);
-       safeLocalStorage.setItem("studyHub_bulkCardSpends", JSON.stringify(nextVal));
-       setSaveTrigger(p => p + 1);
-    },
-    bulkCurrentCash,
-    setBulkCurrentCash: async (valOrFunc: any) => {
-       let nextVal;
-       if (typeof valOrFunc === 'function') {
-         nextVal = valOrFunc(bulkCurrentCashRef.current);
-       } else {
-         nextVal = valOrFunc;
-       }
-       setBulkCurrentCash(nextVal);
-       safeLocalStorage.setItem("studyHub_bulkCurrentCash", JSON.stringify(nextVal));
-       setSaveTrigger(p => p + 1);
-    },
+    words, setWords: setWordsSync,
+    writingSentences, setWritingSentences: setWritingSentencesSync,
+    tasks, setTasks: setTasksSync,
+    wishlist, setWishlist: setWishlistSync,
+    logs, setLogs: setLogsSync,
+    foodPlaces, setFoodPlaces: setFoodPlacesSync,
+    contentIdeas, setContentIdeas: setContentIdeasSync,
+    assets, setAssets: setAssetsSync,
+    assetCategories, setAssetCategories: setAssetCategoriesSync,
+    dictations, setDictations: setDictationsSync,
+    customSentences, setCustomSentences: setCustomSentencesSync,
+    practiceParagraphs, setPracticeParagraphs: setPracticeParagraphsSync,
+    studyGoals, setStudyGoals: setStudyGoalsSync,
+    achievements, setAchievements: setAchievementsSync,
+    kanbanTasks, setKanbanTasks: setKanbanTasksSync,
+    tags, setTags: setTagsSync,
+    bulkDebts, setBulkDebts: setBulkDebtsSync,
+    bulkCardSpends, setBulkCardSpends: setBulkCardSpendsSync,
+    bulkCurrentCash, setBulkCurrentCash: setBulkCurrentCashSync,
     salaryInput,
     setSalaryInput: async (newVal: string) => {
        setSalaryInput(newVal);

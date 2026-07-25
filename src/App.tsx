@@ -112,6 +112,7 @@ function AppContent() {
             dateRangeText = ` (${formatDateStr(activeDates[0])} - ${formatDateStr(activeDates[activeDates.length - 1])})`;
           }
 
+          const existingCard = currentAssets[existingIdx];
           const cardAsset: any = {
             id: "card-debt-auto-sync",
             name: `Nợ thẻ tín dụng${dateRangeText} (Tự động)`,
@@ -119,7 +120,7 @@ function AppContent() {
             value: absTotalSum,
             currency: "VND",
             notes: `Dư nợ tín dụng tổng hợp tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
-            acquiredAt: Date.now(),
+            acquiredAt: existingCard?.acquiredAt || Date.now(),
             isDebt: true,
             isNewMoney: false,
             excludeFromNetWorth: false
@@ -199,6 +200,7 @@ function AppContent() {
             dateRangeText = ` (${formatDateStr(activeDates[0])} - ${formatDateStr(activeDates[activeDates.length - 1])})`;
           }
 
+          const existingRev = currentAssets[existingIdx];
           const revenueAsset: any = {
             id: "revenue-debt-auto-sync",
             name: isLoan ? `Cho vay doanh thu${dateRangeText} (Tự động)` : `Nợ doanh thu${dateRangeText} (Tự động)`,
@@ -206,7 +208,7 @@ function AppContent() {
             value: absTotalSum,
             currency: "VND",
             notes: `Tích lũy tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
-            acquiredAt: Date.now(),
+            acquiredAt: existingRev?.acquiredAt || Date.now(),
             isDebt: isDebt,
             isLoan: isLoan,
             isNewMoney: false,
@@ -263,6 +265,7 @@ function AppContent() {
             return `• ${den.toLocaleString('vi-VN')} đ: ${qty} tờ = ${(den * qty).toLocaleString('vi-VN')} đ`;
           }).filter(Boolean).join("\n");
 
+          const existingCash = currentAssets[existingIdx];
           const cashAsset: any = {
             id: "current-cash-auto-sync",
             name: `Tiền mặt đang có (Bảng kê tự động)`,
@@ -270,7 +273,7 @@ function AppContent() {
             value: totalSum,
             currency: "VND",
             notes: `Tổng tiền mặt đang có từ bảng kê chi tiết:\n${detailNotesList}`,
-            acquiredAt: Date.now(),
+            acquiredAt: existingCash?.acquiredAt || Date.now(),
             isDebt: false,
             isNewMoney: false,
             excludeFromNetWorth: false
