@@ -48,258 +48,257 @@ function AppContent() {
     bulkCurrentCash, setBulkCurrentCash
   } = useFirebase();
 
-  // AUTOMATIC SYNC: Update bulk card spends credit card debt into the central assets state
+  // AUTOMATIC SYNC: Consolidate bulkCardSpends, bulkDebts, and bulkCurrentCash into assets state safely
   useEffect(() => {
-    if (!setAssets || !assets) return;
-    try {
-      const validSpends = bulkCardSpends.filter(d => d.amount.trim() && parseVNDAmount(d.amount) !== 0);
-      const totalSum = validSpends.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
-      const absTotalSum = Math.abs(totalSum);
+    if (!setAssets) return;
 
-      const existingDebtIdx = assets.findIndex(a => a.id === "card-debt-auto-sync");
+    setAssets(prevAssets => {
+      if (!prevAssets) return prevAssets;
 
-      if (absTotalSum === 0) {
-        if (existingDebtIdx !== -1) {
-          setAssets(assets.filter(a => a.id !== "card-debt-auto-sync"));
-        }
-        return;
-      }
+      let currentAssets = [...prevAssets];
+      let hasChanged = false;
 
-      const catId = assetCategories.find(c => 
-        c.name.toLowerCase().includes("ngân hàng") || 
-        c.name.toLowerCase().includes("bank") || 
-        c.name.toLowerCase().includes("landmark")
-      )?.id || assetCategories.find(c => 
-        c.name.toLowerCase().includes("tín dụng") || 
-        c.name.toLowerCase().includes("thẻ") || 
-        c.name.toLowerCase().includes("credit") || 
-        c.name.toLowerCase().includes("nợ")
-      )?.id || (assetCategories.length > 0 ? assetCategories[0].id : '');
+      // --- 1. CARD SPENDS SYNC ---
+      try {
+        const validSpends = bulkCardSpends.filter(d => d.amount.trim() && parseVNDAmount(d.amount) !== 0);
+        const totalSum = validSpends.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
+        const absTotalSum = Math.abs(totalSum);
 
-      const formatDateHelper = (ymd: string) => {
-        try {
-          const parts = ymd.split("-");
-          return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
-        } catch {
-          return ymd;
-        }
-      };
+        const existingIdx = currentAssets.findIndex(a => a.id === "card-debt-auto-sync");
 
-      const detailNotesList = validSpends.map(d => {
-        const val = parseVNDAmount(d.amount);
-        const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
-        return `• ${formatDateHelper(d.name)}: ${val.toLocaleString('vi-VN')} đ${dayNote}`;
-      }).join("\n");
+        if (absTotalSum === 0) {
+          if (existingIdx !== -1) {
+            currentAssets = currentAssets.filter(a => a.id !== "card-debt-auto-sync");
+            hasChanged = true;
+          }
+        } else {
+          const catId = assetCategories.find(c => 
+            c.name.toLowerCase().includes("ngân hàng") || 
+            c.name.toLowerCase().includes("bank") || 
+            c.name.toLowerCase().includes("landmark")
+          )?.id || assetCategories.find(c => 
+            c.name.toLowerCase().includes("tín dụng") || 
+            c.name.toLowerCase().includes("thẻ") || 
+            c.name.toLowerCase().includes("credit") || 
+            c.name.toLowerCase().includes("nợ")
+          )?.id || (assetCategories.length > 0 ? assetCategories[0].id : '');
 
-      const activeDates = bulkCardSpends
-        .map(d => d.name)
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b));
-      
-      let dateRangeText = "";
-      if (activeDates.length > 0) {
-        const formatDateStr = (ymd: string) => {
-          const parts = ymd.split("-");
-          return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
-        };
-        dateRangeText = ` (${formatDateStr(activeDates[0])} - ${formatDateStr(activeDates[activeDates.length - 1])})`;
-      }
-
-      const updatedDebtAsset: any = {
-        id: "card-debt-auto-sync",
-        name: `Nợ thẻ tín dụng${dateRangeText} (Tự động)`,
-        category: catId,
-        value: absTotalSum,
-        currency: "VND",
-        notes: `Dư nợ tín dụng tổng hợp tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
-        acquiredAt: Date.now(),
-        isDebt: true,
-        isNewMoney: false,
-        excludeFromNetWorth: false
-      };
-
-      if (existingDebtIdx === -1) {
-        setAssets([updatedDebtAsset, ...assets]);
-      } else {
-        const existing = assets[existingDebtIdx];
-        if (existing.value !== updatedDebtAsset.value || existing.notes !== updatedDebtAsset.notes || existing.name !== updatedDebtAsset.name || existing.category !== updatedDebtAsset.category) {
-          const updatedList = [...assets];
-          updatedList[existingDebtIdx] = {
-            ...existing,
-            name: updatedDebtAsset.name,
-            value: updatedDebtAsset.value,
-            notes: updatedDebtAsset.notes,
-            category: updatedDebtAsset.category
+          const formatDateHelper = (ymd: string) => {
+            try {
+              const parts = ymd.split("-");
+              return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
+            } catch {
+              return ymd;
+            }
           };
-          setAssets(updatedList);
-        }
-      }
-    } catch (err) {
-      console.error("Lỗi tự động đồng bộ nợ thẻ tín dụng:", err);
-    }
-  }, [bulkCardSpends, assetCategories, assets, setAssets]);
 
-  // AUTOMATIC SYNC: Update bulk debts (Doanh thu / Bảng kê nợ) into the central assets state
-  useEffect(() => {
-    if (!setAssets || !assets) return;
-    try {
-      const validDebts = bulkDebts.filter(d => d.amount.trim() && parseVNDAmount(d.amount) !== 0);
-      const totalSum = validDebts.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
-      const absTotalSum = Math.abs(totalSum);
+          const detailNotesList = validSpends.map(d => {
+            const val = parseVNDAmount(d.amount);
+            const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
+            return `• ${formatDateHelper(d.name)}: ${val.toLocaleString('vi-VN')} đ${dayNote}`;
+          }).join("\n");
 
-      const existingDebtIdx = assets.findIndex(a => a.id === "revenue-debt-auto-sync");
+          const activeDates = bulkCardSpends
+            .map(d => d.name)
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b));
+          
+          let dateRangeText = "";
+          if (activeDates.length > 0) {
+            const formatDateStr = (ymd: string) => {
+              const parts = ymd.split("-");
+              return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
+            };
+            dateRangeText = ` (${formatDateStr(activeDates[0])} - ${formatDateStr(activeDates[activeDates.length - 1])})`;
+          }
 
-      if (absTotalSum === 0) {
-        if (existingDebtIdx !== -1) {
-          setAssets(assets.filter(a => a.id !== "revenue-debt-auto-sync"));
-        }
-        return;
-      }
-
-      const isLoan = totalSum < 0;
-      const isDebt = totalSum > 0;
-
-      // Ensure appropriate category is used
-      let catId = assetCategories.find(c => 
-        c.name.toLowerCase().includes(isLoan ? "cho vay" : "nợ") ||
-        c.name.toLowerCase().includes("tiền mặt") ||
-        c.name.toLowerCase().includes("doanh thu")
-      )?.id;
-
-      if (!catId) catId = assetCategories.length > 0 ? assetCategories[0].id : '';
-
-      const formatDateHelper = (ymd: string) => {
-        try {
-          const parts = ymd.split("-");
-          return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
-        } catch {
-          return ymd;
-        }
-      };
-
-      const detailNotesList = validDebts.map(d => {
-        const val = parseVNDAmount(d.amount);
-        const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
-        return `• ${formatDateHelper(d.name)}: ${val >= 0 ? "+" : ""}${val.toLocaleString('vi-VN')} đ${dayNote}`;
-      }).join("\n");
-
-      const activeDates = bulkDebts
-        .map(d => d.name)
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b));
-      
-      let dateRangeText = "";
-      if (activeDates.length > 0) {
-        const formatDateStr = (ymd: string) => {
-          const parts = ymd.split("-");
-          return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
-        };
-        dateRangeText = ` (${formatDateStr(activeDates[0])} - ${formatDateStr(activeDates[activeDates.length - 1])})`;
-      }
-
-      const updatedDebtAsset: any = {
-        id: "revenue-debt-auto-sync",
-        name: isLoan ? `Cho vay doanh thu${dateRangeText} (Tự động)` : `Nợ doanh thu${dateRangeText} (Tự động)`,
-        category: catId,
-        value: absTotalSum,
-        currency: "VND",
-        notes: `Tích lũy tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
-        acquiredAt: Date.now(),
-        isDebt: isDebt,
-        isLoan: isLoan,
-        isNewMoney: false,
-        excludeFromNetWorth: false
-      };
-
-      if (existingDebtIdx === -1) {
-        setAssets([updatedDebtAsset, ...assets]);
-      } else {
-        const existing = assets[existingDebtIdx];
-        if (
-          existing.value !== updatedDebtAsset.value || 
-          existing.notes !== updatedDebtAsset.notes || 
-          existing.name !== updatedDebtAsset.name || 
-          existing.category !== updatedDebtAsset.category || 
-          existing.isDebt !== updatedDebtAsset.isDebt ||
-          existing.isLoan !== updatedDebtAsset.isLoan
-        ) {
-          const updatedList = [...assets];
-          updatedList[existingDebtIdx] = {
-            ...existing,
-            ...updatedDebtAsset
+          const cardAsset: any = {
+            id: "card-debt-auto-sync",
+            name: `Nợ thẻ tín dụng${dateRangeText} (Tự động)`,
+            category: catId,
+            value: absTotalSum,
+            currency: "VND",
+            notes: `Dư nợ tín dụng tổng hợp tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
+            acquiredAt: Date.now(),
+            isDebt: true,
+            isNewMoney: false,
+            excludeFromNetWorth: false
           };
-          setAssets(updatedList);
+
+          if (existingIdx === -1) {
+            currentAssets = [cardAsset, ...currentAssets];
+            hasChanged = true;
+          } else {
+            const existing = currentAssets[existingIdx];
+            if (
+              existing.value !== cardAsset.value || 
+              existing.notes !== cardAsset.notes || 
+              existing.name !== cardAsset.name || 
+              existing.category !== cardAsset.category
+            ) {
+              currentAssets[existingIdx] = { ...existing, ...cardAsset };
+              hasChanged = true;
+            }
+          }
         }
-      }
-    } catch (err) {
-      console.error("Lỗi tự động đồng bộ doanh thu nợ:", err);
-    }
-  }, [bulkDebts, assetCategories, assets, setAssets]);
-
-  // AUTOMATIC SYNC: Update bulk current cash (Bảng kê tiền mặt đang có) into the central assets state
-  useEffect(() => {
-    if (!setAssets || !assets) return;
-    try {
-      const denominations = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
-      const totalSum = denominations.reduce((sum, den) => {
-        const val = bulkCurrentCash[den] || 0;
-        return sum + (den * val);
-      }, 0);
-
-      const existingCashIdx = assets.findIndex(a => a.id === "current-cash-auto-sync");
-
-      if (totalSum === 0) {
-        if (existingCashIdx !== -1) {
-          setAssets(assets.filter(a => a.id !== "current-cash-auto-sync"));
-        }
-        return;
+      } catch (err) {
+        console.error("Lỗi tự động đồng bộ nợ thẻ tín dụng:", err);
       }
 
-      const catId = assetCategories.find(c => 
-        c.name.toLowerCase().includes("tiền mặt") || 
-        c.name.toLowerCase().includes("tiền") || 
-        c.name.toLowerCase().includes("wallet")
-      )?.id || "cat-money";
+      // --- 2. BULK DEBTS / REVENUE SYNC ---
+      try {
+        const validDebts = bulkDebts.filter(d => d.amount.trim() && parseVNDAmount(d.amount) !== 0);
+        const totalSum = validDebts.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
+        const absTotalSum = Math.abs(totalSum);
 
-      const detailNotesList = denominations.map(den => {
-        const qty = bulkCurrentCash[den] || 0;
-        if (qty <= 0) return null;
-        return `• ${den.toLocaleString('vi-VN')} đ: ${qty} tờ = ${(den * qty).toLocaleString('vi-VN')} đ`;
-      }).filter(Boolean).join("\n");
+        const existingIdx = currentAssets.findIndex(a => a.id === "revenue-debt-auto-sync");
 
-      const updatedCashAsset: any = {
-        id: "current-cash-auto-sync",
-        name: `Tiền mặt đang có (Bảng kê tự động)`,
-        category: catId,
-        value: totalSum,
-        currency: "VND",
-        notes: `Tổng tiền mặt đang có từ bảng kê chi tiết:\n${detailNotesList}`,
-        acquiredAt: Date.now(),
-        isDebt: false,
-        isNewMoney: false,
-        excludeFromNetWorth: false
-      };
+        if (absTotalSum === 0) {
+          if (existingIdx !== -1) {
+            currentAssets = currentAssets.filter(a => a.id !== "revenue-debt-auto-sync");
+            hasChanged = true;
+          }
+        } else {
+          const isLoan = totalSum < 0;
+          const isDebt = totalSum > 0;
 
-      if (existingCashIdx === -1) {
-        setAssets([updatedCashAsset, ...assets]);
-      } else {
-        const existing = assets[existingCashIdx];
-        if (existing.value !== updatedCashAsset.value || existing.notes !== updatedCashAsset.notes || existing.name !== updatedCashAsset.name || existing.category !== updatedCashAsset.category) {
-          const updatedList = [...assets];
-          updatedList[existingCashIdx] = {
-            ...existing,
-            name: updatedCashAsset.name,
-            value: updatedCashAsset.value,
-            notes: updatedCashAsset.notes,
-            category: updatedCashAsset.category
+          let catId = assetCategories.find(c => 
+            c.name.toLowerCase().includes(isLoan ? "cho vay" : "nợ") ||
+            c.name.toLowerCase().includes("tiền mặt") ||
+            c.name.toLowerCase().includes("doanh thu")
+          )?.id;
+
+          if (!catId) catId = assetCategories.length > 0 ? assetCategories[0].id : '';
+
+          const formatDateHelper = (ymd: string) => {
+            try {
+              const parts = ymd.split("-");
+              return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
+            } catch {
+              return ymd;
+            }
           };
-          setAssets(updatedList);
+
+          const detailNotesList = validDebts.map(d => {
+            const val = parseVNDAmount(d.amount);
+            const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
+            return `• ${formatDateHelper(d.name)}: ${val >= 0 ? "+" : ""}${val.toLocaleString('vi-VN')} đ${dayNote}`;
+          }).join("\n");
+
+          const activeDates = bulkDebts
+            .map(d => d.name)
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b));
+          
+          let dateRangeText = "";
+          if (activeDates.length > 0) {
+            const formatDateStr = (ymd: string) => {
+              const parts = ymd.split("-");
+              return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ymd;
+            };
+            dateRangeText = ` (${formatDateStr(activeDates[0])} - ${formatDateStr(activeDates[activeDates.length - 1])})`;
+          }
+
+          const revenueAsset: any = {
+            id: "revenue-debt-auto-sync",
+            name: isLoan ? `Cho vay doanh thu${dateRangeText} (Tự động)` : `Nợ doanh thu${dateRangeText} (Tự động)`,
+            category: catId,
+            value: absTotalSum,
+            currency: "VND",
+            notes: `Tích lũy tự động từ chi tiết bảng kê hàng ngày:\n${detailNotesList}`,
+            acquiredAt: Date.now(),
+            isDebt: isDebt,
+            isLoan: isLoan,
+            isNewMoney: false,
+            excludeFromNetWorth: false
+          };
+
+          if (existingIdx === -1) {
+            currentAssets = [revenueAsset, ...currentAssets];
+            hasChanged = true;
+          } else {
+            const existing = currentAssets[existingIdx];
+            if (
+              existing.value !== revenueAsset.value || 
+              existing.notes !== revenueAsset.notes || 
+              existing.name !== revenueAsset.name || 
+              existing.category !== revenueAsset.category ||
+              existing.isDebt !== revenueAsset.isDebt ||
+              existing.isLoan !== revenueAsset.isLoan
+            ) {
+              currentAssets[existingIdx] = { ...existing, ...revenueAsset };
+              hasChanged = true;
+            }
+          }
         }
+      } catch (err) {
+        console.error("Lỗi tự động đồng bộ doanh thu nợ:", err);
       }
-    } catch (err) {
-      console.error("Lỗi tự động đồng bộ tiền mặt đang có:", err);
-    }
-  }, [bulkCurrentCash, assetCategories, assets, setAssets]);
+
+      // --- 3. BULK CURRENT CASH SYNC ---
+      try {
+        const denominations = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
+        const totalSum = denominations.reduce((sum, den) => {
+          const val = bulkCurrentCash[den] || 0;
+          return sum + (den * val);
+        }, 0);
+
+        const existingIdx = currentAssets.findIndex(a => a.id === "current-cash-auto-sync");
+
+        if (totalSum === 0) {
+          if (existingIdx !== -1) {
+            currentAssets = currentAssets.filter(a => a.id !== "current-cash-auto-sync");
+            hasChanged = true;
+          }
+        } else {
+          const catId = assetCategories.find(c => 
+            c.name.toLowerCase().includes("tiền mặt") || 
+            c.name.toLowerCase().includes("tiền") || 
+            c.name.toLowerCase().includes("wallet")
+          )?.id || "cat-money";
+
+          const detailNotesList = denominations.map(den => {
+            const qty = bulkCurrentCash[den] || 0;
+            if (qty <= 0) return null;
+            return `• ${den.toLocaleString('vi-VN')} đ: ${qty} tờ = ${(den * qty).toLocaleString('vi-VN')} đ`;
+          }).filter(Boolean).join("\n");
+
+          const cashAsset: any = {
+            id: "current-cash-auto-sync",
+            name: `Tiền mặt đang có (Bảng kê tự động)`,
+            category: catId,
+            value: totalSum,
+            currency: "VND",
+            notes: `Tổng tiền mặt đang có từ bảng kê chi tiết:\n${detailNotesList}`,
+            acquiredAt: Date.now(),
+            isDebt: false,
+            isNewMoney: false,
+            excludeFromNetWorth: false
+          };
+
+          if (existingIdx === -1) {
+            currentAssets = [cashAsset, ...currentAssets];
+            hasChanged = true;
+          } else {
+            const existing = currentAssets[existingIdx];
+            if (
+              existing.value !== cashAsset.value || 
+              existing.notes !== cashAsset.notes || 
+              existing.name !== cashAsset.name || 
+              existing.category !== cashAsset.category
+            ) {
+              currentAssets[existingIdx] = { ...existing, ...cashAsset };
+              hasChanged = true;
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi tự động đồng bộ tiền mặt đang có:", err);
+      }
+
+      return hasChanged ? currentAssets : prevAssets;
+    });
+  }, [bulkCardSpends, bulkDebts, bulkCurrentCash, assetCategories, setAssets]);
 
   const [theme, setTheme] = useState<"handdrawn" | "minimal">(() => {
     return (localStorage.getItem("glowup_theme") as "handdrawn" | "minimal") || "handdrawn";

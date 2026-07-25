@@ -191,10 +191,18 @@ export function parseVNDAmount(val: any): number {
   const dotCount = (cleaned.match(/\./g) || []).length;
   const commaCount = (cleaned.match(/,/g) || []).length;
 
-  if (dotCount > 1) {
-    cleaned = cleaned.replace(/\./g, '').replace(/,/g, '');
+  if (dotCount > 0 && commaCount > 0) {
+    const dotIdx = cleaned.indexOf('.');
+    const commaIdx = cleaned.indexOf(',');
+    if (dotIdx < commaIdx) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+      cleaned = cleaned.replace(/,/g, '');
+    }
+  } else if (dotCount > 1) {
+    cleaned = cleaned.replace(/\./g, '');
   } else if (commaCount > 1) {
-    cleaned = cleaned.replace(/,/g, '').replace(/\./g, '');
+    cleaned = cleaned.replace(/,/g, '');
   } else if (dotCount === 1 && commaCount === 0) {
     const parts = cleaned.split('.');
     if (parts[1] && (parts[1].length === 3 || (parts[1].length > 3 && parts[1].length % 3 === 0))) {
@@ -206,14 +214,6 @@ export function parseVNDAmount(val: any): number {
       cleaned = cleaned.replace(',', '');
     } else if (parts[1] && parts[1].length <= 2) {
       cleaned = parts[0] + '.' + parts[1];
-    }
-  } else if (dotCount === 1 && commaCount === 1) {
-    const dotIdx = cleaned.indexOf('.');
-    const commaIdx = cleaned.indexOf(',');
-    if (dotIdx < commaIdx) {
-      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-    } else {
-      cleaned = cleaned.replace(/,/g, '');
     }
   }
 
