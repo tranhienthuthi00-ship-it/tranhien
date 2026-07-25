@@ -21,23 +21,6 @@ export function useSyncedState<T>(key: string, defaultValue: T): [T, (val: T | (
       if (JSON.stringify(kvStore[key]) !== JSON.stringify(val)) {
         setVal(kvStore[key]);
       }
-    } else {
-      try {
-        const saved = localStorage.getItem(key);
-        if (saved !== null) {
-          try { 
-            const parsed = JSON.parse(saved);
-            if (JSON.stringify(parsed) !== JSON.stringify(val)) setVal(parsed); 
-            return; 
-          } catch { 
-            if (saved !== val as unknown as string) setVal(saved as unknown as T); 
-            return; 
-          }
-        }
-      } catch {}
-      if (JSON.stringify(defaultValue) !== JSON.stringify(val)) {
-        setVal(defaultValue);
-      }
     }
   }, [key, kvStore[key]]);
 

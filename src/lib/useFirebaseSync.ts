@@ -246,11 +246,7 @@ const getLocalData = <T,>(key: string, defaultValue: T): T => {
   try {
     const saved = safeLocalStorage.getItem(key);
     if (!saved) return defaultValue;
-    const parsed = JSON.parse(saved);
-    if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(defaultValue) && defaultValue.length > 0) {
-      return defaultValue;
-    }
-    return parsed;
+    return JSON.parse(saved);
   } catch (e) {
     return defaultValue;
   }
@@ -482,13 +478,15 @@ export function useFirebaseSync() {
       } else {
         const current = localRef.current;
         if (current && current.length > 0) {
+          setLocalState(current);
+          safeLocalStorage.setItem(lsKey, JSON.stringify(current));
           for (const item of current) {
             if (item.id) {
               const cleanItem = Object.fromEntries(Object.entries(item).filter(([_, v]) => v !== undefined));
               await setDoc(doc(db, `${firestoreCollectionPath}/${item.id}`), cleanItem).catch(e => console.error("Auto upload local item error:", e));
             }
           }
-        } else if (defaultItems.length > 0) {
+        } else if (safeLocalStorage.getItem(lsKey) === null && defaultItems.length > 0) {
           setLocalState(defaultItems);
           safeLocalStorage.setItem(lsKey, JSON.stringify(defaultItems));
           for (const item of defaultItems) {
@@ -497,6 +495,9 @@ export function useFirebaseSync() {
               await setDoc(doc(db, `${firestoreCollectionPath}/${item.id}`), cleanItem).catch(e => console.error("Auto upload default item error:", e));
             }
           }
+        } else {
+          setLocalState([]);
+          safeLocalStorage.setItem(lsKey, JSON.stringify([]));
         }
       }
     };
