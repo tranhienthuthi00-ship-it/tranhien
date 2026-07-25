@@ -313,10 +313,9 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>("Journal");
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [collectionSearchQuery, setCollectionSearchQuery] = useState("");
-  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "1000 Sentences" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
+  const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "1000 Sentences" | "Sách & Unit" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
   const [activePracticeSubTab, setActivePracticeSubTab] = useState<"Dictation" | "Speech" | "Translation" | "Reflex" | "SRS">("Dictation");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Habits" | "Places" | "Content" | "Assets">("Lists");
-  const [activeProjectSubTab, setActiveProjectSubTab] = useState<"kanban" | "english">("kanban");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
 
@@ -421,7 +420,7 @@ function AppContent() {
                   </div>
 
                   <div className="flex flex-wrap gap-1 bg-amber-100/50 p-1 rounded-xl justify-center">
-                    {(["Từ Vựng", "1000 Sentences", "Luyện Tập", "Trò Chơi"] as const).map(tab => (
+                    {(["Từ Vựng", "1000 Sentences", "Sách & Unit", "Luyện Tập", "Trò Chơi"] as const).map(tab => (
                       <button
                         key={tab}
                         onClick={() => setActiveEnglishSubTab(tab)}
@@ -459,6 +458,7 @@ function AppContent() {
               <div className="w-full px-2 md:px-6">
               {activeEnglishSubTab === "Từ Vựng" && <Academy words={words} setWords={setWords} tags={tags} setTags={setTags} />}
               {activeEnglishSubTab === "1000 Sentences" && <Academy words={writingSentences as any} setWords={setWritingSentences as any} tags={tags} setTags={setTags} isSentencesMode={true} />}
+              {activeEnglishSubTab === "Sách & Unit" && <EnglishMaterials books={englishBooks} setBooks={setEnglishBooks} words={words} setWords={setWords} />}
               {activeEnglishSubTab === "Trò Chơi" && <LearningGames words={words} updateWordDifficulty={updateWordDifficulty} setActiveEnglishSubTab={(val) => {
                 if(val === "Academy") setActiveEnglishSubTab("Từ Vựng");
                 else { setActiveEnglishSubTab("Luyện Tập"); setActivePracticeSubTab(val as any); }
@@ -552,45 +552,7 @@ function AppContent() {
         )}
         <div className="w-full px-2 md:px-6">
           {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
-          {activeTab === "Projects" && (
-            <div className="flex flex-col gap-4">
-              <div className="max-w-xl mx-auto w-full px-2 pt-1">
-                <div className="bg-paper p-1.5 rounded-2xl border-2 border-ink shadow-[3px_3px_0px_#000] flex items-center justify-center gap-2">
-                  <button
-                    onClick={() => setActiveProjectSubTab("kanban")}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
-                      activeProjectSubTab === "kanban"
-                        ? "bg-amber-500 text-white border-2 border-amber-900 shadow-[2px_2px_0px_#78350f]"
-                        : "text-ink/60 hover:text-ink hover:bg-amber-100"
-                    }`}
-                  >
-                    <FolderKanban className="w-4 h-4" />
-                    <span>Dự Án (Kanban)</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveProjectSubTab("english")}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
-                      activeProjectSubTab === "english"
-                        ? "bg-amber-500 text-white border-2 border-amber-900 shadow-[2px_2px_0px_#78350f]"
-                        : "text-ink/60 hover:text-ink hover:bg-amber-100"
-                    }`}
-                  >
-                    <BookMarked className="w-4 h-4" />
-                    <span>Tài Liệu Tiếng Anh (Sách & Unit)</span>
-                  </button>
-                </div>
-              </div>
-
-              {activeProjectSubTab === "kanban" && (
-                <KanbanBoard tasks={kanbanTasks} setTasks={setKanbanTasks} setActiveTab={setActiveTab} />
-              )}
-
-              {activeProjectSubTab === "english" && (
-                <EnglishMaterials books={englishBooks} setBooks={setEnglishBooks} words={words} setWords={setWords} />
-              )}
-            </div>
-          )}
+          {activeTab === "Projects" && <KanbanBoard tasks={kanbanTasks} setTasks={setKanbanTasks} setActiveTab={setActiveTab} />}
 
           {activeTab === "Journal" && (
             <DigitalJournal 
