@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { cn } from "./lib/utils";
+import { cn, parseVNDAmount } from "./lib/utils";
 import { NavBar, type Tab } from "./components/NavBar";
 import { Academy } from "./components/Academy";
 import { MyList } from "./components/MyList";
@@ -52,8 +52,8 @@ function AppContent() {
   useEffect(() => {
     if (!setAssets || !assets) return;
     try {
-      const validSpends = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
-      const totalSum = validSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
+      const validSpends = bulkCardSpends.filter(d => d.amount.trim() && parseVNDAmount(d.amount) !== 0);
+      const totalSum = validSpends.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
       const absTotalSum = Math.abs(totalSum);
 
       const existingDebtIdx = assets.findIndex(a => a.id === "card-debt-auto-sync");
@@ -86,7 +86,7 @@ function AppContent() {
       };
 
       const detailNotesList = validSpends.map(d => {
-        const val = parseFloat(d.amount.replace(/,/g, ''));
+        const val = parseVNDAmount(d.amount);
         const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
         return `• ${formatDateHelper(d.name)}: ${val.toLocaleString('vi-VN')} đ${dayNote}`;
       }).join("\n");
@@ -143,8 +143,8 @@ function AppContent() {
   useEffect(() => {
     if (!setAssets || !assets) return;
     try {
-      const validDebts = bulkDebts.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
-      const totalSum = validDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
+      const validDebts = bulkDebts.filter(d => d.amount.trim() && parseVNDAmount(d.amount) !== 0);
+      const totalSum = validDebts.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
       const absTotalSum = Math.abs(totalSum);
 
       const existingDebtIdx = assets.findIndex(a => a.id === "revenue-debt-auto-sync");
@@ -178,7 +178,7 @@ function AppContent() {
       };
 
       const detailNotesList = validDebts.map(d => {
-        const val = parseFloat(d.amount.replace(/,/g, ''));
+        const val = parseVNDAmount(d.amount);
         const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
         return `• ${formatDateHelper(d.name)}: ${val >= 0 ? "+" : ""}${val.toLocaleString('vi-VN')} đ${dayNote}`;
       }).join("\n");

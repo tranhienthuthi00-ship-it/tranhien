@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Check, Plus, Trash2, Heart, HeartPulse, Star, ClipboardList } from "lucide-react";
 import { format } from "date-fns";
 import type { Task, WishlistItem } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, parseVNDAmount } from "@/lib/utils";
 
 export function MyList({
   wishlist,
@@ -36,7 +36,7 @@ export function MyList({
       setWishlist(wishlist.map(w => w.id === editingWishId ? {
         ...w,
         content: newWish,
-        price: newPrice ? parseFloat(newPrice) : undefined,
+        price: newPrice ? parseVNDAmount(newPrice) || undefined : undefined,
         necessity: newNecessity,
         tags: newTags ? newTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) : undefined,
         link: newWishLink || undefined,
@@ -48,7 +48,7 @@ export function MyList({
         id: Date.now().toString(), 
         content: newWish, 
         addedDate: new Date().toISOString(),
-        price: newPrice ? parseFloat(newPrice) : undefined,
+        price: newPrice ? parseVNDAmount(newPrice) || undefined : undefined,
         necessity: newNecessity,
         tags: newTags ? newTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) : undefined,
         link: newWishLink || undefined,

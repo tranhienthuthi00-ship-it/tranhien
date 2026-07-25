@@ -8,7 +8,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { format } from "date-fns";
 import type { StudyGoal, Achievement, Task, LogEntry, WishlistItem } from "../types";
-import { cn } from "../lib/utils";
+import { cn, parseVNDAmount } from "../lib/utils";
 
 const cleanJourneyContent = (text: string): string => {
   if (!text) return "";
@@ -245,7 +245,7 @@ export function PersonalGoals({
     if (!newTask.trim()) return;
 
     const taskId = Date.now().toString();
-    const finalPrice = shoppingPrice ? parseFloat(shoppingPrice) : undefined;
+    const finalPrice = shoppingPrice ? parseVNDAmount(shoppingPrice) || undefined : undefined;
     const finalLink = shoppingLink ? shoppingLink.trim() : undefined;
 
     let finalWishlistId = linkedWishlistId || undefined;

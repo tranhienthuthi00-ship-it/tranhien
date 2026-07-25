@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useFirebase } from "../context/FirebaseContext";
 import { Plus, Trash2, Edit2, Wallet, Settings, Landmark, Car, MonitorSmartphone, Gem, PiggyBank, Briefcase, Bitcoin, Building, Home, Coins, CreditCard, TrendingUp, Smartphone, Laptop, Handshake, Users, Receipt, ChevronDown, ChevronUp, Calendar as CalendarIcon, Sparkles, Award } from "lucide-react";
 import type { FormEvent } from "react";
-import { cn, getAbsoluteUrl } from "@/lib/utils";
+import { cn, getAbsoluteUrl, parseVNDAmount } from "@/lib/utils";
 import type { Asset, AssetCategory } from "@/types";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
@@ -242,14 +242,14 @@ export function AssetsManager({
 
   const handleSaveBulkCardSpends = () => {
      const now = Date.now();
-     const validSpends = bulkCardSpends.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
+     const validSpends = bulkCardSpends.filter(d => d.amount.trim() && parseVNDAmount(d.amount) !== 0);
      if (validSpends.length === 0) {
        alert("Hãy nhập số tiền sử dụng thẻ cho ít nhất một ngày!");
        return;
      }
 
      const formattedDateRange = justCardRangeText;
-     const calculatedSum = validSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
+     const calculatedSum = validSpends.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
      const totalSum = Math.abs(calculatedSum);
      const catId = categories.find(c => 
        c.name.toLowerCase().includes("tín dụng") || 
@@ -268,7 +268,7 @@ export function AssetsManager({
      };
 
      const detailNotesList = validSpends.map(d => {
-       const val = parseFloat(d.amount.replace(/,/g, ''));
+       const val = parseVNDAmount(d.amount);
        const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
        return `• ${formatDateHelper(d.name)}: ${val.toLocaleString('vi-VN')} đ${dayNote}`;
      }).join("\n");
@@ -321,14 +321,14 @@ export function AssetsManager({
 
   const handleSaveBulkDebts = () => {
      const now = Date.now();
-     const validDebts = bulkDebts.filter(d => d.amount.trim() && !isNaN(parseFloat(d.amount.replace(/,/g, ''))));
+     const validDebts = bulkDebts.filter(d => d.amount.trim() && parseVNDAmount(d.amount) !== 0);
      if (validDebts.length === 0) {
        alert("Hãy nhập số tiền doanh thu cho ít nhất một ngày!");
        return;
      }
 
      const formattedDateRange = justDateRangeText;
-     const calculatedSum = validDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '')), 0);
+     const calculatedSum = validDebts.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
      const totalSum = Math.abs(calculatedSum);
      
      const isLoan = calculatedSum < 0;
@@ -346,7 +346,7 @@ export function AssetsManager({
      };
 
      const detailNotesList = validDebts.map(d => {
-       const val = parseFloat(d.amount.replace(/,/g, ''));
+       const val = parseVNDAmount(d.amount);
        const dayNote = d.notes && d.notes.trim() ? ` - [Ghi chú: ${d.notes.trim()}]` : "";
        return `• ${formatDateHelper(d.name)}: ${val >= 0 ? "+" : ""}${val.toLocaleString('vi-VN')} đ${dayNote}`;
      }).join("\n");
@@ -444,10 +444,10 @@ export function AssetsManager({
     const catToUse = newCategory || defaultCatID;
     if (!newName.trim() || !catToUse) return;
 
-    let val = parseFloat(newValue.replace(/,/g, ''));
-    const qty = parseFloat(newQuantity.replace(/,/g, ''));
-    const rate = parseFloat(newExchangeRate.replace(/,/g, ''));
-    const den = parseFloat(newDenomination.replace(/,/g, ''));
+    let val = parseVNDAmount(newValue);
+    const qty = parseVNDAmount(newQuantity);
+    const rate = parseVNDAmount(newExchangeRate);
+    const den = parseVNDAmount(newDenomination);
 
     if (isNewMoney && !isNaN(qty) && !isNaN(den)) {
       val = qty * den;
@@ -711,14 +711,12 @@ export function AssetsManager({
   }, [sanitizedAssets]);
 
   const totalSalIncome = useMemo(() => {
-    const parsed = parseFloat(salaryInput.replace(/,/g, ''));
-    return isNaN(parsed) ? 0 : parsed;
+    return parseVNDAmount(salaryInput);
   }, [salaryInput]);
 
   const totalPlannedOutflows = useMemo(() => {
     return plannedExpenses.reduce((sum, item) => {
-      const parsed = parseFloat(item.amount.replace(/,/g, ''));
-      return sum + (isNaN(parsed) ? 0 : parsed);
+      return sum + parseVNDAmount(item.amount);
     }, 0);
   }, [plannedExpenses]);
 
@@ -1807,7 +1805,7 @@ export function AssetsManager({
               {isBulkCardSpendsCollapsed && (
                 <div className="text-[10px] bg-blue-100/40 text-blue-800 px-2 py-1 rounded font-mono font-bold">
                   Tổng: {(() => {
-                    const total = bulkCardSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                    const total = bulkCardSpends.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
                     return total.toLocaleString("vi-VN") + " đ";
                   })()}
                 </div>
@@ -1943,7 +1941,7 @@ export function AssetsManager({
                 <span className="text-xs font-extrabold uppercase tracking-wider text-blue-800">Tổng chi tiêu thẻ:</span>
                 <span className="text-sm font-black text-[#1e40af] font-mono">
                   {(() => {
-                    const total = bulkCardSpends.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                    const total = bulkCardSpends.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
                     return total.toLocaleString("vi-VN") + " đ";
                   })()}
                 </span>
@@ -1988,7 +1986,7 @@ export function AssetsManager({
               {isBulkDebtsCollapsed && (
                 <div className="text-[10px] bg-emerald-100/40 text-emerald-800 px-2 py-1 rounded font-mono font-bold">
                   Tổng: {(() => {
-                    const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                    const total = bulkDebts.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
                     return (total > 0 ? "+" : "") + total.toLocaleString("vi-VN") + " đ";
                   })()}
                 </div>
@@ -2106,11 +2104,11 @@ export function AssetsManager({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-800">Tổng:</span>
                   <span className={`text-sm font-black font-mono ${(() => {
-                    const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                    const total = bulkDebts.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
                     return total > 0 ? "text-amber-700" : total < 0 ? "text-emerald-700" : "text-slate-500";
                   })()}`}>
                     {(() => {
-                      const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                      const total = bulkDebts.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
                       return (total > 0 ? "+" : "") + total.toLocaleString("vi-VN");
                     })()} đ
                   </span>
@@ -2118,7 +2116,7 @@ export function AssetsManager({
 
                 <div className="text-[10px] text-emerald-800/80 border-t border-[#10b981]/20 pt-1.5 leading-relaxed font-sans">
                   {(() => {
-                    const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                    const total = bulkDebts.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
                     if (total < 0) {
                       const abs = Math.abs(total);
                       return (

@@ -167,3 +167,58 @@ export function getAbsoluteUrl(path: string): string {
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${base}${cleanPath}`;
 }
+
+export function parseVNDAmount(val: any): number {
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (typeof val !== 'string') return 0;
+
+  const str = val.trim();
+  if (!str) return 0;
+
+  // Clean currency symbols, 'đ', 'VND', spaces
+  let cleaned = str.replace(/[đĐ$VNDvnd\s]/g, '');
+
+  // Handle signs
+  let isNegative = false;
+  if (cleaned.startsWith('-')) {
+    isNegative = true;
+    cleaned = cleaned.substring(1);
+  } else if (cleaned.startsWith('+')) {
+    cleaned = cleaned.substring(1);
+  }
+
+  const dotCount = (cleaned.match(/\./g) || []).length;
+  const commaCount = (cleaned.match(/,/g) || []).length;
+
+  if (dotCount > 1) {
+    cleaned = cleaned.replace(/\./g, '').replace(/,/g, '');
+  } else if (commaCount > 1) {
+    cleaned = cleaned.replace(/,/g, '').replace(/\./g, '');
+  } else if (dotCount === 1 && commaCount === 0) {
+    const parts = cleaned.split('.');
+    if (parts[1] && (parts[1].length === 3 || (parts[1].length > 3 && parts[1].length % 3 === 0))) {
+      cleaned = cleaned.replace('.', '');
+    }
+  } else if (commaCount === 1 && dotCount === 0) {
+    const parts = cleaned.split(',');
+    if (parts[1] && (parts[1].length === 3 || (parts[1].length > 3 && parts[1].length % 3 === 0))) {
+      cleaned = cleaned.replace(',', '');
+    } else if (parts[1] && parts[1].length <= 2) {
+      cleaned = parts[0] + '.' + parts[1];
+    }
+  } else if (dotCount === 1 && commaCount === 1) {
+    const dotIdx = cleaned.indexOf('.');
+    const commaIdx = cleaned.indexOf(',');
+    if (dotIdx < commaIdx) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+      cleaned = cleaned.replace(/,/g, '');
+    }
+  }
+
+  const num = parseFloat(cleaned);
+  if (isNaN(num)) return 0;
+  return isNegative ? -num : num;
+}
+

@@ -39,7 +39,7 @@ import {
   Filter
 } from "lucide-react";
 import { useFirebase } from "../context/FirebaseContext";
-import { cn } from "../lib/utils";
+import { cn, parseVNDAmount } from "../lib/utils";
 import { PolaroidPreset, STICKER_PRESETS } from "./CalendarView";
 import html2canvas from "html2canvas";
 
@@ -871,14 +871,12 @@ export function DigitalJournal({
 
   const totalPlannedOutflows = useMemo(() => {
     return plannedExpenses.reduce((sum, item) => {
-      const parsed = parseFloat(item.amount.replace(/,/g, ''));
-      return sum + (isNaN(parsed) ? 0 : parsed);
+      return sum + parseVNDAmount(item.amount);
     }, 0);
   }, [plannedExpenses]);
 
   const totalSalIncome = useMemo(() => {
-    const parsed = parseFloat(salaryInput.replace(/,/g, ''));
-    return isNaN(parsed) ? 0 : parsed;
+    return parseVNDAmount(salaryInput);
   }, [salaryInput]);
 
   const remainingBalance = totalSalIncome - totalPlannedOutflows;
@@ -1753,7 +1751,7 @@ export function DigitalJournal({
     e.preventDefault();
     if (!tipDesc.trim() || !setPlaces) return;
 
-    const parsedPrice = parseFloat(tipPrice.replace(/,/g, "")) || 0;
+    const parsedPrice = parseVNDAmount(tipPrice);
 
     if (editingTipId) {
       const updated = places.map(p => p.id === editingTipId ? {
@@ -3922,7 +3920,7 @@ export function DigitalJournal({
                             <h4 className="font-hand font-black text-[#8A1E2B] text-xs mb-1">Tổng thu nhập</h4>
                             <p className="text-lg md:text-xl font-hand font-black text-[#5C0612]">
                               {(() => {
-                                const baseSalaryVal = parseFloat(salaryInput.replace(/,/g, '')) || 0;
+                                const baseSalaryVal = parseVNDAmount(salaryInput);
                                 return baseSalaryVal.toLocaleString('vi-VN');
                               })()} đ
                             </p>
@@ -3931,7 +3929,7 @@ export function DigitalJournal({
                             <h4 className="font-hand font-black text-[#8A1E2B] text-xs mb-1">Doanh thu tuần</h4>
                             <p className="text-lg md:text-xl font-hand font-black text-[#5C0612]/90">
                               {(() => {
-                                const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                                const total = bulkDebts.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
                                 return (total > 0 ? "+" : "") + total.toLocaleString("vi-VN");
                               })()} đ
                             </p>
@@ -4105,7 +4103,7 @@ export function DigitalJournal({
                                    <div className="mt-4 flex flex-col sm:flex-row gap-3 items-center justify-between border-t border-dashed border-[#5C0612]/20 pt-4">
                                       <div className="text-base md:text-lg font-hand font-black text-[#8A1E2B] bg-[#8A1E2B]/5 px-3 py-1.5 rounded-xl border border-dashed border-[#8A1E2B]/20 shadow-[1px_1px_0_rgba(138,30,43,0.05)]">
                                         Tổng tuần: <span className="text-lg md:text-2xl font-black underline underline-offset-4 decoration-[#8A1E2B] decoration-2 ml-1">{(() => {
-                                          const total = bulkDebts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || "0"), 0);
+                                          const total = bulkDebts.reduce((sum, d) => sum + parseVNDAmount(d.amount), 0);
                                           return (total > 0 ? "+" : "") + total.toLocaleString("vi-VN") + " đ";
                                         })()}</span>
                                       </div>
