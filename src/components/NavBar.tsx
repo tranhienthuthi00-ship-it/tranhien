@@ -21,7 +21,7 @@ export function NavBar({
   onToggleTheme?: () => void;
   isLoggedIn?: boolean;
 }) {
-  const tabs: Tab[] = ["Journal", "English Hub", "Calendar", "Collections", "Projects"];
+  const tabs: Tab[] = ["Journal", "Projects", "English Hub", "Calendar", "Collections"];
 
   const getTabLabel = (tab: Tab) => {
     switch (tab) {
