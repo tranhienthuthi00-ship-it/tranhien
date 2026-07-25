@@ -22,15 +22,18 @@ import { PictureDescriptionPractice } from "./components/PictureDescriptionPract
 import { HabitTracker } from "./components/HabitTracker";
 import { DigitalJournal } from "./components/DigitalJournal";
 import { KanbanBoard } from "./components/KanbanBoard";
+import { EnglishMaterials } from "./components/EnglishMaterials";
 import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
-import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target, Sparkles, Flame, Search, X } from "lucide-react";
+import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target, Sparkles, Flame, Search, X, FolderKanban, BookMarked } from "lucide-react";
 
 function AppContent() {
   const {
     user, loading,
     words, setWords,
     writingSentences, setWritingSentences,
+    englishBooks, setEnglishBooks,
     tasks, setTasks,
+
     wishlist, setWishlist,
     logs, setLogs,
     foodPlaces, setFoodPlaces,
@@ -313,6 +316,7 @@ function AppContent() {
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "1000 Sentences" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
   const [activePracticeSubTab, setActivePracticeSubTab] = useState<"Dictation" | "Speech" | "Translation" | "Reflex" | "SRS">("Dictation");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Habits" | "Places" | "Content" | "Assets">("Lists");
+  const [activeProjectSubTab, setActiveProjectSubTab] = useState<"kanban" | "english">("kanban");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
 
@@ -548,7 +552,46 @@ function AppContent() {
         )}
         <div className="w-full px-2 md:px-6">
           {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
-          {activeTab === "Projects" && <KanbanBoard tasks={kanbanTasks} setTasks={setKanbanTasks} setActiveTab={setActiveTab} />}
+          {activeTab === "Projects" && (
+            <div className="flex flex-col gap-4">
+              <div className="max-w-xl mx-auto w-full px-2 pt-1">
+                <div className="bg-paper p-1.5 rounded-2xl border-2 border-ink shadow-[3px_3px_0px_#000] flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => setActiveProjectSubTab("kanban")}
+                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                      activeProjectSubTab === "kanban"
+                        ? "bg-amber-500 text-white border-2 border-amber-900 shadow-[2px_2px_0px_#78350f]"
+                        : "text-ink/60 hover:text-ink hover:bg-amber-100"
+                    }`}
+                  >
+                    <FolderKanban className="w-4 h-4" />
+                    <span>Dự Án (Kanban)</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveProjectSubTab("english")}
+                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                      activeProjectSubTab === "english"
+                        ? "bg-amber-500 text-white border-2 border-amber-900 shadow-[2px_2px_0px_#78350f]"
+                        : "text-ink/60 hover:text-ink hover:bg-amber-100"
+                    }`}
+                  >
+                    <BookMarked className="w-4 h-4" />
+                    <span>Tài Liệu Tiếng Anh (Sách & Unit)</span>
+                  </button>
+                </div>
+              </div>
+
+              {activeProjectSubTab === "kanban" && (
+                <KanbanBoard tasks={kanbanTasks} setTasks={setKanbanTasks} setActiveTab={setActiveTab} />
+              )}
+
+              {activeProjectSubTab === "english" && (
+                <EnglishMaterials books={englishBooks} setBooks={setEnglishBooks} words={words} setWords={setWords} />
+              )}
+            </div>
+          )}
+
           {activeTab === "Journal" && (
             <DigitalJournal 
               onSearch={(q) => {

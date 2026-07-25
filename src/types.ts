@@ -244,18 +244,52 @@ export interface TaggedRecord {
   completed?: boolean;
 }
 
+export interface EnglishMaterialUnit {
+  id: string;
+  unitNumber: string;
+  title: string;
+  description?: string;
+  content?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: 'text' | 'pdf' | 'image' | 'audio' | 'other';
+  status: 'Not Started' | 'In Progress' | 'Completed';
+  vocabularyList?: { word: string; meaning: string; ipa?: string; example?: string }[];
+  notes?: string;
+  updatedAt: number;
+}
+
+export interface EnglishBook {
+  id: string;
+  title: string;
+  author?: string;
+  category?: string;
+  coverColor?: string;
+  description?: string;
+  units: EnglishMaterialUnit[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface IngestionHabit {
   id: string;
   name: string;
-  category: string;
-  icon: string;
-  targetDays: number;
-  createdAt: number;
-  status: 'pending' | 'active' | 'formed';
-  activatedAt?: string; // YYYY-MM-DD
-  formedAt?: string; // YYYY-MM-DD
-  history: string[]; // dates of completion YYYY-MM-DD
-  streak: number;
-  maxStreak: number;
+  icon?: string;
+  category?: string;
+  amount?: number;
+  goal?: number;
+  unit?: string;
+  targetDays?: number;
+  streak?: number;
+  maxStreak?: number;
+  status?: string;
+  history?: any;
+  logs?: Record<string, number>;
+  createdAt?: number | string;
+  formedAt?: string | number;
+  activatedAt?: string | number;
 }
+
+
+
 

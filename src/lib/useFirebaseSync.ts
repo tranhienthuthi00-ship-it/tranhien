@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory, VideoDictation, CustomSentence, PracticeParagraph, StudyGoal, Achievement, WritingSentence, KanbanTask } from '../types';
+import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory, VideoDictation, CustomSentence, PracticeParagraph, StudyGoal, Achievement, WritingSentence, KanbanTask, EnglishBook, EnglishMaterialUnit } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -242,6 +242,98 @@ const DEFAULT_ASSETS: Asset[] = [
   }
 ];
 
+const DEFAULT_ENGLISH_BOOKS: EnglishBook[] = [
+  {
+    id: "book-1",
+    title: "English Grammar in Use",
+    author: "Raymond Murphy",
+    category: "Ngữ pháp",
+    coverColor: "amber",
+    description: "Giáo trình Ngữ pháp Tiếng Anh căn bản & nâng cao chia theo từng Chuyên đề / Unit.",
+    createdAt: Date.now() - 86400000 * 5,
+    updatedAt: Date.now(),
+    units: [
+      {
+        id: "u-1-1",
+        unitNumber: "Unit 1",
+        title: "Present Continuous (I am doing)",
+        description: "Thì Hiện tại Tiếp diễn - Cách dùng và dấu hiệu nhận biết",
+        content: "We use the present continuous when we talk about something that is happening at or around the time of speaking.\n\nForm:\n- Positive: Subject + am/is/are + V-ing\n- Negative: Subject + am/is/are + not + V-ing\n- Question: Am/Is/Are + Subject + V-ing?\n\nKey Examples:\n- Please be quiet. I'm working.\n- Look, there's Sarah. She's wearing a brown coat.\n- Don't go out now. It's raining.\n- Where's Mark? He's having a shower.\n- What are you doing right now?",
+        status: "Completed",
+        updatedAt: Date.now(),
+        vocabularyList: [
+          { word: "Present Continuous", meaning: "Thì hiện tại tiếp diễn", ipa: "/ˈprɛznt kənˈtɪnjuəs/", example: "I am studying English right now." },
+          { word: "At the moment", meaning: "Ngay lúc này / Hiện tại", ipa: "/æt ðə ˈmoʊmənt/", example: "She is reading a book at the moment." },
+          { word: "Currently", meaning: "Hiện thời, hiện nay", ipa: "/ˈkɜːrəntli/", example: "They are currently building a new bridge." }
+        ]
+      },
+      {
+        id: "u-1-2",
+        unitNumber: "Unit 2",
+        title: "Present Simple (I do)",
+        description: "Thì Hiện tại Đơn - Diễn tả thói quen và sự thật hiển nhiên",
+        content: "We use the present simple to talk about things in general. We use it to say that something happens all the time or repeatedly, or that something is true in general.\n\nForm:\n- Positive: Subject + V(s/es)\n- Negative: Subject + do/does + not + V-bare\n- Question: Do/Does + Subject + V-bare?\n\nExamples:\n- Nurses look after patients in hospitals.\n- I usually go away at weekends.\n- The earth goes round the sun.",
+        status: "In Progress",
+        updatedAt: Date.now(),
+        vocabularyList: [
+          { word: "Present Simple", meaning: "Thì hiện tại đơn", ipa: "/ˈprɛznt ˈsɪmpl/", example: "He drives to work every day." },
+          { word: "Look after", meaning: "Chăm sóc, trông nom", ipa: "/lʊk ˈæftər/", example: "Nurses look after patients in hospitals." }
+        ]
+      }
+    ]
+  },
+  {
+    id: "book-2",
+    title: "Oxford Word Skills - Intermediate",
+    author: "Ruth Gairns & Stuart Redman",
+    category: "Từ vựng",
+    coverColor: "emerald",
+    description: "Học từ vựng Tiếng Anh theo chủ đề giao tiếp thực tế hàng ngày.",
+    createdAt: Date.now() - 86400000 * 3,
+    updatedAt: Date.now(),
+    units: [
+      {
+        id: "u-2-1",
+        unitNumber: "Unit 1",
+        title: "Learning & Expanding Vocabulary",
+        description: "Phương pháp học từ vựng hiệu quả",
+        content: "Key Strategies for Expanding Vocabulary:\n1. Keep a dedicated vocabulary notebook or app.\n2. Write whole sentences rather than isolated words.\n3. Review new words using Spaced Repetition (SRS).\n4. Learn word families (verb, noun, adjective, adverb).",
+        status: "In Progress",
+        updatedAt: Date.now(),
+        vocabularyList: [
+          { word: "Expand", meaning: "Mở rộng, phát triển", ipa: "/ɪkˈspænd/", example: "I want to expand my vocabulary." },
+          { word: "Context", meaning: "Ngữ cảnh", ipa: "/ˈkɑːntekst/", example: "Always learn new words in context." }
+        ]
+      }
+    ]
+  },
+  {
+    id: "book-3",
+    title: "Destination B2 - Vocabulary & Grammar",
+    author: "Malcolm Mann",
+    category: "IELTS / B2",
+    coverColor: "indigo",
+    description: "Tài liệu ôn thi chứng chỉ B2 & IELTS nâng cao kỹ năng đọc hiểu và vốn từ.",
+    createdAt: Date.now() - 86400000,
+    updatedAt: Date.now(),
+    units: [
+      {
+        id: "u-3-1",
+        unitNumber: "Unit 1",
+        title: "Travel & Transport",
+        description: "Cụm động từ và từ vựng về chủ đề Du lịch",
+        content: "Phrasal Verbs in Travel:\n- Drop off: cho ai quá giang / xuống xe\n- Get in: đến nơi (máy bay/tàu)\n- Get off: bước xuống (xe bus, tàu)\n- Set off: bắt đầu chuyến đi / khởi hành\n- Take off: cất cánh (máy bay)\n\nTopic Vocabulary:\n- Accommodation: nơi lưu trú\n- Destination: điểm đến\n- Itinerary: hành trình chi tiết",
+        status: "Not Started",
+        updatedAt: Date.now(),
+        vocabularyList: [
+          { word: "Set off", meaning: "Khởi hành chuyến đi", ipa: "/sɛt ɒf/", example: "We set off early in the morning." },
+          { word: "Accommodation", meaning: "Chỗ ở, nơi lưu trú", ipa: "/əˌkɑːməˈdeɪʃn/", example: "We booked our accommodation online." }
+        ]
+      }
+    ]
+  }
+];
+
 const getLocalData = <T,>(key: string, defaultValue: T): T => {
   try {
     const saved = safeLocalStorage.getItem(key);
@@ -259,6 +351,7 @@ export function useFirebaseSync() {
   // States
   const [words, setWords] = useState<Word[]>(() => getLocalData('spatial_hub_words', DEFAULT_WORDS));
   const [writingSentences, setWritingSentences] = useState<WritingSentence[]>(() => getLocalData('spatial_hub_writingSentences', []));
+  const [englishBooks, setEnglishBooks] = useState<EnglishBook[]>(() => getLocalData('spatial_hub_english_books', DEFAULT_ENGLISH_BOOKS));
   const [tasks, setTasks] = useState<Task[]>(() => getLocalData('spatial_hub_tasks', DEFAULT_TASKS));
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => getLocalData('spatial_hub_wishlist', DEFAULT_WISHLIST));
   const [logs, setLogs] = useState<LogEntry[]>(() => getLocalData('spatial_hub_logs', DEFAULT_LOGS));
@@ -563,6 +656,10 @@ export function useFirebaseSync() {
       syncCollection(snap.docs.map(d => d.data() as KanbanTask), setKanbanTasks, kanbanTasksRef, 'spatial_hub_kanban_tasks', `users/${user.uid}/kanbanTasks`, DEFAULT_KANBAN_TASKS);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/kanbanTasks`));
 
+    const unsubEnglishBooks = onSnapshot(collection(db, `users/${user.uid}/englishBooks`), (snap) => {
+      syncCollection(snap.docs.map(d => d.data() as EnglishBook).sort((a,b) => b.updatedAt - a.updatedAt), setEnglishBooks, englishBooksRef, 'spatial_hub_english_books', `users/${user.uid}/englishBooks`, DEFAULT_ENGLISH_BOOKS);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/englishBooks`));
+
     const unsubTags = onSnapshot(doc(db, `users/${user.uid}/data/tags`), (docSnap) => {
       if (docSnap.exists() && docSnap.data().tags) {
         setTags(docSnap.data().tags);
@@ -643,13 +740,14 @@ export function useFirebaseSync() {
       unsubWords(); unsubWritingSentences(); unsubTasks(); unsubWishlist(); unsubLogs(); unsubFood();
       unsubIdeas(); unsubAssets(); unsubCats(); unsubDictations(); unsubCustomSentences(); 
       unsubPracticeParagraphs(); unsubStudyGoals(); unsubAchievements(); unsubKanbanTasks(); unsubTags();
-      unsubSalary(); unsubHabits(); unsubRewards(); unsubAssetsBulk();
+      unsubSalary(); unsubHabits(); unsubRewards(); unsubAssetsBulk(); unsubEnglishBooks();
     };
   }, [user]);
 
   // Refs for sync closures
   const wordsRef = React.useRef(words);
   const writingSentencesRef = React.useRef(writingSentences);
+  const englishBooksRef = React.useRef(englishBooks);
   const tasksRef = React.useRef(tasks);
   const wishlistRef = React.useRef(wishlist);
   const logsRef = React.useRef(logs);
@@ -673,6 +771,8 @@ export function useFirebaseSync() {
 
   useEffect(() => { wordsRef.current = words; }, [words]);
   useEffect(() => { writingSentencesRef.current = writingSentences; }, [writingSentences]);
+  useEffect(() => { englishBooksRef.current = englishBooks; }, [englishBooks]);
+
   useEffect(() => { kanbanTasksRef.current = kanbanTasks; }, [kanbanTasks]);
   useEffect(() => { habitsRef.current = habits; }, [habits]);
   useEffect(() => { customRewardsRef.current = customRewards; }, [customRewards]);
@@ -801,7 +901,9 @@ export function useFirebaseSync() {
 
   const setWordsSync = useCallback(createSyncSetter<Word>('words', wordsRef, setWords), [createSyncSetter]);
   const setWritingSentencesSync = useCallback(createSyncSetter<WritingSentence>('writingSentences', writingSentencesRef, setWritingSentences), [createSyncSetter]);
+  const setEnglishBooksSync = useCallback(createSyncSetter<EnglishBook>('englishBooks', englishBooksRef, setEnglishBooks), [createSyncSetter]);
   const setTasksSync = useCallback(createSyncSetter<Task>('tasks', tasksRef, setTasks), [createSyncSetter]);
+
   const setWishlistSync = useCallback(createSyncSetter<WishlistItem>('wishlistItems', wishlistRef, setWishlist), [createSyncSetter]);
   const setLogsSync = useCallback(createSyncSetter<LogEntry>('logEntries', logsRef, setLogs), [createSyncSetter]);
   const setFoodPlacesSync = useCallback(createSyncSetter<FoodPlace>('foodPlaces', foodRef, setFoodPlaces), [createSyncSetter]);
@@ -856,7 +958,9 @@ export function useFirebaseSync() {
     user, loading,
     words, setWords: setWordsSync,
     writingSentences, setWritingSentences: setWritingSentencesSync,
+    englishBooks, setEnglishBooks: setEnglishBooksSync,
     tasks, setTasks: setTasksSync,
+
     wishlist, setWishlist: setWishlistSync,
     logs, setLogs: setLogsSync,
     foodPlaces, setFoodPlaces: setFoodPlacesSync,
