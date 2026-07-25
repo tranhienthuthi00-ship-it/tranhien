@@ -238,14 +238,14 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
 
       {/* HEADER SUMMARY SECTION */}
       {!selectedUnitId && (
-        <div className="mb-6 bg-[#fffbeb] border-2 border-amber-300/80 rounded-2xl p-4 md:p-6 shadow-[4px_4px_0px_#f59e0b]">
+        <div className="mb-6 bg-white border-[2px] border-[#141414] rounded-2xl p-4 md:p-6 shadow-[5px_5px_0px_#141414]">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-amber-900 font-black text-lg md:text-2xl tracking-tight uppercase">
-                <BookMarked className="w-6 h-6 text-amber-600" />
+              <div className="flex items-center gap-2 text-[#141414] font-extrabold text-lg md:text-2xl tracking-tight uppercase">
+                <BookMarked className="w-6 h-6 text-[#FF5A5F]" />
                 <span>Tài Liệu Tiếng Anh Theo Sách & Unit</span>
               </div>
-              <p className="text-xs md:text-sm text-amber-900/70 font-medium mt-1">
+              <p className="text-xs md:text-sm text-[#555] font-semibold mt-1">
                 Tải lên và lưu trữ sách học, bài giảng, từ vựng & tài liệu cá nhân chia theo từng Bài/Unit.
               </p>
             </div>
@@ -256,7 +256,7 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
                   setEditingBook(null);
                   setShowAddBookModal(true);
                 }}
-                className="flex-1 md:flex-none px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs md:text-sm rounded-xl border-2 border-amber-900 shadow-[2px_2px_0px_#78350f] transition-transform active:translate-y-0.5 flex items-center justify-center gap-1.5"
+                className="flex-1 md:flex-none px-4 py-2 bg-[#141414] hover:bg-[#333] text-white font-extrabold text-xs md:text-sm rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_rgba(0,0,0,0.2)] transition-transform active:translate-y-0.5 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <FolderPlus className="w-4 h-4" />
                 <span>Tạo Sách Mới</span>
@@ -268,7 +268,7 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
                   setEditingUnit(null);
                   setShowAddUnitModal(true);
                 }}
-                className="flex-1 md:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs md:text-sm rounded-xl border-2 border-emerald-950 shadow-[2px_2px_0px_#064e3b] transition-transform active:translate-y-0.5 flex items-center justify-center gap-1.5"
+                className="flex-1 md:flex-none px-4 py-2 bg-[#FF5A5F] hover:bg-rose-600 text-white font-extrabold text-xs md:text-sm rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414] transition-transform active:translate-y-0.5 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Upload className="w-4 h-4" />
                 <span>Upload Tài Liệu / Unit</span>
@@ -277,55 +277,55 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
           </div>
 
           {/* Quick Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-amber-200/80">
-            <div className="bg-white/80 p-3 rounded-xl border border-amber-200 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 font-black">
-                <BookOpen className="w-5 h-5" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t-2 border-[#141414]/10">
+            <div className="bg-[#FFFDF5] p-3 rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-amber-100 border border-[#141414] flex items-center justify-center text-[#141414] font-black">
+                <BookOpen className="w-5 h-5 text-amber-700" />
               </div>
               <div>
-                <p className="text-[10px] uppercase font-bold text-amber-900/60">Tổng Sách</p>
-                <p className="text-lg font-black text-amber-950">{stats.totalBooks} Sách</p>
+                <p className="text-[10px] uppercase font-bold text-[#666]">Tổng Sách</p>
+                <p className="text-lg font-black text-[#141414]">{stats.totalBooks} Sách</p>
               </div>
             </div>
 
-            <div className="bg-white/80 p-3 rounded-xl border border-amber-200 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-700 font-black">
-                <Layers className="w-5 h-5" />
+            <div className="bg-[#FFFDF5] p-3 rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-indigo-100 border border-[#141414] flex items-center justify-center text-[#141414] font-black">
+                <Layers className="w-5 h-5 text-indigo-700" />
               </div>
               <div>
-                <p className="text-[10px] uppercase font-bold text-indigo-900/60">Tổng Số Unit</p>
-                <p className="text-lg font-black text-indigo-950">{stats.totalUnits} Units</p>
+                <p className="text-[10px] uppercase font-bold text-[#666]">Tổng Số Unit</p>
+                <p className="text-lg font-black text-[#141414]">{stats.totalUnits} Units</p>
               </div>
             </div>
 
-            <div className="bg-white/80 p-3 rounded-xl border border-amber-200 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-black">
-                <BookCheck className="w-5 h-5" />
+            <div className="bg-[#FFFDF5] p-3 rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 border border-[#141414] flex items-center justify-center text-[#141414] font-black">
+                <BookCheck className="w-5 h-5 text-emerald-700" />
               </div>
               <div>
-                <p className="text-[10px] uppercase font-bold text-emerald-900/60">Hoàn Thành</p>
-                <p className="text-lg font-black text-emerald-950">{stats.completedUnits} / {stats.totalUnits}</p>
+                <p className="text-[10px] uppercase font-bold text-[#666]">Hoàn Thành</p>
+                <p className="text-lg font-black text-[#141414]">{stats.completedUnits} / {stats.totalUnits}</p>
               </div>
             </div>
 
-            <div className="bg-white/80 p-3 rounded-xl border border-amber-200 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center text-rose-700 font-black">
-                <GraduationCap className="w-5 h-5" />
+            <div className="bg-[#FFFDF5] p-3 rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-rose-100 border border-[#141414] flex items-center justify-center text-[#141414] font-black">
+                <GraduationCap className="w-5 h-5 text-rose-700" />
               </div>
               <div>
-                <p className="text-[10px] uppercase font-bold text-rose-900/60">Từ Vựng Trong Unit</p>
-                <p className="text-lg font-black text-rose-950">{stats.totalWords} Từ</p>
+                <p className="text-[10px] uppercase font-bold text-[#666]">Từ Vựng Trong Unit</p>
+                <p className="text-lg font-black text-[#141414]">{stats.totalWords} Từ</p>
               </div>
             </div>
           </div>
 
           {/* Overall Progress Bar */}
           <div className="mt-4">
-            <div className="flex justify-between items-center text-xs font-bold text-amber-900 mb-1">
+            <div className="flex justify-between items-center text-xs font-extrabold text-[#141414] mb-1">
               <span>Tiến độ học tổng quan</span>
               <span>{stats.completionRate}% Đã xong</span>
             </div>
-            <div className="w-full h-2.5 bg-amber-200/70 rounded-full overflow-hidden border border-amber-300">
+            <div className="w-full h-3 bg-[#EFECE6] rounded-full overflow-hidden border-2 border-[#141414]">
               <div 
                 className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                 style={{ width: `${stats.completionRate}%` }}

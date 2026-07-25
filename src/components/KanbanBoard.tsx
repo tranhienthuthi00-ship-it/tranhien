@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { KanbanTask, KanbanSubtask } from '@/types';
-import { Search, Plus, Edit2, X, Calendar, Pin, Trash2, Copy, Check, StickyNote } from 'lucide-react';
+import { KanbanTask, KanbanSubtask, EnglishBook, Word } from '@/types';
+import { Search, Plus, Edit2, X, Calendar, Pin, Trash2, Copy, Check, StickyNote, BookMarked, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EnglishMaterials } from './EnglishMaterials';
 
 export interface QuickNote {
   id: string;
@@ -16,9 +17,21 @@ interface KanbanBoardProps {
   tasks: KanbanTask[];
   setTasks: (tasks: KanbanTask[] | ((prev: KanbanTask[]) => KanbanTask[])) => void;
   setActiveTab?: (tab: any) => void;
+  englishBooks?: EnglishBook[];
+  setEnglishBooks?: (books: EnglishBook[] | ((prev: EnglishBook[]) => EnglishBook[])) => void;
+  words?: Word[];
+  setWords?: (words: Word[] | ((prev: Word[]) => Word[])) => void;
 }
 
-export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps) {
+export function KanbanBoard({ 
+  tasks, 
+  setTasks, 
+  setActiveTab,
+  englishBooks = [],
+  setEnglishBooks = () => {},
+  words = [],
+  setWords = () => {}
+}: KanbanBoardProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -48,7 +61,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
   const [editingHashtags, setEditingHashtags] = useState<string[]>([]);
   const [editingDueDate, setEditingDueDate] = useState<string>("");
 
-  const [viewMode, setViewMode] = useState<'board' | 'calendar' | 'note'>('board');
+  const [viewMode, setViewMode] = useState<'board' | 'calendar' | 'note' | 'english' | 'reports'>('board');
   const [calendarDate, setCalendarDate] = useState(new Date());
 
   // Quick Notes State
@@ -332,7 +345,10 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
             <button className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors text-left", viewMode === 'note' ? "bg-white/10 text-white" : "hover:bg-white/10 hover:text-white")} onClick={() => setViewMode('note')}>
               📝 Note
             </button>
-            <button className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-white/10 hover:text-white transition-colors text-left">
+            <button className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors text-left", viewMode === 'english' ? "bg-white/10 text-white" : "hover:bg-white/10 hover:text-white")} onClick={() => setViewMode('english')}>
+              📚 Sách & Unit
+            </button>
+            <button className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors text-left", viewMode === 'reports' ? "bg-white/10 text-white" : "hover:bg-white/10 hover:text-white")} onClick={() => setViewMode('reports')}>
               📊 Reports
             </button>
           </div>
@@ -399,27 +415,41 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
           </div>
         </div>
         <div className="flex gap-2 relative z-50">
-          <div className="flex bg-white border-[2px] border-[#141414] rounded-full p-1 shadow-[2px_2px_0px_#141414] shrink-0 items-center">
+          <div className="flex bg-white border-[2px] border-[#141414] rounded-full p-1 shadow-[2px_2px_0px_#141414] shrink-0 items-center overflow-x-auto max-w-full">
             <button 
               onClick={() => setViewMode('board')}
-              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1", viewMode === 'board' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
+              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 shrink-0", viewMode === 'board' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
               title="Xem Kanban Board"
             >
               📋 Board
             </button>
             <button 
               onClick={() => setViewMode('calendar')}
-              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1", viewMode === 'calendar' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
+              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 shrink-0", viewMode === 'calendar' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
               title="Xem Lịch"
             >
               🗓️ Calendar
             </button>
             <button 
               onClick={() => setViewMode('note')}
-              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1", viewMode === 'note' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
+              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 shrink-0", viewMode === 'note' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
               title="Xem Ghi chú nhanh"
             >
               📝 Note
+            </button>
+            <button 
+              onClick={() => setViewMode('english')}
+              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 shrink-0", viewMode === 'english' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
+              title="Xem Tài liệu Sách & Unit"
+            >
+              📚 Sách & Unit
+            </button>
+            <button 
+              onClick={() => setViewMode('reports')}
+              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 shrink-0", viewMode === 'reports' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
+              title="Xem Báo cáo"
+            >
+              📊 Reports
             </button>
           </div>
           <div className="relative">
@@ -944,7 +974,7 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
             })()}
           </div>
         </div>
-      ) : (
+      ) : viewMode === 'note' ? (
         /* Note View - Ghi chú nhanh */
         <div className="flex flex-col gap-6">
           <div className="bg-white border-[2px] border-[#141414] rounded-[24px] shadow-[6px_6px_0px_#141414] p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1157,6 +1187,52 @@ export function KanbanBoard({ tasks, setTasks, setActiveTab }: KanbanBoardProps)
               </div>
             );
           })()}
+        </div>
+      ) : viewMode === 'english' ? (
+        <div className="flex flex-col gap-4 animate-in fade-in duration-200">
+          <EnglishMaterials
+            books={englishBooks}
+            setBooks={setEnglishBooks}
+            words={words}
+            setWords={setWords}
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-6 animate-in fade-in duration-200">
+          <div className="bg-white border-[2px] border-[#141414] rounded-[24px] shadow-[6px_6px_0px_#141414] p-6 flex flex-col gap-4">
+            <div className="flex justify-between items-center border-b-2 border-[#141414]/10 pb-4">
+              <div>
+                <h2 className="text-xl font-extrabold text-[#141414] flex items-center gap-2">
+                  <BarChart3 className="w-6 h-6 text-[#FF5A5F]" /> Báo Cáo Tiến Độ Dự Án
+                </h2>
+                <p className="text-xs font-medium text-[#666]">Thống kê công việc, tỷ lệ hoàn thành và ngân sách thực hiện trong Kanban</p>
+              </div>
+              <span className="px-3 py-1 bg-[#141414] text-white rounded-full text-xs font-bold">
+                {tasks.length} Nhiệm vụ
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-[#FFFDF5] p-4 rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414]">
+                <p className="text-xs font-bold text-[#666] uppercase">Cần làm</p>
+                <p className="text-2xl font-black text-[#141414] mt-1">{tasks.filter(t => t.status === 'todo').length}</p>
+              </div>
+              <div className="bg-[#FFFDF5] p-4 rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414]">
+                <p className="text-xs font-bold text-[#666] uppercase">Đang làm</p>
+                <p className="text-2xl font-black text-amber-600 mt-1">{tasks.filter(t => t.status === 'doing').length}</p>
+              </div>
+              <div className="bg-[#FFFDF5] p-4 rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414]">
+                <p className="text-xs font-bold text-[#666] uppercase">Hoàn thành</p>
+                <p className="text-2xl font-black text-emerald-600 mt-1">{tasks.filter(t => t.status === 'done').length}</p>
+              </div>
+              <div className="bg-[#FFFDF5] p-4 rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414]">
+                <p className="text-xs font-bold text-[#666] uppercase">Tổng Chi Phí</p>
+                <p className="text-2xl font-black text-[#FF5A5F] mt-1">
+                  {tasks.reduce((acc, t) => acc + (t.subtasks?.reduce((sAcc, st) => sAcc + (st.money || 0), 0) || 0), 0).toLocaleString('vi-VN')} đ
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

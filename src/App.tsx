@@ -552,7 +552,17 @@ function AppContent() {
         )}
         <div className="w-full px-2 md:px-6">
           {activeTab === "Calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
-          {activeTab === "Projects" && <KanbanBoard tasks={kanbanTasks} setTasks={setKanbanTasks} setActiveTab={setActiveTab} />}
+          {activeTab === "Projects" && (
+            <KanbanBoard 
+              tasks={kanbanTasks} 
+              setTasks={setKanbanTasks} 
+              setActiveTab={setActiveTab} 
+              englishBooks={englishBooks}
+              setEnglishBooks={setEnglishBooks}
+              words={words}
+              setWords={setWords}
+            />
+          )}
 
           {activeTab === "Journal" && (
             <DigitalJournal 
