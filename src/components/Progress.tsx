@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import type { Word, Task, LogEntry, WishlistItem, StudyGoal, Asset, Habit } from "@/types";
+import { parseVNDAmount } from "@/lib/utils";
 import { 
   BookA, 
   CheckSquare, 
@@ -155,19 +156,22 @@ export function Progress({
   }, [purchasedItemsList]);
 
   // Exclude option and format conversions
-  const getValueInVND = (value: number, currency: string, exchangeRate?: number) => {
-    if (currency === 'VND') return value;
-    if (exchangeRate && exchangeRate > 0) {
-      return value * exchangeRate;
+  const getValueInVND = (value: number | string, currency: string, exchangeRate?: number | string) => {
+    const numVal = typeof value === 'number' ? (isNaN(value) ? 0 : value) : parseVNDAmount(value);
+    const numRate = typeof exchangeRate === 'number' ? (isNaN(exchangeRate) ? 0 : exchangeRate) : parseVNDAmount(exchangeRate);
+    if (!currency || currency === 'VND') return numVal;
+    if (numRate && numRate > 0) {
+      return numVal * numRate;
     }
-    if (currency === 'USD') return value * 25400;
-    if (currency === 'EUR') return value * 27000;
-    if (currency === 'GOLD') return value * 8000000; // estimation
-    return value;
+    if (currency === 'USD') return numVal * 25400;
+    if (currency === 'EUR') return numVal * 27000;
+    if (currency === 'GOLD') return numVal * 8000000; // estimation
+    return numVal;
   };
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+  const formatCurrency = (val: number | string) => {
+    const num = typeof val === 'number' ? (isNaN(val) ? 0 : val) : parseVNDAmount(val);
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
   };
 
   // Filtered lists of purchased wishlist items

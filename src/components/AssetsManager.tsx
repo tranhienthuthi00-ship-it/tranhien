@@ -382,10 +382,11 @@ export function AssetsManager({
   const [newCatIcon, setNewCatIcon] = useState("Wallet");
 
   const startEdit = (asset: Asset) => {
+    if (!asset) return;
     setEditingId(asset.id);
-    setNewName(asset.name);
-    setNewCategory(asset.category);
-    setNewCurrency(asset.currency);
+    setNewName(asset.name || "");
+    setNewCategory(asset.category || defaultCatID);
+    setNewCurrency(asset.currency || "VND");
     setNewNotes(asset.notes || "");
     setIsDebt(!!asset.isDebt);
     setIsLoan(!!asset.isLoan);
@@ -394,18 +395,20 @@ export function AssetsManager({
     setIsAddAssetOpen(true); // Open adding box automatically on Edit
 
     if (asset.currency === "GOLD" || asset.currency === "USD") {
-      setNewQuantity(asset.quantity?.toString() || asset.value.toString());
+      setNewQuantity(asset.quantity?.toString() || (asset.value !== undefined && asset.value !== null ? asset.value.toString() : ""));
       setNewExchangeRate(asset.exchangeRate?.toString() || "");
       setNewValue("");
       setNewDenomination("");
     } else {
-      setNewValue(asset.value.toString());
+      setNewValue(asset.value !== undefined && asset.value !== null ? asset.value.toString() : "0");
       setNewQuantity(asset.quantity?.toString() || "");
       setNewExchangeRate("");
       setNewDenomination(asset.denomination?.toString() || "");
     }
     
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) {}
   };
 
   const cancelEdit = () => {
@@ -427,14 +430,16 @@ export function AssetsManager({
     setIsAddAssetOpen(false); // Close drawer on cancel
   };
 
-  const formatCurrency = (val: number, cur: string) => {
-    if (cur === 'GOLD') {
-      return `${new Intl.NumberFormat('vi-VN').format(val)} chỉ vàng`;
+  const formatCurrency = (val: number | string, cur: string = 'VND') => {
+    const num = typeof val === 'number' ? (isNaN(val) ? 0 : val) : parseVNDAmount(val);
+    const safeCur = cur || 'VND';
+    if (safeCur === 'GOLD') {
+      return `${new Intl.NumberFormat('vi-VN').format(num)} chỉ vàng`;
     }
     try {
-      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: cur }).format(val);
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: safeCur }).format(num);
     } catch (e) {
-      return `${new Intl.NumberFormat('vi-VN').format(val)} ${cur}`;
+      return `${new Intl.NumberFormat('vi-VN').format(num)} ${safeCur}`;
     }
   };
 
@@ -561,19 +566,22 @@ export function AssetsManager({
     return categories.find(c => c.id === catId) || { id: catId || 'unknown', name: catId || 'Khác', icon: '❓' };
   };
 
-  const getValueInVND = (value: number, currency: string, exchangeRate?: number) => {
-    if (currency === 'VND') return value;
-    if (exchangeRate && exchangeRate > 0) {
-      return value * exchangeRate;
+  const getValueInVND = (value: number | string, currency: string, exchangeRate?: number | string) => {
+    const numVal = typeof value === 'number' ? (isNaN(value) ? 0 : value) : parseVNDAmount(value);
+    const numRate = typeof exchangeRate === 'number' ? (isNaN(exchangeRate) ? 0 : exchangeRate) : parseVNDAmount(exchangeRate);
+    if (!currency || currency === 'VND') return numVal;
+    if (numRate && numRate > 0) {
+      return numVal * numRate;
     }
-    if (currency === 'USD') return value * 25400;
-    if (currency === 'EUR') return value * 27000;
-    if (currency === 'GOLD') return value * 8000000; // estimation
-    return value;
+    if (currency === 'USD') return numVal * 25400;
+    if (currency === 'EUR') return numVal * 27000;
+    if (currency === 'GOLD') return numVal * 8000000; // estimation
+    return numVal;
   };
 
   const sanitizedAssets = useMemo(() => {
-    return assets.filter(a => !a.id.startsWith("meta_"));
+    if (!Array.isArray(assets)) return [];
+    return assets.filter(a => a && a.id && typeof a.id === 'string' && !a.id.startsWith("meta_"));
   }, [assets]);
 
   const totalVND = useMemo(() => {
@@ -1868,7 +1876,7 @@ export function AssetsManager({
                               item.amount === "-" 
                                 ? "-" 
                                 : item.amount 
-                                  ? Number(item.amount.replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
+                                  ? Number(String(item.amount).replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
                                   : ""
                             }
                             onChange={(e) => {
@@ -2049,7 +2057,7 @@ export function AssetsManager({
                                 item.amount === "-" 
                                   ? "-" 
                                   : item.amount 
-                                    ? Number(item.amount.replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
+                                    ? Number(String(item.amount).replace(/[^0-9-]/g, "")).toLocaleString("vi-VN") 
                                     : ""
                               }
                               onChange={(e) => {
