@@ -76,10 +76,181 @@ const safeLocalStorage = {
   }
 };
 
+const DEFAULT_KANBAN_TASKS: KanbanTask[] = [
+  {
+    id: "kb-1",
+    title: "🎯 Lập kế hoạch học Tiếng Anh hàng tuần",
+    tag: "Học tập",
+    hashtags: ["#tienganh", "#kehoach"],
+    priority: "Cao",
+    status: "todo",
+    dueDate: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
+    desc: "Ôn tập 50 từ vựng chuyên ngành du lịch và làm bài tập chép chính tả trên YouTube.",
+    subtasks: [
+      { date: new Date().toLocaleDateString("vi-VN"), text: "Học 10 từ vựng mới", money: 0 },
+      { date: new Date().toLocaleDateString("vi-VN"), text: "Nghe bài Dictation 15 phút", money: 0 }
+    ]
+  },
+  {
+    id: "kb-2",
+    title: "💼 Hoàn thiện sơ yếu lý lịch & Portfolio",
+    tag: "Công việc",
+    hashtags: ["#cv", "#career"],
+    priority: "Trung bình",
+    status: "doing",
+    dueDate: new Date(Date.now() + 86400000 * 5).toISOString().split("T")[0],
+    desc: "Cập nhật các dự án cá nhân, chứng chỉ và kinh nghiệm làm việc mới nhất.",
+    subtasks: [
+      { date: new Date().toLocaleDateString("vi-VN"), text: "Viết phần giới thiệu bản thân", money: 0 },
+      { date: new Date().toLocaleDateString("vi-VN"), text: "Thiết kế file PDF chuẩn", money: 0 }
+    ]
+  },
+  {
+    id: "kb-3",
+    title: "🛒 Mua sắm dụng cụ học tập & Tài liệu",
+    tag: "Cá nhân",
+    hashtags: ["#shopping", "#books"],
+    priority: "Thấp",
+    status: "done",
+    dueDate: new Date().toISOString().split("T")[0],
+    desc: "Mua sổ ghi chép, bút nhớ dòng và sách luyện đọc hiểu.",
+    subtasks: [
+      { date: new Date().toLocaleDateString("vi-VN"), text: "Sổ tay A5 chống lóa", money: 45000 }
+    ]
+  }
+];
+
+const DEFAULT_WORDS: Word[] = [
+  {
+    id: "w-1",
+    vocabulary: "Hospitality",
+    wordType: "noun",
+    ipa: "/ˌhɒspɪˈtæləti/",
+    definition: "Lòng hiếu khách, ngành dịch vụ khách sạn - nhà hàng",
+    examples: ["The hotel is famous for its warm hospitality."],
+    tags: ["Hospitality"],
+    difficulty: 1,
+    lastReviewed: new Date().toISOString(),
+    nextReview: new Date(Date.now() + 86400000).toISOString()
+  },
+  {
+    id: "w-2",
+    vocabulary: "Itinerary",
+    wordType: "noun",
+    ipa: "/aɪˈtɪnərəri/",
+    definition: "Lịch trình chuyến đi, hành trình du lịch",
+    examples: ["We received our detailed travel itinerary."],
+    tags: ["Tourism"],
+    difficulty: 2,
+    lastReviewed: new Date().toISOString(),
+    nextReview: new Date(Date.now() + 86400000).toISOString()
+  }
+];
+
+const DEFAULT_TASKS: Task[] = [
+  { id: "t-1", content: "Luyện đọc 1 bài báo Tiếng Anh", completed: false, priority: "High" },
+  { id: "t-2", content: "Ôn tập 10 từ vựng Flashcard", completed: true, priority: "Medium" },
+  { id: "t-3", content: "Ghi nhật ký học tập ngày hôm nay", completed: false, priority: "Medium" }
+];
+
+const DEFAULT_HABITS = [
+  {
+    id: "h-water",
+    name: "Uống nước 2L mỗi ngày",
+    icon: "🥤",
+    category: "Sức khỏe",
+    reminderTimes: ["08:00", "11:00", "14:00", "17:00", "20:00"],
+    daysOfWeek: [],
+    streak: 3,
+    maxStreak: 12,
+    createdAt: Date.now() - 4 * 24 * 60 * 60 * 1000,
+    isActive: true,
+    lastCompletedDate: new Date().toISOString().split('T')[0],
+    history: {}
+  },
+  {
+    id: "h-english",
+    name: "Học 10 từ vựng Tiếng Anh",
+    icon: "🇬🇧",
+    category: "Học tập",
+    reminderTimes: ["08:30", "20:30"],
+    daysOfWeek: [],
+    streak: 5,
+    maxStreak: 15,
+    createdAt: Date.now() - 6 * 24 * 60 * 60 * 1000,
+    isActive: true,
+    lastCompletedDate: new Date().toISOString().split('T')[0],
+    history: {}
+  }
+];
+
+const DEFAULT_WISHLIST: WishlistItem[] = [
+  {
+    id: "wish-1",
+    content: "Tai nghe chống ồn Sony WH-1000XM5",
+    addedDate: new Date().toISOString().split('T')[0],
+    price: 7500000,
+    necessity: "High",
+    note: "Phục vụ việc tập trung học tập và nghe Tiếng Anh ở nơi công cộng",
+    isWorthBuying: true
+  }
+];
+
+const DEFAULT_LOGS: LogEntry[] = [
+  {
+    id: "log-1",
+    date: new Date().toISOString().split('T')[0],
+    content: "Bắt đầu mục tiêu nâng cao trình độ Tiếng Anh và quản lý tài chính cá nhân.",
+    type: "Reflection",
+    emoji: "🚀"
+  }
+];
+
+const DEFAULT_FOOD_PLACES: FoodPlace[] = [
+  {
+    id: "fp-1",
+    name: "Phở Thìn Hà Nội",
+    category: "Food",
+    status: "Visited",
+    rating: 5,
+    city: "Hà Nội",
+    address: "13 Lò Đúc, Hai Bà Trưng",
+    review: "Nước dùng đậm đà, thịt bò tái lăn rất thơm ngon.",
+    isFavorite: true
+  }
+];
+
+const DEFAULT_CONTENT_IDEAS: ContentIdea[] = [
+  {
+    id: "ci-1",
+    title: "10 Cụm từ Tiếng Anh hay nhất trong ngành Du lịch",
+    description: "Tổng hợp các mẫu câu giao tiếp tự nhiên cho nhân viên khách sạn.",
+    platform: "TikTok / Reels",
+    status: "Pending",
+    createdAt: Date.now()
+  }
+];
+
+const DEFAULT_ASSETS: Asset[] = [
+  {
+    id: "asset-cash-1",
+    name: "Tài khoản ngân hàng / Tiền mặt",
+    category: "cat-money",
+    value: 15000000,
+    currency: "VND",
+    notes: "Sổ tiết kiệm & Tiền mặt dự phòng"
+  }
+];
+
 const getLocalData = <T,>(key: string, defaultValue: T): T => {
   try {
     const saved = safeLocalStorage.getItem(key);
-    return saved ? JSON.parse(saved) : defaultValue;
+    if (!saved) return defaultValue;
+    const parsed = JSON.parse(saved);
+    if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(defaultValue) && defaultValue.length > 0) {
+      return defaultValue;
+    }
+    return parsed;
   } catch (e) {
     return defaultValue;
   }
@@ -90,21 +261,21 @@ export function useFirebaseSync() {
   const [loading, setLoading] = useState(true);
 
   // States
-  const [words, setWords] = useState<Word[]>(() => getLocalData('spatial_hub_words', []));
+  const [words, setWords] = useState<Word[]>(() => getLocalData('spatial_hub_words', DEFAULT_WORDS));
   const [writingSentences, setWritingSentences] = useState<WritingSentence[]>(() => getLocalData('spatial_hub_writingSentences', []));
-  const [tasks, setTasks] = useState<Task[]>(() => getLocalData('spatial_hub_tasks', []));
-  const [wishlist, setWishlist] = useState<WishlistItem[]>(() => getLocalData('spatial_hub_wishlist', []));
-  const [logs, setLogs] = useState<LogEntry[]>(() => getLocalData('spatial_hub_logs', []));
-  const [foodPlaces, setFoodPlaces] = useState<FoodPlace[]>(() => getLocalData('spatial_hub_places', []));
+  const [tasks, setTasks] = useState<Task[]>(() => getLocalData('spatial_hub_tasks', DEFAULT_TASKS));
+  const [wishlist, setWishlist] = useState<WishlistItem[]>(() => getLocalData('spatial_hub_wishlist', DEFAULT_WISHLIST));
+  const [logs, setLogs] = useState<LogEntry[]>(() => getLocalData('spatial_hub_logs', DEFAULT_LOGS));
+  const [foodPlaces, setFoodPlaces] = useState<FoodPlace[]>(() => getLocalData('spatial_hub_places', DEFAULT_FOOD_PLACES));
   const [tags, setTags] = useState<string[]>(() => getLocalData('spatial_hub_tags', ['Tourism', 'Hospitality', 'Cruise Industry']));
-  const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>(() => getLocalData('spatial_hub_content_ideas', []));
-  const [assets, setAssets] = useState<Asset[]>(() => getLocalData('spatial_hub_assets', []));
+  const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>(() => getLocalData('spatial_hub_content_ideas', DEFAULT_CONTENT_IDEAS));
+  const [assets, setAssets] = useState<Asset[]>(() => getLocalData('spatial_hub_assets', DEFAULT_ASSETS));
   const [dictations, setDictations] = useState<VideoDictation[]>(() => getLocalData('spatial_hub_dictations', []));
   const [customSentences, setCustomSentences] = useState<CustomSentence[]>(() => getLocalData('spatial_hub_custom_sentences', []));
   const [practiceParagraphs, setPracticeParagraphs] = useState<PracticeParagraph[]>(() => getLocalData('spatial_hub_practice_paragraphs', []));
   const [studyGoals, setStudyGoals] = useState<StudyGoal[]>(() => getLocalData('spatial_hub_study_goals', []));
   const [achievements, setAchievements] = useState<Achievement[]>(() => getLocalData('spatial_hub_achievements', []));
-  const [kanbanTasks, setKanbanTasks] = useState<KanbanTask[]>(() => getLocalData('spatial_hub_kanban_tasks', []));
+  const [kanbanTasks, setKanbanTasks] = useState<KanbanTask[]>(() => getLocalData('spatial_hub_kanban_tasks', DEFAULT_KANBAN_TASKS));
   const [assetCategories, setAssetCategories] = useState<AssetCategory[]>(() => getLocalData('spatial_hub_asset_cats', [
     { id: 'cat-money', name: 'Tiền mặt & NH', icon: 'Wallet' },
     { id: 'cat-realestate', name: 'Bất động sản', icon: 'Home' },
@@ -297,52 +468,100 @@ export function useFirebaseSync() {
 
     setLoading(true);
 
+    const syncCollection = async <T extends { id: string }>(
+      snapDocs: T[],
+      setLocalState: React.Dispatch<React.SetStateAction<T[]>>,
+      localRef: React.MutableRefObject<T[]>,
+      lsKey: string,
+      firestoreCollectionPath: string,
+      defaultItems: T[] = []
+    ) => {
+      if (snapDocs.length > 0) {
+        setLocalState(snapDocs);
+        safeLocalStorage.setItem(lsKey, JSON.stringify(snapDocs));
+      } else {
+        const current = localRef.current;
+        if (current && current.length > 0) {
+          for (const item of current) {
+            if (item.id) {
+              const cleanItem = Object.fromEntries(Object.entries(item).filter(([_, v]) => v !== undefined));
+              await setDoc(doc(db, `${firestoreCollectionPath}/${item.id}`), cleanItem).catch(e => console.error("Auto upload local item error:", e));
+            }
+          }
+        } else if (defaultItems.length > 0) {
+          setLocalState(defaultItems);
+          safeLocalStorage.setItem(lsKey, JSON.stringify(defaultItems));
+          for (const item of defaultItems) {
+            if (item.id) {
+              const cleanItem = Object.fromEntries(Object.entries(item).filter(([_, v]) => v !== undefined));
+              await setDoc(doc(db, `${firestoreCollectionPath}/${item.id}`), cleanItem).catch(e => console.error("Auto upload default item error:", e));
+            }
+          }
+        }
+      }
+    };
+
     const unsubWords = onSnapshot(collection(db, `users/${user.uid}/words`), (snap) => {
-      setWords(snap.docs.map(d => d.data() as Word));
+      syncCollection(snap.docs.map(d => d.data() as Word), setWords, wordsRef, 'spatial_hub_words', `users/${user.uid}/words`, DEFAULT_WORDS);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/words`));
+
     const unsubWritingSentences = onSnapshot(collection(db, `users/${user.uid}/writingSentences`), (snap) => {
-      setWritingSentences(snap.docs.map(d => d.data() as WritingSentence));
+      syncCollection(snap.docs.map(d => d.data() as WritingSentence), setWritingSentences, writingSentencesRef, 'spatial_hub_writingSentences', `users/${user.uid}/writingSentences`, []);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/writingSentences`));
+
     const unsubTasks = onSnapshot(collection(db, `users/${user.uid}/tasks`), (snap) => {
-      setTasks(snap.docs.map(d => d.data() as Task));
+      syncCollection(snap.docs.map(d => d.data() as Task), setTasks, tasksRef, 'spatial_hub_tasks', `users/${user.uid}/tasks`, DEFAULT_TASKS);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/tasks`));
+
     const unsubWishlist = onSnapshot(collection(db, `users/${user.uid}/wishlistItems`), (snap) => {
-      setWishlist(snap.docs.map(d => d.data() as WishlistItem));
+      syncCollection(snap.docs.map(d => d.data() as WishlistItem), setWishlist, wishlistRef, 'spatial_hub_wishlist', `users/${user.uid}/wishlistItems`, DEFAULT_WISHLIST);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/wishlistItems`));
+
     const unsubLogs = onSnapshot(collection(db, `users/${user.uid}/logEntries`), (snap) => {
-      setLogs(snap.docs.map(d => d.data() as LogEntry));
+      syncCollection(snap.docs.map(d => d.data() as LogEntry), setLogs, logsRef, 'spatial_hub_logs', `users/${user.uid}/logEntries`, DEFAULT_LOGS);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/logEntries`));
+
     const unsubFood = onSnapshot(collection(db, `users/${user.uid}/foodPlaces`), (snap) => {
-      setFoodPlaces(snap.docs.map(d => d.data() as FoodPlace));
+      syncCollection(snap.docs.map(d => d.data() as FoodPlace), setFoodPlaces, foodRef, 'spatial_hub_places', `users/${user.uid}/foodPlaces`, DEFAULT_FOOD_PLACES);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/foodPlaces`));
+
     const unsubIdeas = onSnapshot(collection(db, `users/${user.uid}/contentIdeas`), (snap) => {
-      setContentIdeas(snap.docs.map(d => d.data() as ContentIdea));
+      syncCollection(snap.docs.map(d => d.data() as ContentIdea), setContentIdeas, ideasRef, 'spatial_hub_content_ideas', `users/${user.uid}/contentIdeas`, DEFAULT_CONTENT_IDEAS);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/contentIdeas`));
+
     const unsubAssets = onSnapshot(collection(db, `users/${user.uid}/assets`), (snap) => {
-      setAssets(snap.docs.map(d => d.data() as Asset));
+      syncCollection(snap.docs.map(d => d.data() as Asset), setAssets, assetsRef, 'spatial_hub_assets', `users/${user.uid}/assets`, DEFAULT_ASSETS);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/assets`));
+
     const unsubCats = onSnapshot(collection(db, `users/${user.uid}/assetCategories`), (snap) => {
       const cats = snap.docs.map(d => d.data() as AssetCategory);
       if (cats.length > 0) setAssetCategories(cats);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/assetCategories`));
+
     const unsubDictations = onSnapshot(collection(db, `users/${user.uid}/dictations`), (snap) => {
-      setDictations(snap.docs.map(d => d.data() as VideoDictation).sort((a,b) => b.lastModified - a.lastModified));
+      syncCollection(snap.docs.map(d => d.data() as VideoDictation).sort((a,b) => b.lastModified - a.lastModified), setDictations, dictationsRef, 'spatial_hub_dictations', `users/${user.uid}/dictations`, []);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/dictations`));
+
     const unsubCustomSentences = onSnapshot(collection(db, `users/${user.uid}/customSentences`), (snap) => {
-      setCustomSentences(snap.docs.map(d => d.data() as CustomSentence).sort((a,b) => b.createdAt - a.createdAt));
+      syncCollection(snap.docs.map(d => d.data() as CustomSentence).sort((a,b) => b.createdAt - a.createdAt), setCustomSentences, sentencesRef, 'spatial_hub_custom_sentences', `users/${user.uid}/customSentences`, []);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/customSentences`));
+
     const unsubPracticeParagraphs = onSnapshot(collection(db, `users/${user.uid}/practiceParagraphs`), (snap) => {
-      setPracticeParagraphs(snap.docs.map(d => d.data() as PracticeParagraph).sort((a,b) => b.createdAt - a.createdAt));
+      syncCollection(snap.docs.map(d => d.data() as PracticeParagraph).sort((a,b) => b.createdAt - a.createdAt), setPracticeParagraphs, paragraphsRef, 'spatial_hub_practice_paragraphs', `users/${user.uid}/practiceParagraphs`, []);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/practiceParagraphs`));
+
     const unsubStudyGoals = onSnapshot(collection(db, `users/${user.uid}/studyGoals`), (snap) => {
-      setStudyGoals(snap.docs.map(d => d.data() as StudyGoal).sort((a,b) => b.createdAt - a.createdAt));
+      syncCollection(snap.docs.map(d => d.data() as StudyGoal).sort((a,b) => b.createdAt - a.createdAt), setStudyGoals, goalsRef, 'spatial_hub_study_goals', `users/${user.uid}/studyGoals`, []);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/studyGoals`));
+
     const unsubAchievements = onSnapshot(collection(db, `users/${user.uid}/achievements`), (snap) => {
-      setAchievements(snap.docs.map(d => d.data() as Achievement).sort((a,b) => b.unlockedAt - a.unlockedAt));
+      syncCollection(snap.docs.map(d => d.data() as Achievement).sort((a,b) => b.unlockedAt - a.unlockedAt), setAchievements, achievementsRef, 'spatial_hub_achievements', `users/${user.uid}/achievements`, []);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/achievements`));
+
     const unsubKanbanTasks = onSnapshot(collection(db, `users/${user.uid}/kanbanTasks`), (snap) => {
-      setKanbanTasks(snap.docs.map(d => d.data() as KanbanTask));
+      syncCollection(snap.docs.map(d => d.data() as KanbanTask), setKanbanTasks, kanbanTasksRef, 'spatial_hub_kanban_tasks', `users/${user.uid}/kanbanTasks`, DEFAULT_KANBAN_TASKS);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/kanbanTasks`));
+
     const unsubTags = onSnapshot(doc(db, `users/${user.uid}/data/tags`), (docSnap) => {
       if (docSnap.exists() && docSnap.data().tags) {
         setTags(docSnap.data().tags);
@@ -364,9 +583,15 @@ export function useFirebaseSync() {
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/salaryPlanner`));
 
     const unsubHabits = onSnapshot(doc(db, `users/${user.uid}/data/habits`), (docSnap) => {
-      if (docSnap.exists() && docSnap.data().habits) {
+      if (docSnap.exists() && docSnap.data().habits && docSnap.data().habits.length > 0) {
         setHabits(docSnap.data().habits);
         safeLocalStorage.setItem("studyHub_habits", JSON.stringify(docSnap.data().habits));
+      } else if (habitsRef.current && habitsRef.current.length > 0) {
+        setDoc(doc(db, `users/${user.uid}/data/habits`), { habits: habitsRef.current }, { merge: true });
+      } else {
+        setHabits(DEFAULT_HABITS);
+        safeLocalStorage.setItem("studyHub_habits", JSON.stringify(DEFAULT_HABITS));
+        setDoc(doc(db, `users/${user.uid}/data/habits`), { habits: DEFAULT_HABITS }, { merge: true });
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/habits`));
 
