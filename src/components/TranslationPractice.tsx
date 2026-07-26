@@ -3,7 +3,7 @@ import type { Word } from "../types";
 import { SentenceBySentencePractice } from "./SentenceBySentencePractice";
 import { 
   Play, RotateCcw, Volume2, Mic, MicOff, Check, AlertCircle, BookOpen, Star, HelpCircle, 
-  ArrowRight, Loader2, Search, Plus, Youtube, Headphones, Sparkles, BookText, 
+  ArrowRight, Loader2, Search, Plus, Video, Headphones, Sparkles, BookText, 
   ChevronRight, MessageSquare, ListCheck, X, Sparkle, RefreshCw, VolumeX
 } from "lucide-react";
 import YouTube from "react-youtube";
@@ -398,7 +398,7 @@ export function TranslationPractice({
             onClick={() => setPracticeMode("youtube")}
             className={`font-sans font-bold text-xs px-4 py-2 rounded-full transition-all flex items-center gap-2 ${practiceMode === "youtube" ? "bg-ink text-paper shadow-sm scale-105" : "text-ink/60 hover:text-ink"}`}
           >
-            <Youtube className="w-4 h-4" /> YouTube Video
+            <Video className="w-4 h-4" /> YouTube Video
           </button>
           <button
             onClick={() => setPracticeMode("free")}
@@ -419,7 +419,7 @@ export function TranslationPractice({
           {!learningPackage && (
             <div className="bg-paper sketch-border-lg p-6 md:p-10 text-center flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-300">
               <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center sketch-border-sm relative">
-                <Youtube className="w-10 h-10" />
+                <Video className="w-10 h-10" />
                 <Sparkle className="w-4 h-4 text-ink absolute right-1 top-1 animate-pulse" />
               </div>
               <div className="max-w-xl mx-auto space-y-2">

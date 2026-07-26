@@ -1098,7 +1098,7 @@ export function KanbanBoard({
               <div 
                 key={note.id}
                 style={{ backgroundColor: note.color }}
-                className="border-[2px] border-[#141414] rounded-2xl p-4 shadow-[4px_4px_0px_#141414] flex flex-col justify-between gap-3 relative transition-all hover:-translate-y-1"
+                className="border-[2px] border-[#141414] rounded-2xl p-4 shadow-[4px_4px_0px_#141414] flex flex-col justify-between gap-3 relative transition-all hover:-translate-y-1 break-inside-avoid inline-block w-full"
               >
                 <div>
                   <div className="flex justify-between items-start gap-2 mb-2">
@@ -1163,7 +1163,7 @@ export function KanbanBoard({
                         Đã ghim ({pinnedNotes.length})
                       </span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
                       {pinnedNotes.map(renderNoteCard)}
                     </div>
                   </div>
@@ -1179,7 +1179,7 @@ export function KanbanBoard({
                         </span>
                       </div>
                     )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
                       {unpinnedNotes.map(renderNoteCard)}
                     </div>
                   </div>

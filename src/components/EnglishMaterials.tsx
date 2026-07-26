@@ -35,6 +35,9 @@ import {
   ExternalLink
 } from "lucide-react";
 
+import { MindmapView } from "./MindmapView";
+import { RichTextEditor } from "./RichTextEditor";
+
 interface EnglishMaterialsProps {
   books: EnglishBook[];
   setBooks: (books: EnglishBook[] | ((prev: EnglishBook[]) => EnglishBook[])) => void;
@@ -378,7 +381,8 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
               { id: "document", label: "📄 Nội Dung & Tài Liệu", icon: FileText },
               { id: "vocabulary", label: `🔤 Từ Vựng (${currentUnit.vocabularyList?.length || 0})`, icon: GraduationCap },
               { id: "notes", label: "📝 Ghi Chú Ôn Tập", icon: Edit3 },
-              { id: "flashcards", label: "🎴 Thẻ Lật Luyện Nhớ", icon: RotateCcw }
+              { id: "flashcards", label: "🎴 Thẻ Lật Luyện Nhớ", icon: RotateCcw },
+              { id: "mindmap", label: "🧠 Mindmap", icon: Edit3 }
             ].map(tab => {
               const Icon = tab.icon;
               return (
@@ -497,10 +501,12 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
 
               {/* Document Text Body */}
               <div 
-                className="leading-relaxed font-sans text-ink whitespace-pre-wrap selection:bg-amber-200 p-2"
+                className="leading-relaxed font-sans text-ink selection:bg-amber-200 p-2 prose max-w-none"
                 style={{ fontSize: `${readerFontSize}px` }}
               >
-                {currentUnit.content || (
+                {currentUnit.content ? (
+                  <div dangerouslySetInnerHTML={{ __html: currentUnit.content }} />
+                ) : (
                   <p className="text-gray-400 italic text-sm text-center py-8">
                     Chưa có nội dung văn bản. Nhấp "Chỉnh Sửa Unit" để dán tài liệu học hoặc tải tệp lên.
                   </p>
@@ -680,6 +686,40 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
               )}
             </div>
           )}
+
+          {/* TAB 5: MINDMAP */}
+          {activeUnitTab === "mindmap" && (
+            <div className="bg-white p-4 md:p-6 rounded-2xl border-2 border-ink shadow-[4px_4px_0px_#000] flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-ink/10 pb-3">
+                <h3 className="text-base font-black text-ink uppercase tracking-tight flex items-center gap-2">
+                  <Edit3 className="w-5 h-5 text-amber-600" />
+                  Mindmap Chủ Đề
+                </h3>
+              </div>
+              <p className="text-xs text-ink/60">
+                Tạo mindmap để hệ thống hóa kiến thức cho Unit này.
+              </p>
+              
+              <MindmapView
+                nodes={(currentUnit as any).mindmapNodes || []}
+                edges={(currentUnit as any).mindmapEdges || []}
+                onChange={(nodes, edges) => {
+                  setBooks(prev => prev.map(b => {
+                    if (b.id !== currentBook.id) return b;
+                    return {
+                      ...b,
+                      units: b.units.map(u => u.id === currentUnit.id ? { 
+                        ...u, 
+                        mindmapNodes: nodes,
+                        mindmapEdges: edges,
+                        updatedAt: Date.now() 
+                      } : u)
+                    };
+                  }));
+                }}
+              />
+            </div>
+          )}
         </div>
       ) : (
         /* LIST OF BOOKS AND UNITS VIEW */
@@ -738,9 +778,8 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredBooks.map(book => {
-                const colorTheme = getCoverColorClass(book.coverColor);
                 const completedCount = book.units.filter(u => u.status === "Completed").length;
                 const bookProgress = book.units.length > 0 ? Math.round((completedCount / book.units.length) * 100) : 0;
                 const isSelected = selectedBookId === book.id;
@@ -748,126 +787,101 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
                 return (
                   <div
                     key={book.id}
-                    className={`bg-white rounded-2xl border-2 border-ink shadow-[4px_4px_0px_#000] flex flex-col justify-between overflow-hidden transition-transform duration-200 hover:-translate-y-1 ${
-                      isSelected ? "ring-2 ring-amber-500" : ""
+                    className={`relative w-full transition-all hover:-translate-y-1 flex flex-col h-[320px] ${
+                      isSelected ? "ring-2 ring-black rounded-2xl" : ""
                     }`}
                   >
-                    {/* Book Spine / Cover Header */}
-                    <div className={`${colorTheme.bg} p-4 border-b-2 border-ink flex flex-col gap-2 relative`}>
-                      <div className="flex items-center justify-between">
-                        <span className={`text-[10px] font-black uppercase tracking-wider text-white px-2.5 py-0.5 rounded-md ${colorTheme.badge}`}>
-                          {book.category || "General"}
+                    {/* Folder Tab */}
+                    <div className="flex">
+                      <div className="bg-white border-t-[2px] border-l-[2px] border-r-[2px] border-[#141414] rounded-t-xl px-4 py-1.5 relative z-20 translate-y-[2px]">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#141414] flex items-center gap-1">
+                          📁 SÁCH TÀI LIỆU
                         </span>
-
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => {
-                              setEditingBook(book);
-                              setShowAddBookModal(true);
-                            }}
-                            title="Sửa thông tin sách"
-                            className="p-1 hover:bg-black/10 rounded text-ink/70 hover:text-ink"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            onClick={() => handleDeleteBook(book.id, book.title)}
-                            title="Xóa cuốn sách này"
-                            className="p-1 hover:bg-rose-200/60 rounded text-rose-700"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
                       </div>
-
-                      <h3 className={`font-black text-base md:text-lg ${colorTheme.text} line-clamp-1`}>
-                        {book.title}
-                      </h3>
-
-                      {book.author && (
-                        <p className="text-xs font-medium text-ink/70 italic">
-                          ✍️ Tác giả: {book.author}
-                        </p>
-                      )}
-
-                      {book.description && (
-                        <p className="text-[11px] text-ink/70 line-clamp-2 mt-1">
-                          {book.description}
-                        </p>
-                      )}
                     </div>
 
-                    {/* UNITS LIST IN BOOK */}
-                    <div className="p-4 flex-1 flex flex-col justify-between gap-3">
-                      <div>
-                        <div className="flex items-center justify-between text-xs font-bold text-ink/70 mb-2">
-                          <span className="flex items-center gap-1">
-                            <Layers className="w-3.5 h-3.5 text-amber-600" />
-                            {book.units.length} Units trong sách
-                          </span>
-                          <span className="text-emerald-700 font-black">{bookProgress}% Xong</span>
-                        </div>
+                    {/* Folder Body */}
+                    <div className="bg-[#FFFDF5] rounded-2xl rounded-tl-none border-[2px] border-[#141414] shadow-[4px_4px_0px_#141414] flex flex-col flex-1 overflow-hidden relative z-10">
+                      <div className="p-4 flex flex-col gap-2 border-b-2 border-[#141414]/10 bg-white">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-extrabold text-lg text-[#141414] line-clamp-1 uppercase tracking-tight">
+                            {book.title}
+                          </h3>
 
-                        {/* Progress Bar */}
-                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-3">
-                          <div className="h-full bg-emerald-500 transition-all duration-300" style={{ width: `${bookProgress}%` }} />
-                        </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => {
+                                setEditingBook(book);
+                                setShowAddBookModal(true);
+                              }}
+                              title="Sửa thông tin sách"
+                              className="p-1.5 hover:bg-[#F5F5F5] rounded-md text-[#666] hover:text-[#141414] transition-colors"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
 
-                        {/* Units list previews */}
-                        {book.units.length === 0 ? (
-                          <p className="text-xs text-ink/40 italic py-3 text-center">Chưa có Unit nào. Nhấp "+ Thêm Unit" bên dưới.</p>
-                        ) : (
-                          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                            {book.units.map(unit => (
-                              <div
-                                key={unit.id}
-                                onClick={() => {
-                                  setSelectedBookId(book.id);
-                                  setSelectedUnitId(unit.id);
-                                }}
-                                className="p-2 rounded-xl border border-ink/15 hover:border-ink bg-paper hover:bg-amber-50 cursor-pointer flex items-center justify-between text-xs transition-colors group"
-                              >
-                                <div className="flex items-center gap-2 overflow-hidden">
-                                  <span className={`w-2 h-2 rounded-full shrink-0 ${
-                                    unit.status === "Completed" ? "bg-emerald-500" : unit.status === "In Progress" ? "bg-amber-500" : "bg-gray-300"
-                                  }`} />
-                                  <span className="font-bold text-ink/80 group-hover:text-ink line-clamp-1">
-                                    <strong className="text-amber-900">{unit.unitNumber}:</strong> {unit.title}
-                                  </span>
-                                </div>
-
-                                <ChevronRight className="w-3.5 h-3.5 text-ink/30 group-hover:text-ink shrink-0" />
-                              </div>
-                            ))}
+                            <button
+                              onClick={() => handleDeleteBook(book.id, book.title)}
+                              title="Xóa cuốn sách này"
+                              className="p-1.5 hover:bg-rose-50 rounded-md text-rose-500 hover:text-rose-700 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
+                        </div>
+
+                        {book.author && (
+                          <p className="text-xs font-semibold text-[#666]">
+                            {book.author}
+                          </p>
                         )}
                       </div>
 
-                      {/* Card Actions */}
-                      <div className="flex gap-2 pt-2 border-t border-ink/10">
-                        <button
-                          onClick={() => {
-                            setTargetBookIdForUnit(book.id);
-                            setEditingUnit(null);
-                            setShowAddUnitModal(true);
-                          }}
-                          className="flex-1 py-1.5 bg-paper hover:bg-amber-100 border border-ink text-ink font-bold text-xs rounded-xl flex items-center justify-center gap-1 transition-colors"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Thêm Unit</span>
-                        </button>
+                      {/* UNITS LIST IN BOOK */}
+                      <div className="p-4 flex-1 flex flex-col justify-between gap-3 bg-[#FFFDF5] overflow-hidden">
+                        <div className="flex-1 overflow-hidden flex flex-col">
+                          {/* Units list previews */}
+                          {book.units.length === 0 ? (
+                            <p className="text-xs text-[#999] font-medium py-2">Trống.</p>
+                          ) : (
+                            <div className="space-y-1.5 overflow-y-auto pr-1 flex-1">
+                              {book.units.map(unit => (
+                                <div
+                                  key={unit.id}
+                                  onClick={() => {
+                                    setSelectedBookId(book.id);
+                                    setSelectedUnitId(unit.id);
+                                  }}
+                                  className="group cursor-pointer flex items-center justify-between text-[11px] hover:bg-white border border-transparent hover:border-[#E5E5E5] rounded-md px-1.5 py-1 -mx-1.5 transition-colors"
+                                >
+                                  <div className="flex items-center gap-2 overflow-hidden w-full">
+                                    <FileText className="w-3.5 h-3.5 text-[#999] group-hover:text-[#141414]" />
+                                    <span className="font-semibold text-[#555] group-hover:text-[#141414] line-clamp-1">
+                                      {unit.unitNumber}: {unit.title}
+                                    </span>
+                                  </div>
+                                  {unit.status === "Completed" && (
+                                    <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
-                        <button
-                          onClick={() => {
-                            setSelectedBookId(book.id);
-                            if (book.units.length > 0) setSelectedUnitId(book.units[0].id);
-                          }}
-                          className="flex-1 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-black text-xs rounded-xl border-2 border-amber-900 shadow-sm flex items-center justify-center gap-1 transition-all"
-                        >
-                          <BookOpen className="w-3.5 h-3.5" />
-                          <span>Học Ngay</span>
-                        </button>
+                        {/* Card Actions */}
+                        <div className="flex gap-2 pt-3 mt-1 border-t border-[#141414]/10 shrink-0">
+                          <button
+                            onClick={() => {
+                              setTargetBookIdForUnit(book.id);
+                              setEditingUnit(null);
+                              setShowAddUnitModal(true);
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#666] hover:text-[#141414] transition-colors"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Thêm Unit
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1208,14 +1222,16 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
               </div>
 
               {/* MANUAL CONTENT PASTE */}
-              <div>
+              <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-ink">Nội Dung Văn Bản / Bài Học</label>
-                <textarea
-                  name="content"
-                  defaultValue={editingUnit?.unit.content || ""}
-                  rows={6}
-                  placeholder="Dán văn bản bài học, đoạn văn tiếng Anh, cấu trúc ngữ pháp..."
-                  className="w-full mt-1 p-2.5 text-xs font-sans rounded-xl border-2 border-ink/30 focus:border-emerald-500 focus:outline-none bg-paper"
+                <input type="hidden" name="content" id="unit-content-input" defaultValue={editingUnit?.unit.content || ""} />
+                <RichTextEditor 
+                  content={editingUnit?.unit.content || ""} 
+                  onChange={(html) => {
+                    const input = document.getElementById('unit-content-input') as HTMLInputElement;
+                    if (input) input.value = html;
+                  }}
+                  placeholder="Soạn thảo văn bản bài học, ngữ pháp..."
                 />
               </div>
 
