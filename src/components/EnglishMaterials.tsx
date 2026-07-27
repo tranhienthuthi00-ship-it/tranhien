@@ -821,22 +821,24 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
                     }`}
                   >
                     {/* Folder Tab */}
-                    <div className="flex">
-                      <div className="bg-white border-t-[2px] border-l-[2px] border-r-[2px] border-[#141414] rounded-t-xl px-4 py-1.5 relative z-20 translate-y-[2px] flex items-center gap-1.5">
+                    <div className="flex pl-3 relative z-20 -mb-[2px]">
+                      <div className="bg-[#FFFDF5] border-t-[2px] border-l-[2px] border-r-[2px] border-[#141414] rounded-t-xl px-4 py-1.5 flex items-center gap-1.5 relative">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#141414] flex items-center gap-1">
-                          📁 SÁCH TÀI LIỆU
+                          📁 {book.category || "SÁCH TÀI LIỆU"}
                         </span>
                         {book.units.some(u => u.isNew && !u.isEdited) && (
                           <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-tighter animate-pulse">
                             (new)
                           </span>
                         )}
+                        {/* Mask to cleanly hide folder body top border underneath tab */}
+                        <div className="absolute -bottom-[2px] left-0 right-0 h-[3px] bg-[#FFFDF5] z-30" />
                       </div>
                     </div>
 
                     {/* Folder Body */}
-                    <div className="bg-[#FFFDF5] rounded-2xl rounded-tl-none border-[2px] border-[#141414] shadow-[4px_4px_0px_#141414] flex flex-col flex-1 overflow-hidden relative z-10">
-                      <div className="p-4 flex flex-col gap-2 border-b-2 border-[#141414]/10 bg-white">
+                    <div className="bg-[#FFFDF5] rounded-2xl border-[2px] border-[#141414] shadow-[4px_4px_0px_#141414] flex flex-col flex-1 overflow-hidden relative z-10">
+                      <div className="p-4 flex flex-col gap-2 border-b-2 border-[#141414]/10 bg-[#FFFDF5]">
                         <div className="flex items-center justify-between">
                           <h3 className="font-extrabold text-lg text-[#141414] line-clamp-1 uppercase tracking-tight">
                             {book.title}

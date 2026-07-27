@@ -415,43 +415,6 @@ export function KanbanBoard({
           </div>
         </div>
         <div className="flex gap-2 relative z-50">
-          <div className="flex bg-white border-[2px] border-[#141414] rounded-full p-1 shadow-[2px_2px_0px_#141414] shrink-0 items-center overflow-x-auto max-w-full">
-            <button 
-              onClick={() => setViewMode('board')}
-              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 shrink-0", viewMode === 'board' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
-              title="Xem Kanban Board"
-            >
-              📋 Board
-            </button>
-            <button 
-              onClick={() => setViewMode('calendar')}
-              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 shrink-0", viewMode === 'calendar' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
-              title="Xem Lịch"
-            >
-              🗓️ Calendar
-            </button>
-            <button 
-              onClick={() => setViewMode('note')}
-              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 shrink-0", viewMode === 'note' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
-              title="Xem Ghi chú nhanh"
-            >
-              📝 Note
-            </button>
-            <button 
-              onClick={() => setViewMode('english')}
-              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 shrink-0", viewMode === 'english' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
-              title="Xem Tài liệu Sách & Unit"
-            >
-              📚 Sách & Unit
-            </button>
-            <button 
-              onClick={() => setViewMode('reports')}
-              className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 shrink-0", viewMode === 'reports' ? "bg-[#141414] text-white" : "text-[#141414] hover:bg-black/5")}
-              title="Xem Báo cáo"
-            >
-              📊 Reports
-            </button>
-          </div>
           <div className="relative">
             <button 
               onClick={() => {
