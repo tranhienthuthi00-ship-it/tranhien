@@ -257,6 +257,8 @@ export interface EnglishMaterialUnit {
   vocabularyList?: { word: string; meaning: string; ipa?: string; example?: string }[];
   notes?: string;
   updatedAt: number;
+  isNew?: boolean;
+  isEdited?: boolean;
 }
 
 export interface EnglishBook {
@@ -269,6 +271,7 @@ export interface EnglishBook {
   units: EnglishMaterialUnit[];
   createdAt: number;
   updatedAt: number;
+  isNew?: boolean;
 }
 
 export interface IngestionHabit {

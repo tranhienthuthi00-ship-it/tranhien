@@ -57,9 +57,21 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
   const [showAddUnitModal, setShowAddUnitModal] = useState<boolean>(false);
   const [targetBookIdForUnit, setTargetBookIdForUnit] = useState<string | null>(null);
   const [editingUnit, setEditingUnit] = useState<{ bookId: string; unit: EnglishMaterialUnit } | null>(null);
+  const [selectedBookOption, setSelectedBookOption] = useState<string>("");
+
+  const handleMarkUnitAsEdited = (bookId: string, unitId: string) => {
+    setBooks(prev => prev.map(b => {
+      if (b.id !== bookId) return b;
+      return {
+        ...b,
+        units: b.units.map(u => u.id === unitId ? { ...u, isNew: false, isEdited: true, updatedAt: Date.now() } : u)
+      };
+    }));
+    showToast("Đã đánh dấu bài học là đã chỉnh sửa!");
+  };
 
   // Active sub-tab inside Unit View
-  const [activeUnitTab, setActiveUnitTab] = useState<"document" | "vocabulary" | "notes" | "flashcards">("document");
+  const [activeUnitTab, setActiveUnitTab] = useState<"document" | "vocabulary" | "notes" | "flashcards" | "mindmap">("document");
   
   // Reader font size state
   const [readerFontSize, setReaderFontSize] = useState<number>(16);
@@ -354,7 +366,24 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
             <div className="flex items-center gap-2 text-xs font-bold text-ink/70 overflow-hidden text-ellipsis whitespace-nowrap">
               <span className="hidden sm:inline">{currentBook.title}</span>
               <ChevronRight className="w-3.5 h-3.5" />
-              <span className="text-crimson font-black">{currentUnit.unitNumber}: {currentUnit.title}</span>
+              <span className="text-crimson font-black flex items-center gap-1.5">
+                <span>{currentUnit.unitNumber}: {currentUnit.title}</span>
+                {(currentUnit.isNew && !currentUnit.isEdited) && (
+                  <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tight flex items-center gap-1 shadow-sm">
+                    <span>(new)</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMarkUnitAsEdited(currentBook.id, currentUnit.id);
+                      }}
+                      title="Đánh dấu bài học này đã kiểm tra / chỉnh sửa"
+                      className="hover:underline text-amber-200 text-[9px] ml-1 bg-black/20 px-1 py-0.2 rounded"
+                    >
+                      ✓ Đã sửa
+                    </button>
+                  </span>
+                )}
+              </span>
             </div>
 
             {/* Status Switcher */}
@@ -793,10 +822,15 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
                   >
                     {/* Folder Tab */}
                     <div className="flex">
-                      <div className="bg-white border-t-[2px] border-l-[2px] border-r-[2px] border-[#141414] rounded-t-xl px-4 py-1.5 relative z-20 translate-y-[2px]">
+                      <div className="bg-white border-t-[2px] border-l-[2px] border-r-[2px] border-[#141414] rounded-t-xl px-4 py-1.5 relative z-20 translate-y-[2px] flex items-center gap-1.5">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#141414] flex items-center gap-1">
                           📁 SÁCH TÀI LIỆU
                         </span>
+                        {book.units.some(u => u.isNew && !u.isEdited) && (
+                          <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-tighter animate-pulse">
+                            (new)
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -855,9 +889,14 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
                                   className="group cursor-pointer flex items-center justify-between text-[11px] hover:bg-white border border-transparent hover:border-[#E5E5E5] rounded-md px-1.5 py-1 -mx-1.5 transition-colors"
                                 >
                                   <div className="flex items-center gap-2 overflow-hidden w-full">
-                                    <FileText className="w-3.5 h-3.5 text-[#999] group-hover:text-[#141414]" />
-                                    <span className="font-semibold text-[#555] group-hover:text-[#141414] line-clamp-1">
-                                      {unit.unitNumber}: {unit.title}
+                                    <FileText className="w-3.5 h-3.5 text-[#999] group-hover:text-[#141414] shrink-0" />
+                                    <span className="font-semibold text-[#555] group-hover:text-[#141414] line-clamp-1 flex items-center gap-1.5">
+                                      <span>{unit.unitNumber}: {unit.title}</span>
+                                      {(unit.isNew && !unit.isEdited) && (
+                                        <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-tighter shrink-0 animate-pulse">
+                                          (new)
+                                        </span>
+                                      )}
                                     </span>
                                   </div>
                                   {unit.status === "Completed" && (
@@ -1039,7 +1078,7 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
             <div className="flex items-center justify-between border-b border-ink/10 pb-3">
               <h3 className="font-black text-base uppercase text-ink flex items-center gap-2">
                 <Upload className="w-5 h-5 text-emerald-600" />
-                {editingUnit ? "Chỉnh Sửa Unit" : "Upload Tài Liệu / Thêm Unit Mới"}
+                {editingUnit ? "Chỉnh Sửa Unit" : "Upload Tài Liệu / Thêm Unit Mới (Thủ Công)"}
               </h3>
               <button onClick={() => setShowAddUnitModal(false)} className="p-1 text-ink/40 hover:text-ink">
                 <X className="w-5 h-5" />
@@ -1050,21 +1089,47 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
               onSubmit={(e) => {
                 e.preventDefault();
                 const form = e.currentTarget;
-                const bookId = (form.elements.namedItem("bookId") as HTMLSelectElement).value;
-                const unitNumber = (form.elements.namedItem("unitNumber") as HTMLInputElement).value.trim();
-                const title = (form.elements.namedItem("title") as HTMLInputElement).value.trim();
+                
+                let targetBookTitle = "";
+                let targetBookId = "";
+
+                if (editingUnit) {
+                  const bObj = books.find(b => b.id === editingUnit.bookId);
+                  targetBookTitle = bObj ? bObj.title : "";
+                  targetBookId = editingUnit.bookId;
+                } else {
+                  const bookSelectVal = (form.elements.namedItem("bookSelect") as HTMLSelectElement)?.value || selectedBookOption || (books[0]?.id || "__NEW_BOOK__");
+                  if (bookSelectVal === "__NEW_BOOK__" || books.length === 0) {
+                    const customTitle = (form.elements.namedItem("customBookTitle") as HTMLInputElement)?.value.trim();
+                    targetBookTitle = customTitle || "";
+                  } else {
+                    const foundBook = books.find(b => b.id === bookSelectVal);
+                    if (foundBook) {
+                      targetBookTitle = foundBook.title;
+                      targetBookId = foundBook.id;
+                    }
+                  }
+                }
+
+                const unitNumberRaw = (form.elements.namedItem("unitNumber") as HTMLInputElement).value.trim();
+                const unitTitleRaw = (form.elements.namedItem("title") as HTMLInputElement).value.trim();
                 const description = (form.elements.namedItem("description") as HTMLInputElement).value.trim();
-                const content = (form.elements.namedItem("content") as HTMLTextAreaElement).value.trim();
+                const contentInput = document.getElementById("unit-content-input") as HTMLInputElement;
+                const content = contentInput ? contentInput.value.trim() : (form.elements.namedItem("content") as HTMLInputElement)?.value.trim() || "";
                 const fileUrl = (form.elements.namedItem("fileUrl") as HTMLInputElement).value;
                 const fileName = (form.elements.namedItem("fileName") as HTMLInputElement).value;
                 const fileType = (form.elements.namedItem("fileType") as HTMLInputElement).value as any;
 
-                if (!bookId || !unitNumber || !title) {
-                  alert("Vui lòng chọn Sách và điền đầy đủ Tên Unit!");
+                // MANDATORY FIELDS VALIDATION: Book Title, Unit Number, Unit Title are ALL required!
+                if (!targetBookTitle || !unitNumberRaw || !unitTitleRaw) {
+                  alert("⚠️ THÔNG TIN BẮT BUỘC CHƯA ĐẦY ĐỦ!\n\nVui lòng nhập đầy đủ:\n1. Tên Sách (*)\n2. Unit / Số Bài (*)\n3. Tiêu Đề Unit (*)");
                   return;
                 }
 
+                const unitNumberFormatted = unitNumberRaw.toLowerCase().startsWith("unit") ? unitNumberRaw : `Unit ${unitNumberRaw}`;
+
                 if (editingUnit) {
+                  // User explicitly edits existing unit -> mark as edited, remove (new) badge
                   setBooks(prev => prev.map(b => {
                     if (b.id !== editingUnit.bookId) return b;
                     return {
@@ -1072,41 +1137,111 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
                       updatedAt: Date.now(),
                       units: b.units.map(u => u.id === editingUnit.unit.id ? {
                         ...u,
-                        unitNumber,
-                        title,
+                        unitNumber: unitNumberFormatted,
+                        title: unitTitleRaw,
                         description,
                         content,
                         fileUrl: fileUrl || u.fileUrl,
                         fileName: fileName || u.fileName,
                         fileType: fileType || u.fileType,
+                        isNew: false,
+                        isEdited: true,
                         updatedAt: Date.now()
                       } : u)
                     };
                   }));
-                  showToast("Đã cập nhật Unit!");
+                  showToast("Đã lưu các thay đổi của Unit!");
                 } else {
-                  const newUnit: EnglishMaterialUnit = {
-                    id: `unit-${Date.now()}`,
-                    unitNumber: unitNumber.startsWith("Unit") ? unitNumber : `Unit ${unitNumber}`,
-                    title,
-                    description,
-                    content,
-                    fileUrl: fileUrl || undefined,
-                    fileName: fileName || undefined,
-                    fileType: fileType || "text",
-                    status: "Not Started",
-                    updatedAt: Date.now()
-                  };
+                  // Creating/Inputting manually -> Merge with existing Book & Unit if matching Title, Unit Number, Title!
+                  setBooks(prev => {
+                    const normBookTitle = targetBookTitle.trim().toLowerCase();
+                    let bookIndex = prev.findIndex(b => b.title.trim().toLowerCase() === normBookTitle);
 
-                  setBooks(prev => prev.map(b => {
-                    if (b.id !== bookId) return b;
-                    return {
-                      ...b,
-                      updatedAt: Date.now(),
-                      units: [...b.units, newUnit]
-                    };
-                  }));
-                  showToast(`Đã thêm ${newUnit.unitNumber} vào sách thành công!`);
+                    let updatedBooks = [...prev];
+                    let bookToModify: EnglishBook;
+
+                    if (bookIndex >= 0) {
+                      bookToModify = { ...updatedBooks[bookIndex] };
+                    } else {
+                      // Create new book
+                      bookToModify = {
+                        id: `book-${Date.now()}`,
+                        title: targetBookTitle.trim(),
+                        category: "Tự chọn",
+                        coverColor: "amber",
+                        units: [],
+                        createdAt: Date.now(),
+                        updatedAt: Date.now(),
+                        isNew: true
+                      };
+                      updatedBooks = [bookToModify, ...updatedBooks];
+                      bookIndex = 0;
+                    }
+
+                    // Check if unit with same unit number & title exists in this book
+                    const normUnitNum = unitNumberFormatted.trim().toLowerCase();
+                    const normUnitTitle = unitTitleRaw.trim().toLowerCase();
+
+                    const existingUnitIndex = bookToModify.units.findIndex(u =>
+                      u.unitNumber.trim().toLowerCase() === normUnitNum &&
+                      u.title.trim().toLowerCase() === normUnitTitle
+                    );
+
+                    if (existingUnitIndex >= 0) {
+                      // MERGE CONTENTS TOGETHER!
+                      const existingUnit = bookToModify.units[existingUnitIndex];
+                      let mergedContent = existingUnit.content || "";
+                      if (content) {
+                        if (mergedContent) {
+                          mergedContent += `<div class="my-4 pt-3 border-t-2 border-emerald-500/30 font-bold text-xs text-emerald-800">📌 Nội dung bổ sung vừa gộp (${new Date().toLocaleDateString("vi-VN")}):</div>` + content;
+                        } else {
+                          mergedContent = content;
+                        }
+                      }
+
+                      const mergedUnit: EnglishMaterialUnit = {
+                        ...existingUnit,
+                        description: description ? (existingUnit.description ? `${existingUnit.description} | ${description}` : description) : existingUnit.description,
+                        content: mergedContent,
+                        fileUrl: fileUrl || existingUnit.fileUrl,
+                        fileName: fileName || existingUnit.fileName,
+                        fileType: fileType || existingUnit.fileType,
+                        isNew: true, // Marked as new so (new) tag is shown until edited
+                        isEdited: false,
+                        updatedAt: Date.now()
+                      };
+
+                      const updatedUnits = [...bookToModify.units];
+                      updatedUnits[existingUnitIndex] = mergedUnit;
+                      bookToModify.units = updatedUnits;
+                      bookToModify.updatedAt = Date.now();
+
+                      showToast(`Đã gộp thành công nội dung trùng Sách, Unit & Tiêu đề! (Hiện nhãn (new))`);
+                    } else {
+                      // Create new Unit
+                      const newUnit: EnglishMaterialUnit = {
+                        id: `unit-${Date.now()}`,
+                        unitNumber: unitNumberFormatted,
+                        title: unitTitleRaw,
+                        description,
+                        content,
+                        fileUrl: fileUrl || undefined,
+                        fileName: fileName || undefined,
+                        fileType: fileType || "text",
+                        status: "Not Started",
+                        updatedAt: Date.now(),
+                        isNew: true,
+                        isEdited: false
+                      };
+
+                      bookToModify.units = [...bookToModify.units, newUnit];
+                      bookToModify.updatedAt = Date.now();
+                      showToast(`Đã thêm Unit mới thành công (hiện (new))!`);
+                    }
+
+                    updatedBooks[bookIndex] = bookToModify;
+                    return updatedBooks;
+                  });
                 }
 
                 setShowAddUnitModal(false);
@@ -1115,23 +1250,43 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
             >
               {/* Target Book Selector */}
               <div>
-                <label className="text-xs font-bold text-ink">Chọn Sách Học (*)</label>
-                <select
-                  name="bookId"
-                  defaultValue={editingUnit?.bookId || targetBookIdForUnit || books[0]?.id || ""}
-                  disabled={!!editingUnit}
-                  required
-                  className="w-full mt-1 p-2.5 text-xs font-bold rounded-xl border-2 border-ink/30 focus:border-emerald-500 focus:outline-none bg-paper"
-                >
-                  {books.map(b => (
-                    <option key={b.id} value={b.id}>{b.title} ({b.units.length} Units)</option>
-                  ))}
-                </select>
+                <label className="text-xs font-bold text-ink">Tên Sách Học (* bắt buộc)</label>
+                {editingUnit ? (
+                  <input
+                    disabled
+                    value={books.find(b => b.id === editingUnit.bookId)?.title || ""}
+                    className="w-full mt-1 p-2.5 text-xs font-bold rounded-xl border-2 border-ink/30 bg-gray-100"
+                  />
+                ) : (
+                  <div className="flex flex-col gap-2 mt-1">
+                    <select
+                      name="bookSelect"
+                      value={selectedBookOption || targetBookIdForUnit || (books[0]?.id || "__NEW_BOOK__")}
+                      onChange={(e) => setSelectedBookOption(e.target.value)}
+                      required
+                      className="w-full p-2.5 text-xs font-bold rounded-xl border-2 border-ink/30 focus:border-emerald-500 focus:outline-none bg-paper"
+                    >
+                      {books.map(b => (
+                        <option key={b.id} value={b.id}>📚 {b.title} ({b.units.length} Units)</option>
+                      ))}
+                      <option value="__NEW_BOOK__">➕ Nhập Tên Sách Mới Thủ Công...</option>
+                    </select>
+
+                    {(selectedBookOption === "__NEW_BOOK__" || (books.length === 0 && !selectedBookOption)) && (
+                      <input
+                        name="customBookTitle"
+                        placeholder="Nhập tên sách mới thủ công (BẮT BUỘC)..."
+                        required
+                        className="w-full p-2.5 text-xs font-bold rounded-xl border-2 border-emerald-600 focus:outline-none bg-emerald-50 text-emerald-950 placeholder-emerald-700/60"
+                      />
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-xs font-bold text-ink">Số Bài / Unit (*)</label>
+                  <label className="text-xs font-bold text-ink">Số Bài / Unit (* bắt buộc)</label>
                   <input
                     name="unitNumber"
                     defaultValue={editingUnit?.unit.unitNumber || "Unit 1"}
@@ -1142,7 +1297,7 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
                 </div>
 
                 <div className="col-span-2">
-                  <label className="text-xs font-bold text-ink">Tên Tên Bài Học / Chủ đề (*)</label>
+                  <label className="text-xs font-bold text-ink">Tiêu Đề Unit / Chủ đề (* bắt buộc)</label>
                   <input
                     name="title"
                     defaultValue={editingUnit?.unit.title || ""}
