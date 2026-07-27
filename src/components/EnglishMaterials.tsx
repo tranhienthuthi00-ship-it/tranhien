@@ -28,6 +28,7 @@ import {
   Check, 
   RotateCcw, 
   FolderPlus,
+  User,
   Layers,
   Award,
   BookCheck,
@@ -816,7 +817,7 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
                 return (
                   <div
                     key={book.id}
-                    className={`relative w-full transition-all hover:-translate-y-1 flex flex-col h-[320px] ${
+                    className={`relative w-full transition-all hover:-translate-y-1 flex flex-col h-auto min-h-[340px] overflow-x-hidden ${
                       isSelected ? "ring-2 ring-black rounded-2xl" : ""
                     }`}
                   >
@@ -837,14 +838,14 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
                     </div>
 
                     {/* Folder Body */}
-                    <div className="bg-[#FFFDF5] rounded-2xl border-[2px] border-[#141414] shadow-[4px_4px_0px_#141414] flex flex-col flex-1 overflow-hidden relative z-10">
-                      <div className="p-4 flex flex-col gap-2 border-b-2 border-[#141414]/10 bg-[#FFFDF5]">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-extrabold text-lg text-[#141414] line-clamp-1 uppercase tracking-tight">
+                    <div className="bg-[#FFFDF5] rounded-2xl border-[2px] border-[#141414] shadow-[4px_4px_0px_#141414] flex flex-col flex-1 overflow-x-hidden relative z-10">
+                      <div className="p-4 flex flex-col gap-1.5 border-b-2 border-[#141414]/10 bg-[#FFFDF5]">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-black text-base md:text-lg text-[#141414] line-clamp-2 uppercase tracking-tight leading-snug">
                             {book.title}
                           </h3>
 
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center gap-1 shrink-0 mt-0.5">
                             <button
                               onClick={() => {
                                 setEditingBook(book);
@@ -867,20 +868,27 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
                         </div>
 
                         {book.author && (
-                          <p className="text-xs font-semibold text-[#666]">
-                            {book.author}
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-950 bg-amber-100/90 border border-amber-300/80 px-2 py-0.5 rounded-md w-fit shadow-xs">
+                            <User className="w-3 h-3 text-amber-800 shrink-0" />
+                            <span className="truncate max-w-[200px]">{book.author}</span>
+                          </div>
+                        )}
+
+                        {book.description && (
+                          <p className="text-xs font-semibold text-[#141414]/70 line-clamp-2 leading-relaxed mt-0.5">
+                            {book.description}
                           </p>
                         )}
                       </div>
 
                       {/* UNITS LIST IN BOOK */}
-                      <div className="p-4 flex-1 flex flex-col justify-between gap-3 bg-[#FFFDF5] overflow-hidden">
-                        <div className="flex-1 overflow-hidden flex flex-col">
+                      <div className="p-4 flex-1 flex flex-col justify-between gap-3 bg-[#FFFDF5] overflow-x-hidden">
+                        <div className="flex-1 overflow-x-hidden flex flex-col">
                           {/* Units list previews */}
                           {book.units.length === 0 ? (
-                            <p className="text-xs text-[#999] font-medium py-2">Trống.</p>
+                            <p className="text-xs text-[#999] font-medium py-2">Chưa có bài học nào.</p>
                           ) : (
-                            <div className="space-y-1.5 overflow-y-auto pr-1 flex-1">
+                            <div className="space-y-1.5 overflow-y-auto overflow-x-hidden max-h-[160px] pr-1 flex-1">
                               {book.units.map(unit => (
                                 <div
                                   key={unit.id}
@@ -888,21 +896,21 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
                                     setSelectedBookId(book.id);
                                     setSelectedUnitId(unit.id);
                                   }}
-                                  className="group cursor-pointer flex items-center justify-between text-[11px] hover:bg-white border border-transparent hover:border-[#E5E5E5] rounded-md px-1.5 py-1 -mx-1.5 transition-colors"
+                                  className="group cursor-pointer flex items-center justify-between text-[11px] hover:bg-white border border-transparent hover:border-[#E5E5E5] rounded-md px-2 py-1.5 transition-colors overflow-x-hidden w-full"
                                 >
-                                  <div className="flex items-center gap-2 overflow-hidden w-full">
-                                    <FileText className="w-3.5 h-3.5 text-[#999] group-hover:text-[#141414] shrink-0" />
-                                    <span className="font-semibold text-[#555] group-hover:text-[#141414] line-clamp-1 flex items-center gap-1.5">
-                                      <span>{unit.unitNumber}: {unit.title}</span>
-                                      {(unit.isNew && !unit.isEdited) && (
-                                        <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-tighter shrink-0 animate-pulse">
-                                          (new)
-                                        </span>
-                                      )}
+                                  <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden pr-1">
+                                    <FileText className="w-3.5 h-3.5 text-[#888] group-hover:text-[#141414] shrink-0" />
+                                    <span className="font-semibold text-[#141414] group-hover:text-amber-800 truncate text-[11px] min-w-0 flex-1">
+                                      {unit.unitNumber}: {unit.title}
                                     </span>
+                                    {(unit.isNew && !unit.isEdited) && (
+                                      <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-tighter shrink-0 animate-pulse ml-1">
+                                        (new)
+                                      </span>
+                                    )}
                                   </div>
                                   {unit.status === "Completed" && (
-                                    <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />
                                   )}
                                 </div>
                               ))}
