@@ -531,7 +531,7 @@ export function EnglishMaterials({ books, setBooks, words, setWords }: EnglishMa
 
               {/* Document Text Body */}
               <div 
-                className="leading-relaxed font-sans text-ink selection:bg-amber-200 p-2 prose max-w-none"
+                className="leading-relaxed font-sans text-ink selection:bg-amber-200 p-2 prose max-w-none overflow-x-auto"
                 style={{ fontSize: `${readerFontSize}px` }}
               >
                 {currentUnit.content ? (

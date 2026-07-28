@@ -51,6 +51,22 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
+export function deepCleanForFirestore<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj !== 'object') return obj;
+  if (obj instanceof Date) return obj.toISOString() as any;
+  if (Array.isArray(obj)) {
+    return obj.map(item => deepCleanForFirestore(item)).filter(item => item !== undefined) as any;
+  }
+  const cleaned: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      cleaned[key] = deepCleanForFirestore(value);
+    }
+  }
+  return cleaned as T;
+}
+
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
     try {
@@ -473,9 +489,12 @@ export function useFirebaseSync() {
 
   const [saveTrigger, setSaveTrigger] = useState(0);
 
+  const initializedCollections = React.useRef<Set<string>>(new Set());
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
+      initializedCollections.current.clear();
       if (!u) {
         setLoading(false);
       } else {
@@ -492,7 +511,7 @@ export function useFirebaseSync() {
 
     const safeSetDoc = async (path: string, item: any) => {
       try {
-        const cleanItem = Object.fromEntries(Object.entries(item).filter(([_, v]) => v !== undefined));
+        const cleanItem = deepCleanForFirestore(item);
         await setDoc(doc(db, path), cleanItem);
       } catch (err) {
         console.error("Failed to migrate item", path, err);
@@ -515,11 +534,10 @@ export function useFirebaseSync() {
         'spatial_hub_study_goals': `users/${uid}/studyGoals`,
         'spatial_hub_achievements': `users/${uid}/achievements`,
         'spatial_hub_kanban_tasks': `users/${uid}/kanbanTasks`,
+        'spatial_hub_english_books': `users/${uid}/englishBooks`,
       };
 
       for (const [lsKey, firestorePath] of Object.entries(storageMap)) {
-        // v5 migration specifically targets those that might have failed rule checks earlier
-        // but we can re-migrate everything safely as setDoc is idempotent
         const data = safeLocalStorage.getItem(lsKey);
         if (data) {
           try {
@@ -541,7 +559,7 @@ export function useFirebaseSync() {
       if (savedTags) {
         try {
           const parsed = JSON.parse(savedTags);
-          await setDoc(doc(db, `users/${uid}/data/tags`), { tags: parsed });
+          await setDoc(doc(db, `users/${uid}/data/tags`), { tags: deepCleanForFirestore(parsed) });
         } catch(e) {}
       }
 
@@ -565,28 +583,46 @@ export function useFirebaseSync() {
       firestoreCollectionPath: string,
       defaultItems: T[] = []
     ) => {
+      const isFirstSync = !initializedCollections.current.has(firestoreCollectionPath);
+      initializedCollections.current.add(firestoreCollectionPath);
+
       if (snapDocs.length > 0) {
         setLocalState(snapDocs);
         safeLocalStorage.setItem(lsKey, JSON.stringify(snapDocs));
+        if (user) {
+          safeLocalStorage.setItem(`hasSynced_${user.uid}_${firestoreCollectionPath}`, 'true');
+        }
       } else {
-        const current = localRef.current;
-        if (current && current.length > 0) {
-          setLocalState(current);
-          safeLocalStorage.setItem(lsKey, JSON.stringify(current));
-          for (const item of current) {
-            if (item.id) {
-              const cleanItem = Object.fromEntries(Object.entries(item).filter(([_, v]) => v !== undefined));
-              await setDoc(doc(db, `${firestoreCollectionPath}/${item.id}`), cleanItem).catch(e => console.error("Auto upload local item error:", e));
+        if (isFirstSync && user) {
+          const hasSyncedMarker = safeLocalStorage.getItem(`hasSynced_${user.uid}_${firestoreCollectionPath}`);
+          const current = localRef.current;
+
+          if (!hasSyncedMarker && current && current.length > 0) {
+            setLocalState(current);
+            safeLocalStorage.setItem(lsKey, JSON.stringify(current));
+            safeLocalStorage.setItem(`hasSynced_${user.uid}_${firestoreCollectionPath}`, 'true');
+            for (const item of current) {
+              if (item.id) {
+                const cleanItem = deepCleanForFirestore(item);
+                await setDoc(doc(db, `${firestoreCollectionPath}/${item.id}`), cleanItem)
+                  .catch(e => console.error("Auto upload local item error:", e));
+              }
             }
-          }
-        } else if (safeLocalStorage.getItem(lsKey) === null && defaultItems.length > 0) {
-          setLocalState(defaultItems);
-          safeLocalStorage.setItem(lsKey, JSON.stringify(defaultItems));
-          for (const item of defaultItems) {
-            if (item.id) {
-              const cleanItem = Object.fromEntries(Object.entries(item).filter(([_, v]) => v !== undefined));
-              await setDoc(doc(db, `${firestoreCollectionPath}/${item.id}`), cleanItem).catch(e => console.error("Auto upload default item error:", e));
+          } else if (!hasSyncedMarker && safeLocalStorage.getItem(lsKey) === null && defaultItems.length > 0) {
+            setLocalState(defaultItems);
+            safeLocalStorage.setItem(lsKey, JSON.stringify(defaultItems));
+            safeLocalStorage.setItem(`hasSynced_${user.uid}_${firestoreCollectionPath}`, 'true');
+            for (const item of defaultItems) {
+              if (item.id) {
+                const cleanItem = deepCleanForFirestore(item);
+                await setDoc(doc(db, `${firestoreCollectionPath}/${item.id}`), cleanItem)
+                  .catch(e => console.error("Auto upload default item error:", e));
+              }
             }
+          } else {
+            setLocalState([]);
+            safeLocalStorage.setItem(lsKey, JSON.stringify([]));
+            safeLocalStorage.setItem(`hasSynced_${user.uid}_${firestoreCollectionPath}`, 'true');
           }
         } else {
           setLocalState([]);
@@ -681,22 +717,24 @@ export function useFirebaseSync() {
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/salaryPlanner`));
 
     const unsubHabits = onSnapshot(doc(db, `users/${user.uid}/data/habits`), (docSnap) => {
-      if (docSnap.exists() && docSnap.data().habits && docSnap.data().habits.length > 0) {
+      if (docSnap.exists() && Array.isArray(docSnap.data().habits)) {
         setHabits(docSnap.data().habits);
         safeLocalStorage.setItem("studyHub_habits", JSON.stringify(docSnap.data().habits));
       } else if (habitsRef.current && habitsRef.current.length > 0) {
-        setDoc(doc(db, `users/${user.uid}/data/habits`), { habits: habitsRef.current }, { merge: true });
+        setDoc(doc(db, `users/${user.uid}/data/habits`), { habits: deepCleanForFirestore(habitsRef.current) }, { merge: true });
       } else {
         setHabits(DEFAULT_HABITS);
         safeLocalStorage.setItem("studyHub_habits", JSON.stringify(DEFAULT_HABITS));
-        setDoc(doc(db, `users/${user.uid}/data/habits`), { habits: DEFAULT_HABITS }, { merge: true });
+        setDoc(doc(db, `users/${user.uid}/data/habits`), { habits: deepCleanForFirestore(DEFAULT_HABITS) }, { merge: true });
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/habits`));
 
     const unsubRewards = onSnapshot(doc(db, `users/${user.uid}/data/customRewards`), (docSnap) => {
-      if (docSnap.exists() && docSnap.data().customRewards) {
+      if (docSnap.exists() && Array.isArray(docSnap.data().customRewards)) {
         setCustomRewards(docSnap.data().customRewards);
         safeLocalStorage.setItem("studyHub_customRewardsList", JSON.stringify(docSnap.data().customRewards));
+      } else if (user && customRewardsRef.current && customRewardsRef.current.length > 0) {
+        setDoc(doc(db, `users/${user.uid}/data/customRewards`), { customRewards: deepCleanForFirestore(customRewardsRef.current) }, { merge: true });
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}/data/customRewards`));
 
@@ -801,9 +839,9 @@ export function useFirebaseSync() {
     const t = setTimeout(async () => {
       try {
         await setDoc(doc(db, `users/${user.uid}/data/assetsBulk`), {
-          bulkDebts: bulkDebtsRef.current,
-          bulkCardSpends: bulkCardSpendsRef.current,
-          bulkCurrentCash: bulkCurrentCashRef.current
+          bulkDebts: deepCleanForFirestore(bulkDebtsRef.current),
+          bulkCardSpends: deepCleanForFirestore(bulkCardSpendsRef.current),
+          bulkCurrentCash: deepCleanForFirestore(bulkCurrentCashRef.current)
         });
       } catch (err) {
         console.error("Error syncing assetsBulk to Firebase:", err);
@@ -841,6 +879,7 @@ export function useFirebaseSync() {
       let lsKey = collectionName;
       if (collectionName === 'words') lsKey = 'spatial_hub_words';
       else if (collectionName === 'writingSentences') lsKey = 'spatial_hub_writingSentences';
+      else if (collectionName === 'englishBooks') lsKey = 'spatial_hub_english_books';
       else if (collectionName === 'tasks') lsKey = 'spatial_hub_tasks';
       else if (collectionName === 'wishlistItems') lsKey = 'spatial_hub_wishlist';
       else if (collectionName === 'logEntries') lsKey = 'spatial_hub_logs';
@@ -863,7 +902,7 @@ export function useFirebaseSync() {
 
       try {
         if (isSingleDoc) {
-          await setDoc(doc(db, `users/${currentUser.uid}/data/${collectionName}`), { [collectionName]: targetItems });
+          await setDoc(doc(db, `users/${currentUser.uid}/data/${collectionName}`), { [collectionName]: deepCleanForFirestore(targetItems) });
           return;
         }
         
@@ -872,22 +911,16 @@ export function useFirebaseSync() {
         const toAddOrUpdate = targetItems.filter(i => {
           const existing = currentItems.find(c => c.id === i.id);
           if (!existing) return true;
-          // Cleaner comparison
-          const cleanNew = JSON.stringify(Object.keys(i).sort().reduce((obj: any, key) => {
-            if (i[key as keyof T] !== undefined) obj[key] = i[key as keyof T];
-            return obj;
-          }, {}));
-          const cleanOld = JSON.stringify(Object.keys(existing).sort().reduce((obj: any, key) => {
-            if (existing[key as keyof T] !== undefined) obj[key] = existing[key as keyof T];
-            return obj;
-          }, {}));
+          // Cleaner comparison using deepCleanForFirestore
+          const cleanNew = JSON.stringify(deepCleanForFirestore(i));
+          const cleanOld = JSON.stringify(deepCleanForFirestore(existing));
           return cleanNew !== cleanOld;
         });
         
         const toDelete = currentItems.filter(i => !newIds.has(i.id));
 
         for (const item of toAddOrUpdate) {
-          const cleanItem = Object.fromEntries(Object.entries(item).filter(([_, v]) => v !== undefined));
+          const cleanItem = deepCleanForFirestore(item);
           await setDoc(doc(db, `users/${currentUser.uid}/${collectionName}/${item.id}`), cleanItem);
         }
         for (const item of toDelete) {
@@ -985,7 +1018,7 @@ export function useFirebaseSync() {
          try {
            await setDoc(doc(db, `users/${user.uid}/data/salaryPlanner`), {
              salaryInput: newVal,
-             plannedExpenses: plannedExpensesRef.current
+             plannedExpenses: deepCleanForFirestore(plannedExpensesRef.current)
            }, { merge: true });
          } catch (err) {
            console.error("Salary sync error:", err);

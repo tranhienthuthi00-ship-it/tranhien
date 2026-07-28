@@ -105,15 +105,17 @@ export function NavBar({
             </li>
           ))}
         </ul>
-        <div className="flex items-center shrink-0">
-          {lastSaved && (
-            <div className="hidden lg:flex flex-col items-end opacity-20 hover:opacity-100 transition-opacity ml-2 mr-4">
-              <span className="text-[8px] font-mono uppercase tracking-tighter">Auto-Saved</span>
-              <span className="text-[10px] font-mono leading-none">{lastSaved}</span>
-            </div>
-          )}
+        <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+          <div 
+            className="hidden sm:flex items-center gap-1 text-[9px] md:text-[10px] font-bold px-2 py-1 rounded-full border border-ink/20 bg-amber-50/80 text-amber-900"
+            title={isLoggedIn ? "Đã kết nối Firebase Cloud Firestore - dữ liệu tự động đồng bộ trên các thiết bị" : "Chưa đăng nhập - dữ liệu đang lưu tạm ở máy này. Bấm 'In' để đồng bộ đa thiết bị!"}
+          >
+            <span className={cn("w-2 h-2 rounded-full", isLoggedIn ? "bg-emerald-500 animate-pulse" : "bg-amber-400")} />
+            <span>{isLoggedIn ? "Đã đồng bộ ☁️" : "Chưa đồng bộ ☁️"}</span>
+          </div>
           <button
             onClick={onLogout}
+            title={isLoggedIn ? "Đăng xuất tài khoản" : "Đăng nhập để đồng bộ dữ liệu trên các thiết bị"}
             className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest px-2 py-1 md:px-3 md:py-1.5 rounded border border-ink/20 hover:bg-ink hover:text-paper transition-colors"
           >
             {isLoggedIn ? "Out" : "In"}
