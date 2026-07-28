@@ -712,11 +712,11 @@ export function KanbanBoard({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
         {columns.map(col => {
-          const colTasks = filteredTasks.filter(t => t.status === col.id);
+          const colTasks = filteredTasks.filter(t => t.status === col.id && t.title && t.title.trim() !== '');
           return (
             <div 
               key={col.id} 
-              className="flex flex-col gap-4 bg-[#EFECE6] p-3.5 rounded-[20px] min-h-[400px]"
+              className="flex flex-col gap-3 bg-[#EFECE6] p-3.5 rounded-[20px] min-h-[300px]"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, col.id)}
             >
@@ -724,7 +724,7 @@ export function KanbanBoard({
                 <span>{col.title.replace(/\(.*\)/, '').trim()}</span>
                 <span className="bg-[#141414] text-white w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold">{colTasks.length}</span>
               </div>
-              <div className="flex flex-col gap-4 min-h-[200px]">
+              <div className="flex flex-col gap-3">
                 {colTasks.map(task => {
                   const totalMoney = calculateTotalMoney(task.subtasks);
                   let bgColor = 'bg-white';
@@ -740,81 +740,85 @@ export function KanbanBoard({
                       onDragStart={(e) => handleDragStart(e, task.id)}
                       onClick={() => openModal(task.id)}
                       className={cn(
-                        "border-[2px] border-[#141414] rounded-[16px] p-4 cursor-pointer relative shadow-[4px_4px_0px_#141414] transition-transform hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_#141414] select-none flex flex-col min-h-[140px]",
+                        "border-[2px] border-[#141414] rounded-[16px] p-3.5 cursor-pointer relative shadow-[4px_4px_0px_#141414] transition-transform hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_#141414] select-none flex flex-col justify-between h-[200px] overflow-hidden",
                         bgColor
                       )}
                     >
                       <button 
                         onClick={(e) => deleteTask(e, task.id)}
-                        className="absolute top-3.5 right-3.5 text-[#111] hover:text-red-600 transition-colors z-10 p-1 font-bold"
+                        className="absolute top-3 right-3 text-[#111] hover:text-red-600 transition-colors z-10 p-1 font-bold"
                       >
-                        <X size={16} strokeWidth={2.5} />
+                        <X size={15} strokeWidth={2.5} />
                       </button>
                       
-                      <div className="flex items-start justify-between gap-3 mb-2 pr-6">
-                        <div className="font-extrabold text-[15px] text-[#111] leading-snug break-words">
-                          {task.title}
+                      {/* Card Content Top & Middle */}
+                      <div className="flex flex-col gap-1.5 overflow-hidden pr-5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="font-extrabold text-[14px] text-[#111] leading-tight line-clamp-2 break-words">
+                            {task.title}
+                          </div>
+                          {showPriority && (task.priority || 'Trung bình') && (
+                            <span className={cn(
+                              "text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 border-[2px] border-[#141414] shadow-[1px_1px_0px_#141414]",
+                              task.priority === 'Cao' ? "bg-[#FF5A5F] text-white" :
+                              task.priority === 'Thấp' ? "bg-[#06D6A0] text-[#141414]" :
+                              "bg-[#FFD166] text-[#141414]"
+                            )}>
+                              {task.priority || 'Trung bình'}
+                            </span>
+                          )}
                         </div>
-                        {showPriority && (task.priority || 'Trung bình') && (
-                          <span className={cn(
-                            "text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 border-[2px] border-[#141414] mt-0.5 shadow-[1px_1px_0px_#141414]",
-                            task.priority === 'Cao' ? "bg-[#FF5A5F] text-white" :
-                            task.priority === 'Thấp' ? "bg-[#06D6A0] text-[#141414]" :
-                            "bg-[#FFD166] text-[#141414]"
-                          )}>
-                            {task.priority || 'Trung bình'}
-                          </span>
+                        
+                        {task.desc && (
+                          <div className="text-[12px] text-[#444] line-clamp-1 leading-snug">
+                            {task.desc}
+                          </div>
+                        )}
+                        
+                        {showMoney && totalMoney > 0 && (
+                          <div className="text-xs font-bold italic text-[#1b7a3a]">
+                            {formatMoney(totalMoney)}
+                          </div>
+                        )}
+
+                        {task.dueDate && (
+                          <div className="text-[10px] font-bold text-[#D9383A] bg-[#FFF0F0] border border-[#FFD0D0] px-1.5 py-0.5 rounded flex items-center gap-1 w-fit shrink-0">
+                            ⏰ Hạn: {formatDateDDMM(task.dueDate)}/{extractYear(task.dueDate)}
+                          </div>
+                        )}
+                        
+                        {task.hashtags && task.hashtags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 z-10 max-h-[26px] overflow-hidden">
+                            {task.hashtags.map(ht => (
+                              <span 
+                                key={ht} 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setHashtagFilter(hashtagFilter === ht ? 'all' : ht);
+                                }}
+                                className={cn(
+                                  "text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition-all truncate max-w-[110px]",
+                                  hashtagFilter === ht 
+                                    ? "bg-[#3B82F6] text-white border border-[#141414] shadow-[1px_1px_0px_#141414]" 
+                                    : "text-[#3B82F6] bg-blue-50 border border-blue-200 hover:bg-blue-100"
+                                )}
+                                title="Bấm để lọc theo hashtag này"
+                              >
+                                {ht}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
-                      
-                      {task.desc && (
-                        <div className="text-[13px] text-[#444] mb-3 line-clamp-2">
-                          {task.desc}
-                        </div>
-                      )}
-                      
-                      {showMoney && totalMoney > 0 && (
-                        <div className="text-sm font-bold italic text-[#1b7a3a] mb-2">
-                          {formatMoney(totalMoney)}
-                        </div>
-                      )}
 
-                      {task.dueDate && (
-                        <div className="text-[11px] font-bold text-[#D9383A] bg-[#FFF0F0] border border-[#FFD0D0] px-2 py-0.5 rounded-md flex items-center gap-1 mb-2 w-fit">
-                          ⏰ Hạn: {formatDateDDMM(task.dueDate)}/{extractYear(task.dueDate)}
-                        </div>
-                      )}
-                      
-                      {task.hashtags && task.hashtags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-2 z-10">
-                          {task.hashtags.map(ht => (
-                            <span 
-                              key={ht} 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setHashtagFilter(hashtagFilter === ht ? 'all' : ht);
-                              }}
-                              className={cn(
-                                "text-[10px] font-bold px-1.5 py-0.5 rounded-md cursor-pointer transition-all",
-                                hashtagFilter === ht 
-                                  ? "bg-[#3B82F6] text-white border border-[#141414] shadow-[1px_1px_0px_#141414]" 
-                                  : "text-[#3B82F6] bg-blue-50 border border-blue-200 hover:bg-blue-100"
-                              )}
-                              title="Bấm để lọc theo hashtag này"
-                            >
-                              {ht}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
+                      {/* Card Footer */}
                       {(showTag || showCreated) && (
-                        <div className="flex justify-between items-center text-xs font-semibold text-[#111] mt-auto border-t-2 border-dashed border-[#141414]/20 pt-3 gap-2 flex-wrap">
+                        <div className="flex justify-between items-center text-xs font-semibold text-[#111] border-t-2 border-dashed border-[#141414]/20 pt-2 gap-2 mt-auto shrink-0">
                           {showTag && (
-                            <span className="bg-[#141414] text-white text-[11px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wider">{task.tag}</span>
+                            <span className="bg-[#141414] text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">{task.tag}</span>
                           )}
                           {showCreated && task.subtasks && task.subtasks.length > 0 && (
-                            <span className="text-[11px] font-bold text-[#444] flex items-center gap-1.5 px-1.5 py-0.5">
+                            <span className="text-[10px] font-bold text-[#444] flex items-center gap-1">
                               📅 {formatDateDDMM(task.subtasks[0].date)}/{extractYear(task.subtasks[0].date)}
                             </span>
                           )}
