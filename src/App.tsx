@@ -366,7 +366,7 @@ function AppContent() {
   const dueCount = words.filter(w => new Date(w.nextReview) <= new Date()).length;
 
   return (
-    <div className={cn("min-h-screen pb-20 relative overflow-x-clip w-full transition-colors duration-300", theme === "minimal" ? "theme-minimal" : "")}>
+    <div className={cn("min-h-screen flex flex-col md:flex-row relative w-full transition-colors duration-300 bg-[#f9f4e4]", theme === "minimal" ? "theme-minimal" : "")}>
       {theme !== "minimal" && <Doodles />}
       <svg width="0" height="0" className="absolute pointer-events-none" style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
@@ -376,33 +376,35 @@ function AppContent() {
           </filter>
         </defs>
       </svg>
-      {activeTab !== "Projects" && (
-        <NavBar 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          lastSaved={lastSaved} 
-          onLogout={user ? handleLogout : () => setShowLoginModal(true)} 
-          isLoggedIn={!!user}
-          dueCount={dueCount} 
-          theme={theme}
-          onToggleTheme={() => {
-            const nextTheme = theme === "handdrawn" ? "minimal" : "handdrawn";
-            setTheme(nextTheme);
-            localStorage.setItem("glowup_theme", nextTheme);
-          }}
-        />
-      )}
 
-      {showLoginModal && (
-        <div className="fixed inset-0 z-[100] bg-[#f4f1ea] overflow-y-auto">
-          <Login onLogin={handleLogin} onClose={() => setShowLoginModal(false)} />
-        </div>
-      )}
-      
-      <main className={cn("relative z-10 overflow-x-clip w-full", activeTab === "Projects" ? "mt-0" : "mt-4")}>
-        <div className={cn("max-w-[100vw]", activeTab === "Projects" ? "px-0" : "px-1 sm:px-2")}>
-          <AnimatePresence mode="wait">
-            <motion.div
+      {/* Global Vertical Left Navigation Bar */}
+      <NavBar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        lastSaved={lastSaved} 
+        onLogout={user ? handleLogout : () => setShowLoginModal(true)} 
+        isLoggedIn={!!user}
+        dueCount={dueCount} 
+        theme={theme}
+        onToggleTheme={() => {
+          const nextTheme = theme === "handdrawn" ? "minimal" : "handdrawn";
+          setTheme(nextTheme);
+          localStorage.setItem("glowup_theme", nextTheme);
+        }}
+      />
+
+      {/* Main Content Area on the Right */}
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen relative overflow-x-hidden">
+        {showLoginModal && (
+          <div className="fixed inset-0 z-[100] bg-[#f4f1ea] overflow-y-auto">
+            <Login onLogin={handleLogin} onClose={() => setShowLoginModal(false)} />
+          </div>
+        )}
+        
+        <main className="relative z-10 w-full flex-1 p-2 sm:p-4 md:p-6 overflow-x-hidden">
+          <div className="w-full max-w-full">
+            <AnimatePresence mode="wait">
+              <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -603,12 +605,13 @@ function AppContent() {
             />
           )}
         </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
+      </motion.div>
+    </AnimatePresence>
   </div>
-  );
+</main>
+</div>
+</div>
+);
 }
 
 export default function App() {
