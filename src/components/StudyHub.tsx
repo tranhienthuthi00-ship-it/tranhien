@@ -47,9 +47,12 @@ import {
   Cloud,
   CheckSquare,
   Square,
-  ArrowRight,
+  RotateCcw,
   Fish,
-  RotateCcw
+  Maximize2,
+  Minimize2,
+  MoreHorizontal,
+  ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -349,6 +352,7 @@ interface CustomNodeProps {
     onAddChild?: (parentId: string) => void;
     onDelete?: (nodeId: string) => void;
     onToggleComplete?: (nodeId: string) => void;
+    onEditNode?: (nodeId: string) => void;
   };
   selected?: boolean;
   style?: React.CSSProperties;
@@ -361,11 +365,15 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
 
   return (
     <div
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        data.onEditNode?.(id);
+      }}
       className={cn(
-        'group relative px-3.5 py-2.5 rounded-2xl border-2 border-[#141414] transition-all duration-200 select-none min-w-[150px] max-w-[270px]',
-        selected ? 'ring-2 ring-blue-500 ring-offset-2 scale-[1.03]' : '',
+        'group relative px-3.5 py-2.5 rounded-2xl border-2 border-[#141414] transition-all duration-200 select-none min-w-[140px] max-w-[270px] cursor-pointer',
+        selected ? 'ring-2 ring-blue-500 ring-offset-2 scale-[1.02]' : '',
         isRoot
-          ? 'font-black text-sm shadow-[5px_5px_0px_#141414] bg-[#FEF08A] border-[2.5px]'
+          ? 'font-black text-sm shadow-[4px_4px_0px_#141414] bg-[#FEF08A] border-[2.5px]'
           : 'font-bold text-xs shadow-[3px_3px_0px_#141414]',
         isCompleted && !isRoot ? 'bg-emerald-50/90 border-emerald-800' : ''
       )}
@@ -373,32 +381,33 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
         backgroundColor: isCompleted && !isRoot ? '#ECFDF5' : (style?.background as string) || data.color || '#FFFFFF',
         color: '#141414'
       }}
+      title="Nhấn đúp để chỉnh sửa"
     >
       {/* Handles for spine & rib connections */}
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-3 !h-3 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
+        className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
       />
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-3 !h-3 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
+        className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
       />
       <Handle
         type="target"
         position={Position.Top}
         id="top"
-        className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white hover:!scale-125 opacity-0 group-hover:opacity-100 transition-opacity"
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom"
-        className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white hover:!scale-125 opacity-0 group-hover:opacity-100 transition-opacity"
       />
 
-      {/* Header Badge */}
+      {/* Header: Mastery Checkbox or Root Spine Badge */}
       <div className="flex items-center justify-between gap-1 mb-1.5">
         {isRoot ? (
           <span className="text-[9px] font-black uppercase tracking-wider bg-black/10 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -417,7 +426,7 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
                 ? "bg-emerald-100 text-emerald-800 border-emerald-600 hover:bg-emerald-200"
                 : "bg-white/80 text-ink/70 border-ink/30 hover:border-ink hover:text-ink hover:bg-white"
             )}
-            title={isCompleted ? "Đã nắm vững! Bấm để bỏ tick nếu cần học lại" : "Chưa nắm. Bấm để tick 'Đã nắm'"}
+            title={isCompleted ? "Đã nắm! Bấm để bỏ tick" : "Chưa nắm. Bấm để tick 'Đã nắm'"}
           >
             {isCompleted ? (
               <>
@@ -462,6 +471,18 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
 
       {/* Floating Action Buttons on Node Hover / Selected */}
       <div className="absolute -top-3.5 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onEditNode?.(id);
+          }}
+          className="bg-sky-400 hover:bg-sky-500 text-ink text-[10px] font-black w-6 h-6 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110 transition-transform"
+          title="Nhấn đúp hoặc bấm để sửa"
+        >
+          <Edit3 className="w-3 h-3" />
+        </button>
+
         <button
           type="button"
           onClick={(e) => {
@@ -532,8 +553,16 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
   // Auto-arrange enabled flag (true by default as requested: "tự sắp xếp lại hiển thị khi thêm hoặc xoá")
   const [autoArrangeEnabled, setAutoArrangeEnabled] = useState(true);
 
-  // Node Inspector selection
+  // Node Inspector selection & double-click edit modal
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [isEditingNodeModalOpen, setIsEditingNodeModalOpen] = useState(false);
+
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Dropdown for more actions
+  const [showMoreActions, setShowMoreActions] = useState(false);
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -552,6 +581,51 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
 
   // Import / Export ref
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fullscreen toggler
+  const toggleFullscreen = useCallback(() => {
+    if (!isFullscreen) {
+      setIsFullscreen(true);
+      try {
+        if (containerRef.current?.requestFullscreen) {
+          containerRef.current.requestFullscreen().catch(() => {});
+        } else if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch (e) {
+        // Fallback to CSS fullscreen
+      }
+    } else {
+      setIsFullscreen(false);
+      try {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [isFullscreen]);
+
+  // Fullscreen event listener (Esc key or exit fullscreen)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFullscreen]);
 
   // Helper to update active map nodes & edges (and sync across devices)
   const updateCurrentMap = useCallback(
@@ -915,7 +989,11 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
           ...node.data,
           onAddChild: handleAddChildNode,
           onDelete: handleDeleteNode,
-          onToggleComplete: handleToggleComplete
+          onToggleComplete: handleToggleComplete,
+          onEditNode: (nodeId: string) => {
+            setSelectedNodeId(nodeId);
+            setIsEditingNodeModalOpen(true);
+          }
         }
       };
     });
@@ -1062,7 +1140,15 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
   }, [activeMap]);
 
   return (
-    <div className="w-full flex flex-col gap-4 max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
+    <div
+      ref={containerRef}
+      className={cn(
+        "w-full transition-all duration-200 flex flex-col",
+        isFullscreen
+          ? "fixed inset-0 z-[9999] bg-[#FFFDF7] p-2 sm:p-3 w-screen h-screen overflow-hidden"
+          : "flex-1 pb-6 gap-2.5 animate-in fade-in duration-300"
+      )}
+    >
       {/* Hidden File Input for Import */}
       <input
         type="file"
@@ -1072,215 +1158,112 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         className="hidden"
       />
 
-      {/* HEADER SECTION */}
-      <div className="bg-[#FFFDF7] p-4 sm:p-5 rounded-[22px] border-[2.5px] border-[#141414] shadow-[4px_4px_0px_#141414] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-amber-400 border-2 border-[#141414] rounded-2xl flex items-center justify-center shadow-[2px_2px_0px_#141414] shrink-0">
-            <Fish className="w-7 h-7 text-[#141414]" />
+      {/* STREAMLINED COMPACT TOOLBAR */}
+      <div className="bg-[#FFFDF7] p-2.5 sm:p-3 rounded-[20px] border-[2px] border-[#141414] shadow-[3px_3px_0px_#141414] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
+        {/* Left: Mindmap Selector & Create/Paste Actions */}
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          {/* Active Map Dropdown / Selector */}
+          <div className="flex items-center gap-1.5 bg-[#EFECE6] px-3 py-1.5 rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414]">
+            <Fish className="w-4 h-4 text-amber-500 shrink-0" />
+            <select
+              value={activeMapId}
+              onChange={(e) => {
+                setActiveMapId(e.target.value);
+                setSelectedNodeId(null);
+              }}
+              className="bg-transparent font-black text-xs text-ink outline-none cursor-pointer max-w-[170px] sm:max-w-[220px] truncate"
+            >
+              {mindmaps && mindmaps.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.title}
+                </option>
+              ))}
+            </select>
           </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl sm:text-2xl font-black text-[#141414] uppercase tracking-tight flex items-center gap-1.5">
-                Sơ Đồ Xương Cá & Tư Duy
-              </h2>
-              <span className="bg-amber-100 border border-amber-600 text-amber-900 text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Fish className="w-3 h-3" /> Fishbone Engine
-              </span>
-              <span className="bg-emerald-100 border border-emerald-600 text-emerald-800 text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Cloud className="w-3 h-3" /> Đồng bộ đám mây
-              </span>
-            </div>
-            <p className="text-xs text-[#555] font-medium mt-0.5">
-              Ý chính dạng đường thẳng xương sống • Tự sắp xếp nhánh • Paste dàn ý • Tick đã nắm kiến thức
-            </p>
-          </div>
-        </div>
 
-        {/* Top Actions: Paste Outline, Create, Stats */}
-        <div className="flex items-center flex-wrap gap-2 w-full md:w-auto justify-end">
-          {/* Progress Indicator */}
-          {stats.total > 0 && (
-            <div className="flex items-center gap-2 bg-[#EFECE6] border-2 border-[#141414] px-3 py-1.5 rounded-xl text-xs font-bold shadow-[2px_2px_0px_#141414]">
-              <span className="hidden sm:inline">Nắm vững:</span>
-              <span className="text-emerald-700 font-black">{stats.completed}/{stats.total} ý</span>
-              <div className="w-16 h-2 bg-white rounded-full border border-[#141414] overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500 transition-all duration-300"
-                  style={{ width: `${stats.percent}%` }}
-                />
-              </div>
-              <span className="text-[10px] font-black text-emerald-800">({stats.percent}%)</span>
-            </div>
-          )}
+          {/* Create New Mind Map */}
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-2.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
+            title="Tạo sơ đồ xương cá mới"
+          >
+            <FolderPlus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Tạo Mới</span>
+          </button>
 
-          {/* Paste Outline Button */}
+          {/* Paste Outline */}
           <button
             onClick={() => setShowOutlineModal(true)}
-            className="px-3.5 py-2 bg-sky-400 hover:bg-sky-300 text-ink text-xs font-black uppercase tracking-wider rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414] flex items-center justify-center gap-1.5 active:translate-x-0.5 active:translate-y-0.5 transition-all"
+            className="px-2.5 py-1.5 bg-sky-300 hover:bg-sky-200 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
             title="Dán nhanh dàn ý bài học để tự động tạo sơ đồ xương cá"
           >
-            <FileText className="w-4 h-4 stroke-[2.5]" />
+            <FileText className="w-3.5 h-3.5" />
             <span>Paste Dàn Ý</span>
           </button>
 
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-ink text-xs font-black uppercase tracking-wider rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414] flex items-center justify-center gap-1.5 active:translate-x-0.5 active:translate-y-0.5 transition-all"
-          >
-            <FolderPlus className="w-4 h-4 stroke-[2.5]" />
-            <span>Tạo Sơ Đồ</span>
-          </button>
-        </div>
-      </div>
-
-      {/* MIND MAP SELECTOR & TOOLBAR */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-[#EFECE6] p-3 rounded-[20px] border-2 border-[#141414] shadow-[3px_3px_0px_#141414]">
-        {/* Mind Map Selector Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-          <span className="text-xs font-black uppercase text-ink/60 shrink-0 pl-1">
-            Sơ đồ:
-          </span>
-          {mindmaps && mindmaps.map((map) => {
-            const isActive = map.id === activeMapId;
-            return (
-              <button
-                key={map.id}
-                onClick={() => {
-                  setActiveMapId(map.id);
-                  setSelectedNodeId(null);
-                }}
-                className={cn(
-                  'px-3.5 py-1.5 rounded-xl text-xs font-bold border-2 transition-all shrink-0 flex items-center gap-1.5',
-                  isActive
-                    ? 'bg-white text-ink border-[#141414] shadow-[2px_2px_0px_#141414] scale-105'
-                    : 'bg-white/60 text-ink/70 border-transparent hover:border-[#141414]/30 hover:bg-white'
-                )}
-              >
-                <Fish className={cn('w-3.5 h-3.5', isActive ? 'text-amber-500' : 'text-ink/40')} />
-                <span className="truncate max-w-[150px]">{map.title}</span>
-                {map.category && (
-                  <span className="text-[9px] px-1.5 py-0.2 bg-black/5 rounded text-ink/60 font-medium">
-                    {map.category}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* View Mode & Utility Buttons */}
-        <div className="flex items-center gap-2 justify-end shrink-0 flex-wrap">
-          {/* Mode Switcher */}
-          <div className="flex items-center bg-white p-1 rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414]">
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-[#EFECE6] p-0.5 rounded-xl border-2 border-[#141414]">
             <button
               onClick={() => setViewMode('canvas')}
               className={cn(
-                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
-                viewMode === 'canvas' ? 'bg-[#141414] text-white' : 'text-ink/60 hover:text-ink'
+                'px-2 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
+                viewMode === 'canvas' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/60 hover:text-ink'
               )}
-              title="Sơ đồ xương cá trực quan"
+              title="Sơ đồ xương cá"
             >
-              <Layout className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Sơ Đồ Xương Cá</span>
+              <Layout className="w-3 h-3" />
+              <span className="hidden sm:inline">Sơ Đồ</span>
             </button>
             <button
               onClick={() => setViewMode('outline')}
               className={cn(
-                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
-                viewMode === 'outline' ? 'bg-[#141414] text-white' : 'text-ink/60 hover:text-ink'
+                'px-2 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
+                viewMode === 'outline' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/60 hover:text-ink'
               )}
               title="Dàn bài phân cấp dạng cây"
             >
-              <ListTree className="w-3.5 h-3.5" />
+              <ListTree className="w-3 h-3" />
               <span className="hidden sm:inline">Dàn Bài</span>
             </button>
             <button
               onClick={() => setViewMode('study')}
               className={cn(
-                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
-                viewMode === 'study' ? 'bg-[#141414] text-white' : 'text-ink/60 hover:text-ink'
+                'px-2 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
+                viewMode === 'study' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/60 hover:text-ink'
               )}
-              title="Chế độ ôn tập kiểm tra trí nhớ"
+              title="Chế độ ôn tập flashcard"
             >
-              <GraduationCap className="w-3.5 h-3.5" />
+              <GraduationCap className="w-3 h-3" />
               <span className="hidden sm:inline">Ôn Tập</span>
             </button>
           </div>
-
-          {/* Quick Actions Dropdown / Buttons */}
-          <button
-            onClick={() => {
-              if (activeMap) {
-                setRenameTitle(activeMap.title);
-                setRenameDesc(activeMap.description || '');
-                setShowRenameModal(true);
-              }
-            }}
-            className="p-2 bg-white hover:bg-amber-50 text-ink rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] transition-transform hover:scale-105"
-            title="Đổi tên / Chỉnh sửa thông tin sơ đồ"
-          >
-            <Edit3 className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={handleDuplicateMindmap}
-            className="p-2 bg-white hover:bg-amber-50 text-ink rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] transition-transform hover:scale-105"
-            title="Nhân bản sơ đồ này"
-          >
-            <Copy className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={handleExportJSON}
-            className="p-2 bg-white hover:bg-amber-50 text-ink rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] transition-transform hover:scale-105"
-            title="Xuất tệp JSON (Sao lưu)"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 bg-white hover:bg-amber-50 text-ink rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] transition-transform hover:scale-105"
-            title="Nhập từ tệp JSON"
-          >
-            <Upload className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={handleDeleteMindmap}
-            className="p-2 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] transition-transform hover:scale-105"
-            title="Xóa sơ đồ này"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
         </div>
-      </div>
 
-      {/* SEARCH & IN-CANVAS CONTROLS BAR */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center bg-white border-2 border-[#141414] px-3 py-1.5 rounded-xl shadow-[2px_2px_0px_#141414] w-full sm:w-64">
-            <Search className="w-4 h-4 text-ink/40 mr-2" />
+        {/* Right: Actions, Layout, Fullscreen, Filters */}
+        <div className="flex items-center gap-2 flex-wrap justify-between lg:justify-end">
+          {/* Search Box */}
+          <div className="flex items-center bg-white border-2 border-[#141414] px-2.5 py-1 rounded-xl shadow-[2px_2px_0px_#141414] w-36 sm:w-44">
+            <Search className="w-3.5 h-3.5 text-ink/40 mr-1.5 shrink-0" />
             <input
               type="text"
-              placeholder="Tìm nhánh / từ khóa..."
+              placeholder="Tìm nhánh..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent outline-none flex-1 text-xs font-bold text-ink placeholder:text-ink/40"
+              className="bg-transparent outline-none w-full text-xs font-bold text-ink placeholder:text-ink/40"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="text-ink/40 hover:text-ink">
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3 h-3" />
               </button>
             )}
           </div>
 
-          {/* Mastery Filter Tabs: All / Unmastered / Mastered */}
-          <div className="flex items-center bg-white p-1 rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] text-xs font-bold">
+          {/* Mastery Filter */}
+          <div className="flex items-center bg-[#EFECE6] p-0.5 rounded-xl border-2 border-[#141414] text-[11px] font-bold">
             <button
               onClick={() => setMasteryFilter('all')}
               className={cn(
-                'px-2 py-1 rounded-lg transition-colors',
+                'px-2 py-0.5 rounded-lg transition-colors',
                 masteryFilter === 'all' ? 'bg-ink text-white' : 'text-ink/60 hover:text-ink'
               )}
             >
@@ -1289,76 +1272,158 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
             <button
               onClick={() => setMasteryFilter('unmastered')}
               className={cn(
-                'px-2 py-1 rounded-lg transition-colors flex items-center gap-1',
+                'px-2 py-0.5 rounded-lg transition-colors flex items-center gap-1',
                 masteryFilter === 'unmastered' ? 'bg-amber-400 text-ink' : 'text-amber-800 hover:text-ink'
               )}
+              title="Chỉ hiện các ý chưa nắm"
             >
-              <Square className="w-3 h-3" /> Chưa nắm ({stats.unmastered})
+              <Square className="w-2.5 h-2.5" /> Chưa ({stats.unmastered})
             </button>
             <button
               onClick={() => setMasteryFilter('mastered')}
               className={cn(
-                'px-2 py-1 rounded-lg transition-colors flex items-center gap-1',
+                'px-2 py-0.5 rounded-lg transition-colors flex items-center gap-1',
                 masteryFilter === 'mastered' ? 'bg-emerald-600 text-white' : 'text-emerald-700 hover:text-emerald-900'
               )}
+              title="Chỉ hiện các ý đã nắm"
             >
-              <CheckSquare className="w-3 h-3" /> Đã nắm ({stats.completed})
+              <CheckSquare className="w-2.5 h-2.5" /> Đã nắm ({stats.completed})
             </button>
           </div>
-        </div>
 
-        {viewMode === 'canvas' && (
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Auto Arrange Toggle */}
-            <label className="flex items-center gap-1.5 cursor-pointer bg-white px-2.5 py-1.5 rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] text-xs font-black select-none">
-              <input
-                type="checkbox"
-                checked={autoArrangeEnabled}
-                onChange={(e) => setAutoArrangeEnabled(e.target.checked)}
-                className="w-3.5 h-3.5 accent-amber-500 rounded"
-              />
-              <span>Tự xếp xương cá 🦴</span>
-            </label>
-
-            <button
-              onClick={() => {
-                if (selectedNodeId) {
-                  handleAddChildNode(selectedNodeId);
-                } else if (activeMap?.nodes && activeMap.nodes.length > 0) {
-                  handleAddChildNode(activeMap.nodes[0].id);
-                }
-              }}
-              className="px-3 py-1.5 bg-amber-200 hover:bg-amber-300 text-ink border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1.5 active:translate-x-0.5 active:translate-y-0.5"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              Thêm Nhánh Con
-            </button>
-
-            {selectedNodeId && (
+          {viewMode === 'canvas' && (
+            <>
+              {/* Add Branch Button */}
               <button
-                onClick={() => handleAddSiblingNode(selectedNodeId)}
-                className="px-3 py-1.5 bg-sky-100 hover:bg-sky-200 text-ink border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1.5 active:translate-x-0.5 active:translate-y-0.5"
+                onClick={() => {
+                  if (selectedNodeId) {
+                    handleAddChildNode(selectedNodeId);
+                  } else if (activeMap?.nodes && activeMap.nodes.length > 0) {
+                    handleAddChildNode(activeMap.nodes[0].id);
+                  }
+                }}
+                className="px-2.5 py-1.5 bg-amber-300 hover:bg-amber-400 text-ink border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
+                title="Thêm nhánh con mới"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                Nhánh Ngang Hàng
+                <span>Thêm Nhánh</span>
               </button>
-            )}
 
+              {/* Auto Fishbone Layout Button */}
+              <button
+                onClick={handleAutoLayout}
+                className="px-2.5 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
+                title="Tự động căn chỉnh toàn bộ nhánh theo cấu trúc xương cá thẳng hàng"
+              >
+                <Wand2 className="w-3.5 h-3.5 text-emerald-700" />
+                <span className="hidden sm:inline">Xếp Xương Cá</span>
+              </button>
+            </>
+          )}
+
+          {/* Fullscreen Button */}
+          <button
+            onClick={toggleFullscreen}
+            className={cn(
+              "px-2.5 py-1.5 text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5",
+              isFullscreen
+                ? "bg-rose-100 text-rose-800 hover:bg-rose-200"
+                : "bg-white text-ink hover:bg-amber-50"
+            )}
+            title={isFullscreen ? "Thu nhỏ (hoặc nhấn phím Esc)" : "Xem toàn màn hình tràn viền"}
+          >
+            {isFullscreen ? (
+              <>
+                <Minimize2 className="w-3.5 h-3.5" />
+                <span>Thu nhỏ (Esc)</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Toàn Màn Hình</span>
+              </>
+            )}
+          </button>
+
+          {/* More Actions Dropdown (Rename, Duplicate, Export, Import, Delete) */}
+          <div className="relative">
             <button
-              onClick={handleAutoLayout}
-              className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1.5 active:translate-x-0.5 active:translate-y-0.5"
-              title="Căn chỉnh toàn bộ xương sườn và các nhánh theo trục xương cá thẳng hàng"
+              onClick={() => setShowMoreActions(!showMoreActions)}
+              className="p-1.5 bg-white hover:bg-amber-50 text-ink rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] transition-transform"
+              title="Thao tác khác"
             >
-              <Wand2 className="w-3.5 h-3.5" />
-              Sắp Xếp Xương Cá
+              <MoreHorizontal className="w-4 h-4" />
             </button>
+
+            {showMoreActions && (
+              <div
+                className="absolute right-0 top-10 w-44 bg-white border-2 border-[#141414] rounded-xl shadow-[4px_4px_0px_#141414] p-1.5 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-150"
+                onMouseLeave={() => setShowMoreActions(false)}
+              >
+                <button
+                  onClick={() => {
+                    if (activeMap) {
+                      setRenameTitle(activeMap.title);
+                      setRenameDesc(activeMap.description || '');
+                      setShowRenameModal(true);
+                      setShowMoreActions(false);
+                    }
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 text-xs font-bold text-ink hover:bg-amber-100 rounded-lg flex items-center gap-2"
+                >
+                  <Edit3 className="w-3.5 h-3.5" /> Đổi tên sơ đồ
+                </button>
+                <button
+                  onClick={() => {
+                    handleDuplicateMindmap();
+                    setShowMoreActions(false);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 text-xs font-bold text-ink hover:bg-amber-100 rounded-lg flex items-center gap-2"
+                >
+                  <Copy className="w-3.5 h-3.5" /> Nhân bản sơ đồ
+                </button>
+                <button
+                  onClick={() => {
+                    handleExportJSON();
+                    setShowMoreActions(false);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 text-xs font-bold text-ink hover:bg-amber-100 rounded-lg flex items-center gap-2"
+                >
+                  <Download className="w-3.5 h-3.5" /> Xuất tệp JSON
+                </button>
+                <button
+                  onClick={() => {
+                    fileInputRef.current?.click();
+                    setShowMoreActions(false);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 text-xs font-bold text-ink hover:bg-amber-100 rounded-lg flex items-center gap-2"
+                >
+                  <Upload className="w-3.5 h-3.5" /> Nhập tệp JSON
+                </button>
+                <div className="border-t border-[#141414]/15 my-0.5" />
+                <button
+                  onClick={() => {
+                    handleDeleteMindmap();
+                    setShowMoreActions(false);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-2"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Xóa sơ đồ này
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* MAIN VIEW AREA: CANVAS */}
       {viewMode === 'canvas' && (
-        <div className="w-full h-[640px] bg-[#FFFDF7] rounded-[24px] border-[2.5px] border-[#141414] shadow-[5px_5px_0px_#141414] overflow-hidden relative">
+        <div
+          className={cn(
+            "w-full bg-[#FFFDF7] rounded-[22px] border-[2.5px] border-[#141414] shadow-[4px_4px_0px_#141414] overflow-hidden relative",
+            isFullscreen ? "flex-1 h-full min-h-0" : "h-[calc(100vh-170px)] min-h-[580px]"
+          )}
+        >
           <ReactFlowProvider>
             <ReactFlow
               nodes={preparedNodes}
@@ -1367,169 +1432,193 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
-              onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-              onPaneClick={() => setSelectedNodeId(null)}
+              onNodeClick={(_, node) => {
+                // Single click ONLY selects node (highlights), DOES NOT open editor
+                setSelectedNodeId(node.id);
+              }}
+              onNodeDoubleClick={(_, node) => {
+                // Double click triggers the editor modal!
+                setSelectedNodeId(node.id);
+                setIsEditingNodeModalOpen(true);
+              }}
+              onPaneClick={() => {
+                setSelectedNodeId(null);
+              }}
               fitView
               minZoom={0.2}
               maxZoom={2}
             >
               <Background color="#141414" gap={20} size={1.2} />
-              <Controls className="!bg-white !border-2 !border-[#141414] !rounded-xl !shadow-[2px_2px_0px_#141414] !m-4" />
+              <Controls className="!bg-white !border-2 !border-[#141414] !rounded-xl !shadow-[2px_2px_0px_#141414] !m-3" />
               <MiniMap
                 nodeColor={(n) => (n.style?.background as string) || '#FEF08A'}
-                className="!bg-white !border-2 !border-[#141414] !rounded-xl !shadow-[3px_3px_0px_#141414] !m-4 hidden sm:block"
+                className="!bg-white !border-2 !border-[#141414] !rounded-xl !shadow-[3px_3px_0px_#141414] !m-3 hidden md:block"
                 maskColor="rgba(255, 255, 255, 0.7)"
               />
-
-              {/* Floating Helper Tip */}
-              <Panel position="bottom-center" className="mb-4">
-                <div className="bg-white/95 backdrop-blur px-3.5 py-1.5 rounded-full border-2 border-[#141414] text-[11px] font-bold text-ink shadow-[2px_2px_0px_#141414] flex items-center gap-2">
-                  <span>🦴 <b>Sơ đồ xương cá:</b> Ý chính làm trục xương sống • Bấm ô <b>[Chưa nắm / Đã nắm]</b> trên nhánh để tick kiến thức</span>
-                </div>
-              </Panel>
             </ReactFlow>
           </ReactFlowProvider>
 
-          {/* NODE INSPECTOR DRAWER / PANEL (When a node is selected) */}
+          {/* DOUBLE-CLICK EDIT MODAL DIALOG */}
           <AnimatePresence>
-            {selectedNode && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="absolute top-4 right-4 z-40 w-80 max-w-[90vw] bg-white p-4 rounded-2xl border-[2.5px] border-[#141414] shadow-[5px_5px_0px_#141414] flex flex-col gap-3.5 max-h-[600px] overflow-y-auto"
-              >
-                <div className="flex items-center justify-between border-b-2 border-dashed border-[#141414]/20 pb-2">
-                  <div className="flex items-center gap-1.5">
-                    <Edit3 className="w-4 h-4 text-amber-500" />
-                    <h4 className="text-xs font-black uppercase text-ink">
-                      {selectedNode.data?.isRoot ? 'Chỉnh Sửa Trục Xương Sống' : 'Chỉnh Sửa Nhánh Kiến Thức'}
-                    </h4>
+            {isEditingNodeModalOpen && selectedNode && (
+              <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  className="w-full max-w-md bg-white p-5 rounded-2xl border-[2.5px] border-[#141414] shadow-[6px_6px_0px_#141414] flex flex-col gap-4 max-h-[90vh] overflow-y-auto"
+                >
+                  <div className="flex items-center justify-between border-b-2 border-dashed border-[#141414]/20 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-amber-400 border border-[#141414] flex items-center justify-center">
+                        <Edit3 className="w-4 h-4 text-[#141414]" />
+                      </div>
+                      <h4 className="text-sm font-black uppercase text-ink">
+                        {selectedNode.data?.isRoot ? 'Chỉnh Sửa Trục Xương Sống' : 'Chỉnh Sửa Nhánh Kiến Thức'}
+                      </h4>
+                    </div>
+                    <button
+                      onClick={() => setIsEditingNodeModalOpen(false)}
+                      className="text-ink/50 hover:text-ink p-1 rounded-lg hover:bg-gray-100"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setSelectedNodeId(null)}
-                    className="text-ink/50 hover:text-ink p-1 rounded"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
 
-                {/* Mastery Toggle Button inside Inspector */}
-                {!selectedNode.data?.isRoot && (
-                  <button
-                    type="button"
-                    onClick={() => handleToggleComplete(selectedNode.id)}
-                    className={cn(
-                      'w-full py-2 px-3 rounded-xl border-2 flex items-center justify-center gap-2 text-xs font-black transition-all shadow-[2px_2px_0px_#141414]',
-                      selectedNode.data?.completed
-                        ? 'bg-emerald-100 border-emerald-700 text-emerald-800'
-                        : 'bg-amber-50 border-[#141414] text-ink hover:bg-amber-100'
-                    )}
-                  >
-                    {selectedNode.data?.completed ? (
-                      <>
-                        <CheckSquare className="w-4 h-4 text-emerald-700 stroke-[3]" />
-                        <span>✓ ĐÃ NẮM VỮNG (Bấm để bỏ tick)</span>
-                      </>
-                    ) : (
-                      <>
-                        <Square className="w-4 h-4 text-ink/40" />
-                        <span>CHƯA NẮM (Bấm để đánh dấu đã thuộc)</span>
-                      </>
-                    )}
-                  </button>
-                )}
-
-                {/* Node Title Input */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-extrabold text-ink uppercase">
-                    Tiêu đề nhánh:
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedNode.data?.label || ''}
-                    onChange={(e) => handleUpdateSelectedNode('label', e.target.value)}
-                    className="px-3 py-2 text-xs font-bold text-ink bg-[#FFFDF7] border-2 border-[#141414] rounded-xl focus:bg-amber-50/50 outline-none"
-                    placeholder="Nhập tên nhánh kiến thức..."
-                  />
-                </div>
-
-                {/* Node Detailed Notes */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-extrabold text-ink uppercase flex items-center gap-1">
-                    <span>Ghi chú / Mẹo ghi nhớ / Ví dụ:</span>
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={selectedNode.data?.notes || ''}
-                    onChange={(e) => handleUpdateSelectedNode('notes', e.target.value)}
-                    className="px-3 py-2 text-xs font-medium text-ink bg-[#FFFDF7] border-2 border-[#141414] rounded-xl focus:bg-amber-50/50 outline-none resize-none"
-                    placeholder="Ghi chú chi tiết, định nghĩa, công thức, ví dụ minh họa..."
-                  />
-                </div>
-
-                {/* Color Swatches */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-extrabold text-ink uppercase flex items-center gap-1">
-                    <Palette className="w-3.5 h-3.5" /> Màu sắc nhánh:
-                  </label>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {NODE_COLORS.map((col) => {
-                      const isSelected =
-                        (selectedNode.style?.background as string) === col.bg ||
-                        selectedNode.data?.color === col.bg;
-                      return (
-                        <button
-                          key={col.id}
-                          type="button"
-                          onClick={() => handleUpdateSelectedNode('color', col.bg)}
-                          className={cn(
-                            'h-7 rounded-lg border-2 border-[#141414] flex items-center justify-center transition-transform hover:scale-105',
-                            isSelected ? 'ring-2 ring-black scale-105' : ''
-                          )}
-                          style={{ backgroundColor: col.bg }}
-                          title={col.name}
-                        >
-                          {isSelected && <Check className="w-3.5 h-3.5 stroke-[3] text-[#141414]" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Options: Important */}
-                <div className="flex flex-col gap-2 pt-1 border-t border-ink/10">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-ink">
-                    <input
-                      type="checkbox"
-                      checked={!!selectedNode.data?.important}
-                      onChange={(e) => handleUpdateSelectedNode('important', e.target.checked)}
-                      className="w-4 h-4 accent-amber-500 rounded border-2 border-[#141414]"
-                    />
-                    <span>Đánh dấu trọng tâm cần nhớ ⭐</span>
-                  </label>
-                </div>
-
-                {/* Node Actions */}
-                <div className="flex gap-2 pt-2 border-t border-ink/10">
-                  <button
-                    onClick={() => handleAddChildNode(selectedNode.id)}
-                    className="flex-1 py-1.5 bg-amber-400 hover:bg-amber-300 text-ink text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center justify-center gap-1 active:translate-x-0.5 active:translate-y-0.5"
-                  >
-                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> Thêm Nhánh Con
-                  </button>
-
+                  {/* Mastery Toggle Button inside Edit Modal */}
                   {!selectedNode.data?.isRoot && (
                     <button
-                      onClick={() => handleDeleteNode(selectedNode.id)}
-                      className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center justify-center active:translate-x-0.5 active:translate-y-0.5"
-                      title="Xóa nhánh này"
+                      type="button"
+                      onClick={() => handleToggleComplete(selectedNode.id)}
+                      className={cn(
+                        'w-full py-2.5 px-3 rounded-xl border-2 flex items-center justify-center gap-2 text-xs font-black transition-all shadow-[2px_2px_0px_#141414]',
+                        selectedNode.data?.completed
+                          ? 'bg-emerald-100 border-emerald-700 text-emerald-800'
+                          : 'bg-amber-50 border-[#141414] text-ink hover:bg-amber-100'
+                      )}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      {selectedNode.data?.completed ? (
+                        <>
+                          <CheckSquare className="w-4 h-4 text-emerald-700 stroke-[3]" />
+                          <span>✓ ĐÃ NẮM VỮNG KIẾN THỨC (Bấm để bỏ tick)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Square className="w-4 h-4 text-ink/40" />
+                          <span>CHƯA NẮM (Bấm để đánh dấu đã thuộc)</span>
+                        </>
+                      )}
                     </button>
                   )}
-                </div>
-              </motion.div>
+
+                  {/* Node Title Input */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-black text-ink uppercase">
+                      Tiêu đề nhánh:
+                    </label>
+                    <input
+                      type="text"
+                      autoFocus
+                      value={selectedNode.data?.label || ''}
+                      onChange={(e) => handleUpdateSelectedNode('label', e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') setIsEditingNodeModalOpen(false);
+                      }}
+                      className="px-3 py-2 text-sm font-bold text-ink bg-[#FFFDF7] border-2 border-[#141414] rounded-xl focus:bg-amber-50/50 outline-none"
+                      placeholder="Nhập tên nhánh kiến thức..."
+                    />
+                  </div>
+
+                  {/* Node Detailed Notes */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-black text-ink uppercase flex items-center gap-1">
+                      <span>Ghi chú / Mẹo nhớ / Ví dụ:</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={selectedNode.data?.notes || ''}
+                      onChange={(e) => handleUpdateSelectedNode('notes', e.target.value)}
+                      className="px-3 py-2 text-xs font-medium text-ink bg-[#FFFDF7] border-2 border-[#141414] rounded-xl focus:bg-amber-50/50 outline-none resize-none"
+                      placeholder="Ghi chú chi tiết, định nghĩa, công thức, ví dụ..."
+                    />
+                  </div>
+
+                  {/* Color Swatches */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-black text-ink uppercase flex items-center gap-1">
+                      <Palette className="w-3.5 h-3.5" /> Màu sắc nhánh:
+                    </label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {NODE_COLORS.map((col) => {
+                        const isSelected =
+                          (selectedNode.style?.background as string) === col.bg ||
+                          selectedNode.data?.color === col.bg;
+                        return (
+                          <button
+                            key={col.id}
+                            type="button"
+                            onClick={() => handleUpdateSelectedNode('color', col.bg)}
+                            className={cn(
+                              'h-7 rounded-lg border-2 border-[#141414] flex items-center justify-center transition-transform hover:scale-105',
+                              isSelected ? 'ring-2 ring-black scale-105' : ''
+                            )}
+                            style={{ backgroundColor: col.bg }}
+                            title={col.name}
+                          >
+                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3] text-[#141414]" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Options: Important */}
+                  <div className="flex flex-col gap-2 pt-1 border-t border-ink/10">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-ink">
+                      <input
+                        type="checkbox"
+                        checked={!!selectedNode.data?.important}
+                        onChange={(e) => handleUpdateSelectedNode('important', e.target.checked)}
+                        className="w-4 h-4 accent-amber-500 rounded border-2 border-[#141414]"
+                      />
+                      <span>Đánh dấu trọng tâm cần nhớ ⭐</span>
+                    </label>
+                  </div>
+
+                  {/* Node Actions */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-ink/10">
+                    <button
+                      onClick={() => {
+                        handleAddChildNode(selectedNode.id);
+                        setIsEditingNodeModalOpen(false);
+                      }}
+                      className="py-2 px-3 bg-amber-400 hover:bg-amber-300 text-ink text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center justify-center gap-1 active:translate-x-0.5 active:translate-y-0.5"
+                    >
+                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> Thêm Nhánh Con
+                    </button>
+
+                    {!selectedNode.data?.isRoot && (
+                      <button
+                        onClick={() => {
+                          handleDeleteNode(selectedNode.id);
+                          setIsEditingNodeModalOpen(false);
+                        }}
+                        className="p-2 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center justify-center active:translate-x-0.5 active:translate-y-0.5"
+                        title="Xóa nhánh này"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => setIsEditingNodeModalOpen(false)}
+                      className="flex-1 py-2 bg-[#141414] hover:bg-[#2a2a2a] text-white text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] ml-auto"
+                    >
+                      Xong
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
             )}
           </AnimatePresence>
         </div>
