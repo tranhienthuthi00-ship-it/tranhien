@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-export type Tab = "Journal" | "Projects" | "Học hành" | "English Hub" | "Calendar" | "Collections";
+export type Tab = "Journal" | "Collections" | "Projects" | "Học hành" | "English Hub" | "Calendar";
 
 export function NavBar({ 
   activeTab, 
@@ -21,7 +21,7 @@ export function NavBar({
   onToggleTheme?: () => void;
   isLoggedIn?: boolean;
 }) {
-  const tabs: Tab[] = ["Journal", "Projects", "Học hành", "English Hub", "Calendar", "Collections"];
+  const tabs: Tab[] = ["Journal", "Collections", "Projects", "Học hành", "English Hub", "Calendar"];
 
   const getTabLabel = (tab: Tab) => {
     switch (tab) {

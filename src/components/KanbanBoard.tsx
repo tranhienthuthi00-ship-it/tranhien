@@ -716,7 +716,7 @@ export function KanbanBoard({
           return (
             <div 
               key={col.id} 
-              className="flex flex-col gap-3 bg-[#EFECE6] p-3.5 rounded-[20px] min-h-[300px]"
+              className="flex flex-col gap-3 bg-[#EFECE6] p-3.5 rounded-[20px] min-h-[100px]"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, col.id)}
             >
