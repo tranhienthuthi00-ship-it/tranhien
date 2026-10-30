@@ -61,5 +61,10 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
+
+    // Shared / Cross-device mindmaps for seamless syncing between phone, tablet, and desktop
+    match /shared_mindmaps/{mapId} {
+      allow read, write: if true;
+    }
   }
 }

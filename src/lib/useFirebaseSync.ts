@@ -352,6 +352,53 @@ const DEFAULT_ENGLISH_BOOKS: EnglishBook[] = [
 
 const DEFAULT_MINDMAPS: MindmapItem[] = [
   {
+    id: "mm-journey-b2",
+    title: "🛤️ Lộ Trình Chinh Phục Tiếng Anh B2",
+    description: "Hành trình mốc bài học uốn lượn: từ thì quá khứ, hoàn thành đến kể chuyện nhiều lớp",
+    category: "Lộ trình học",
+    colorTheme: "#6D28D9",
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    nodes: [
+      {
+        id: "step-1",
+        type: "custom",
+        data: { label: "Hoàn thành đơn & Hoàn thành tiếp diễn", notes: "Phân biệt thời điểm bắt đầu và kết quả còn lưu lại ở hiện tại", completed: true, isRoadmap: true, milestoneIndex: 1, milestoneBadge: "1" },
+        position: { x: 360, y: 80 }
+      },
+      {
+        id: "step-2",
+        type: "custom",
+        data: { label: "Quá khứ hoàn thành tiếp diễn", notes: "Nhấn mạnh tính liên tục của hành động xảy ra trước một mốc quá khứ", completed: true, isRoadmap: true, milestoneIndex: 2, milestoneBadge: "✓" },
+        position: { x: 230, y: 250 }
+      },
+      {
+        id: "step-3",
+        type: "custom",
+        data: { label: "Kể chuyện nhiều lớp thời gian", notes: "Kết hợp linh hoạt thì quá khứ đơn, quá khứ tiếp diễn và quá khứ hoàn thành", completed: false, isRoadmap: true, milestoneIndex: 3, milestoneBadge: "B2", isCurrentActive: true },
+        position: { x: 230, y: 420 }
+      },
+      {
+        id: "step-4",
+        type: "custom",
+        data: { label: "So sánh tăng tiến và so sánh nhất", notes: "The more... the more... và các cấu trúc nhấn mạnh đặc biệt", completed: false, isRoadmap: true, milestoneIndex: 4, milestoneBadge: "4" },
+        position: { x: 360, y: 590 }
+      },
+      {
+        id: "step-5",
+        type: "custom",
+        data: { label: "Câu điều kiện hỗn hợp (Mixed Conditionals)", notes: "Điều kiện quá khứ dẫn đến kết quả ở hiện tại và ngược lại", completed: false, isRoadmap: true, milestoneIndex: 5, milestoneBadge: "5" },
+        position: { x: 490, y: 760 }
+      }
+    ],
+    edges: [
+      { id: "e-r1", source: "step-1", target: "step-2", sourceHandle: "bottom", targetHandle: "top", style: { stroke: "#7C3AED", strokeWidth: 8, strokeLinecap: "round" } },
+      { id: "e-r2", source: "step-2", target: "step-3", sourceHandle: "bottom", targetHandle: "top", style: { stroke: "#7C3AED", strokeWidth: 8, strokeLinecap: "round" } },
+      { id: "e-r3", source: "step-3", target: "step-4", sourceHandle: "bottom", targetHandle: "top", style: { stroke: "#7C3AED", strokeWidth: 8, strokeLinecap: "round" } },
+      { id: "e-r4", source: "step-4", target: "step-5", sourceHandle: "bottom", targetHandle: "top", style: { stroke: "#7C3AED", strokeWidth: 8, strokeLinecap: "round" } }
+    ]
+  },
+  {
     id: "mm-study-methods",
     title: "🧠 Phương Pháp Học Tập & Siêu Ghi Nhớ",
     description: "Bộ phương pháp khoa học: Active Recall, Spaced Repetition và Kỹ thuật Feynman",
@@ -683,6 +730,50 @@ export function useFirebaseSync() {
       }
     });
     return unsub;
+  }, []);
+
+  // Continuous real-time listener for shared_mindmaps to sync across ALL devices (phone, tablet, PC)
+  useEffect(() => {
+    let isInitial = true;
+    const unsubShared = onSnapshot(
+      collection(db, 'shared_mindmaps'),
+      (snap) => {
+        if (!snap.empty) {
+          const cloudMaps = snap.docs
+            .map((d) => d.data() as MindmapItem)
+            .filter((m) => m && m.id && m.nodes && m.edges)
+            .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+          if (cloudMaps.length > 0) {
+            setMindmaps((prev) => {
+              const prevStr = JSON.stringify(prev);
+              const cloudStr = JSON.stringify(cloudMaps);
+              if (prevStr !== cloudStr) {
+                safeLocalStorage.setItem('spatial_hub_mindmaps', cloudStr);
+                return cloudMaps;
+              }
+              return prev;
+            });
+          }
+        } else if (isInitial) {
+          // If Firestore shared_mindmaps is empty, seed with current mindmaps
+          const current = mindmapsRef.current && mindmapsRef.current.length > 0 ? mindmapsRef.current : DEFAULT_MINDMAPS;
+          current.forEach(async (m) => {
+            try {
+              await setDoc(doc(db, `shared_mindmaps/${m.id}`), deepCleanForFirestore(m));
+            } catch (e) {
+              console.warn("Seed shared_mindmap error:", e);
+            }
+          });
+        }
+        isInitial = false;
+      },
+      (error) => {
+        console.warn('shared_mindmaps listener notice:', error);
+      }
+    );
+
+    return () => unsubShared();
   }, []);
 
   const migrateLocalStorage = async (uid: string) => {
@@ -1085,6 +1176,31 @@ export function useFirebaseSync() {
       else if (collectionName === 'tags') lsKey = 'spatial_hub_tags';
 
       safeLocalStorage.setItem(lsKey, JSON.stringify(targetItems));
+
+      // ALWAYS write mindmaps to shared_mindmaps in Firestore for real-time cross-device sync
+      if (collectionName === 'mindmaps') {
+        try {
+          const newIds = new Set(targetItems.map(i => i.id));
+          const toAddOrUpdate = targetItems.filter(i => {
+            const existing = currentItems.find(c => c.id === i.id);
+            if (!existing) return true;
+            const cleanNew = JSON.stringify(deepCleanForFirestore(i));
+            const cleanOld = JSON.stringify(deepCleanForFirestore(existing));
+            return cleanNew !== cleanOld;
+          });
+          const toDelete = currentItems.filter(i => !newIds.has(i.id));
+
+          for (const item of toAddOrUpdate) {
+            const cleanItem = deepCleanForFirestore(item);
+            setDoc(doc(db, `shared_mindmaps/${item.id}`), cleanItem).catch(e => console.warn("Failed to write to shared_mindmaps:", e));
+          }
+          for (const item of toDelete) {
+            deleteDoc(doc(db, `shared_mindmaps/${item.id}`)).catch(e => console.warn("Failed to delete from shared_mindmaps:", e));
+          }
+        } catch (syncErr) {
+          console.warn("shared_mindmaps sync error:", syncErr);
+        }
+      }
 
       const currentUser = auth.currentUser;
       if (!currentUser) return;

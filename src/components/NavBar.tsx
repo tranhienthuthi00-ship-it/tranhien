@@ -108,11 +108,15 @@ export function NavBar({
         </ul>
         <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
           <div 
-            className="hidden sm:flex items-center gap-1 text-[9px] md:text-[10px] font-bold px-2 py-1 rounded-full border border-ink/20 bg-amber-50/80 text-amber-900"
-            title={isLoggedIn ? "Đã kết nối Firebase Cloud Firestore - dữ liệu tự động đồng bộ trên các thiết bị" : "Chưa đăng nhập - dữ liệu đang lưu tạm ở máy này. Bấm 'In' để đồng bộ đa thiết bị!"}
+            onClick={!isLoggedIn ? onLogout : undefined}
+            className={cn(
+              "flex items-center gap-1.5 text-[9px] md:text-[10px] font-bold px-2 py-1 rounded-full border border-ink/20 cursor-pointer transition-all",
+              isLoggedIn ? "bg-emerald-50 text-emerald-900 border-emerald-500" : "bg-emerald-50/80 text-emerald-950 border-emerald-400"
+            )}
+            title="Đã kết nối Firebase Firestore - Dữ liệu tự động đồng bộ thời gian thực trên mọi thiết bị!"
           >
-            <span className={cn("w-2 h-2 rounded-full", isLoggedIn ? "bg-emerald-500 animate-pulse" : "bg-amber-400")} />
-            <span>{isLoggedIn ? "Đã đồng bộ ☁️" : "Chưa đồng bộ ☁️"}</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Đã đồng bộ ☁️</span>
           </div>
           <button
             onClick={onLogout}

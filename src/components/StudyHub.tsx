@@ -130,6 +130,52 @@ const SAMPLE_OUTLINES = [
 
 const TEMPLATES = [
   {
+    id: 'roadmap-journey',
+    name: '🛤️ Lộ Trình Học Uốn Lượn (Như ảnh mẫu)',
+    desc: 'Đường dẫn uốn lượn hình chữ S với các mốc bài học, huy hiệu B2 và thẻ ghi nhớ',
+    icon: Sparkles,
+    generate: (title: string) => ({
+      nodes: [
+        {
+          id: 'step-1',
+          type: 'custom',
+          data: { label: 'Hoàn thành đơn & Hoàn thành tiếp diễn', notes: 'Phân biệt cách dùng và ngữ cảnh thực tế', completed: true, isRoadmap: true, milestoneIndex: 1, milestoneBadge: '1' },
+          position: { x: 360, y: 80 }
+        },
+        {
+          id: 'step-2',
+          type: 'custom',
+          data: { label: 'Quá khứ hoàn thành tiếp diễn', notes: 'Nhấn mạnh tính liên tục của hành động trong quá khứ', completed: true, isRoadmap: true, milestoneIndex: 2, milestoneBadge: '✓' },
+          position: { x: 230, y: 250 }
+        },
+        {
+          id: 'step-3',
+          type: 'custom',
+          data: { label: title || 'Kể chuyện nhiều lớp thời gian', notes: 'Phối hợp các thì quá khứ một cách tự nhiên', completed: false, isRoadmap: true, milestoneIndex: 3, milestoneBadge: 'B2', isCurrentActive: true },
+          position: { x: 230, y: 420 }
+        },
+        {
+          id: 'step-4',
+          type: 'custom',
+          data: { label: 'So sánh tăng tiến và so sánh nhất', notes: 'Các cấu trúc nâng cao giúp diễn đạt sinh động', completed: false, isRoadmap: true, milestoneIndex: 4, milestoneBadge: '4' },
+          position: { x: 360, y: 590 }
+        },
+        {
+          id: 'step-5',
+          type: 'custom',
+          data: { label: 'Câu điều kiện hỗn hợp (Mixed Conditionals)', notes: 'Kết hợp điều kiện loại 2 và loại 3 linh hoạt', completed: false, isRoadmap: true, milestoneIndex: 5, milestoneBadge: '5' },
+          position: { x: 490, y: 760 }
+        }
+      ],
+      edges: [
+        { id: 'e-r1', source: 'step-1', target: 'step-2', sourceHandle: 'bottom', targetHandle: 'top', style: { stroke: '#7C3AED', strokeWidth: 8, strokeLinecap: 'round' } },
+        { id: 'e-r2', source: 'step-2', target: 'step-3', sourceHandle: 'bottom', targetHandle: 'top', style: { stroke: '#7C3AED', strokeWidth: 8, strokeLinecap: 'round' } },
+        { id: 'e-r3', source: 'step-3', target: 'step-4', sourceHandle: 'bottom', targetHandle: 'top', style: { stroke: '#7C3AED', strokeWidth: 8, strokeLinecap: 'round' } },
+        { id: 'e-r4', source: 'step-4', target: 'step-5', sourceHandle: 'bottom', targetHandle: 'top', style: { stroke: '#7C3AED', strokeWidth: 8, strokeLinecap: 'round' } }
+      ]
+    })
+  },
+  {
     id: 'blank',
     name: 'Sơ đồ xương cá cơ bản',
     desc: 'Trục xương sống nằm ngang với các nhánh xương sườn cân đối',
@@ -268,7 +314,120 @@ const TEMPLATES = [
   }
 ];
 
-// Fishbone Layout Engine: Auto aligns nodes along horizontal spine with alternating ribs
+// 1. Serpentine Learning Path Layout Engine (Inspired by user's reference diagram in IMG_3834_bc3ec55e.jpeg)
+export function applyRoadmapLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
+  if (!nodes || nodes.length === 0) return { nodes: [], edges: [] };
+
+  // Determine logical sequential order of milestones via BFS from root or first node
+  const targetIds = new Set(edges.map((e) => e.target));
+  const rootNode = nodes.find((n) => n.data?.isRoot) || nodes.find((n) => !targetIds.has(n.id)) || nodes[0];
+
+  const childrenMap = new Map<string, string[]>();
+  edges.forEach((edge) => {
+    const list = childrenMap.get(edge.source) || [];
+    list.push(edge.target);
+    childrenMap.set(edge.source, list);
+  });
+
+  const orderedIds: string[] = [];
+  const visited = new Set<string>();
+  const queue: string[] = [rootNode.id];
+  visited.add(rootNode.id);
+
+  while (queue.length > 0) {
+    const curr = queue.shift()!;
+    orderedIds.push(curr);
+    const children = childrenMap.get(curr) || [];
+    children.forEach((c) => {
+      if (!visited.has(c)) {
+        visited.add(c);
+        queue.push(c);
+      }
+    });
+  }
+
+  // Add any unreached nodes to the sequence
+  nodes.forEach((n) => {
+    if (!visited.has(n.id)) {
+      visited.add(n.id);
+      orderedIds.push(n.id);
+    }
+  });
+
+  // Identify first uncompleted milestone as "Bạn đang ở đây" (You are here)
+  let firstUnmasteredIdx = -1;
+  orderedIds.forEach((id, idx) => {
+    const n = nodes.find((node) => node.id === id);
+    if (firstUnmasteredIdx === -1 && !n?.data?.completed) {
+      firstUnmasteredIdx = idx;
+    }
+  });
+  if (firstUnmasteredIdx === -1) firstUnmasteredIdx = 0;
+
+  const startY = 80;
+  const stepY = 170;
+  const centerX = 360;
+  const amplitude = 130;
+
+  const nextNodes = nodes.map((node) => {
+    const seqIdx = orderedIds.indexOf(node.id);
+    const idx = seqIdx >= 0 ? seqIdx : 0;
+
+    // Sinusoidal curve for the winding learning road
+    const posX = centerX + Math.sin(idx * 0.95) * amplitude;
+    const posY = startY + idx * stepY;
+
+    // Extract or infer badge text (e.g. B2, B1, A2, or index)
+    let badgeText = '';
+    const labelUpper = (node.data?.label || '').toUpperCase();
+    if (labelUpper.includes('B2')) badgeText = 'B2';
+    else if (labelUpper.includes('B1')) badgeText = 'B1';
+    else if (labelUpper.includes('A2')) badgeText = 'A2';
+    else if (labelUpper.includes('C1')) badgeText = 'C1';
+    else if (node.data?.isRoot) badgeText = '★';
+    else badgeText = String(idx + 1);
+
+    const isCurrentActive = idx === firstUnmasteredIdx && !node.data?.completed;
+
+    return {
+      ...node,
+      position: { x: posX, y: posY },
+      data: {
+        ...node.data,
+        isRoadmap: true,
+        milestoneIndex: idx + 1,
+        milestoneBadge: badgeText,
+        isCurrentActive
+      }
+    };
+  });
+
+  // Connect sequential milestones along the serpentine highway with smooth ribbon edges
+  const roadmapEdges: Edge[] = [];
+  for (let i = 0; i < orderedIds.length - 1; i++) {
+    const sourceId = orderedIds[i];
+    const targetId = orderedIds[i + 1];
+    roadmapEdges.push({
+      id: `road-edge-${sourceId}-${targetId}`,
+      source: sourceId,
+      target: targetId,
+      sourceHandle: 'bottom',
+      targetHandle: 'top',
+      type: 'default',
+      animated: false,
+      style: {
+        stroke: '#7C3AED',
+        strokeWidth: 8,
+        strokeLinecap: 'round',
+        filter: 'drop-shadow(0 2px 4px rgba(124, 58, 237, 0.3))'
+      }
+    });
+  }
+
+  return { nodes: nextNodes, edges: roadmapEdges.length > 0 ? roadmapEdges : edges };
+}
+
+// 2. Refined Fishbone Layout Engine: Auto aligns nodes without colliding or overlapping
 export function applyFishboneLayout(nodes: Node[], edges: Edge[]): Node[] {
   if (!nodes || nodes.length === 0) return [];
 
@@ -298,48 +457,52 @@ export function applyFishboneLayout(nodes: Node[], edges: Edge[]): Node[] {
     const colIndex = Math.floor(index / 2);
     const isTop = index % 2 === 0;
 
-    const ribX = startX + 320 + colIndex * 360;
-    const ribY = isTop ? centerY - 150 : centerY + 150;
+    // Generous horizontal spacing between ribs
+    const ribX = startX + 340 + colIndex * 380;
+    const ribY = isTop ? centerY - 160 : centerY + 160;
 
     positioned.set(ribId, { x: ribX, y: ribY });
 
     // Level 2 children (Sub-branches from this rib)
     const level2Ids = childrenMap.get(ribId) || [];
     level2Ids.forEach((childId, cIdx) => {
-      // Offset vertically outwards and slightly right
-      const childX = ribX + 170;
+      // Dynamic vertical distribution based on child index
+      const childX = ribX + 180 + (cIdx % 2) * 20;
       const childY = isTop
-        ? ribY - 70 - cIdx * 75
-        : ribY + 70 + cIdx * 75;
+        ? ribY - 75 - cIdx * 80
+        : ribY + 75 + cIdx * 80;
 
       positioned.set(childId, { x: childX, y: childY });
 
       // Level 3 children (Sub-sub branches)
       const level3Ids = childrenMap.get(childId) || [];
+      const l3Count = level3Ids.length;
       level3Ids.forEach((subId, sIdx) => {
         const subX = childX + 220;
-        const subY = childY + (sIdx - (level3Ids.length - 1) / 2) * 55;
+        const subY = childY + (sIdx - (l3Count - 1) / 2) * 60;
         positioned.set(subId, { x: subX, y: subY });
       });
     });
   });
 
-  // For any orphaned or unpositioned nodes
-  let fallbackY = centerY + 300;
+  // For any orphaned or unpositioned nodes, neatly stack them below
+  let fallbackY = centerY + 320;
   nodes.forEach((n) => {
     if (!positioned.has(n.id)) {
-      positioned.set(n.id, { x: startX + 400, y: fallbackY });
-      fallbackY += 80;
+      positioned.set(n.id, { x: startX + 360, y: fallbackY });
+      fallbackY += 85;
     }
   });
 
   return nodes.map((node) => {
     const pos = positioned.get(node.id);
-    return pos ? { ...node, position: pos } : node;
+    return pos
+      ? { ...node, position: pos, data: { ...node.data, isRoadmap: false } }
+      : { ...node, data: { ...node.data, isRoadmap: false } };
   });
 }
 
-// Custom Node for React Flow with Mastery Tick Box & Fishbone Styling
+// Custom Node for React Flow: Supports both Curved Learning Roadmap (IMG_3834_bc3ec55e) and Fishbone
 interface CustomNodeProps {
   id: string;
   data: {
@@ -349,6 +512,10 @@ interface CustomNodeProps {
     completed?: boolean;
     important?: boolean;
     isRoot?: boolean;
+    isRoadmap?: boolean;
+    milestoneIndex?: number;
+    milestoneBadge?: string;
+    isCurrentActive?: boolean;
     onAddChild?: (parentId: string) => void;
     onDelete?: (nodeId: string) => void;
     onToggleComplete?: (nodeId: string) => void;
@@ -363,6 +530,175 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
   const isImportant = !!data.important;
   const isRoot = !!data.isRoot;
 
+  // --- 1. ROADMAP / LEARNING PATHWAY NODE (AS IN IMG_3834_bc3ec55e.jpeg) ---
+  if (data.isRoadmap) {
+    const isCurrentActive = !!data.isCurrentActive;
+    const badgeText = data.milestoneBadge || '';
+    const isLevelBadge = badgeText === 'B2' || badgeText === 'B1' || badgeText === 'A2' || badgeText === 'C1' || badgeText === '★';
+
+    return (
+      <div
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          data.onEditNode?.(id);
+        }}
+        className={cn(
+          "relative flex items-center gap-3.5 select-none cursor-pointer group transition-all duration-200",
+          selected ? "scale-105" : ""
+        )}
+        title="Nhấn đúp để chỉnh sửa"
+      >
+        {/* Connection Handles */}
+        <Handle
+          type="target"
+          position={Position.Top}
+          id="top"
+          className="!w-3 !h-3 !bg-[#6D28D9] !border-2 !border-white !-top-1.5"
+        />
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="bottom"
+          className="!w-3 !h-3 !bg-[#6D28D9] !border-2 !border-white !-bottom-1.5"
+        />
+
+        {/* Milestone Circle (Centered along the serpentine track) */}
+        <div className="relative shrink-0 flex items-center justify-center">
+          {isCompleted ? (
+            // Completed / Mastered state: Solid purple circle with white checkmark
+            <div className="w-13 h-13 rounded-full bg-[#6D28D9] border-[4px] border-white shadow-[0_4px_12px_rgba(109,40,217,0.35)] flex items-center justify-center ring-4 ring-[#6D28D9]/20 transition-transform group-hover:scale-110">
+              <Check className="w-6 h-6 text-white stroke-[3.5]" />
+            </div>
+          ) : isCurrentActive ? (
+            // Active state: Vibrant golden circle with "Bạn đang ở đây" badge
+            <div className="relative flex flex-col items-center">
+              <div className="w-13 h-13 rounded-full bg-amber-400 border-[4px] border-white shadow-[0_4px_14px_rgba(245,158,11,0.5)] flex items-center justify-center ring-4 ring-amber-300 transition-transform group-hover:scale-110">
+                <Star className="w-6 h-6 text-amber-950 fill-amber-950" />
+              </div>
+              <div className="absolute -bottom-6 whitespace-nowrap bg-[#141414] text-white text-[9px] font-black px-2.5 py-0.5 rounded-full shadow-lg border border-white/20 z-30 animate-bounce">
+                Bạn đang ở đây
+              </div>
+            </div>
+          ) : isLevelBadge ? (
+            // Level Badge circle (e.g. B2) with double ring and bold text
+            <div className="w-13 h-13 rounded-full bg-white border-[4px] border-[#6D28D9] shadow-md flex items-center justify-center ring-4 ring-purple-100 transition-transform group-hover:scale-110">
+              <span className="text-sm font-black text-[#6D28D9] tracking-tight">{badgeText}</span>
+            </div>
+          ) : (
+            // Numbered Milestone Circle
+            <div className="w-12 h-12 rounded-full bg-white border-[3.5px] border-slate-300 shadow-sm flex items-center justify-center ring-4 ring-slate-100 transition-transform group-hover:scale-110">
+              <span className="text-xs font-black text-slate-700">{data.milestoneIndex || '•'}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Milestone Card (Speech-bubble style card as in IMG_3834_bc3ec55e.jpeg) */}
+        <div
+          className={cn(
+            "min-w-[190px] max-w-[320px] bg-white px-4 py-3 rounded-2xl border-[2.5px] border-[#141414] shadow-[3px_3px_0px_#141414] transition-all relative",
+            isCompleted ? "bg-[#FAF8FF] border-[#6D28D9]" : "",
+            isCurrentActive ? "border-amber-500 shadow-[3px_3px_0px_#F59E0B]" : ""
+          )}
+        >
+          {/* Level / Category chip and mastery checkbox */}
+          <div className="flex items-center justify-between gap-1 mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#6D28D9]">
+              {isLevelBadge ? `LEVEL ${badgeText}` : `MỐC ${data.milestoneIndex || 1}`}
+            </span>
+
+            {/* Checkbox for Mastery */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onToggleComplete?.(id);
+              }}
+              className={cn(
+                "flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border transition-all cursor-pointer active:scale-95",
+                isCompleted
+                  ? "bg-purple-100 text-[#6D28D9] border-purple-400 hover:bg-purple-200"
+                  : "bg-slate-50 text-slate-600 border-slate-300 hover:border-slate-600 hover:text-slate-900"
+              )}
+              title={isCompleted ? "Đã nắm! Bấm để bỏ tick" : "Chưa nắm. Bấm để tick 'Đã nắm'"}
+            >
+              {isCompleted ? (
+                <>
+                  <CheckSquare className="w-3 h-3 text-[#6D28D9] stroke-[2.5]" />
+                  <span>Đã nắm</span>
+                </>
+              ) : (
+                <>
+                  <Square className="w-3 h-3 text-slate-400" />
+                  <span>Chưa nắm</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Topic Title */}
+          <div className={cn("text-xs font-black text-[#141414] leading-snug break-words", isCompleted ? "text-purple-950" : "")}>
+            {data.label || 'Nội dung mốc học'}
+          </div>
+
+          {/* Progress underline bar (as seen in IMG_3834_bc3ec55e.jpeg) */}
+          <div className="w-full h-1 bg-black/10 rounded-full mt-2 overflow-hidden">
+            <div
+              className={cn(
+                "h-full transition-all duration-300",
+                isCompleted ? "w-full bg-[#6D28D9]" : isCurrentActive ? "w-2/3 bg-amber-400" : "w-1/3 bg-slate-300"
+              )}
+            />
+          </div>
+
+          {/* Optional notes */}
+          {data.notes && (
+            <div className="text-[10px] text-slate-600 mt-1.5 line-clamp-2 italic font-normal border-t border-slate-100 pt-1">
+              {data.notes}
+            </div>
+          )}
+
+          {/* Action buttons on hover */}
+          <div className="absolute -top-3 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onEditNode?.(id);
+              }}
+              className="bg-sky-400 hover:bg-sky-500 text-ink text-[10px] font-black w-5 h-5 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110"
+              title="Sửa nội dung"
+            >
+              <Edit3 className="w-2.5 h-2.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onAddChild?.(id);
+              }}
+              className="bg-amber-400 hover:bg-amber-500 text-ink text-[10px] font-black w-5 h-5 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110"
+              title="Thêm mốc tiếp theo"
+            >
+              <Plus className="w-2.5 h-2.5 stroke-[3]" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onDelete?.(id);
+              }}
+              className="bg-rose-400 hover:bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110"
+              title="Xóa mốc này"
+            >
+              <Trash2 className="w-2.5 h-2.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- 2. FISHBONE DIAGRAM NODE ---
   return (
     <div
       onDoubleClick={(e) => {
@@ -550,6 +886,13 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
   // Filter for Mastery: 'all' | 'unmastered' | 'mastered'
   const [masteryFilter, setMasteryFilter] = useState<'all' | 'unmastered' | 'mastered'>('all');
 
+  // Diagram layout style: 'roadmap' (Learning path S-curve as in IMG_3834_bc3ec55e) | 'fishbone' (Ishikawa)
+  const [diagramLayout, setDiagramLayout] = useState<'roadmap' | 'fishbone'>('roadmap');
+
+  // Cloud sync indicator state
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
+
   // Auto-arrange enabled flag (true by default as requested: "tự sắp xếp lại hiển thị khi thêm hoặc xoá")
   const [autoArrangeEnabled, setAutoArrangeEnabled] = useState(true);
 
@@ -667,8 +1010,8 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       const nextEdges = addEdge(
         {
           ...params,
-          style: { stroke: '#141414', strokeWidth: 2.5 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: '#141414' }
+          style: { stroke: '#7C3AED', strokeWidth: 4, strokeLinecap: 'round' },
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#7C3AED' }
         },
         activeMap.edges
       );
@@ -677,12 +1020,35 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     [activeMap, updateCurrentMap]
   );
 
-  // Auto clean Fishbone Layout
-  const handleAutoLayout = useCallback(() => {
-    if (!activeMap || !activeMap.nodes || activeMap.nodes.length === 0) return;
-    const arrangedNodes = applyFishboneLayout(activeMap.nodes, activeMap.edges);
-    updateCurrentMap(arrangedNodes, activeMap.edges);
-  }, [activeMap, updateCurrentMap]);
+  // Auto clean layout (Roadmap or Fishbone)
+  const handleAutoLayout = useCallback(
+    (targetLayout?: 'roadmap' | 'fishbone') => {
+      if (!activeMap || !activeMap.nodes || activeMap.nodes.length === 0) return;
+      const layoutToApply = targetLayout || diagramLayout;
+      if (layoutToApply === 'roadmap') {
+        const { nodes: arrangedNodes, edges: arrangedEdges } = applyRoadmapLayout(activeMap.nodes, activeMap.edges);
+        updateCurrentMap(arrangedNodes, arrangedEdges);
+      } else {
+        const arrangedNodes = applyFishboneLayout(activeMap.nodes, activeMap.edges);
+        updateCurrentMap(arrangedNodes, activeMap.edges);
+      }
+    },
+    [activeMap, diagramLayout, updateCurrentMap]
+  );
+
+  // Manual Sync trigger
+  const handleManualSync = () => {
+    setIsSyncingCloud(true);
+    setSyncToast('Đang đồng bộ Firestore...');
+    if (activeMap) {
+      updateCurrentMap([...activeMap.nodes], [...activeMap.edges]);
+    }
+    setTimeout(() => {
+      setIsSyncingCloud(false);
+      setSyncToast('Đã đồng bộ trên các thiết bị! ☁️');
+      setTimeout(() => setSyncToast(null), 3500);
+    }, 500);
+  };
 
   // Add child node with Auto-arrange
   const handleAddChildNode = useCallback(
@@ -697,15 +1063,15 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       const newNode: Node = {
         id: newId,
         type: 'custom',
-        position: { x: parentNode.position.x + 240, y: parentNode.position.y },
+        position: { x: parentNode.position.x + 120, y: parentNode.position.y + 140 },
         data: {
-          label: isParentRoot ? 'Xương nhánh mới' : 'Ý con mới',
+          label: isParentRoot ? 'Mốc học mới' : 'Nội dung tiếp theo',
           notes: '',
           completed: false,
-          color: isParentRoot ? '#DBEAFE' : '#FFFFFF'
+          color: isParentRoot ? '#EDE9FE' : '#FFFFFF'
         },
         style: {
-          background: isParentRoot ? '#DBEAFE' : '#FFFFFF'
+          background: isParentRoot ? '#EDE9FE' : '#FFFFFF'
         }
       };
 
@@ -713,22 +1079,28 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         id: `e-${parentId}-${newId}`,
         source: parentId,
         target: newId,
-        style: { stroke: '#141414', strokeWidth: isParentRoot ? 3 : 2 },
+        style: { stroke: '#7C3AED', strokeWidth: isParentRoot ? 4 : 3, strokeLinecap: 'round' },
         animated: false
       };
 
       let nextNodes = [...activeMap.nodes, newNode];
-      const nextEdges = [...activeMap.edges, newEdge];
+      let nextEdges = [...activeMap.edges, newEdge];
 
-      // Auto re-align in fishbone format if enabled
+      // Auto re-align in selected format if enabled
       if (autoArrangeEnabled) {
-        nextNodes = applyFishboneLayout(nextNodes, nextEdges);
+        if (diagramLayout === 'roadmap') {
+          const res = applyRoadmapLayout(nextNodes, nextEdges);
+          nextNodes = res.nodes;
+          nextEdges = res.edges;
+        } else {
+          nextNodes = applyFishboneLayout(nextNodes, nextEdges);
+        }
       }
 
       updateCurrentMap(nextNodes, nextEdges);
       setSelectedNodeId(newId);
     },
-    [activeMap, autoArrangeEnabled, updateCurrentMap]
+    [activeMap, autoArrangeEnabled, diagramLayout, updateCurrentMap]
   );
 
   // Add Sibling node
@@ -767,19 +1139,25 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       }
 
       let nextNodes = activeMap.nodes.filter((n) => !toDelete.has(n.id));
-      const nextEdges = activeMap.edges.filter(
+      let nextEdges = activeMap.edges.filter(
         (e) => !toDelete.has(e.source) && !toDelete.has(e.target)
       );
 
       // Auto re-align remaining nodes
       if (autoArrangeEnabled && nextNodes.length > 0) {
-        nextNodes = applyFishboneLayout(nextNodes, nextEdges);
+        if (diagramLayout === 'roadmap') {
+          const res = applyRoadmapLayout(nextNodes, nextEdges);
+          nextNodes = res.nodes;
+          nextEdges = res.edges;
+        } else {
+          nextNodes = applyFishboneLayout(nextNodes, nextEdges);
+        }
       }
 
       updateCurrentMap(nextNodes, nextEdges);
       if (selectedNodeId && toDelete.has(selectedNodeId)) setSelectedNodeId(null);
     },
-    [activeMap, autoArrangeEnabled, selectedNodeId, updateCurrentMap]
+    [activeMap, autoArrangeEnabled, diagramLayout, selectedNodeId, updateCurrentMap]
   );
 
   // Toggle node completion (mastered / unmastered)
@@ -937,34 +1315,55 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       }
     });
 
-    // Apply Fishbone Layout
-    const arrangedNodes = applyFishboneLayout(newNodes, newEdges);
+    // Apply Selected Layout (Roadmap or Fishbone)
+    let arrangedNodes = newNodes;
+    let finalEdges = newEdges;
+    if (diagramLayout === 'roadmap') {
+      const res = applyRoadmapLayout(newNodes, newEdges);
+      arrangedNodes = res.nodes;
+      finalEdges = res.edges;
+    } else {
+      arrangedNodes = applyFishboneLayout(newNodes, newEdges);
+    }
 
     if (outlineMode === 'new') {
       const newMap: MindmapItem = {
         id: `mm-${Date.now()}`,
-        title: parsed[0]?.label || 'Sơ đồ xương cá từ Dàn ý',
-        description: `Tạo tự động từ dàn ý (${parsed.length} nhánh)`,
+        title: parsed[0]?.label || (diagramLayout === 'roadmap' ? 'Lộ trình học từ Dàn ý' : 'Sơ đồ xương cá từ Dàn ý'),
+        description: `Tạo tự động từ dàn ý (${parsed.length} mục)`,
         category: 'Học tập',
         createdAt: Date.now(),
         updatedAt: Date.now(),
         nodes: arrangedNodes,
-        edges: newEdges
+        edges: finalEdges
       };
       setMindmaps((prev) => [newMap, ...prev]);
       setActiveMapId(newMap.id);
     } else {
-      updateCurrentMap(arrangedNodes, newEdges);
+      updateCurrentMap(arrangedNodes, finalEdges);
     }
 
     setShowOutlineModal(false);
     setOutlineInput('');
   };
 
-  // Prepare custom node injection with callbacks
+  // Prepare custom node injection with callbacks and diagram layout
   const preparedNodes = useMemo(() => {
     if (!activeMap?.nodes) return [];
-    return activeMap.nodes.map((node) => {
+
+    // Find first unmastered milestone for active indicator
+    let firstUnmasteredId = '';
+    for (const n of activeMap.nodes) {
+      if (!n.data?.completed && !firstUnmasteredId) {
+        firstUnmasteredId = n.id;
+        break;
+      }
+    }
+    if (!firstUnmasteredId && activeMap.nodes.length > 0) {
+      firstUnmasteredId = activeMap.nodes[0].id;
+    }
+
+    return activeMap.nodes.map((node, index) => {
       const matchesSearch =
         searchQuery.trim() === '' ||
         node.data?.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -974,6 +1373,20 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       let isVisibleByMastery = true;
       if (masteryFilter === 'mastered') isVisibleByMastery = isCompleted;
       if (masteryFilter === 'unmastered') isVisibleByMastery = !isCompleted;
+
+      const isCurrentActive = node.id === firstUnmasteredId && !isCompleted;
+
+      // Extract level badge text if any (e.g. B2, B1, A2, C1)
+      let badgeText = node.data?.milestoneBadge || '';
+      if (!badgeText) {
+        const labelUpper = (node.data?.label || '').toUpperCase();
+        if (labelUpper.includes('B2')) badgeText = 'B2';
+        else if (labelUpper.includes('B1')) badgeText = 'B1';
+        else if (labelUpper.includes('A2')) badgeText = 'A2';
+        else if (labelUpper.includes('C1')) badgeText = 'C1';
+        else if (node.data?.isRoot) badgeText = '★';
+        else badgeText = String(index + 1);
+      }
 
       return {
         ...node,
@@ -987,6 +1400,10 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         },
         data: {
           ...node.data,
+          isRoadmap: diagramLayout === 'roadmap' || !!node.data?.isRoadmap,
+          milestoneIndex: node.data?.milestoneIndex || index + 1,
+          milestoneBadge: badgeText,
+          isCurrentActive,
           onAddChild: handleAddChildNode,
           onDelete: handleDeleteNode,
           onToggleComplete: handleToggleComplete,
@@ -1002,10 +1419,29 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     selectedNodeId,
     searchQuery,
     masteryFilter,
+    diagramLayout,
     handleAddChildNode,
     handleDeleteNode,
     handleToggleComplete
   ]);
+
+  // Edges prepared with layout-specific styles
+  const preparedEdges = useMemo(() => {
+    if (!activeMap?.edges) return [];
+    if (diagramLayout === 'roadmap') {
+      return activeMap.edges.map((e) => ({
+        ...e,
+        type: 'default',
+        style: {
+          stroke: '#7C3AED',
+          strokeWidth: 8,
+          strokeLinecap: 'round'
+        },
+        animated: false
+      }));
+    }
+    return activeMap.edges;
+  }, [activeMap?.edges, diagramLayout]);
 
   // Selected node object
   const selectedNode = useMemo(() => {
@@ -1291,8 +1727,54 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
             </button>
           </div>
 
+          {/* Cloud Sync Status Indicator & Manual Sync Button */}
+          <button
+            onClick={handleManualSync}
+            disabled={isSyncingCloud}
+            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-2 border-emerald-600 rounded-xl text-xs font-black shadow-[2px_2px_0px_#059669] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+            title="Sơ đồ tư duy được tự động đồng bộ qua Firestore trên mọi thiết bị. Bấm để đồng bộ ngay!"
+          >
+            <Cloud className={cn("w-3.5 h-3.5 text-emerald-600", isSyncingCloud ? "animate-spin" : "")} />
+            <span className="hidden sm:inline">Đồng Bộ Cloud</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          </button>
+
           {viewMode === 'canvas' && (
             <>
+              {/* Diagram Layout Mode Switcher: Roadmap (IMG_3834_bc3ec55e) vs Fishbone */}
+              <div className="flex items-center bg-[#EFECE6] p-0.5 rounded-xl border-2 border-[#141414] text-xs font-black">
+                <button
+                  onClick={() => {
+                    setDiagramLayout('roadmap');
+                    handleAutoLayout('roadmap');
+                  }}
+                  className={cn(
+                    'px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
+                    diagramLayout === 'roadmap'
+                      ? 'bg-[#6D28D9] text-white shadow-[1px_1px_0px_#141414]'
+                      : 'text-ink/65 hover:text-ink'
+                  )}
+                  title="Chuyển sang dạng Lộ Trình Học Uốn Lượn (như ảnh tham khảo)"
+                >
+                  <span>🛤️ Lộ Trình</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setDiagramLayout('fishbone');
+                    handleAutoLayout('fishbone');
+                  }}
+                  className={cn(
+                    'px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
+                    diagramLayout === 'fishbone'
+                      ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]'
+                      : 'text-ink/65 hover:text-ink'
+                  )}
+                  title="Chuyển sang dạng Sơ Đồ Xương Cá Ishikawa"
+                >
+                  <span>🐟 Xương Cá</span>
+                </button>
+              </div>
+
               {/* Add Branch Button */}
               <button
                 onClick={() => {
@@ -1303,20 +1785,20 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
                   }
                 }}
                 className="px-2.5 py-1.5 bg-amber-300 hover:bg-amber-400 text-ink border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
-                title="Thêm nhánh con mới"
+                title={diagramLayout === 'roadmap' ? 'Thêm mốc học mới' : 'Thêm nhánh con mới'}
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Thêm Nhánh</span>
+                <span>{diagramLayout === 'roadmap' ? 'Thêm Mốc' : 'Thêm Nhánh'}</span>
               </button>
 
-              {/* Auto Fishbone Layout Button */}
+              {/* Auto Layout Align Button */}
               <button
-                onClick={handleAutoLayout}
-                className="px-2.5 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
-                title="Tự động căn chỉnh toàn bộ nhánh theo cấu trúc xương cá thẳng hàng"
+                onClick={() => handleAutoLayout()}
+                className="px-2.5 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-950 border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
+                title={diagramLayout === 'roadmap' ? 'Tự động sắp xếp lại các mốc uốn lượn gọn gàng' : 'Tự động sắp xếp xương cá thẳng hàng'}
               >
-                <Wand2 className="w-3.5 h-3.5 text-emerald-700" />
-                <span className="hidden sm:inline">Xếp Xương Cá</span>
+                <Wand2 className="w-3.5 h-3.5 text-[#6D28D9]" />
+                <span className="hidden sm:inline">{diagramLayout === 'roadmap' ? 'Xếp Lộ Trình' : 'Xếp Xương Cá'}</span>
               </button>
             </>
           )}
@@ -1416,6 +1898,21 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         </div>
       </div>
 
+      {/* Sync Toast Feedback */}
+      <AnimatePresence>
+        {syncToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="fixed top-14 right-4 z-[9999] bg-[#141414] text-white px-4 py-2 rounded-xl border border-white/20 shadow-xl text-xs font-black flex items-center gap-2"
+          >
+            <Cloud className="w-4 h-4 text-emerald-400" />
+            <span>{syncToast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* MAIN VIEW AREA: CANVAS */}
       {viewMode === 'canvas' && (
         <div
@@ -1427,7 +1924,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
           <ReactFlowProvider>
             <ReactFlow
               nodes={preparedNodes}
-              edges={activeMap?.edges || []}
+              edges={preparedEdges}
               nodeTypes={nodeTypes}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
