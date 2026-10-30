@@ -293,6 +293,25 @@ export interface IngestionHabit {
   activatedAt?: string | number;
 }
 
+export interface MindmapNodeData {
+  label: string;
+  notes?: string;
+  color?: string;
+  shape?: 'rounded' | 'pill' | 'card';
+  completed?: boolean;
+  important?: boolean;
+  tag?: string;
+  [key: string]: any;
+}
 
-
-
+export interface MindmapItem {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  updatedAt: number;
+  createdAt: number;
+  colorTheme?: string;
+  nodes: any[];
+  edges: any[];
+}

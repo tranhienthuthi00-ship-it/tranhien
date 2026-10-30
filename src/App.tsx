@@ -23,6 +23,7 @@ import { HabitTracker } from "./components/HabitTracker";
 import { DigitalJournal } from "./components/DigitalJournal";
 import { KanbanBoard } from "./components/KanbanBoard";
 import { EnglishMaterials } from "./components/EnglishMaterials";
+import { StudyHub } from "./components/StudyHub";
 import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
 import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target, Sparkles, Flame, Search, X, FolderKanban, BookMarked } from "lucide-react";
 
@@ -46,6 +47,7 @@ function AppContent() {
     studyGoals, setStudyGoals,
     achievements, setAchievements,
     kanbanTasks, setKanbanTasks,
+    mindmaps, setMindmaps,
     bulkDebts, setBulkDebts,
     bulkCardSpends, setBulkCardSpends,
     bulkCurrentCash, setBulkCurrentCash
@@ -314,7 +316,7 @@ function AppContent() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [collectionSearchQuery, setCollectionSearchQuery] = useState("");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "1000 Sentences" | "Sách & Unit" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
-  const [activePracticeSubTab, setActivePracticeSubTab] = useState<"Dictation" | "Speech" | "Translation" | "Reflex" | "SRS">("Dictation");
+  const [activePracticeSubTab, setActivePracticeSubTab] = useState<"Dictation" | "Speech" | "Translation" | "Reflex" | "SRS" | "Picture">("Dictation");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Habits" | "Places" | "Content" | "Assets">("Lists");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
@@ -561,6 +563,13 @@ function AppContent() {
               setEnglishBooks={setEnglishBooks}
               words={words}
               setWords={setWords}
+            />
+          )}
+
+          {activeTab === "Học hành" && (
+            <StudyHub 
+              mindmaps={mindmaps} 
+              setMindmaps={setMindmaps} 
             />
           )}
 

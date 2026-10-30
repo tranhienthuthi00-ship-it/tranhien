@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory, VideoDictation, CustomSentence, PracticeParagraph, StudyGoal, Achievement, WritingSentence, KanbanTask, EnglishBook, EnglishMaterialUnit } from '../types';
+import type { Word, Task, WishlistItem, LogEntry, FoodPlace, ContentIdea, Asset, AssetCategory, VideoDictation, CustomSentence, PracticeParagraph, StudyGoal, Achievement, WritingSentence, KanbanTask, EnglishBook, EnglishMaterialUnit, MindmapItem } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -350,6 +350,186 @@ const DEFAULT_ENGLISH_BOOKS: EnglishBook[] = [
   }
 ];
 
+const DEFAULT_MINDMAPS: MindmapItem[] = [
+  {
+    id: "mm-study-methods",
+    title: "🧠 Phương Pháp Học Tập & Siêu Ghi Nhớ",
+    description: "Bộ phương pháp khoa học: Active Recall, Spaced Repetition và Kỹ thuật Feynman",
+    category: "Kỹ năng học",
+    colorTheme: "#3B82F6",
+    createdAt: Date.now() - 86400000 * 2,
+    updatedAt: Date.now(),
+    nodes: [
+      {
+        id: "root-1",
+        type: "default",
+        data: { label: "🧠 PHƯƠNG PHÁP HỌC HIỆU QUẢ", notes: "Tổng hợp các kỹ thuật khoa học giúp ghi nhớ lâu và hiểu sâu bản chất", important: true },
+        position: { x: 300, y: 220 },
+        style: {
+          background: "#FEF08A",
+          border: "2px solid #141414",
+          borderRadius: "14px",
+          padding: "14px 22px",
+          fontWeight: "800",
+          fontSize: "15px",
+          boxShadow: "4px 4px 0px #141414",
+          color: "#141414"
+        }
+      },
+      {
+        id: "node-recall",
+        type: "default",
+        data: { label: "⚡ Active Recall (Chủ động gợi nhớ)", notes: "Không đọc lại thụ động. Đóng sách và tự kiểm tra bằng flashcard hoặc viết lại từ trí nhớ.", color: "#BFDBFE" },
+        position: { x: 740, y: 100 },
+        style: {
+          background: "#DBEAFE",
+          border: "2px solid #141414",
+          borderRadius: "12px",
+          padding: "10px 18px",
+          fontWeight: "700",
+          boxShadow: "3px 3px 0px #141414"
+        }
+      },
+      {
+        id: "node-srs",
+        type: "default",
+        data: { label: "📅 Spaced Repetition (Lặp lại ngắt quãng)", notes: "Ôn lại sau 1 ngày, 3 ngày, 7 ngày, 14 ngày để vượt qua đường cong quên lãng Ebbinghaus.", color: "#BBF7D0" },
+        position: { x: 740, y: 240 },
+        style: {
+          background: "#DCFCE7",
+          border: "2px solid #141414",
+          borderRadius: "12px",
+          padding: "10px 18px",
+          fontWeight: "700",
+          boxShadow: "3px 3px 0px #141414"
+        }
+      },
+      {
+        id: "node-feynman",
+        type: "default",
+        data: { label: "💡 Kỹ Thuật Feynman (Giảng giải đơn giản)", notes: "Thử giải thích một chủ đề phức tạp cho người khác bằng từ ngữ mộc mạc nhất.", color: "#FED7AA" },
+        position: { x: 740, y: 380 },
+        style: {
+          background: "#FFEDD5",
+          border: "2px solid #141414",
+          borderRadius: "12px",
+          padding: "10px 18px",
+          fontWeight: "700",
+          boxShadow: "3px 3px 0px #141414"
+        }
+      },
+      {
+        id: "node-pomodoro",
+        type: "default",
+        data: { label: "⏱️ Pomodoro 25/5 Tập Trung Cao", notes: "25 phút tập trung không gián đoạn, 5 phút vận động và uống nước.", color: "#FBCFE8" },
+        position: { x: -80, y: 120 },
+        style: {
+          background: "#FCE7F3",
+          border: "2px solid #141414",
+          borderRadius: "12px",
+          padding: "10px 18px",
+          fontWeight: "700",
+          boxShadow: "3px 3px 0px #141414"
+        }
+      },
+      {
+        id: "node-mindmap",
+        type: "default",
+        data: { label: "🗺️ Tư Duy Thị Giác (Mind Mapping)", notes: "Dùng màu sắc, liên kết từ khóa và hình khối để kết nối logic bán cầu não trái & phải.", color: "#DDD6FE" },
+        position: { x: -80, y: 300 },
+        style: {
+          background: "#EDE9FE",
+          border: "2px solid #141414",
+          borderRadius: "12px",
+          padding: "10px 18px",
+          fontWeight: "700",
+          boxShadow: "3px 3px 0px #141414"
+        }
+      }
+    ],
+    edges: [
+      { id: "e1", source: "root-1", target: "node-recall", animated: true, style: { stroke: "#141414", strokeWidth: 2 } },
+      { id: "e2", source: "root-1", target: "node-srs", animated: true, style: { stroke: "#141414", strokeWidth: 2 } },
+      { id: "e3", source: "root-1", target: "node-feynman", animated: true, style: { stroke: "#141414", strokeWidth: 2 } },
+      { id: "e4", source: "root-1", target: "node-pomodoro", style: { stroke: "#141414", strokeWidth: 2 } },
+      { id: "e5", source: "root-1", target: "node-mindmap", style: { stroke: "#141414", strokeWidth: 2 } }
+    ]
+  },
+  {
+    id: "mm-english-mastery",
+    title: "🇬🇧 Lộ Trình Ôn Tập Tiếng Anh Giao Tiếp & Du Lịch",
+    description: "Sơ đồ kiến thức trọng tâm cho kỹ năng giao tiếp, từ vựng du lịch & phát âm",
+    category: "Tiếng Anh",
+    colorTheme: "#10B981",
+    createdAt: Date.now() - 86400000,
+    updatedAt: Date.now(),
+    nodes: [
+      {
+        id: "en-root",
+        type: "default",
+        data: { label: "🎯 LÀM CHỦ TIẾNG ANH DU LỊCH", notes: "Lộ trình 3 giai đoạn để tự tin giao tiếp và làm việc trong môi trường quốc tế", important: true },
+        position: { x: 320, y: 200 },
+        style: {
+          background: "#A7F3D0",
+          border: "2px solid #141414",
+          borderRadius: "14px",
+          padding: "14px 22px",
+          fontWeight: "800",
+          boxShadow: "4px 4px 0px #141414"
+        }
+      },
+      {
+        id: "en-vocab",
+        type: "default",
+        data: { label: "📚 Từ Vựng Cốt Lõi (Hospitality & Cruise)", notes: "Front Desk, Food & Beverage, Housekeeping, Guest Services." },
+        position: { x: 740, y: 120 },
+        style: {
+          background: "#FEF3C7",
+          border: "2px solid #141414",
+          borderRadius: "12px",
+          padding: "10px 18px",
+          fontWeight: "700",
+          boxShadow: "3px 3px 0px #141414"
+        }
+      },
+      {
+        id: "en-pronun",
+        type: "default",
+        data: { label: "🗣️ Phát Âm & Ngữ Điệu (IPA & Intonation)", notes: "Luyện trọng âm từ, âm cuối (s, ed) và ngữ điệu câu hỏi/khẳng định." },
+        position: { x: 740, y: 280 },
+        style: {
+          background: "#E0E7FF",
+          border: "2px solid #141414",
+          borderRadius: "12px",
+          padding: "10px 18px",
+          fontWeight: "700",
+          boxShadow: "3px 3px 0px #141414"
+        }
+      },
+      {
+        id: "en-reflex",
+        type: "default",
+        data: { label: "⚡ Luyện Phản Xạ 15 Phút Hàng Ngày", notes: "Luyện Shadowing với các video clip YouTube thực tế và ghi âm so sánh." },
+        position: { x: -60, y: 200 },
+        style: {
+          background: "#FCE7F3",
+          border: "2px solid #141414",
+          borderRadius: "12px",
+          padding: "10px 18px",
+          fontWeight: "700",
+          boxShadow: "3px 3px 0px #141414"
+        }
+      }
+    ],
+    edges: [
+      { id: "een-1", source: "en-root", target: "en-vocab", animated: true, style: { stroke: "#141414", strokeWidth: 2 } },
+      { id: "een-2", source: "en-root", target: "en-pronun", animated: true, style: { stroke: "#141414", strokeWidth: 2 } },
+      { id: "een-3", source: "en-root", target: "en-reflex", animated: true, style: { stroke: "#141414", strokeWidth: 2 } }
+    ]
+  }
+];
+
+
 const getLocalData = <T,>(key: string, defaultValue: T): T => {
   try {
     const saved = safeLocalStorage.getItem(key);
@@ -381,6 +561,7 @@ export function useFirebaseSync() {
   const [studyGoals, setStudyGoals] = useState<StudyGoal[]>(() => getLocalData('spatial_hub_study_goals', []));
   const [achievements, setAchievements] = useState<Achievement[]>(() => getLocalData('spatial_hub_achievements', []));
   const [kanbanTasks, setKanbanTasks] = useState<KanbanTask[]>(() => getLocalData('spatial_hub_kanban_tasks', DEFAULT_KANBAN_TASKS));
+  const [mindmaps, setMindmaps] = useState<MindmapItem[]>(() => getLocalData('spatial_hub_mindmaps', DEFAULT_MINDMAPS));
   const [assetCategories, setAssetCategories] = useState<AssetCategory[]>(() => getLocalData('spatial_hub_asset_cats', [
     { id: 'cat-money', name: 'Tiền mặt & NH', icon: 'Wallet' },
     { id: 'cat-realestate', name: 'Bất động sản', icon: 'Home' },
@@ -535,6 +716,7 @@ export function useFirebaseSync() {
         'spatial_hub_achievements': `users/${uid}/achievements`,
         'spatial_hub_kanban_tasks': `users/${uid}/kanbanTasks`,
         'spatial_hub_english_books': `users/${uid}/englishBooks`,
+        'spatial_hub_mindmaps': `users/${uid}/mindmaps`,
       };
 
       for (const [lsKey, firestorePath] of Object.entries(storageMap)) {
@@ -696,6 +878,10 @@ export function useFirebaseSync() {
       syncCollection(snap.docs.map(d => d.data() as EnglishBook).sort((a,b) => b.updatedAt - a.updatedAt), setEnglishBooks, englishBooksRef, 'spatial_hub_english_books', `users/${user.uid}/englishBooks`, DEFAULT_ENGLISH_BOOKS);
     }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/englishBooks`));
 
+    const unsubMindmaps = onSnapshot(collection(db, `users/${user.uid}/mindmaps`), (snap) => {
+      syncCollection(snap.docs.map(d => d.data() as MindmapItem).sort((a,b) => b.updatedAt - a.updatedAt), setMindmaps, mindmapsRef, 'spatial_hub_mindmaps', `users/${user.uid}/mindmaps`, DEFAULT_MINDMAPS);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/mindmaps`));
+
     const unsubTags = onSnapshot(doc(db, `users/${user.uid}/data/tags`), (docSnap) => {
       if (docSnap.exists() && docSnap.data().tags) {
         setTags(docSnap.data().tags);
@@ -778,7 +964,7 @@ export function useFirebaseSync() {
       unsubWords(); unsubWritingSentences(); unsubTasks(); unsubWishlist(); unsubLogs(); unsubFood();
       unsubIdeas(); unsubAssets(); unsubCats(); unsubDictations(); unsubCustomSentences(); 
       unsubPracticeParagraphs(); unsubStudyGoals(); unsubAchievements(); unsubKanbanTasks(); unsubTags();
-      unsubSalary(); unsubHabits(); unsubRewards(); unsubAssetsBulk(); unsubEnglishBooks();
+      unsubSalary(); unsubHabits(); unsubRewards(); unsubAssetsBulk(); unsubEnglishBooks(); unsubMindmaps();
     };
   }, [user]);
 
@@ -786,6 +972,7 @@ export function useFirebaseSync() {
   const wordsRef = React.useRef(words);
   const writingSentencesRef = React.useRef(writingSentences);
   const englishBooksRef = React.useRef(englishBooks);
+  const mindmapsRef = React.useRef(mindmaps);
   const tasksRef = React.useRef(tasks);
   const wishlistRef = React.useRef(wishlist);
   const logsRef = React.useRef(logs);
@@ -810,6 +997,7 @@ export function useFirebaseSync() {
   useEffect(() => { wordsRef.current = words; }, [words]);
   useEffect(() => { writingSentencesRef.current = writingSentences; }, [writingSentences]);
   useEffect(() => { englishBooksRef.current = englishBooks; }, [englishBooks]);
+  useEffect(() => { mindmapsRef.current = mindmaps; }, [mindmaps]);
 
   useEffect(() => { kanbanTasksRef.current = kanbanTasks; }, [kanbanTasks]);
   useEffect(() => { habitsRef.current = habits; }, [habits]);
@@ -893,6 +1081,7 @@ export function useFirebaseSync() {
       else if (collectionName === 'studyGoals') lsKey = 'spatial_hub_study_goals';
       else if (collectionName === 'achievements') lsKey = 'spatial_hub_achievements';
       else if (collectionName === 'kanbanTasks') lsKey = 'spatial_hub_kanban_tasks';
+      else if (collectionName === 'mindmaps') lsKey = 'spatial_hub_mindmaps';
       else if (collectionName === 'tags') lsKey = 'spatial_hub_tags';
 
       safeLocalStorage.setItem(lsKey, JSON.stringify(targetItems));
@@ -949,6 +1138,7 @@ export function useFirebaseSync() {
   const setStudyGoalsSync = useCallback(createSyncSetter<StudyGoal>('studyGoals', goalsRef, setStudyGoals), [createSyncSetter]);
   const setAchievementsSync = useCallback(createSyncSetter<Achievement>('achievements', achievementsRef, setAchievements), [createSyncSetter]);
   const setKanbanTasksSync = useCallback(createSyncSetter<KanbanTask>('kanbanTasks', kanbanTasksRef, setKanbanTasks), [createSyncSetter]);
+  const setMindmapsSync = useCallback(createSyncSetter<MindmapItem>('mindmaps', mindmapsRef, setMindmaps), [createSyncSetter]);
   const setTagsSync = useCallback(createSyncSetter<any>('tags', React.createRef(), setTags as any, true), [createSyncSetter]);
 
   const setBulkDebtsSync = useCallback(async (valOrFunc: any) => {
@@ -1006,6 +1196,7 @@ export function useFirebaseSync() {
     studyGoals, setStudyGoals: setStudyGoalsSync,
     achievements, setAchievements: setAchievementsSync,
     kanbanTasks, setKanbanTasks: setKanbanTasksSync,
+    mindmaps, setMindmaps: setMindmapsSync,
     tags, setTags: setTagsSync,
     bulkDebts, setBulkDebts: setBulkDebtsSync,
     bulkCardSpends, setBulkCardSpends: setBulkCardSpendsSync,
