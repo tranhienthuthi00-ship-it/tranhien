@@ -366,7 +366,7 @@ function AppContent() {
   const dueCount = words.filter(w => new Date(w.nextReview) <= new Date()).length;
 
   return (
-    <div className={cn("min-h-screen pb-20 relative overflow-x-clip w-full transition-colors duration-300", theme === "minimal" ? "theme-minimal" : "")}>
+    <div className={cn("min-h-screen flex flex-col md:flex-row bg-[#FAF8F5] text-ink font-sans selection:bg-amber-200 relative overflow-x-clip w-full transition-colors duration-300", theme === "minimal" ? "theme-minimal" : "")}>
       {theme !== "minimal" && <Doodles />}
       <svg width="0" height="0" className="absolute pointer-events-none" style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
@@ -376,22 +376,21 @@ function AppContent() {
           </filter>
         </defs>
       </svg>
-      {activeTab !== "Projects" && (
-        <NavBar 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          lastSaved={lastSaved} 
-          onLogout={user ? handleLogout : () => setShowLoginModal(true)} 
-          isLoggedIn={!!user}
-          dueCount={dueCount} 
-          theme={theme}
-          onToggleTheme={() => {
-            const nextTheme = theme === "handdrawn" ? "minimal" : "handdrawn";
-            setTheme(nextTheme);
-            localStorage.setItem("glowup_theme", nextTheme);
-          }}
-        />
-      )}
+      
+      <NavBar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        lastSaved={lastSaved} 
+        onLogout={user ? handleLogout : () => setShowLoginModal(true)} 
+        isLoggedIn={!!user}
+        dueCount={dueCount} 
+        theme={theme}
+        onToggleTheme={() => {
+          const nextTheme = theme === "handdrawn" ? "minimal" : "handdrawn";
+          setTheme(nextTheme);
+          localStorage.setItem("glowup_theme", nextTheme);
+        }}
+      />
 
       {showLoginModal && (
         <div className="fixed inset-0 z-[100] bg-[#f4f1ea] overflow-y-auto">
@@ -399,8 +398,8 @@ function AppContent() {
         </div>
       )}
       
-      <main className={cn("relative z-10 overflow-x-clip w-full", activeTab === "Projects" ? "mt-0" : "mt-4")}>
-        <div className={cn("max-w-[100vw]", activeTab === "Projects" ? "px-0" : "px-1 sm:px-2")}>
+      <main className="flex-1 min-w-0 relative z-10 overflow-x-clip py-2 md:py-4 px-1 sm:px-3 md:px-5">
+        <div className="w-full max-w-full">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}

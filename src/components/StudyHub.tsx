@@ -52,7 +52,8 @@ import {
   Maximize2,
   Minimize2,
   MoreHorizontal,
-  ChevronDown
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -379,7 +380,7 @@ export function applyRoadmapLayout(nodes: Node[], edges: Edge[]): { nodes: Node[
 
     // Extract or infer badge text (e.g. B2, B1, A2, or index)
     let badgeText = '';
-    const labelUpper = (node.data?.label || '').toUpperCase();
+    const labelUpper = String(node.data?.label || '').toUpperCase();
     if (labelUpper.includes('B2')) badgeText = 'B2';
     else if (labelUpper.includes('B1')) badgeText = 'B1';
     else if (labelUpper.includes('A2')) badgeText = 'A2';
@@ -502,7 +503,229 @@ export function applyFishboneLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-// Custom Node for React Flow: Supports both Curved Learning Roadmap (IMG_3834_bc3ec55e) and Fishbone
+// 3. Hierarchical Numbering Engine: Main milestones are 1, 2, 3... and child branches are 1.1, 1.2, 2.1...
+export function computeHierarchicalCodes(nodes: Node[], edges: Edge[]): Map<string, string> {
+  const codes = new Map<string, string>();
+  if (!nodes || nodes.length === 0) return codes;
+
+  const targetIds = new Set(edges.map((e) => e.target));
+  const rootNode =
+    nodes.find((n) => n.data?.isRoot) ||
+    nodes.find((n) => !targetIds.has(n.id)) ||
+    nodes[0];
+
+  codes.set(rootNode.id, '★');
+
+  const childrenMap = new Map<string, string[]>();
+  edges.forEach((e) => {
+    const list = childrenMap.get(e.source) || [];
+    list.push(e.target);
+    childrenMap.set(e.source, list);
+  });
+
+  const assignCodes = (parentId: string, parentCode: string, isFromRoot: boolean) => {
+    const children = childrenMap.get(parentId) || [];
+    children.forEach((childId, idx) => {
+      const childNode = nodes.find((n) => n.id === childId);
+      const label = String(childNode?.data?.label || '').toUpperCase();
+      let code = '';
+      if (isFromRoot) {
+        // Milestone 1, 2, 3... or level badge B2, B1, A2, C1 if specified
+        if (label.includes('B2')) code = 'B2';
+        else if (label.includes('B1')) code = 'B1';
+        else if (label.includes('A2')) code = 'A2';
+        else if (label.includes('C1')) code = 'C1';
+        else code = String(idx + 1);
+      } else {
+        // Sub-branches: 1.1, 1.2, 1.3... or 2.1, 2.2... (child branches do NOT advance main milestone sequence)
+        code = `${parentCode}.${idx + 1}`;
+      }
+      codes.set(childId, code);
+      assignCodes(childId, code, false);
+    });
+  };
+
+  assignCodes(rootNode.id, '', true);
+
+  // Fallback for unreached nodes
+  let unreached = 1;
+  nodes.forEach((n) => {
+    if (!codes.has(n.id)) {
+      codes.set(n.id, `+${unreached++}`);
+    }
+  });
+
+  return codes;
+}
+
+// 4. Authentic XMind Mindmap Layout Engine: Radiates balanced to the Left & Right with clean non-overlapping coordinates
+export function applyXMindLayout(
+  nodes: Node[],
+  edges: Edge[],
+  hiddenNodeIds: Set<string> = new Set()
+): { nodes: Node[]; edges: Edge[] } {
+  if (!nodes || nodes.length === 0) return { nodes: [], edges: [] };
+
+  const visibleNodes = nodes.filter((n) => !hiddenNodeIds.has(n.id));
+  const visibleNodeIds = new Set(visibleNodes.map((n) => n.id));
+
+  const targetIds = new Set(
+    edges
+      .filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target))
+      .map((e) => e.target)
+  );
+
+  const rootNode =
+    visibleNodes.find((n) => n.data?.isRoot) ||
+    visibleNodes.find((n) => !targetIds.has(n.id)) ||
+    visibleNodes[0];
+
+  const childrenMap = new Map<string, string[]>();
+  edges.forEach((edge) => {
+    if (visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)) {
+      const list = childrenMap.get(edge.source) || [];
+      list.push(edge.target);
+      childrenMap.set(edge.source, list);
+    }
+  });
+
+  const positioned = new Map<string, { x: number; y: number }>();
+  const centerX = 550;
+  const centerY = 360;
+  positioned.set(rootNode.id, { x: centerX, y: centerY });
+
+  // Direct children of root
+  const rootChildren = (childrenMap.get(rootNode.id) || []).filter((id) => id !== rootNode.id);
+
+  // Split balanced into Right and Left trees
+  const rightRootChildren: string[] = [];
+  const leftRootChildren: string[] = [];
+  rootChildren.forEach((childId, idx) => {
+    if (idx % 2 === 0) {
+      rightRootChildren.push(childId);
+    } else {
+      leftRootChildren.push(childId);
+    }
+  });
+
+  // Calculate subtree heights recursively
+  const subtreeHeightMemo = new Map<string, number>();
+  const getSubtreeHeight = (nodeId: string): number => {
+    if (subtreeHeightMemo.has(nodeId)) return subtreeHeightMemo.get(nodeId)!;
+    const children = childrenMap.get(nodeId) || [];
+    if (children.length === 0) {
+      subtreeHeightMemo.set(nodeId, 70);
+      return 70;
+    }
+    let total = 0;
+    children.forEach((cId, idx) => {
+      total += getSubtreeHeight(cId);
+      if (idx > 0) total += 24; // gap between sibling branches
+    });
+    const h = Math.max(70, total);
+    subtreeHeightMemo.set(nodeId, h);
+    return h;
+  };
+
+  // Layout Right Subtree (radiates towards +X)
+  let totalRightHeight = 0;
+  rightRootChildren.forEach((id, idx) => {
+    totalRightHeight += getSubtreeHeight(id);
+    if (idx > 0) totalRightHeight += 32;
+  });
+
+  let curRightY = centerY - totalRightHeight / 2;
+  const layoutBranchRight = (nodeId: string, x: number, topY: number) => {
+    const h = getSubtreeHeight(nodeId);
+    const nodeY = topY + (h - 60) / 2;
+    positioned.set(nodeId, { x, y: nodeY });
+
+    const children = childrenMap.get(nodeId) || [];
+    let childY = topY;
+    children.forEach((cId) => {
+      layoutBranchRight(cId, x + 260, childY);
+      childY += getSubtreeHeight(cId) + 24;
+    });
+  };
+
+  rightRootChildren.forEach((id) => {
+    const h = getSubtreeHeight(id);
+    layoutBranchRight(id, centerX + 260, curRightY);
+    curRightY += h + 32;
+  });
+
+  // Layout Left Subtree (radiates towards -X)
+  let totalLeftHeight = 0;
+  leftRootChildren.forEach((id, idx) => {
+    totalLeftHeight += getSubtreeHeight(id);
+    if (idx > 0) totalLeftHeight += 32;
+  });
+
+  let curLeftY = centerY - totalLeftHeight / 2;
+  const layoutBranchLeft = (nodeId: string, x: number, topY: number) => {
+    const h = getSubtreeHeight(nodeId);
+    const nodeY = topY + (h - 60) / 2;
+    positioned.set(nodeId, { x, y: nodeY });
+
+    const children = childrenMap.get(nodeId) || [];
+    let childY = topY;
+    children.forEach((cId) => {
+      layoutBranchLeft(cId, x - 260, childY);
+      childY += getSubtreeHeight(cId) + 24;
+    });
+  };
+
+  leftRootChildren.forEach((id) => {
+    const h = getSubtreeHeight(id);
+    layoutBranchLeft(id, centerX - 260, curLeftY);
+    curLeftY += h + 32;
+  });
+
+  // Any orphaned / unpositioned nodes placed neatly below
+  let fallbackY = centerY + Math.max(totalRightHeight, totalLeftHeight) / 2 + 90;
+  visibleNodes.forEach((n) => {
+    if (!positioned.has(n.id)) {
+      positioned.set(n.id, { x: centerX, y: fallbackY });
+      fallbackY += 80;
+    }
+  });
+
+  // Track nodes on right side for handle orientation
+  const rightNodeSet = new Set<string>();
+  const collectSubtree = (id: string, set: Set<string>) => {
+    set.add(id);
+    (childrenMap.get(id) || []).forEach((c) => collectSubtree(c, set));
+  };
+  rightRootChildren.forEach((id) => collectSubtree(id, rightNodeSet));
+
+  const xmindEdges: Edge[] = edges
+    .filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target))
+    .map((e) => {
+      const isRight = rightNodeSet.has(e.target);
+      return {
+        ...e,
+        sourceHandle: isRight ? 'right' : 'left',
+        targetHandle: isRight ? 'left' : 'right',
+        type: 'smoothstep',
+        style: {
+          stroke: isRight ? '#2563EB' : '#7C3AED',
+          strokeWidth: 3,
+          strokeLinecap: 'round'
+        }
+      };
+    });
+
+  const nextNodes = nodes.map((node) => {
+    const pos = positioned.get(node.id);
+    return pos
+      ? { ...node, position: pos, data: { ...node.data, isRoadmap: false } }
+      : node;
+  });
+
+  return { nodes: nextNodes, edges: xmindEdges };
+}
+
+// Custom Node for React Flow: Supports Curved Learning Roadmap, Fishbone, and XMind Mindmap
 interface CustomNodeProps {
   id: string;
   data: {
@@ -515,6 +738,11 @@ interface CustomNodeProps {
     isRoadmap?: boolean;
     milestoneIndex?: number;
     milestoneBadge?: string;
+    hierarchicalCode?: string;
+    hasChildren?: boolean;
+    childCount?: number;
+    isCollapsed?: boolean;
+    onToggleCollapse?: () => void;
     isCurrentActive?: boolean;
     onAddChild?: (parentId: string) => void;
     onDelete?: (nodeId: string) => void;
@@ -600,11 +828,36 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
             isCurrentActive ? "border-amber-500 shadow-[3px_3px_0px_#F59E0B]" : ""
           )}
         >
-          {/* Level / Category chip and mastery checkbox */}
+          {/* Level / Category chip, collapse button and mastery checkbox */}
           <div className="flex items-center justify-between gap-1 mb-1">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#6D28D9]">
-              {isLevelBadge ? `LEVEL ${badgeText}` : `MỐC ${data.milestoneIndex || 1}`}
-            </span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#6D28D9] truncate">
+                {isLevelBadge ? `LEVEL ${badgeText}` : `MỐC ${data.hierarchicalCode || data.milestoneBadge || data.milestoneIndex || 1}`}
+              </span>
+              {data.hasChildren && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    data.onToggleCollapse?.();
+                  }}
+                  className="px-1.5 py-0.5 rounded-full text-[9px] font-black border flex items-center gap-0.5 transition-all bg-amber-100 hover:bg-amber-200 border-amber-500 text-amber-950 shadow-xs cursor-pointer active:scale-95 shrink-0"
+                  title={data.isCollapsed ? "Bấm để mở rộng các nhánh con" : "Bấm để thu gọn các nhánh con"}
+                >
+                  {data.isCollapsed ? (
+                    <>
+                      <ChevronRight className="w-2.5 h-2.5" />
+                      <span>+{data.childCount}</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-2.5 h-2.5" />
+                      <span>Thu gọn</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
 
             {/* Checkbox for Mastery */}
             <button
@@ -614,7 +867,7 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
                 data.onToggleComplete?.(id);
               }}
               className={cn(
-                "flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border transition-all cursor-pointer active:scale-95",
+                "flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border transition-all cursor-pointer active:scale-95 shrink-0",
                 isCompleted
                   ? "bg-purple-100 text-[#6D28D9] border-purple-400 hover:bg-purple-200"
                   : "bg-slate-50 text-slate-600 border-slate-300 hover:border-slate-600 hover:text-slate-900"
@@ -698,7 +951,7 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
     );
   }
 
-  // --- 2. FISHBONE DIAGRAM NODE ---
+  // --- 2. FISHBONE & XMIND MINDMAP NODE ---
   return (
     <div
       onDoubleClick={(e) => {
@@ -723,11 +976,13 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
       <Handle
         type="target"
         position={Position.Left}
+        id="left"
         className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
       />
       <Handle
         type="source"
         position={Position.Right}
+        id="right"
         className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
       />
       <Handle
@@ -743,44 +998,79 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
         className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white hover:!scale-125 opacity-0 group-hover:opacity-100 transition-opacity"
       />
 
-      {/* Header: Mastery Checkbox or Root Spine Badge */}
+      {/* Header: Hierarchical Code, Collapse Button, Mastery Checkbox or Root Spine Badge */}
       <div className="flex items-center justify-between gap-1 mb-1.5">
         {isRoot ? (
           <span className="text-[9px] font-black uppercase tracking-wider bg-black/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-            <Fish className="w-3 h-3" /> Trục Xương Sống
+            <Fish className="w-3 h-3" /> Chủ Đề Trung Tâm
           </span>
         ) : (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              data.onToggleComplete?.(id);
-            }}
-            className={cn(
-              "flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border transition-all cursor-pointer active:scale-95",
-              isCompleted
-                ? "bg-emerald-100 text-emerald-800 border-emerald-600 hover:bg-emerald-200"
-                : "bg-white/80 text-ink/70 border-ink/30 hover:border-ink hover:text-ink hover:bg-white"
-            )}
-            title={isCompleted ? "Đã nắm! Bấm để bỏ tick" : "Chưa nắm. Bấm để tick 'Đã nắm'"}
-          >
-            {isCompleted ? (
-              <>
-                <CheckSquare className="w-3 h-3 text-emerald-700 stroke-[3]" />
-                <span>Đã nắm</span>
-              </>
-            ) : (
-              <>
-                <Square className="w-3 h-3 text-ink/40" />
-                <span>Chưa nắm</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-1.5 min-w-0">
+            {/* Hierarchical Code Badge e.g. 1, 1.1, 1.2, 2.1 */}
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-black/5 text-ink/75 border border-ink/20 shrink-0">
+              {data.hierarchicalCode || data.milestoneBadge || '•'}
+            </span>
+
+            {/* Checkbox for Mastery */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onToggleComplete?.(id);
+              }}
+              className={cn(
+                "flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border transition-all cursor-pointer active:scale-95 shrink-0",
+                isCompleted
+                  ? "bg-emerald-100 text-emerald-800 border-emerald-600 hover:bg-emerald-200"
+                  : "bg-white/80 text-ink/70 border-ink/30 hover:border-ink hover:text-ink hover:bg-white"
+              )}
+              title={isCompleted ? "Đã nắm! Bấm để bỏ tick" : "Chưa nắm. Bấm để tick 'Đã nắm'"}
+            >
+              {isCompleted ? (
+                <>
+                  <CheckSquare className="w-3 h-3 text-emerald-700 stroke-[3]" />
+                  <span>Đã nắm</span>
+                </>
+              ) : (
+                <>
+                  <Square className="w-3 h-3 text-ink/40" />
+                  <span>Chưa nắm</span>
+                </>
+              )}
+            </button>
+          </div>
         )}
 
-        {isImportant && (
-          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400 shrink-0" />
-        )}
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
+          {/* Collapse / Expand Child Branches Button */}
+          {data.hasChildren && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onToggleCollapse?.();
+              }}
+              className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-ink/30 bg-amber-100 hover:bg-amber-200 text-ink shadow-xs transition-all active:scale-95 cursor-pointer"
+              title={data.isCollapsed ? "Bấm để mở rộng các nhánh con" : "Bấm để thu gọn các nhánh con"}
+            >
+              {data.isCollapsed ? (
+                <>
+                  <ChevronRight className="w-2.5 h-2.5" />
+                  <span>+{data.childCount}</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-2.5 h-2.5" />
+                  <span>Thu gọn</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {isImportant && (
+            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400 shrink-0" />
+          )}
+        </div>
       </div>
 
       {/* Node Content */}
@@ -886,8 +1176,11 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
   // Filter for Mastery: 'all' | 'unmastered' | 'mastered'
   const [masteryFilter, setMasteryFilter] = useState<'all' | 'unmastered' | 'mastered'>('all');
 
-  // Diagram layout style: 'roadmap' (Learning path S-curve as in IMG_3834_bc3ec55e) | 'fishbone' (Ishikawa)
-  const [diagramLayout, setDiagramLayout] = useState<'roadmap' | 'fishbone'>('roadmap');
+  // Diagram layout style: 'xmind' (Radiating tree like XMind app) | 'roadmap' (Learning path S-curve) | 'fishbone' (Ishikawa)
+  const [diagramLayout, setDiagramLayout] = useState<'xmind' | 'roadmap' | 'fishbone'>('xmind');
+
+  // Collapsed milestone branches state
+  const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(new Set());
 
   // Cloud sync indicator state
   const [isSyncingCloud, setIsSyncingCloud] = useState(false);
@@ -903,6 +1196,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const outlineTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Dropdown for more actions
   const [showMoreActions, setShowMoreActions] = useState(false);
@@ -1020,12 +1314,60 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     [activeMap, updateCurrentMap]
   );
 
-  // Auto clean layout (Roadmap or Fishbone)
+  // Adjacency tree for collapsing & numbering
+  const childrenMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    if (!activeMap?.edges) return map;
+    activeMap.edges.forEach((e) => {
+      const list = map.get(e.source) || [];
+      list.push(e.target);
+      map.set(e.source, list);
+    });
+    return map;
+  }, [activeMap?.edges]);
+
+  // Compute all hidden node IDs (descendants of any node in collapsedNodeIds)
+  const hiddenNodeIds = useMemo(() => {
+    const hidden = new Set<string>();
+    const hideDescendants = (nodeId: string) => {
+      const children = childrenMap.get(nodeId) || [];
+      children.forEach((cId) => {
+        hidden.add(cId);
+        hideDescendants(cId);
+      });
+    };
+    collapsedNodeIds.forEach((id) => hideDescendants(id));
+    return hidden;
+  }, [collapsedNodeIds, childrenMap]);
+
+  // Hierarchical dot codes (1, 1.1, 1.2, 2, 2.1...)
+  const hierarchicalCodes = useMemo(() => {
+    if (!activeMap?.nodes || !activeMap?.edges) return new Map<string, string>();
+    return computeHierarchicalCodes(activeMap.nodes, activeMap.edges);
+  }, [activeMap?.nodes, activeMap?.edges]);
+
+  // Collapse / Expand toggle
+  const toggleCollapseNode = useCallback((nodeId: string) => {
+    setCollapsedNodeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Auto clean layout (XMind, Roadmap or Fishbone)
   const handleAutoLayout = useCallback(
-    (targetLayout?: 'roadmap' | 'fishbone') => {
+    (targetLayout?: 'xmind' | 'roadmap' | 'fishbone') => {
       if (!activeMap || !activeMap.nodes || activeMap.nodes.length === 0) return;
       const layoutToApply = targetLayout || diagramLayout;
-      if (layoutToApply === 'roadmap') {
+      if (layoutToApply === 'xmind') {
+        const { nodes: arrangedNodes, edges: arrangedEdges } = applyXMindLayout(activeMap.nodes, activeMap.edges, hiddenNodeIds);
+        updateCurrentMap(arrangedNodes, arrangedEdges);
+      } else if (layoutToApply === 'roadmap') {
         const { nodes: arrangedNodes, edges: arrangedEdges } = applyRoadmapLayout(activeMap.nodes, activeMap.edges);
         updateCurrentMap(arrangedNodes, arrangedEdges);
       } else {
@@ -1033,7 +1375,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         updateCurrentMap(arrangedNodes, activeMap.edges);
       }
     },
-    [activeMap, diagramLayout, updateCurrentMap]
+    [activeMap, diagramLayout, hiddenNodeIds, updateCurrentMap]
   );
 
   // Manual Sync trigger
@@ -1088,7 +1430,11 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
 
       // Auto re-align in selected format if enabled
       if (autoArrangeEnabled) {
-        if (diagramLayout === 'roadmap') {
+        if (diagramLayout === 'xmind') {
+          const res = applyXMindLayout(nextNodes, nextEdges, hiddenNodeIds);
+          nextNodes = res.nodes;
+          nextEdges = res.edges;
+        } else if (diagramLayout === 'roadmap') {
           const res = applyRoadmapLayout(nextNodes, nextEdges);
           nextNodes = res.nodes;
           nextEdges = res.edges;
@@ -1100,7 +1446,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       updateCurrentMap(nextNodes, nextEdges);
       setSelectedNodeId(newId);
     },
-    [activeMap, autoArrangeEnabled, diagramLayout, updateCurrentMap]
+    [activeMap, autoArrangeEnabled, diagramLayout, hiddenNodeIds, updateCurrentMap]
   );
 
   // Add Sibling node
@@ -1145,7 +1491,11 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
 
       // Auto re-align remaining nodes
       if (autoArrangeEnabled && nextNodes.length > 0) {
-        if (diagramLayout === 'roadmap') {
+        if (diagramLayout === 'xmind') {
+          const res = applyXMindLayout(nextNodes, nextEdges, hiddenNodeIds);
+          nextNodes = res.nodes;
+          nextEdges = res.edges;
+        } else if (diagramLayout === 'roadmap') {
           const res = applyRoadmapLayout(nextNodes, nextEdges);
           nextNodes = res.nodes;
           nextEdges = res.edges;
@@ -1157,7 +1507,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       updateCurrentMap(nextNodes, nextEdges);
       if (selectedNodeId && toDelete.has(selectedNodeId)) setSelectedNodeId(null);
     },
-    [activeMap, autoArrangeEnabled, diagramLayout, selectedNodeId, updateCurrentMap]
+    [activeMap, autoArrangeEnabled, diagramLayout, hiddenNodeIds, selectedNodeId, updateCurrentMap]
   );
 
   // Toggle node completion (mastered / unmastered)
@@ -1179,7 +1529,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     [activeMap, updateCurrentMap]
   );
 
-  // Parse Outline text into Fishbone nodes and edges
+  // Parse Outline text into Mindmap / Fishbone nodes and edges
   const handleParseAndApplyOutline = () => {
     if (!outlineInput.trim()) return;
 
@@ -1315,10 +1665,14 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       }
     });
 
-    // Apply Selected Layout (Roadmap or Fishbone)
+    // Apply Selected Layout (XMind, Roadmap or Fishbone)
     let arrangedNodes = newNodes;
     let finalEdges = newEdges;
-    if (diagramLayout === 'roadmap') {
+    if (diagramLayout === 'xmind') {
+      const res = applyXMindLayout(newNodes, newEdges);
+      arrangedNodes = res.nodes;
+      finalEdges = res.edges;
+    } else if (diagramLayout === 'roadmap') {
       const res = applyRoadmapLayout(newNodes, newEdges);
       arrangedNodes = res.nodes;
       finalEdges = res.edges;
@@ -1329,7 +1683,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     if (outlineMode === 'new') {
       const newMap: MindmapItem = {
         id: `mm-${Date.now()}`,
-        title: parsed[0]?.label || (diagramLayout === 'roadmap' ? 'Lộ trình học từ Dàn ý' : 'Sơ đồ xương cá từ Dàn ý'),
+        title: parsed[0]?.label || (diagramLayout === 'xmind' ? 'Sơ đồ tư duy XMind từ Dàn ý' : diagramLayout === 'roadmap' ? 'Lộ trình học từ Dàn ý' : 'Sơ đồ xương cá từ Dàn ý'),
         description: `Tạo tự động từ dàn ý (${parsed.length} mục)`,
         category: 'Học tập',
         createdAt: Date.now(),
@@ -1347,23 +1701,26 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     setOutlineInput('');
   };
 
-  // Prepare custom node injection with callbacks and diagram layout
+  // Prepare custom node injection with callbacks, collapsing, and diagram layout
   const preparedNodes = useMemo(() => {
     if (!activeMap?.nodes) return [];
 
+    // Filter out hidden descendants of collapsed nodes
+    const visibleNodes = activeMap.nodes.filter((n) => !hiddenNodeIds.has(n.id));
+
     // Find first unmastered milestone for active indicator
     let firstUnmasteredId = '';
-    for (const n of activeMap.nodes) {
+    for (const n of visibleNodes) {
       if (!n.data?.completed && !firstUnmasteredId) {
         firstUnmasteredId = n.id;
         break;
       }
     }
-    if (!firstUnmasteredId && activeMap.nodes.length > 0) {
-      firstUnmasteredId = activeMap.nodes[0].id;
+    if (!firstUnmasteredId && visibleNodes.length > 0) {
+      firstUnmasteredId = visibleNodes[0].id;
     }
 
-    return activeMap.nodes.map((node, index) => {
+    return visibleNodes.map((node, index) => {
       const matchesSearch =
         searchQuery.trim() === '' ||
         node.data?.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1376,10 +1733,16 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
 
       const isCurrentActive = node.id === firstUnmasteredId && !isCompleted;
 
+      const directChildren = childrenMap.get(node.id) || [];
+      const hasChildren = directChildren.length > 0;
+      const childCount = directChildren.length;
+      const isCollapsed = collapsedNodeIds.has(node.id);
+      const hCode = hierarchicalCodes.get(node.id) || '';
+
       // Extract level badge text if any (e.g. B2, B1, A2, C1)
-      let badgeText = node.data?.milestoneBadge || '';
+      let badgeText = hCode || node.data?.milestoneBadge || '';
       if (!badgeText) {
-        const labelUpper = (node.data?.label || '').toUpperCase();
+        const labelUpper = String(node.data?.label || '').toUpperCase();
         if (labelUpper.includes('B2')) badgeText = 'B2';
         else if (labelUpper.includes('B1')) badgeText = 'B1';
         else if (labelUpper.includes('A2')) badgeText = 'A2';
@@ -1403,6 +1766,11 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
           isRoadmap: diagramLayout === 'roadmap' || !!node.data?.isRoadmap,
           milestoneIndex: node.data?.milestoneIndex || index + 1,
           milestoneBadge: badgeText,
+          hierarchicalCode: hCode,
+          hasChildren,
+          childCount,
+          isCollapsed,
+          onToggleCollapse: () => toggleCollapseNode(node.id),
           isCurrentActive,
           onAddChild: handleAddChildNode,
           onDelete: handleDeleteNode,
@@ -1416,6 +1784,11 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     });
   }, [
     activeMap?.nodes,
+    hiddenNodeIds,
+    childrenMap,
+    collapsedNodeIds,
+    hierarchicalCodes,
+    toggleCollapseNode,
     selectedNodeId,
     searchQuery,
     masteryFilter,
@@ -1425,11 +1798,15 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     handleToggleComplete
   ]);
 
-  // Edges prepared with layout-specific styles
+  // Edges prepared with layout-specific styles and filtering collapsed nodes
   const preparedEdges = useMemo(() => {
     if (!activeMap?.edges) return [];
+    const visibleEdges = activeMap.edges.filter(
+      (e) => !hiddenNodeIds.has(e.source) && !hiddenNodeIds.has(e.target)
+    );
+
     if (diagramLayout === 'roadmap') {
-      return activeMap.edges.map((e) => ({
+      return visibleEdges.map((e) => ({
         ...e,
         type: 'default',
         style: {
@@ -1440,8 +1817,29 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         animated: false
       }));
     }
-    return activeMap.edges;
-  }, [activeMap?.edges, diagramLayout]);
+
+    if (diagramLayout === 'xmind') {
+      const rootNode = activeMap.nodes.find((n) => n.data?.isRoot) || activeMap.nodes[0];
+      const rootX = rootNode?.position?.x || 550;
+      return visibleEdges.map((e) => {
+        const targetNode = activeMap.nodes.find((n) => n.id === e.target);
+        const isRight = (targetNode?.position?.x ?? 600) >= rootX;
+        return {
+          ...e,
+          sourceHandle: isRight ? 'right' : 'left',
+          targetHandle: isRight ? 'left' : 'right',
+          type: 'smoothstep',
+          style: {
+            stroke: isRight ? '#2563EB' : '#7C3AED',
+            strokeWidth: 3,
+            strokeLinecap: 'round'
+          }
+        };
+      });
+    }
+
+    return visibleEdges;
+  }, [activeMap?.edges, activeMap?.nodes, hiddenNodeIds, diagramLayout]);
 
   // Selected node object
   const selectedNode = useMemo(() => {
@@ -1741,8 +2139,24 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
 
           {viewMode === 'canvas' && (
             <>
-              {/* Diagram Layout Mode Switcher: Roadmap (IMG_3834_bc3ec55e) vs Fishbone */}
+              {/* Diagram Layout Mode Switcher: Mindmap (XMind) vs Roadmap vs Fishbone */}
               <div className="flex items-center bg-[#EFECE6] p-0.5 rounded-xl border-2 border-[#141414] text-xs font-black">
+                <button
+                  onClick={() => {
+                    setDiagramLayout('xmind');
+                    handleAutoLayout('xmind');
+                  }}
+                  className={cn(
+                    'px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
+                    diagramLayout === 'xmind'
+                      ? 'bg-[#2563EB] text-white shadow-[1px_1px_0px_#141414]'
+                      : 'text-ink/65 hover:text-ink'
+                  )}
+                  title="Chuyển sang dạng Sơ Đồ Tư Duy Mindmap (hoạt động toả ra đối xứng 2 bên như app XMind)"
+                >
+                  <Brain className="w-3.5 h-3.5" />
+                  <span>Mindmap (XMind)</span>
+                </button>
                 <button
                   onClick={() => {
                     setDiagramLayout('roadmap');
@@ -1795,10 +2209,12 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
               <button
                 onClick={() => handleAutoLayout()}
                 className="px-2.5 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-950 border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
-                title={diagramLayout === 'roadmap' ? 'Tự động sắp xếp lại các mốc uốn lượn gọn gàng' : 'Tự động sắp xếp xương cá thẳng hàng'}
+                title={diagramLayout === 'xmind' ? 'Tự động sắp xếp sơ đồ tư duy toả đều 2 bên như XMind' : diagramLayout === 'roadmap' ? 'Tự động sắp xếp lại các mốc uốn lượn gọn gàng' : 'Tự động sắp xếp xương cá thẳng hàng'}
               >
                 <Wand2 className="w-3.5 h-3.5 text-[#6D28D9]" />
-                <span className="hidden sm:inline">{diagramLayout === 'roadmap' ? 'Xếp Lộ Trình' : 'Xếp Xương Cá'}</span>
+                <span className="hidden sm:inline">
+                  {diagramLayout === 'xmind' ? 'Xếp XMind' : diagramLayout === 'roadmap' ? 'Xếp Lộ Trình' : 'Xếp Xương Cá'}
+                </span>
               </button>
             </>
           )}
@@ -2281,7 +2697,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         </div>
       )}
 
-      {/* MODAL: PASTE OUTLINE (DÁN DÀN Ý) */}
+      {/* MODAL: PASTE OUTLINE (DÁN DÀN Ý - ĐƠN GIẢN HOÁ) */}
       <AnimatePresence>
         {showOutlineModal && (
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -2289,115 +2705,139 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#FFFDF7] w-full max-w-2xl p-6 rounded-[24px] border-[2.5px] border-[#141414] shadow-[6px_6px_0px_#141414] flex flex-col gap-4 max-h-[90vh] overflow-y-auto"
+              className="bg-[#FFFDF7] w-full max-w-xl p-5 sm:p-6 rounded-[24px] border-[2.5px] border-[#141414] shadow-[6px_6px_0px_#141414] flex flex-col gap-3.5 max-h-[90vh] overflow-y-auto"
             >
-              <div className="flex items-center justify-between border-b-2 border-dashed border-[#141414]/20 pb-3">
+              <div className="flex items-center justify-between border-b-2 border-dashed border-[#141414]/20 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-sky-200 border-2 border-[#141414] flex items-center justify-center shadow-[1px_1px_0px_#141414]">
-                    <FileText className="w-5 h-5 text-ink" />
+                  <div className="w-8 h-8 rounded-xl bg-amber-200 border-2 border-[#141414] flex items-center justify-center shadow-[1px_1px_0px_#141414]">
+                    <FileText className="w-4 h-4 text-ink" />
                   </div>
                   <div>
                     <h3 className="text-base font-black uppercase text-ink">
-                      Nhập Dàn Ý (Paste Outline)
+                      Dán Dàn Ý
                     </h3>
-                    <p className="text-[11px] text-ink/60">
-                      Tự động chuyển đổi cấu trúc phân cấp thành sơ đồ xương cá chuẩn
+                    <p className="text-[11px] text-ink/65">
+                      Rê chuột vào ô bên dưới để dán trực tiếp (Ctrl+V / Cmd+V)
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowOutlineModal(false)}
-                  className="text-ink/50 hover:text-ink p-1 rounded"
+                  className="text-ink/50 hover:text-ink p-1 rounded-lg hover:bg-black/5 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Sample Outline Templates for 1-Click insertion */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-black uppercase text-ink flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Hoặc chọn nhanh dàn ý mẫu:
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {SAMPLE_OUTLINES.map((sample) => (
-                    <button
-                      key={sample.id}
-                      type="button"
-                      onClick={() => setOutlineInput(sample.text)}
-                      className="px-2.5 py-1 text-xs font-bold bg-white hover:bg-amber-50 text-ink rounded-lg border-2 border-[#141414] shadow-[1px_1px_0px_#141414] active:translate-x-0.5 active:translate-y-0.5"
-                    >
-                      {sample.name}
-                    </button>
-                  ))}
+              {/* Quick 1-Click Clipboard Paste Button & Sample Outlines */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      if (navigator?.clipboard?.readText) {
+                        const clipText = await navigator.clipboard.readText();
+                        if (clipText && clipText.trim()) {
+                          setOutlineInput(clipText);
+                        }
+                      }
+                    } catch (err) {
+                      // fallback
+                      outlineTextareaRef.current?.focus();
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 text-xs font-black rounded-xl border-2 border-emerald-700 shadow-[2px_2px_0px_#047857] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Dán từ Clipboard (1 Chạm)</span>
+                </button>
+
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <span className="text-ink/50 font-bold hidden sm:inline">Mẫu nhanh:</span>
+                  <button
+                    type="button"
+                    onClick={() => setOutlineInput(SAMPLE_OUTLINES[1].text)}
+                    className="px-2 py-1 bg-white hover:bg-amber-100 text-ink text-[10px] font-bold rounded-lg border border-ink/40"
+                  >
+                    Ngữ pháp
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOutlineInput(SAMPLE_OUTLINES[2].text)}
+                    className="px-2 py-1 bg-white hover:bg-amber-100 text-ink text-[10px] font-bold rounded-lg border border-ink/40"
+                  >
+                    Xương cá
+                  </button>
                 </div>
               </div>
 
-              {/* Textarea for outline input */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-black uppercase text-ink flex items-center justify-between">
-                  <span>Dán nội dung dàn ý tại đây:</span>
-                  <span className="text-[11px] font-medium text-ink/60 lowercase">
-                    (hỗ trợ thụt đầu dòng, -, *, [x] đã nắm, // ghi chú)
-                  </span>
-                </label>
+              {/* Minimal Textarea with Hover-to-Focus */}
+              <div className="flex flex-col gap-1">
                 <textarea
-                  rows={10}
+                  ref={outlineTextareaRef}
+                  rows={8}
                   value={outlineInput}
                   onChange={(e) => setOutlineInput(e.target.value)}
-                  placeholder={`Ví dụ cấu trúc dàn ý:
-Chủ Đề Ôn Thi Lịch Sử
-  Cách Mạng Tháng Tám // Ý nghĩa lịch sử mở đầu kỷ nguyên mới
-    [v] Thời cơ ngàn năm có một
-    Diễn biến khởi nghĩa tại Hà Nội
-    Ý nghĩa Tuyên ngôn độc lập
-  Chiến Dịch Điện Biên Phủ 1954
-    [v] Kế hoạch Nava
-    Phương châm đánh chắc tiến chắc
-    Kết quả và Hiệp định Giơ-ne-vơ`}
-                  className="w-full p-3 font-mono text-xs font-semibold text-ink bg-white border-2 border-[#141414] rounded-xl outline-none focus:bg-amber-50/40 resize-none leading-relaxed"
+                  onMouseEnter={(e) => e.currentTarget.focus()}
+                  autoFocus
+                  placeholder={`Để chuột vào đây và dán (Ctrl+V hoặc Cmd+V)...
+
+Ví dụ cấu trúc đơn giản:
+Chủ Đề Ôn Tập
+  Mục 1 // Ghi chú giải thích
+    [v] Ý con 1.1 đã nắm
+    Ý con 1.2
+  Mục 2
+    Ý con 2.1
+    Ý con 2.2`}
+                  className="w-full p-3 font-mono text-xs font-semibold text-ink bg-white border-2 border-[#141414] rounded-xl outline-none focus:bg-amber-50/40 focus:border-amber-500 resize-none leading-relaxed shadow-inner"
                 />
               </div>
 
-              {/* Target Mode: Replace current or Create new */}
-              <div className="flex items-center gap-4 bg-[#EFECE6] p-3 rounded-xl border-2 border-[#141414]">
-                <span className="text-xs font-black uppercase text-ink">Áp dụng:</span>
-                <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-ink">
-                  <input
-                    type="radio"
-                    name="outlineMode"
-                    checked={outlineMode === 'replace'}
-                    onChange={() => setOutlineMode('replace')}
-                    className="accent-black"
-                  />
-                  <span>Thay thế sơ đồ hiện tại</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-ink">
-                  <input
-                    type="radio"
-                    name="outlineMode"
-                    checked={outlineMode === 'new'}
-                    onChange={() => setOutlineMode('new')}
-                    className="accent-black"
-                  />
-                  <span>Tạo sơ đồ xương cá mới</span>
-                </label>
+              {/* Target Mode: Replace or Create new */}
+              <div className="flex items-center justify-between gap-2 bg-[#EFECE6] px-3 py-2 rounded-xl border-2 border-[#141414] text-xs">
+                <span className="font-black uppercase text-ink">Áp dụng:</span>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-ink">
+                    <input
+                      type="radio"
+                      name="outlineMode"
+                      checked={outlineMode === 'replace'}
+                      onChange={() => setOutlineMode('replace')}
+                      className="accent-black"
+                    />
+                    <span>Sơ đồ hiện tại</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-ink">
+                    <input
+                      type="radio"
+                      name="outlineMode"
+                      checked={outlineMode === 'new'}
+                      onChange={() => setOutlineMode('new')}
+                      className="accent-black"
+                    />
+                    <span>Tạo sơ đồ mới</span>
+                  </label>
+                </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-1">
                 <button
+                  type="button"
                   onClick={() => setShowOutlineModal(false)}
                   className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414]"
                 >
-                  Hủy
+                  Đóng
                 </button>
                 <button
+                  type="button"
                   onClick={handleParseAndApplyOutline}
                   disabled={!outlineInput.trim()}
-                  className="flex-1 py-2 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414] flex items-center justify-center gap-2"
+                  className="flex-2 py-2 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414] flex items-center justify-center gap-2 active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
                 >
-                  <Fish className="w-4 h-4" />
-                  <span>Tạo Sơ Đồ Xương Cá Ngay</span>
+                  <Brain className="w-4 h-4" />
+                  <span>Tạo Sơ Đồ Ngay</span>
                 </button>
               </div>
             </motion.div>

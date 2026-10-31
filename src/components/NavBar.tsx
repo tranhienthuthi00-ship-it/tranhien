@@ -1,4 +1,14 @@
 import { cn } from "@/lib/utils";
+import { 
+  Home, 
+  FolderTree, 
+  FolderKanban, 
+  GraduationCap, 
+  Languages, 
+  Calendar as CalendarIcon,
+  LogOut,
+  LogIn
+} from "lucide-react";
 
 export type Tab = "Journal" | "Collections" | "Projects" | "Học hành" | "English Hub" | "Calendar";
 
@@ -21,112 +31,142 @@ export function NavBar({
   onToggleTheme?: () => void;
   isLoggedIn?: boolean;
 }) {
-  const tabs: Tab[] = ["Journal", "Collections", "Projects", "Học hành", "English Hub", "Calendar"];
-
-  const getTabLabel = (tab: Tab) => {
-    switch (tab) {
-      case "English Hub": return "ENG";
-      case "Collections": return "HUB";
-      case "Calendar": return "CAL";
-      case "Journal": return "HOME";
-      case "Projects": return "PRJ";
-      case "Học hành": return "HỌC";
-      default: return tab;
-    }
-  };
+  const tabs: { id: Tab; label: string; short: string; icon: any }[] = [
+    { id: "Journal", label: "Home", short: "HOME", icon: Home },
+    { id: "Collections", label: "Collections", short: "HUB", icon: FolderTree },
+    { id: "Projects", label: "Projects", short: "PRJ", icon: FolderKanban },
+    { id: "Học hành", label: "Học hành", short: "HỌC", icon: GraduationCap },
+    { id: "English Hub", label: "English Hub", short: "ENG", icon: Languages },
+    { id: "Calendar", label: "Calendar", short: "CAL", icon: CalendarIcon },
+  ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-paper border-b-2 border-dashed border-ink/20 py-2 md:py-3">
-      <div className="max-w-5xl mx-auto px-2 md:px-4 flex justify-between items-center gap-1 md:gap-4 overflow-hidden">
+    <aside className="w-full md:w-60 lg:w-64 bg-paper border-b-2 md:border-b-0 md:border-r-2 border-dashed border-ink/20 flex flex-col justify-between shrink-0 md:sticky md:top-0 md:h-screen md:overflow-y-auto z-40 p-3 md:p-5 select-none transition-all">
+      {/* Top: Logo & Brand */}
+      <div className="flex flex-col gap-4">
         <div 
           onClick={onToggleTheme}
-          title="Nhấp vào đây để thay đổi giao diện (Phong cách vẽ tay 🎨 / Phong cách tối giản ✨)"
-          className="shrink-0 flex items-center gap-1.5 select-none group cursor-pointer pt-1 md:pt-2 pb-1 pr-1 md:pr-6 pl-1 relative hover:scale-[1.03] transition-transform duration-200"
+          title="Nhấp để chuyển giao diện (Vẽ tay 🎨 / Tối giản ✨)"
+          className="flex items-center gap-2 cursor-pointer group hover:scale-[1.02] transition-transform"
         >
-           <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center">
-             <svg className="absolute w-[120%] h-[120%] text-emerald-200 drop-shadow-sm group-hover:animate-[spin_4s_linear_infinite]" viewBox="0 0 100 100" fill="currentColor" stroke="var(--color-ink)" strokeWidth="4" strokeLinejoin="round">
-               <path d="M50 5 L60 30 L85 25 L75 50 L95 65 L70 70 L75 95 L50 80 L25 95 L30 70 L5 65 L25 50 L15 25 L40 30 Z" />
-             </svg>
-             <div className="w-[8px] h-[8px] md:w-[12px] md:h-[12px] bg-white border-[2px] md:border-[3px] border-ink rounded-full absolute z-10" />
-           </div>
-           
-           <div className="relative mt-1 px-1 md:px-2 hidden sm:block">
-              <svg className="absolute -inset-1 w-[calc(100%+8px)] h-[calc(100%+8px)] text-[#fbcfe8] -rotate-[1deg]" viewBox="0 0 100 40" preserveAspectRatio="none">
-                 <path d="M5 10 Q 50 0 95 10 C 98 20 98 30 90 35 Q 50 45 10 35 C 2 30 2 20 5 10 Z" fill="currentColor" stroke="var(--color-ink)" strokeWidth="2.5" strokeDasharray="4 4"/>
-              </svg>
-              <span className="font-logo keep-logo-style text-[14px] sm:text-[18px] md:text-[28px] font-black tracking-widest text-ink relative z-10 uppercase pt-2 inline-block">
-                TRAN HIEN
-              </span>
-           </div>
+          {/* Handdrawn Star Icon */}
+          <div className="relative w-8 h-8 shrink-0 flex items-center justify-center">
+            <svg 
+              className="absolute w-[120%] h-[120%] text-emerald-200 drop-shadow-sm group-hover:animate-[spin_4s_linear_infinite]" 
+              viewBox="0 0 100 100" 
+              fill="currentColor" 
+              stroke="var(--color-ink)" 
+              strokeWidth="4" 
+              strokeLinejoin="round"
+            >
+              <path d="M50 5 L60 30 L85 25 L75 50 L95 65 L70 70 L75 95 L50 80 L25 95 L30 70 L5 65 L25 50 L15 25 L40 30 Z" />
+            </svg>
+            <div className="w-[10px] h-[10px] bg-white border-[2.5px] border-ink rounded-full absolute z-10" />
+          </div>
 
-           <div className="relative w-6 h-6 flex items-center justify-center -mt-4 ml-1 group-hover:-translate-y-1 transition-transform duration-300 hidden md:flex">
-              <svg className="absolute w-full h-full text-yellow-300 drop-shadow-sm" viewBox="0 0 100 100" fill="currentColor" stroke="var(--color-ink)" strokeWidth="5" strokeLinejoin="round">
-                 <path d="M50 0 L58 35 L100 50 L58 65 L50 100 L42 65 L0 50 L42 35 Z" />
-              </svg>
-           </div>
+          <div className="relative flex-1 min-w-0">
+            <svg className="absolute -inset-1 w-[calc(100%+8px)] h-[calc(100%+8px)] text-[#fbcfe8] -rotate-[1deg]" viewBox="0 0 100 40" preserveAspectRatio="none">
+              <path d="M5 10 Q 50 0 95 10 C 98 20 98 30 90 35 Q 50 45 10 35 C 2 30 2 20 5 10 Z" fill="currentColor" stroke="var(--color-ink)" strokeWidth="2.5" strokeDasharray="4 4"/>
+            </svg>
+            <span className="font-logo keep-logo-style text-[18px] md:text-[22px] font-black tracking-widest text-ink relative z-10 uppercase pt-1 inline-block truncate">
+              TRAN HIEN
+            </span>
+          </div>
+
+          <div className="relative w-5 h-5 hidden md:flex items-center justify-center group-hover:-translate-y-0.5 transition-transform">
+            <svg className="w-full h-full text-yellow-300 drop-shadow-sm" viewBox="0 0 100 100" fill="currentColor" stroke="var(--color-ink)" strokeWidth="5" strokeLinejoin="round">
+              <path d="M50 0 L58 35 L100 50 L58 65 L50 100 L42 65 L0 50 L42 35 Z" />
+            </svg>
+          </div>
         </div>
-        <ul className="flex flex-1 justify-center md:justify-start items-center gap-3 sm:gap-6 md:gap-10">
-          {tabs.map((tab) => (
-            <li key={tab} className="relative px-0 md:px-2 flex items-center">
+
+        {/* Divider */}
+        <div className="hidden md:block w-full border-t border-dashed border-ink/15 my-1" />
+
+        {/* Vertical Navigation Tabs */}
+        <nav className="flex flex-row md:flex-col gap-1.5 md:gap-2 overflow-x-auto md:overflow-x-visible py-1 md:py-0">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
+            return (
               <button
-                onClick={() => setActiveTab(tab)}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "font-sans font-bold md:font-semibold text-[9px] sm:text-[11px] md:text-[13px] uppercase tracking-wider md:tracking-[0.05em] transition-colors pb-1 flex items-center gap-1",
-                  activeTab === tab ? "text-crimson" : "text-ink hover:text-crimson"
+                  "relative w-full text-left px-3 py-2 md:py-2.5 rounded-xl transition-all duration-150 flex items-center justify-between group",
+                  isActive
+                    ? "bg-[#FEF08A] text-ink font-black border-2 border-ink shadow-[2.5px_2.5px_0px_#141414] translate-x-0.5"
+                    : "text-ink/75 font-bold hover:text-ink hover:bg-black/5 border-2 border-transparent"
                 )}
               >
-                <span className="md:hidden">{getTabLabel(tab)}</span>
-                <span className="hidden md:inline">{tab === "Journal" ? "Home" : tab}</span>
-                {tab === "English Hub" && dueCount > 0 && (
-                  <span className="inline-flex items-center justify-center bg-crimson text-white text-[8px] md:text-[10px] w-3.5 h-3.5 md:w-5 md:h-5 rounded-full font-black -mt-1 shadow-sm">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Icon className={cn("w-4 h-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "text-ink stroke-[2.5]" : "text-ink/60")} />
+                  <span className="text-xs md:text-sm uppercase tracking-wider truncate">
+                    <span className="md:hidden">{tab.short}</span>
+                    <span className="hidden md:inline">{tab.label}</span>
+                  </span>
+                </div>
+
+                {/* Due Count Badge for English Hub */}
+                {tab.id === "English Hub" && dueCount > 0 && (
+                  <span className="shrink-0 bg-crimson text-white text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full font-black shadow-sm ml-1">
                     {dueCount > 99 ? "99+" : dueCount}
                   </span>
                 )}
+
+                {/* Active Indicator Squiggle / Dot */}
+                {isActive && (
+                  <span className="hidden md:block w-2 h-2 rounded-full bg-ink shrink-0 ml-1" />
+                )}
               </button>
-              {activeTab === tab && (
-                theme === "minimal" ? (
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-[3px] bg-crimson rounded-full" />
-                ) : (
-                  <svg
-                    className="absolute -bottom-2 md:-bottom-2 left-1/2 -translate-x-1/2 w-[30px] md:w-[60px] h-[6px] md:h-[10px] text-crimson preserve-3d pointer-events-none"
-                    viewBox="0 0 100 20"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M 5 15 Q 25 5 45 15 T 85 15"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      className="nav-squiggle"
-                    />
-                  </svg>
-                )
-              )}
-            </li>
-          ))}
-        </ul>
-        <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
-          <div 
-            onClick={!isLoggedIn ? onLogout : undefined}
-            className={cn(
-              "flex items-center gap-1.5 text-[9px] md:text-[10px] font-bold px-2 py-1 rounded-full border border-ink/20 cursor-pointer transition-all",
-              isLoggedIn ? "bg-emerald-50 text-emerald-900 border-emerald-500" : "bg-emerald-50/80 text-emerald-950 border-emerald-400"
-            )}
-            title="Đã kết nối Firebase Firestore - Dữ liệu tự động đồng bộ thời gian thực trên mọi thiết bị!"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Bottom: Cloud Sync Status & Account */}
+      <div className="hidden md:flex flex-col gap-3 pt-4 border-t border-dashed border-ink/20">
+        <div 
+          onClick={!isLoggedIn ? onLogout : undefined}
+          className={cn(
+            "flex items-center justify-between text-[11px] font-bold px-3 py-2 rounded-xl border-2 transition-all cursor-pointer",
+            isLoggedIn 
+              ? "bg-emerald-50 text-emerald-900 border-emerald-500 shadow-[2px_2px_0px_#059669]" 
+              : "bg-emerald-50/80 text-emerald-950 border-emerald-400"
+          )}
+          title="Đã kết nối Firebase Firestore - Dữ liệu tự động đồng bộ thời gian thực trên mọi thiết bị!"
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
             <span>Đã đồng bộ ☁️</span>
           </div>
-          <button
-            onClick={onLogout}
-            title={isLoggedIn ? "Đăng xuất tài khoản" : "Đăng nhập để đồng bộ dữ liệu trên các thiết bị"}
-            className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest px-2 py-1 md:px-3 md:py-1.5 rounded border border-ink/20 hover:bg-ink hover:text-paper transition-colors"
-          >
-            {isLoggedIn ? "Out" : "In"}
-          </button>
+          <span className="text-[9px] font-mono text-emerald-700 uppercase">Live</span>
         </div>
+
+        <button
+          onClick={onLogout}
+          title={isLoggedIn ? "Đăng xuất tài khoản" : "Đăng nhập để đồng bộ dữ liệu trên các thiết bị"}
+          className="w-full flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider px-3 py-2 rounded-xl border-2 border-ink/30 hover:border-ink hover:bg-ink hover:text-paper transition-all active:translate-x-0.5 active:translate-y-0.5"
+        >
+          {isLoggedIn ? (
+            <>
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Đăng Xuất</span>
+            </>
+          ) : (
+            <>
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Đăng Nhập</span>
+            </>
+          )}
+        </button>
+
+        {lastSaved && (
+          <div className="text-[10px] text-ink/40 text-center font-mono">
+            {lastSaved}
+          </div>
+        )}
       </div>
-    </nav>
+    </aside>
   );
 }

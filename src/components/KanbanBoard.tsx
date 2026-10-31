@@ -326,47 +326,59 @@ export function KanbanBoard({
   const goToday = () => setCalendarDate(new Date());
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 font-['Plus_Jakarta_Sans'] pb-20 -mx-2 md:-mx-6 -mt-4 p-4 md:p-6 bg-[#f9f4e4] min-h-screen">
+    <div className="flex flex-col gap-5 font-['Plus_Jakarta_Sans'] pb-20 w-full min-h-screen">
       
-      {/* Sidebar */}
-      <div className="hidden md:flex flex-col justify-between w-[260px] bg-[#141414] rounded-[20px] p-6 text-[#8E8E93] shrink-0 h-[calc(100vh-2rem)] sticky top-4">
-        <div>
-          <div className="text-[22px] font-bold text-white tracking-tight mb-8 pl-3">
-            intelly
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[11px] uppercase tracking-wider text-[#555] pl-3 mb-1.5 font-bold">General</span>
-            <button className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors text-left", viewMode === 'board' ? "bg-white/10 text-white" : "hover:bg-white/10 hover:text-white")} onClick={() => setViewMode('board')}>
-              🏠 Dashboard
-            </button>
-            <button className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors text-left", viewMode === 'calendar' ? "bg-white/10 text-white" : "hover:bg-white/10 hover:text-white")} onClick={() => setViewMode('calendar')}>
-              🗓️ Calendar
-            </button>
-            <button className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors text-left", viewMode === 'note' ? "bg-white/10 text-white" : "hover:bg-white/10 hover:text-white")} onClick={() => setViewMode('note')}>
-              📝 Note
-            </button>
-            <button className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors text-left", viewMode === 'english' ? "bg-white/10 text-white" : "hover:bg-white/10 hover:text-white")} onClick={() => setViewMode('english')}>
-              📚 Sách & Unit
-            </button>
-            <button className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors text-left", viewMode === 'reports' ? "bg-white/10 text-white" : "hover:bg-white/10 hover:text-white")} onClick={() => setViewMode('reports')}>
-              📊 Reports
-            </button>
-          </div>
-          <div className="flex flex-col gap-1.5 mt-6">
-            <span className="text-[11px] uppercase tracking-wider text-[#555] pl-3 mb-1.5 font-bold">Tools</span>
-            <button className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-white/10 hover:text-white transition-colors text-left">
-              💬 Chats
-            </button>
-            <button className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-white/10 hover:text-white transition-colors text-left">
-              ⚙️ Settings
-            </button>
-          </div>
-        </div>
+      {/* Top View Mode Switcher */}
+      <div className="flex items-center gap-2 flex-wrap bg-white/70 backdrop-blur-xs p-1.5 rounded-2xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414] w-fit">
         <button 
-          onClick={() => setActiveTab && setActiveTab('Journal')}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-[#FF5A5F] hover:bg-white/5 transition-colors text-left mt-auto"
+          onClick={() => setViewMode('board')} 
+          className={cn(
+            "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5", 
+            viewMode === 'board' ? "bg-[#141414] text-white shadow-sm" : "text-[#555] hover:text-[#141414] hover:bg-black/5"
+          )}
         >
-          🚪 Log out
+          <span>🏠</span>
+          <span>Bảng Kanban</span>
+        </button>
+        <button 
+          onClick={() => setViewMode('calendar')} 
+          className={cn(
+            "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5", 
+            viewMode === 'calendar' ? "bg-[#141414] text-white shadow-sm" : "text-[#555] hover:text-[#141414] hover:bg-black/5"
+          )}
+        >
+          <span>🗓️</span>
+          <span>Lịch việc</span>
+        </button>
+        <button 
+          onClick={() => setViewMode('note')} 
+          className={cn(
+            "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5", 
+            viewMode === 'note' ? "bg-[#141414] text-white shadow-sm" : "text-[#555] hover:text-[#141414] hover:bg-black/5"
+          )}
+        >
+          <span>📝</span>
+          <span>Ghi chú nhanh</span>
+        </button>
+        <button 
+          onClick={() => setViewMode('english')} 
+          className={cn(
+            "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5", 
+            viewMode === 'english' ? "bg-[#141414] text-white shadow-sm" : "text-[#555] hover:text-[#141414] hover:bg-black/5"
+          )}
+        >
+          <span>📚</span>
+          <span>Sách & Unit</span>
+        </button>
+        <button 
+          onClick={() => setViewMode('reports')} 
+          className={cn(
+            "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5", 
+            viewMode === 'reports' ? "bg-[#141414] text-white shadow-sm" : "text-[#555] hover:text-[#141414] hover:bg-black/5"
+          )}
+        >
+          <span>📊</span>
+          <span>Báo cáo</span>
         </button>
       </div>
 
