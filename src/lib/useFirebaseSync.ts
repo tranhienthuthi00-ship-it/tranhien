@@ -458,22 +458,22 @@ const DEFAULT_MINDMAPS: MindmapItem[] = [
     ],
     edges: [
       // Root to Milestones
-      { id: "e-root-a1", source: "root-cefr", target: "lvl-a1", sourceHandle: "right", targetHandle: "left", style: { stroke: "#059669", strokeWidth: 3.5 } },
-      { id: "e-root-a2", source: "root-cefr", target: "lvl-a2", sourceHandle: "left", targetHandle: "right", style: { stroke: "#0284C7", strokeWidth: 3.5 } },
-      { id: "e-root-b1", source: "root-cefr", target: "lvl-b1", sourceHandle: "right", targetHandle: "left", style: { stroke: "#D97706", strokeWidth: 3.5 } },
-      { id: "e-root-b2", source: "root-cefr", target: "lvl-b2", sourceHandle: "left", targetHandle: "right", style: { stroke: "#7C3AED", strokeWidth: 3.5 } },
+      { id: "e-root-a1", source: "root-cefr", target: "lvl-a1", sourceHandle: "source-right", targetHandle: "target-left", style: { stroke: "#059669", strokeWidth: 3.5 } },
+      { id: "e-root-a2", source: "root-cefr", target: "lvl-a2", sourceHandle: "source-left", targetHandle: "target-right", style: { stroke: "#0284C7", strokeWidth: 3.5 } },
+      { id: "e-root-b1", source: "root-cefr", target: "lvl-b1", sourceHandle: "source-right", targetHandle: "target-left", style: { stroke: "#D97706", strokeWidth: 3.5 } },
+      { id: "e-root-b2", source: "root-cefr", target: "lvl-b2", sourceHandle: "source-left", targetHandle: "target-right", style: { stroke: "#7C3AED", strokeWidth: 3.5 } },
       // A1 children
-      { id: "e-a1-tobe", source: "lvl-a1", target: "a1-tobe", sourceHandle: "right", targetHandle: "left", style: { stroke: "#059669", strokeWidth: 2.5 } },
-      { id: "e-a1-pronoun", source: "lvl-a1", target: "a1-pronoun", sourceHandle: "right", targetHandle: "left", style: { stroke: "#059669", strokeWidth: 2.5 } },
+      { id: "e-a1-tobe", source: "lvl-a1", target: "a1-tobe", sourceHandle: "source-right", targetHandle: "target-left", style: { stroke: "#059669", strokeWidth: 2.5 } },
+      { id: "e-a1-pronoun", source: "lvl-a1", target: "a1-pronoun", sourceHandle: "source-right", targetHandle: "target-left", style: { stroke: "#059669", strokeWidth: 2.5 } },
       // A2 children
-      { id: "e-a2-past", source: "lvl-a2", target: "a2-past", sourceHandle: "left", targetHandle: "right", style: { stroke: "#0284C7", strokeWidth: 2.5 } },
-      { id: "e-a2-prep", source: "lvl-a2", target: "a2-prep", sourceHandle: "left", targetHandle: "right", style: { stroke: "#0284C7", strokeWidth: 2.5 } },
+      { id: "e-a2-past", source: "lvl-a2", target: "a2-past", sourceHandle: "source-left", targetHandle: "target-right", style: { stroke: "#0284C7", strokeWidth: 2.5 } },
+      { id: "e-a2-prep", source: "lvl-a2", target: "a2-prep", sourceHandle: "source-left", targetHandle: "target-right", style: { stroke: "#0284C7", strokeWidth: 2.5 } },
       // B1 children
-      { id: "e-b1-present-perfect", source: "lvl-b1", target: "b1-present-perfect", sourceHandle: "right", targetHandle: "left", style: { stroke: "#D97706", strokeWidth: 2.5 } },
-      { id: "e-b1-conditional", source: "lvl-b1", target: "b1-conditional", sourceHandle: "right", targetHandle: "left", style: { stroke: "#D97706", strokeWidth: 2.5 } },
+      { id: "e-b1-present-perfect", source: "lvl-b1", target: "b1-present-perfect", sourceHandle: "source-right", targetHandle: "target-left", style: { stroke: "#D97706", strokeWidth: 2.5 } },
+      { id: "e-b1-conditional", source: "lvl-b1", target: "b1-conditional", sourceHandle: "source-right", targetHandle: "target-left", style: { stroke: "#D97706", strokeWidth: 2.5 } },
       // B2 children
-      { id: "e-b2-storytelling", source: "lvl-b2", target: "b2-storytelling", sourceHandle: "left", targetHandle: "right", style: { stroke: "#7C3AED", strokeWidth: 2.5 } },
-      { id: "e-b2-mixed-cond", source: "lvl-b2", target: "b2-mixed-cond", sourceHandle: "left", targetHandle: "right", style: { stroke: "#7C3AED", strokeWidth: 2.5 } }
+      { id: "e-b2-storytelling", source: "lvl-b2", target: "b2-storytelling", sourceHandle: "source-left", targetHandle: "target-right", style: { stroke: "#7C3AED", strokeWidth: 2.5 } },
+      { id: "e-b2-mixed-cond", source: "lvl-b2", target: "b2-mixed-cond", sourceHandle: "source-left", targetHandle: "target-right", style: { stroke: "#7C3AED", strokeWidth: 2.5 } }
     ]
   },
   {

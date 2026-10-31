@@ -635,7 +635,22 @@ export function applyFishboneLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-// 3. Hierarchical Numbering Engine: Main milestones are A1, A2, B1, B2 (or 1, 2, 3...) and child branches are A1.1, A1.2, 1.1, 1.2...
+// Helper to clean node labels so badges and labels do not duplicate numbering
+export function cleanNodeTitle(label: string): string {
+  if (!label) return '';
+  return label
+    .replace(/^LEVEL\s*[A-C][1-2][\:\-\s]+/i, '')
+    .replace(/^[A-C][1-2](\.\d+)*[\:\-\.\)\s]+/i, '')
+    .replace(/^MỐC\s*\d+[\:\-\.\)\s]*/i, '')
+    .replace(/^(\d+(\.\d+)*)[\:\-\.\)\s]+/, '')
+    .replace(/^[-*•\s]+/, '')
+    .trim() || label;
+}
+
+// 3. Hierarchical Numbering Engine:
+// Main milestones: A1, A2, B1, B2 (or 1, 2, 3...)
+// Direct sub-branches: A1.1, A1.2, A1.3 (or 1.1, 1.2, 1.3)
+// Sub-sub-branches: .1, .2 - NEVER chained into long strings like 1.1.1.1
 export function computeHierarchicalCodes(nodes: Node[], edges: Edge[]): Map<string, string> {
   const codes = new Map<string, string>();
   if (!nodes || nodes.length === 0) return codes;
@@ -655,44 +670,60 @@ export function computeHierarchicalCodes(nodes: Node[], edges: Edge[]): Map<stri
     childrenMap.set(e.source, list);
   });
 
-  const assignCodes = (parentId: string, parentCode: string, isFromRoot: boolean) => {
-    const children = childrenMap.get(parentId) || [];
-    children.forEach((childId, idx) => {
-      const childNode = nodes.find((n) => n.id === childId);
-      const label = String(childNode?.data?.label || '').toUpperCase();
-      let code = '';
-      if (isFromRoot) {
-        // Milestone Level code if present, otherwise 1, 2, 3...
-        if (label.includes('A1')) code = 'A1';
-        else if (label.includes('A2')) code = 'A2';
-        else if (label.includes('B1')) code = 'B1';
-        else if (label.includes('B2')) code = 'B2';
-        else if (label.includes('C1')) code = 'C1';
-        else if (label.includes('C2')) code = 'C2';
-        else code = String(idx + 1);
-      } else {
-        // Sub-branches: A1.1, A1.2, 1.1, 1.2... (child branches do NOT advance main milestone sequence)
-        code = `${parentCode}.${idx + 1}`;
-      }
-      codes.set(childId, code);
-      assignCodes(childId, code, false);
+  // Assign clean milestone codes to direct children of root (Level 1 milestones)
+  const rootChildren = (childrenMap.get(rootNode.id) || []).filter((id) => id !== rootNode.id);
+
+  let milestoneCounter = 1;
+  rootChildren.forEach((milestoneId) => {
+    const childNode = nodes.find((n) => n.id === milestoneId);
+    const label = String(childNode?.data?.label || '').toUpperCase();
+    let milestoneCode = '';
+
+    // Check CEFR level
+    if (label.includes('A1')) milestoneCode = 'A1';
+    else if (label.includes('A2')) milestoneCode = 'A2';
+    else if (label.includes('B1')) milestoneCode = 'B1';
+    else if (label.includes('B2')) milestoneCode = 'B2';
+    else if (label.includes('C1')) milestoneCode = 'C1';
+    else if (label.includes('C2')) milestoneCode = 'C2';
+    else {
+      milestoneCode = String(milestoneCounter++);
+    }
+    codes.set(milestoneId, milestoneCode);
+
+    // Assign short codes to sub-branches (Level 2) e.g. A1.1, A1.2 or 1.1, 1.2
+    const level2Children = childrenMap.get(milestoneId) || [];
+    level2Children.forEach((subId, subIdx) => {
+      const subCode = `${milestoneCode}.${subIdx + 1}`;
+      codes.set(subId, subCode);
+
+      // Assign short codes to deeper children (Level 3+) - Keep it short: .1, .2
+      const level3Children = childrenMap.get(subId) || [];
+      level3Children.forEach((deepId, deepIdx) => {
+        codes.set(deepId, `.${deepIdx + 1}`);
+      });
     });
-  };
+  });
 
-  assignCodes(rootNode.id, '', true);
-
-  // Fallback for unreached nodes
-  let unreached = 1;
+  // Fallback for unreached or sequential nodes (e.g. roadmap without explicit root)
+  let fallbackCount = 1;
   nodes.forEach((n) => {
     if (!codes.has(n.id)) {
-      codes.set(n.id, `+${unreached++}`);
+      const label = String(n.data?.label || '').toUpperCase();
+      if (label.includes('A1')) codes.set(n.id, 'A1');
+      else if (label.includes('A2')) codes.set(n.id, 'A2');
+      else if (label.includes('B1')) codes.set(n.id, 'B1');
+      else if (label.includes('B2')) codes.set(n.id, 'B2');
+      else if (label.includes('C1')) codes.set(n.id, 'C1');
+      else if (label.includes('C2')) codes.set(n.id, 'C2');
+      else codes.set(n.id, String(fallbackCount++));
     }
   });
 
   return codes;
 }
 
-// 4. Authentic XMind Mindmap Layout Engine: Balanced Left/Right radiating tree with mathematically guaranteed zero node overlap
+// 4. Authentic XMind Mindmap Layout Engine: Balanced Left/Right radiating tree with zero overlap
 export function applyXMindLayout(
   nodes: Node[],
   edges: Edge[],
@@ -724,11 +755,11 @@ export function applyXMindLayout(
   });
 
   const positioned = new Map<string, { x: number; y: number }>();
-  const centerX = 600;
-  const centerY = 400;
+  const centerX = 650;
+  const centerY = 450;
   positioned.set(rootNode.id, { x: centerX, y: centerY });
 
-  // Direct children of root
+  // Direct children of root (Level 1 milestones)
   const rootChildren = (childrenMap.get(rootNode.id) || []).filter((id) => id !== rootNode.id);
 
   // Split balanced into Right (even index) and Left (odd index) trees
@@ -742,9 +773,9 @@ export function applyXMindLayout(
     }
   });
 
-  const NODE_HEIGHT = 85;
-  const SIBLING_GAP = 32;
-  const HORIZ_STEP = 330;
+  const NODE_HEIGHT = 80;
+  const SIBLING_GAP = 36;
+  const HORIZ_STEP = 340;
 
   // Calculate recursive bounding heights for subtrees
   const subtreeHeightMemo = new Map<string, number>();
@@ -769,7 +800,7 @@ export function applyXMindLayout(
   let totalRightHeight = 0;
   rightRootChildren.forEach((id, idx) => {
     totalRightHeight += getSubtreeHeight(id);
-    if (idx > 0) totalRightHeight += SIBLING_GAP + 16;
+    if (idx > 0) totalRightHeight += SIBLING_GAP + 24;
   });
 
   let curRightY = centerY - totalRightHeight / 2;
@@ -788,15 +819,15 @@ export function applyXMindLayout(
 
   rightRootChildren.forEach((id) => {
     const h = getSubtreeHeight(id);
-    layoutBranchRight(id, centerX + 300, curRightY);
-    curRightY += h + SIBLING_GAP + 16;
+    layoutBranchRight(id, centerX + 320, curRightY);
+    curRightY += h + SIBLING_GAP + 24;
   });
 
   // Layout Left Subtree (radiating towards -X)
   let totalLeftHeight = 0;
   leftRootChildren.forEach((id, idx) => {
     totalLeftHeight += getSubtreeHeight(id);
-    if (idx > 0) totalLeftHeight += SIBLING_GAP + 16;
+    if (idx > 0) totalLeftHeight += SIBLING_GAP + 24;
   });
 
   let curLeftY = centerY - totalLeftHeight / 2;
@@ -815,12 +846,12 @@ export function applyXMindLayout(
 
   leftRootChildren.forEach((id) => {
     const h = getSubtreeHeight(id);
-    layoutBranchLeft(id, centerX - 300, curLeftY);
-    curLeftY += h + SIBLING_GAP + 16;
+    layoutBranchLeft(id, centerX - 320, curLeftY);
+    curLeftY += h + SIBLING_GAP + 24;
   });
 
   // For any orphaned / unpositioned nodes, place them neatly in a grid below
-  let fallbackY = centerY + Math.max(totalRightHeight, totalLeftHeight) / 2 + 100;
+  let fallbackY = centerY + Math.max(totalRightHeight, totalLeftHeight) / 2 + 120;
   visibleNodes.forEach((n) => {
     if (!positioned.has(n.id)) {
       positioned.set(n.id, { x: centerX, y: fallbackY });
@@ -842,12 +873,12 @@ export function applyXMindLayout(
       const isRight = rightNodeSet.has(e.target);
       return {
         ...e,
-        sourceHandle: isRight ? 'right' : 'left',
-        targetHandle: isRight ? 'left' : 'right',
+        sourceHandle: isRight ? 'source-right' : 'source-left',
+        targetHandle: isRight ? 'target-left' : 'target-right',
         type: 'smoothstep',
         style: {
           stroke: isRight ? '#2563EB' : '#7C3AED',
-          strokeWidth: 3,
+          strokeWidth: 3.5,
           strokeLinecap: 'round'
         }
       };
@@ -937,8 +968,7 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
             <div
               className="w-13 h-13 rounded-full border-[4px] border-white shadow-[0_4px_12px_rgba(109,40,217,0.35)] flex items-center justify-center ring-4 transition-transform group-hover:scale-110"
               style={{
-                backgroundColor: theme ? theme.badgeBg : '#6D28D9',
-                ringColor: theme ? `${theme.badgeBg}33` : '#6D28D933'
+                backgroundColor: theme ? theme.badgeBg : '#6D28D9'
               }}
             >
               <Check className="w-6 h-6 text-white stroke-[3.5]" />
@@ -995,7 +1025,7 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
                 className="text-[10px] font-black uppercase tracking-wider truncate"
                 style={{ color: theme ? theme.border : '#6D28D9' }}
               >
-                {isLevelBadge ? `LEVEL ${badgeText}` : `MỐC ${data.hierarchicalCode || data.milestoneBadge || data.milestoneIndex || 1}`}
+                {isLevelBadge ? `LEVEL ${badgeText}` : `MỐC ${data.milestoneIndex || 1}`}
               </span>
               {data.hasChildren && (
                 <button
@@ -1053,7 +1083,7 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
 
           {/* Topic Title */}
           <div className={cn("text-xs font-black text-[#141414] leading-snug break-words", isCompleted ? "text-emerald-950" : "")}>
-            {data.label || 'Nội dung mốc học'}
+            {cleanNodeTitle(data.label) || data.label || 'Nội dung mốc học'}
           </div>
 
           {/* Progress underline bar (as seen in IMG_3834_bc3ec55e.jpeg) */}
@@ -1155,30 +1185,42 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
       }}
       title="Nhấn đúp để chỉnh sửa"
     >
-      {/* Handles for XMind and Fishbone */}
+      {/* Handles for XMind and Fishbone - Complete Left & Right Source/Target pairs */}
       <Handle
         type="target"
         position={Position.Left}
-        id="left"
-        className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="right"
+        id="target-left"
         className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
       />
       <Handle
         type="source"
         position={Position.Left}
         id="source-left"
-        className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white opacity-0"
+        className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left"
+        className="!w-1 !h-1 opacity-0 pointer-events-none"
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="source-right"
+        className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
       />
       <Handle
         type="target"
         position={Position.Right}
         id="target-right"
-        className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white opacity-0"
+        className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right"
+        className="!w-1 !h-1 opacity-0 pointer-events-none"
       />
       <Handle
         type="target"
@@ -1196,14 +1238,14 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
       {/* Header: Hierarchical Code, Collapse Button, Mastery Checkbox or Root Spine Badge */}
       <div className="flex items-center justify-between gap-1 mb-1.5">
         {isRoot ? (
-          <span className="text-[9px] font-black uppercase tracking-wider bg-black/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-            <Fish className="w-3 h-3" /> Chủ Đề Trung Tâm
+          <span className="text-[10px] font-black uppercase tracking-wider bg-black/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <Fish className="w-3.5 h-3.5" /> Chủ Đề Trung Tâm
           </span>
         ) : (
           <div className="flex items-center gap-1.5 min-w-0">
             {/* Hierarchical Code Badge e.g. A1, A1.1, A2, B1, 1, 1.1 */}
             <span
-              className="text-[9px] font-black px-1.5 py-0.5 rounded-md border shrink-0"
+              className="text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 tracking-tight"
               style={{
                 backgroundColor: theme ? theme.badgeBg : 'rgba(0,0,0,0.06)',
                 color: theme ? theme.badgeText : '#141414',
@@ -1282,10 +1324,10 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
             className={cn(
               'leading-snug break-words',
               isRoot ? 'text-sm font-black' : 'text-xs font-bold',
-              isCompleted && !isRoot ? 'text-emerald-950' : 'text-ink'
+              isCompleted && !isRoot ? 'text-emerald-950 font-black' : 'text-ink'
             )}
           >
-            {data.label || 'Nhánh mới'}
+            {isRoot ? data.label : (cleanNodeTitle(data.label) || data.label || 'Nhánh mới')}
           </div>
 
           {data.notes && (
@@ -1824,12 +1866,13 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
           level = 1;
         } else if (hasBullet) {
           // Bullet points under a milestone (e.g. - Động từ to be under Level A1)
-          // Even with 0 indent, a bullet attaches to the active milestone (level 2)
           level = explicitIndent > 0 ? explicitIndent + 1 : 2;
         } else if (explicitIndent > 0) {
-          level = explicitIndent;
+          level = explicitIndent + 1;
         } else {
-          level = 1;
+          // If no explicit indent and no bullet, check if milestone is already active
+          const hasActiveMilestone = stack.some((s) => s.level === 1);
+          level = hasActiveMilestone ? 2 : 1;
         }
       }
 
@@ -1845,7 +1888,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       parsed.push({
         id,
         level,
-        label: trimmed || `Nhánh ${idx + 1}`,
+        label: cleanNodeTitle(trimmed) || trimmed || `Nhánh ${idx + 1}`,
         notes,
         completed,
         important: level <= 1,
@@ -2136,12 +2179,12 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
 
         return {
           ...e,
-          sourceHandle: isRight ? 'right' : 'left',
-          targetHandle: isRight ? 'left' : 'right',
+          sourceHandle: isRight ? 'source-right' : 'source-left',
+          targetHandle: isRight ? 'target-left' : 'target-right',
           type: 'smoothstep',
           style: {
             stroke: branchColor,
-            strokeWidth: 3,
+            strokeWidth: 3.5,
             strokeLinecap: 'round'
           }
         };
@@ -2525,6 +2568,34 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
                 <span className="hidden sm:inline">
                   {diagramLayout === 'xmind' ? 'Xếp XMind' : diagramLayout === 'roadmap' ? 'Xếp Lộ Trình' : 'Xếp Xương Cá'}
                 </span>
+              </button>
+
+              {/* Collapse / Expand All Branches Button */}
+              <button
+                onClick={() => {
+                  if (collapsedNodeIds.size > 0) {
+                    setCollapsedNodeIds(new Set());
+                  } else {
+                    if (!activeMap?.nodes || !activeMap?.edges) return;
+                    const rootNode = activeMap.nodes.find((n) => n.data?.isRoot) || activeMap.nodes[0];
+                    const rootChildren = activeMap.edges.filter((e) => e.source === rootNode?.id).map((e) => e.target);
+                    setCollapsedNodeIds(new Set(rootChildren));
+                  }
+                }}
+                className="px-2.5 py-1.5 bg-white hover:bg-amber-50 text-ink border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                title={collapsedNodeIds.size > 0 ? "Mở rộng toàn bộ các nhánh con" : "Thu gọn toàn bộ các nhánh con để nhìn sơ đồ tinh gọn"}
+              >
+                {collapsedNodeIds.size > 0 ? (
+                  <>
+                    <ChevronDown className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Mở Hết</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Gọn Hết</span>
+                  </>
+                )}
               </button>
             </>
           )}

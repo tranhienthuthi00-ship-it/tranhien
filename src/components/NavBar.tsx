@@ -85,13 +85,15 @@ export function NavBar({
 
         {/* Vertical Navigation Tabs */}
         <nav className="flex flex-row md:flex-col gap-1.5 md:gap-2 overflow-x-auto md:overflow-x-visible py-1 md:py-0">
-          {tabs.map((tab) => {
+          {tabs.map((tab, index) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
+            const isFirst = index === 0;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                style={isFirst ? { backgroundColor: "#faf3eb" } : undefined}
                 className={cn(
                   "relative w-full text-left px-3 py-2 md:py-2.5 rounded-xl transition-all duration-150 flex items-center justify-between group",
                   isActive
