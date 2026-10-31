@@ -71,26 +71,137 @@ const NODE_COLORS = [
   { id: 'white', name: 'Trắng Ngà', bg: '#FFFFFF', border: '#141414', text: '#141414' },
 ];
 
+export interface LevelTheme {
+  name: string;
+  bg: string;
+  border: string;
+  badgeBg: string;
+  badgeText: string;
+  edgeColor: string;
+  subBg: string;
+  subBorder: string;
+}
+
+// Visual color themes for CEFR levels (A1, A2, B1, B2, C1, C2) and Milestones
+export const LEVEL_THEMES: Record<string, LevelTheme> = {
+  A1: {
+    name: 'Level A1 (Căn Bản)',
+    bg: '#ECFDF5',
+    border: '#059669',
+    badgeBg: '#10B981',
+    badgeText: '#FFFFFF',
+    edgeColor: '#059669',
+    subBg: '#F0FDF4',
+    subBorder: '#86EFAC'
+  },
+  A2: {
+    name: 'Level A2 (Sơ Cấp)',
+    bg: '#F0F9FF',
+    border: '#0284C7',
+    badgeBg: '#0EA5E9',
+    badgeText: '#FFFFFF',
+    edgeColor: '#0284C7',
+    subBg: '#F8FAFC',
+    subBorder: '#7DD3FC'
+  },
+  B1: {
+    name: 'Level B1 (Trung Cấp)',
+    bg: '#FFFBEB',
+    border: '#D97706',
+    badgeBg: '#F59E0B',
+    badgeText: '#FFFFFF',
+    edgeColor: '#D97706',
+    subBg: '#FEFCE8',
+    subBorder: '#FCD34D'
+  },
+  B2: {
+    name: 'Level B2 (Nâng Cao)',
+    bg: '#FAF5FF',
+    border: '#7C3AED',
+    badgeBg: '#8B5CF6',
+    badgeText: '#FFFFFF',
+    edgeColor: '#7C3AED',
+    subBg: '#F5F3FF',
+    subBorder: '#C4B5FD'
+  },
+  C1: {
+    name: 'Level C1 (Cao Cấp)',
+    bg: '#FFF1F2',
+    border: '#E11D48',
+    badgeBg: '#F43F5E',
+    badgeText: '#FFFFFF',
+    edgeColor: '#E11D48',
+    subBg: '#FFF5F5',
+    subBorder: '#FDA4AF'
+  },
+  C2: {
+    name: 'Level C2 (Thành Thạo)',
+    bg: '#FDF4FF',
+    border: '#C026D3',
+    badgeBg: '#D946EF',
+    badgeText: '#FFFFFF',
+    edgeColor: '#C026D3',
+    subBg: '#FDF2F8',
+    subBorder: '#F0ABFC'
+  }
+};
+
+const GENERIC_MILESTONE_PALETTE: LevelTheme[] = [
+  LEVEL_THEMES.A1,
+  LEVEL_THEMES.A2,
+  LEVEL_THEMES.B1,
+  LEVEL_THEMES.B2,
+  LEVEL_THEMES.C1,
+  {
+    name: 'Mốc Xanh Biển Sâu',
+    bg: '#F0FDFA',
+    border: '#0D9488',
+    badgeBg: '#14B8A6',
+    badgeText: '#FFFFFF',
+    edgeColor: '#0D9488',
+    subBg: '#F0FDFA',
+    subBorder: '#5EEAD4'
+  }
+];
+
+export function getMilestoneTheme(label: string, fallbackIdx = 0): LevelTheme {
+  const upper = String(label || '').toUpperCase();
+  if (upper.includes('A1')) return LEVEL_THEMES.A1;
+  if (upper.includes('A2')) return LEVEL_THEMES.A2;
+  if (upper.includes('B1')) return LEVEL_THEMES.B1;
+  if (upper.includes('B2')) return LEVEL_THEMES.B2;
+  if (upper.includes('C1')) return LEVEL_THEMES.C1;
+  if (upper.includes('C2')) return LEVEL_THEMES.C2;
+  return GENERIC_MILESTONE_PALETTE[Math.abs(fallbackIdx) % GENERIC_MILESTONE_PALETTE.length];
+}
+
 // Sample Outlines for Quick Insertion
 const SAMPLE_OUTLINES = [
   {
-    id: 'history',
-    name: '📚 Ôn Tập Lịch Sử: Các Cuộc Kháng Chiến',
-    text: `Lịch Sử Việt Nam Thế Kỷ 20
-  Cách Mạng Tháng Tám 1945 // Thắng lợi lịch sử mở ra kỷ nguyên độc lập
-    [v] Thời cơ ngàn năm có một
-    [v] Diễn biến khởi nghĩa Hà Nội, Huế, Sài Gòn
-    Ý nghĩa tuyên ngôn độc lập 2/9
-  Chiến Dịch Điện Biên Phủ 1954 // Đánh bại thực dân Pháp
-    [v] Kế hoạch Nava của Pháp
-    Phương châm đánh chắc tiến chắc
-    3 Đợt tiến công tiêu diệt cứ điểm
-    Ý nghĩa hiệp định Giơ-ne-vơ
-  Đại Thắng Mùa Xuân 1975 // Giải phóng hoàn toàn miền Nam
-    Chiến dịch Tây Nguyên mở màn
-    Chiến dịch Huế - Đà Nẵng
-    Chiến dịch Hồ Chí Minh lịch sử
-    Bài học đại đoàn kết dân tộc`
+    id: 'english-roadmap',
+    name: '🇬🇧 Lộ Trình Tiếng Anh Toàn Diện (A1 -> B2)',
+    text: `Lộ Trình Học Tiếng Anh (A1 - B2)
+  Level A1: Mất Gốc & Căn Bản // Nền tảng từ loại và các mẫu câu cơ bản nhất
+    [v] Động từ To Be (am/is/are) // Khẳng định, phủ định và câu hỏi nghi vấn
+    [v] Đại từ nhân xưng & Tính từ sở hữu // I, you, we, they, he, she, it & my, your, our
+    [v] Danh từ số ít & Danh từ số nhiều // Quy tắc thêm s/es và danh từ bất quy tắc
+    Thì Hiện tại đơn (Present Simple) // Thói quen, lịch trình và chân lý hiển nhiên
+    Thì Hiện tại tiếp diễn (Present Continuous) // Hành động đang diễn ra tại lúc nói
+  Level A2: Sơ Cấp & Giao Tiếp // Giao tiếp sinh hoạt hàng ngày và kể chuyện quá khứ
+    [v] Thì Quá khứ đơn (Past Simple) // Động từ có quy tắc -ed và 360 bất quy tắc
+    Giới từ chỉ thời gian & nơi chốn // In, On, At, Under, Between, Next to
+    So sánh hơn & So sánh nhất // Short/Long Adj: cleaner, more beautiful, the best
+    Thì Tương lai gần (Be going to) // Kế hoạch và dự định có bằng chứng từ trước
+  Level B1: Trung Cấp Tự Tin // Tự tin diễn đạt quan điểm cá nhân và thuyết trình
+    Thì Hiện tại hoàn thành (Present Perfect) // Trải nghiệm, kết quả còn lưu lại ở hiện tại
+    Câu điều kiện loại 1 & loại 2 // If condition tình huống có thật và giả định
+    Mệnh đề quan hệ (Relative Clauses) // Who, which, that, where, whose
+    Câu bị động (Passive Voice) // S + be + V3/ed trong học tập & công việc
+  Level B2: Nâng Cao & Học Thuật // Đọc báo, viết luận và giao tiếp phản xạ chuyên sâu
+    Quá khứ hoàn thành tiếp diễn // Nhấn mạnh tính liên tục của hành động quá khứ
+    Kể chuyện nhiều lớp thời gian // Phối hợp quá khứ đơn, tiếp diễn và hoàn thành
+    Câu điều kiện hỗn hợp (Mixed Conditionals) // Kết hợp điều kiện loại 2 và loại 3
+    Đảo ngữ & Cấu trúc nhấn mạnh // Not only... but also, Hardly... when`
   },
   {
     id: 'english-grammar',
@@ -109,6 +220,25 @@ const SAMPLE_OUTLINES = [
     Future Simple (Tương lai đơn) // Quyết định tại lúc nói: will + V
     Near Future (Tương lai gần) // Có kế hoạch trước: be going to + V
     Future Continuous // Đang diễn ra ở thời điểm tương lai`
+  },
+  {
+    id: 'history',
+    name: '📚 Ôn Tập Lịch Sử: Các Cuộc Kháng Chiến',
+    text: `Lịch Sử Việt Nam Thế Kỷ 20
+  Cách Mạng Tháng Tám 1945 // Thắng lợi lịch sử mở ra kỷ nguyên độc lập
+    [v] Thời cơ ngàn năm có một
+    [v] Diễn biến khởi nghĩa Hà Nội, Huế, Sài Gòn
+    Ý nghĩa tuyên ngôn độc lập 2/9
+  Chiến Dịch Điện Biên Phủ 1954 // Đánh bại thực dân Pháp
+    [v] Kế hoạch Nava của Pháp
+    Phương châm đánh chắc tiến chắc
+    3 Đợt tiến công tiêu diệt cứ điểm
+    Ý nghĩa hiệp định Giơ-ne-vơ
+  Đại Thắng Mùa Xuân 1975 // Giải phóng hoàn toàn miền Nam
+    Chiến dịch Tây Nguyên mở màn
+    Chiến dịch Huế - Đà Nẵng
+    Chiến dịch Hồ Chí Minh lịch sử
+    Bài học đại đoàn kết dân tộc`
   },
   {
     id: 'ishikawa',
@@ -366,9 +496,9 @@ export function applyRoadmapLayout(nodes: Node[], edges: Edge[]): { nodes: Node[
   if (firstUnmasteredIdx === -1) firstUnmasteredIdx = 0;
 
   const startY = 80;
-  const stepY = 170;
-  const centerX = 360;
-  const amplitude = 130;
+  const stepY = 210;
+  const centerX = 380;
+  const amplitude = 150;
 
   const nextNodes = nodes.map((node) => {
     const seqIdx = orderedIds.indexOf(node.id);
@@ -384,7 +514,9 @@ export function applyRoadmapLayout(nodes: Node[], edges: Edge[]): { nodes: Node[
     if (labelUpper.includes('B2')) badgeText = 'B2';
     else if (labelUpper.includes('B1')) badgeText = 'B1';
     else if (labelUpper.includes('A2')) badgeText = 'A2';
+    else if (labelUpper.includes('A1')) badgeText = 'A1';
     else if (labelUpper.includes('C1')) badgeText = 'C1';
+    else if (labelUpper.includes('C2')) badgeText = 'C2';
     else if (node.data?.isRoot) badgeText = '★';
     else badgeText = String(idx + 1);
 
@@ -428,15 +560,15 @@ export function applyRoadmapLayout(nodes: Node[], edges: Edge[]): { nodes: Node[
   return { nodes: nextNodes, edges: roadmapEdges.length > 0 ? roadmapEdges : edges };
 }
 
-// 2. Refined Fishbone Layout Engine: Auto aligns nodes without colliding or overlapping
+// 2. Refined Fishbone Layout Engine: Wide clearance between ribs and child branches to prevent any overlap
 export function applyFishboneLayout(nodes: Node[], edges: Edge[]): Node[] {
   if (!nodes || nodes.length === 0) return [];
 
   // Find root node (marked isRoot or no incoming edges)
   const targetIds = new Set(edges.map((e) => e.target));
-  let rootNode = nodes.find((n) => n.data?.isRoot) || nodes.find((n) => !targetIds.has(n.id)) || nodes[0];
+  const rootNode = nodes.find((n) => n.data?.isRoot) || nodes.find((n) => !targetIds.has(n.id)) || nodes[0];
 
-  const centerY = 360;
+  const centerY = 380;
   const startX = 80;
 
   // Build adjacency map
@@ -458,20 +590,20 @@ export function applyFishboneLayout(nodes: Node[], edges: Edge[]): Node[] {
     const colIndex = Math.floor(index / 2);
     const isTop = index % 2 === 0;
 
-    // Generous horizontal spacing between ribs
-    const ribX = startX + 340 + colIndex * 380;
-    const ribY = isTop ? centerY - 160 : centerY + 160;
+    // Generous horizontal spacing between ribs (460px) to give children plenty of room
+    const ribX = startX + 360 + colIndex * 460;
+    const ribY = isTop ? centerY - 170 : centerY + 170;
 
     positioned.set(ribId, { x: ribX, y: ribY });
 
     // Level 2 children (Sub-branches from this rib)
     const level2Ids = childrenMap.get(ribId) || [];
     level2Ids.forEach((childId, cIdx) => {
-      // Dynamic vertical distribution based on child index
-      const childX = ribX + 180 + (cIdx % 2) * 20;
+      // Offset child horizontally past the rib node width (290px clearance)
+      const childX = ribX + 290;
       const childY = isTop
-        ? ribY - 75 - cIdx * 80
-        : ribY + 75 + cIdx * 80;
+        ? ribY - 70 - cIdx * 90
+        : ribY + 70 + cIdx * 90;
 
       positioned.set(childId, { x: childX, y: childY });
 
@@ -479,19 +611,19 @@ export function applyFishboneLayout(nodes: Node[], edges: Edge[]): Node[] {
       const level3Ids = childrenMap.get(childId) || [];
       const l3Count = level3Ids.length;
       level3Ids.forEach((subId, sIdx) => {
-        const subX = childX + 220;
-        const subY = childY + (sIdx - (l3Count - 1) / 2) * 60;
+        const subX = childX + 280;
+        const subY = childY + (sIdx - (l3Count - 1) / 2) * 80;
         positioned.set(subId, { x: subX, y: subY });
       });
     });
   });
 
   // For any orphaned or unpositioned nodes, neatly stack them below
-  let fallbackY = centerY + 320;
+  let fallbackY = centerY + 340;
   nodes.forEach((n) => {
     if (!positioned.has(n.id)) {
       positioned.set(n.id, { x: startX + 360, y: fallbackY });
-      fallbackY += 85;
+      fallbackY += 95;
     }
   });
 
@@ -503,7 +635,7 @@ export function applyFishboneLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-// 3. Hierarchical Numbering Engine: Main milestones are 1, 2, 3... and child branches are 1.1, 1.2, 2.1...
+// 3. Hierarchical Numbering Engine: Main milestones are A1, A2, B1, B2 (or 1, 2, 3...) and child branches are A1.1, A1.2, 1.1, 1.2...
 export function computeHierarchicalCodes(nodes: Node[], edges: Edge[]): Map<string, string> {
   const codes = new Map<string, string>();
   if (!nodes || nodes.length === 0) return codes;
@@ -530,14 +662,16 @@ export function computeHierarchicalCodes(nodes: Node[], edges: Edge[]): Map<stri
       const label = String(childNode?.data?.label || '').toUpperCase();
       let code = '';
       if (isFromRoot) {
-        // Milestone 1, 2, 3... or level badge B2, B1, A2, C1 if specified
-        if (label.includes('B2')) code = 'B2';
-        else if (label.includes('B1')) code = 'B1';
+        // Milestone Level code if present, otherwise 1, 2, 3...
+        if (label.includes('A1')) code = 'A1';
         else if (label.includes('A2')) code = 'A2';
+        else if (label.includes('B1')) code = 'B1';
+        else if (label.includes('B2')) code = 'B2';
         else if (label.includes('C1')) code = 'C1';
+        else if (label.includes('C2')) code = 'C2';
         else code = String(idx + 1);
       } else {
-        // Sub-branches: 1.1, 1.2, 1.3... or 2.1, 2.2... (child branches do NOT advance main milestone sequence)
+        // Sub-branches: A1.1, A1.2, 1.1, 1.2... (child branches do NOT advance main milestone sequence)
         code = `${parentCode}.${idx + 1}`;
       }
       codes.set(childId, code);
@@ -558,7 +692,7 @@ export function computeHierarchicalCodes(nodes: Node[], edges: Edge[]): Map<stri
   return codes;
 }
 
-// 4. Authentic XMind Mindmap Layout Engine: Radiates balanced to the Left & Right with clean non-overlapping coordinates
+// 4. Authentic XMind Mindmap Layout Engine: Balanced Left/Right radiating tree with mathematically guaranteed zero node overlap
 export function applyXMindLayout(
   nodes: Node[],
   edges: Edge[],
@@ -590,14 +724,14 @@ export function applyXMindLayout(
   });
 
   const positioned = new Map<string, { x: number; y: number }>();
-  const centerX = 550;
-  const centerY = 360;
+  const centerX = 600;
+  const centerY = 400;
   positioned.set(rootNode.id, { x: centerX, y: centerY });
 
   // Direct children of root
   const rootChildren = (childrenMap.get(rootNode.id) || []).filter((id) => id !== rootNode.id);
 
-  // Split balanced into Right and Left trees
+  // Split balanced into Right (even index) and Left (odd index) trees
   const rightRootChildren: string[] = [];
   const leftRootChildren: string[] = [];
   rootChildren.forEach((childId, idx) => {
@@ -608,85 +742,89 @@ export function applyXMindLayout(
     }
   });
 
-  // Calculate subtree heights recursively
+  const NODE_HEIGHT = 85;
+  const SIBLING_GAP = 32;
+  const HORIZ_STEP = 330;
+
+  // Calculate recursive bounding heights for subtrees
   const subtreeHeightMemo = new Map<string, number>();
   const getSubtreeHeight = (nodeId: string): number => {
     if (subtreeHeightMemo.has(nodeId)) return subtreeHeightMemo.get(nodeId)!;
     const children = childrenMap.get(nodeId) || [];
     if (children.length === 0) {
-      subtreeHeightMemo.set(nodeId, 70);
-      return 70;
+      subtreeHeightMemo.set(nodeId, NODE_HEIGHT);
+      return NODE_HEIGHT;
     }
     let total = 0;
     children.forEach((cId, idx) => {
       total += getSubtreeHeight(cId);
-      if (idx > 0) total += 24; // gap between sibling branches
+      if (idx > 0) total += SIBLING_GAP;
     });
-    const h = Math.max(70, total);
+    const h = Math.max(NODE_HEIGHT, total);
     subtreeHeightMemo.set(nodeId, h);
     return h;
   };
 
-  // Layout Right Subtree (radiates towards +X)
+  // Layout Right Subtree (radiating towards +X)
   let totalRightHeight = 0;
   rightRootChildren.forEach((id, idx) => {
     totalRightHeight += getSubtreeHeight(id);
-    if (idx > 0) totalRightHeight += 32;
+    if (idx > 0) totalRightHeight += SIBLING_GAP + 16;
   });
 
   let curRightY = centerY - totalRightHeight / 2;
   const layoutBranchRight = (nodeId: string, x: number, topY: number) => {
     const h = getSubtreeHeight(nodeId);
-    const nodeY = topY + (h - 60) / 2;
+    const nodeY = topY + (h - NODE_HEIGHT) / 2;
     positioned.set(nodeId, { x, y: nodeY });
 
     const children = childrenMap.get(nodeId) || [];
     let childY = topY;
     children.forEach((cId) => {
-      layoutBranchRight(cId, x + 260, childY);
-      childY += getSubtreeHeight(cId) + 24;
+      layoutBranchRight(cId, x + HORIZ_STEP, childY);
+      childY += getSubtreeHeight(cId) + SIBLING_GAP;
     });
   };
 
   rightRootChildren.forEach((id) => {
     const h = getSubtreeHeight(id);
-    layoutBranchRight(id, centerX + 260, curRightY);
-    curRightY += h + 32;
+    layoutBranchRight(id, centerX + 300, curRightY);
+    curRightY += h + SIBLING_GAP + 16;
   });
 
-  // Layout Left Subtree (radiates towards -X)
+  // Layout Left Subtree (radiating towards -X)
   let totalLeftHeight = 0;
   leftRootChildren.forEach((id, idx) => {
     totalLeftHeight += getSubtreeHeight(id);
-    if (idx > 0) totalLeftHeight += 32;
+    if (idx > 0) totalLeftHeight += SIBLING_GAP + 16;
   });
 
   let curLeftY = centerY - totalLeftHeight / 2;
   const layoutBranchLeft = (nodeId: string, x: number, topY: number) => {
     const h = getSubtreeHeight(nodeId);
-    const nodeY = topY + (h - 60) / 2;
+    const nodeY = topY + (h - NODE_HEIGHT) / 2;
     positioned.set(nodeId, { x, y: nodeY });
 
     const children = childrenMap.get(nodeId) || [];
     let childY = topY;
     children.forEach((cId) => {
-      layoutBranchLeft(cId, x - 260, childY);
-      childY += getSubtreeHeight(cId) + 24;
+      layoutBranchLeft(cId, x - HORIZ_STEP, childY);
+      childY += getSubtreeHeight(cId) + SIBLING_GAP;
     });
   };
 
   leftRootChildren.forEach((id) => {
     const h = getSubtreeHeight(id);
-    layoutBranchLeft(id, centerX - 260, curLeftY);
-    curLeftY += h + 32;
+    layoutBranchLeft(id, centerX - 300, curLeftY);
+    curLeftY += h + SIBLING_GAP + 16;
   });
 
-  // Any orphaned / unpositioned nodes placed neatly below
-  let fallbackY = centerY + Math.max(totalRightHeight, totalLeftHeight) / 2 + 90;
+  // For any orphaned / unpositioned nodes, place them neatly in a grid below
+  let fallbackY = centerY + Math.max(totalRightHeight, totalLeftHeight) / 2 + 100;
   visibleNodes.forEach((n) => {
     if (!positioned.has(n.id)) {
       positioned.set(n.id, { x: centerX, y: fallbackY });
-      fallbackY += 80;
+      fallbackY += 95;
     }
   });
 
@@ -732,6 +870,7 @@ interface CustomNodeProps {
     label: string;
     notes?: string;
     color?: string;
+    theme?: LevelTheme;
     completed?: boolean;
     important?: boolean;
     isRoot?: boolean;
@@ -757,12 +896,13 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
   const isCompleted = !!data.completed;
   const isImportant = !!data.important;
   const isRoot = !!data.isRoot;
+  const theme = data.theme;
 
   // --- 1. ROADMAP / LEARNING PATHWAY NODE (AS IN IMG_3834_bc3ec55e.jpeg) ---
   if (data.isRoadmap) {
     const isCurrentActive = !!data.isCurrentActive;
     const badgeText = data.milestoneBadge || '';
-    const isLevelBadge = badgeText === 'B2' || badgeText === 'B1' || badgeText === 'A2' || badgeText === 'C1' || badgeText === '★';
+    const isLevelBadge = badgeText === 'B2' || badgeText === 'B1' || badgeText === 'A2' || badgeText === 'A1' || badgeText === 'C1' || badgeText === 'C2' || badgeText === '★';
 
     return (
       <div
@@ -793,8 +933,14 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
         {/* Milestone Circle (Centered along the serpentine track) */}
         <div className="relative shrink-0 flex items-center justify-center">
           {isCompleted ? (
-            // Completed / Mastered state: Solid purple circle with white checkmark
-            <div className="w-13 h-13 rounded-full bg-[#6D28D9] border-[4px] border-white shadow-[0_4px_12px_rgba(109,40,217,0.35)] flex items-center justify-center ring-4 ring-[#6D28D9]/20 transition-transform group-hover:scale-110">
+            // Completed / Mastered state: Solid circle with white checkmark
+            <div
+              className="w-13 h-13 rounded-full border-[4px] border-white shadow-[0_4px_12px_rgba(109,40,217,0.35)] flex items-center justify-center ring-4 transition-transform group-hover:scale-110"
+              style={{
+                backgroundColor: theme ? theme.badgeBg : '#6D28D9',
+                ringColor: theme ? `${theme.badgeBg}33` : '#6D28D933'
+              }}
+            >
               <Check className="w-6 h-6 text-white stroke-[3.5]" />
             </div>
           ) : isCurrentActive ? (
@@ -808,9 +954,19 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
               </div>
             </div>
           ) : isLevelBadge ? (
-            // Level Badge circle (e.g. B2) with double ring and bold text
-            <div className="w-13 h-13 rounded-full bg-white border-[4px] border-[#6D28D9] shadow-md flex items-center justify-center ring-4 ring-purple-100 transition-transform group-hover:scale-110">
-              <span className="text-sm font-black text-[#6D28D9] tracking-tight">{badgeText}</span>
+            // Level Badge circle (e.g. A1, A2, B1, B2) with colored ring
+            <div
+              className="w-13 h-13 rounded-full bg-white border-[4px] shadow-md flex items-center justify-center transition-transform group-hover:scale-110"
+              style={{
+                borderColor: theme ? theme.badgeBg : '#6D28D9'
+              }}
+            >
+              <span
+                className="text-sm font-black tracking-tight"
+                style={{ color: theme ? theme.badgeBg : '#6D28D9' }}
+              >
+                {badgeText}
+              </span>
             </div>
           ) : (
             // Numbered Milestone Circle
@@ -827,11 +983,18 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
             isCompleted ? "bg-[#FAF8FF] border-[#6D28D9]" : "",
             isCurrentActive ? "border-amber-500 shadow-[3px_3px_0px_#F59E0B]" : ""
           )}
+          style={{
+            borderColor: theme && !isCurrentActive ? theme.border : undefined,
+            backgroundColor: theme ? (isCompleted ? '#FAF8FF' : theme.bg) : undefined
+          }}
         >
           {/* Level / Category chip, collapse button and mastery checkbox */}
           <div className="flex items-center justify-between gap-1 mb-1">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#6D28D9] truncate">
+              <span
+                className="text-[10px] font-black uppercase tracking-wider truncate"
+                style={{ color: theme ? theme.border : '#6D28D9' }}
+              >
                 {isLevelBadge ? `LEVEL ${badgeText}` : `MỐC ${data.hierarchicalCode || data.milestoneBadge || data.milestoneIndex || 1}`}
               </span>
               {data.hasChildren && (
@@ -869,14 +1032,14 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
               className={cn(
                 "flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border transition-all cursor-pointer active:scale-95 shrink-0",
                 isCompleted
-                  ? "bg-purple-100 text-[#6D28D9] border-purple-400 hover:bg-purple-200"
+                  ? "bg-emerald-100 text-emerald-800 border-emerald-500 hover:bg-emerald-200"
                   : "bg-slate-50 text-slate-600 border-slate-300 hover:border-slate-600 hover:text-slate-900"
               )}
               title={isCompleted ? "Đã nắm! Bấm để bỏ tick" : "Chưa nắm. Bấm để tick 'Đã nắm'"}
             >
               {isCompleted ? (
                 <>
-                  <CheckSquare className="w-3 h-3 text-[#6D28D9] stroke-[2.5]" />
+                  <CheckSquare className="w-3 h-3 text-emerald-700 stroke-[2.5]" />
                   <span>Đã nắm</span>
                 </>
               ) : (
@@ -889,7 +1052,7 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
           </div>
 
           {/* Topic Title */}
-          <div className={cn("text-xs font-black text-[#141414] leading-snug break-words", isCompleted ? "text-purple-950" : "")}>
+          <div className={cn("text-xs font-black text-[#141414] leading-snug break-words", isCompleted ? "text-emerald-950" : "")}>
             {data.label || 'Nội dung mốc học'}
           </div>
 
@@ -898,8 +1061,11 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
             <div
               className={cn(
                 "h-full transition-all duration-300",
-                isCompleted ? "w-full bg-[#6D28D9]" : isCurrentActive ? "w-2/3 bg-amber-400" : "w-1/3 bg-slate-300"
+                isCompleted ? "w-full bg-emerald-600" : isCurrentActive ? "w-2/3 bg-amber-400" : "w-1/3 bg-slate-300"
               )}
+              style={{
+                backgroundColor: isCompleted ? (theme ? theme.badgeBg : '#059669') : undefined
+              }}
             />
           </div>
 
@@ -952,6 +1118,23 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
   }
 
   // --- 2. FISHBONE & XMIND MINDMAP NODE ---
+  const isSubBranch = !!data.hierarchicalCode && data.hierarchicalCode.includes('.');
+  const cardBorderColor = isCompleted
+    ? '#059669'
+    : theme
+    ? isSubBranch
+      ? theme.subBorder
+      : theme.border
+    : '#141414';
+
+  const cardBgColor = isCompleted && !isRoot
+    ? '#ECFDF5'
+    : theme
+    ? isSubBranch
+      ? theme.subBg
+      : theme.bg
+    : (style?.background as string) || data.color || '#FFFFFF';
+
   return (
     <div
       onDoubleClick={(e) => {
@@ -959,20 +1142,20 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
         data.onEditNode?.(id);
       }}
       className={cn(
-        'group relative px-3.5 py-2.5 rounded-2xl border-2 border-[#141414] transition-all duration-200 select-none min-w-[140px] max-w-[270px] cursor-pointer',
+        'group relative px-3.5 py-2.5 rounded-2xl border-[2.5px] transition-all duration-200 select-none min-w-[150px] max-w-[280px] cursor-pointer',
         selected ? 'ring-2 ring-blue-500 ring-offset-2 scale-[1.02]' : '',
         isRoot
-          ? 'font-black text-sm shadow-[4px_4px_0px_#141414] bg-[#FEF08A] border-[2.5px]'
-          : 'font-bold text-xs shadow-[3px_3px_0px_#141414]',
-        isCompleted && !isRoot ? 'bg-emerald-50/90 border-emerald-800' : ''
+          ? 'font-black text-sm shadow-[4px_4px_0px_#141414] bg-[#FEF08A] border-[#141414]'
+          : 'font-bold text-xs shadow-[3px_3px_0px_rgba(20,20,20,0.8)]'
       )}
       style={{
-        backgroundColor: isCompleted && !isRoot ? '#ECFDF5' : (style?.background as string) || data.color || '#FFFFFF',
+        borderColor: cardBorderColor,
+        backgroundColor: cardBgColor,
         color: '#141414'
       }}
       title="Nhấn đúp để chỉnh sửa"
     >
-      {/* Handles for spine & rib connections */}
+      {/* Handles for XMind and Fishbone */}
       <Handle
         type="target"
         position={Position.Left}
@@ -986,16 +1169,28 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
         className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
       />
       <Handle
+        type="source"
+        position={Position.Left}
+        id="source-left"
+        className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white opacity-0"
+      />
+      <Handle
+        type="target"
+        position={Position.Right}
+        id="target-right"
+        className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white opacity-0"
+      />
+      <Handle
         type="target"
         position={Position.Top}
         id="top"
-        className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white hover:!scale-125 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white opacity-0 group-hover:opacity-100 transition-opacity"
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom"
-        className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white hover:!scale-125 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white opacity-0 group-hover:opacity-100 transition-opacity"
       />
 
       {/* Header: Hierarchical Code, Collapse Button, Mastery Checkbox or Root Spine Badge */}
@@ -1006,8 +1201,15 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
           </span>
         ) : (
           <div className="flex items-center gap-1.5 min-w-0">
-            {/* Hierarchical Code Badge e.g. 1, 1.1, 1.2, 2.1 */}
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-black/5 text-ink/75 border border-ink/20 shrink-0">
+            {/* Hierarchical Code Badge e.g. A1, A1.1, A2, B1, 1, 1.1 */}
+            <span
+              className="text-[9px] font-black px-1.5 py-0.5 rounded-md border shrink-0"
+              style={{
+                backgroundColor: theme ? theme.badgeBg : 'rgba(0,0,0,0.06)',
+                color: theme ? theme.badgeText : '#141414',
+                borderColor: theme ? theme.border : 'rgba(20,20,20,0.2)'
+              }}
+            >
               {data.hierarchicalCode || data.milestoneBadge || '•'}
             </span>
 
@@ -1022,7 +1224,7 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
                 "flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border transition-all cursor-pointer active:scale-95 shrink-0",
                 isCompleted
                   ? "bg-emerald-100 text-emerald-800 border-emerald-600 hover:bg-emerald-200"
-                  : "bg-white/80 text-ink/70 border-ink/30 hover:border-ink hover:text-ink hover:bg-white"
+                  : "bg-white/90 text-ink/70 border-ink/30 hover:border-ink hover:text-ink hover:bg-white"
               )}
               title={isCompleted ? "Đã nắm! Bấm để bỏ tick" : "Chưa nắm. Bấm để tick 'Đã nắm'"}
             >
@@ -1533,12 +1735,12 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
   const handleParseAndApplyOutline = () => {
     if (!outlineInput.trim()) return;
 
-    const lines = outlineInput
+    const rawLines = outlineInput
       .split('\n')
       .map((l) => l.replace(/\r$/, ''))
       .filter((l) => l.trim().length > 0);
 
-    if (lines.length === 0) return;
+    if (rawLines.length === 0) return;
 
     interface ParsedLine {
       id: string;
@@ -1553,38 +1755,25 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     const parsed: ParsedLine[] = [];
     const stack: { level: number; id: string }[] = [];
 
-    lines.forEach((line, idx) => {
-      // Calculate level
-      let level = 0;
-      let trimmed = line;
+    rawLines.forEach((rawLine, idx) => {
+      let line = rawLine;
 
-      // Check markdown headers
-      if (line.startsWith('#### ')) {
-        level = 3;
-        trimmed = line.replace(/^####\s+/, '');
-      } else if (line.startsWith('### ')) {
-        level = 2;
-        trimmed = line.replace(/^###\s+/, '');
-      } else if (line.startsWith('## ')) {
-        level = 1;
-        trimmed = line.replace(/^##\s+/, '');
-      } else if (line.startsWith('# ')) {
-        level = 0;
-        trimmed = line.replace(/^#\s+/, '');
-      } else {
-        // Count leading tabs or 2-4 spaces
-        const matchSpaces = line.match(/^([ \t]+)/);
-        if (matchSpaces) {
-          const ws = matchSpaces[1];
-          const tabs = (ws.match(/\t/g) || []).length;
-          const spaces = (ws.match(/ /g) || []).length;
-          level = tabs + Math.floor(spaces / 2);
-        }
-        trimmed = line.trim();
+      // Check note delimiter: // or (note: ...)
+      let notes = '';
+      if (line.includes('//')) {
+        const parts = line.split('//');
+        line = parts[0];
+        notes = parts.slice(1).join('//').trim();
       }
 
-      // Strip bullet points: -, *, +, 1., 1.1., a.
-      trimmed = trimmed.replace(/^[-*+•]\s+/, '').replace(/^\d+[\.\)]\s+/, '');
+      // Measure leading indentation
+      const wsMatch = line.match(/^([ \t]+)/);
+      const ws = wsMatch ? wsMatch[1] : '';
+      const tabs = (ws.match(/\t/g) || []).length;
+      const spaces = (ws.match(/ /g) || []).length;
+      const explicitIndent = tabs + Math.floor(spaces / 2);
+
+      let trimmed = line.trim();
 
       // Check for check status [x], [v], [ ]
       let completed = false;
@@ -1596,12 +1785,52 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         trimmed = trimmed.replace(/^\[\s*\]\s*/, '');
       }
 
-      // Check for note delimiter: // or (note: ...)
-      let notes = '';
-      if (trimmed.includes('//')) {
-        const parts = trimmed.split('//');
-        trimmed = parts[0].trim();
-        notes = parts.slice(1).join('//').trim();
+      // Check if line starts with a bullet mark: -, *, +, •
+      const hasBullet = /^[-*+•]\s+/.test(trimmed);
+      if (hasBullet) {
+        trimmed = trimmed.replace(/^[-*+•]\s+/, '');
+      } else {
+        // Strip leading numbering if present: 1., 2., 1.1.
+        trimmed = trimmed.replace(/^(\d+(?:\.\d+)*)[\.\)]\s+/, '');
+      }
+
+      // Check markdown headers
+      let level = 0;
+      if (rawLine.startsWith('#### ')) {
+        level = 3;
+        trimmed = rawLine.replace(/^####\s+/, '');
+      } else if (rawLine.startsWith('### ')) {
+        level = 2;
+        trimmed = rawLine.replace(/^###\s+/, '');
+      } else if (rawLine.startsWith('## ')) {
+        level = 1;
+        trimmed = rawLine.replace(/^##\s+/, '');
+      } else if (rawLine.startsWith('# ')) {
+        level = 0;
+        trimmed = rawLine.replace(/^#\s+/, '');
+      } else if (idx === 0) {
+        // Root subject title
+        level = explicitIndent > 0 ? explicitIndent : 0;
+      } else {
+        const upper = trimmed.toUpperCase();
+        const isLevelMilestone =
+          /^LEVEL\s*[A-C][1-2](\b|:|-|\s)/.test(upper) ||
+          /^[A-C][1-2](\b|:|-|\s)/.test(upper) ||
+          /^MỐC\s*\d+/.test(upper) ||
+          /^GIAI ĐOẠN\s*\d+/.test(upper);
+
+        if (isLevelMilestone && !hasBullet && explicitIndent <= 1) {
+          // Major milestone (A1, A2, B1, B2) -> direct child of root
+          level = 1;
+        } else if (hasBullet) {
+          // Bullet points under a milestone (e.g. - Động từ to be under Level A1)
+          // Even with 0 indent, a bullet attaches to the active milestone (level 2)
+          level = explicitIndent > 0 ? explicitIndent + 1 : 2;
+        } else if (explicitIndent > 0) {
+          level = explicitIndent;
+        } else {
+          level = 1;
+        }
       }
 
       const id = `node-${idx}-${Date.now()}`;
@@ -1627,13 +1856,17 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     if (parsed.length === 0) return;
 
     // Convert into React Flow nodes and edges
+    let milestoneCount = 0;
     const newNodes: Node[] = parsed.map((p, idx) => {
       const isRoot = idx === 0 || p.level === 0;
+      let theme: LevelTheme | undefined;
       let bg = '#FFFFFF';
-      if (isRoot) bg = '#FEF08A';
-      else if (p.level === 1) {
-        const colors = ['#DBEAFE', '#DCFCE7', '#FCE7F3', '#FFEDD5', '#EDE9FE'];
-        bg = colors[idx % colors.length];
+
+      if (isRoot) {
+        bg = '#FEF08A';
+      } else if (p.level === 1) {
+        theme = getMilestoneTheme(p.label, milestoneCount++);
+        bg = theme.bg;
       }
 
       return {
@@ -1646,7 +1879,8 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
           completed: p.completed,
           important: p.important,
           isRoot: isRoot,
-          color: bg
+          color: bg,
+          theme
         },
         style: { background: bg }
       };
@@ -1659,7 +1893,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
           id: `e-${p.parentId}-${p.id}`,
           source: p.parentId,
           target: p.id,
-          style: { stroke: '#141414', strokeWidth: p.level === 1 ? 3 : 2 },
+          style: { stroke: '#141414', strokeWidth: p.level === 1 ? 3.5 : 2.5 },
           animated: false
         });
       }
@@ -1701,6 +1935,69 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     setOutlineInput('');
   };
 
+  // Node milestone theme map: propagate theme from Level 1 milestone to all child sub-branches
+  const nodeMilestoneThemeMap = useMemo(() => {
+    const map = new Map<string, LevelTheme>();
+    if (!activeMap?.nodes) return map;
+
+    const targetIds = new Set(activeMap.edges?.map((e) => e.target) || []);
+    const rootNode =
+      activeMap.nodes.find((n) => n.data?.isRoot) ||
+      activeMap.nodes.find((n) => !targetIds.has(n.id)) ||
+      activeMap.nodes[0];
+
+    const parentMap = new Map<string, string>();
+    activeMap.edges?.forEach((e) => {
+      parentMap.set(e.target, e.source);
+    });
+
+    const rootChildren =
+      activeMap.edges
+        ?.filter((e) => e.source === rootNode?.id)
+        .map((e) => e.target) || [];
+
+    rootChildren.forEach((childId, idx) => {
+      const childNode = activeMap.nodes.find((n) => n.id === childId);
+      const th = getMilestoneTheme(String(childNode?.data?.label || ''), idx);
+      map.set(childId, th);
+    });
+
+    activeMap.nodes.forEach((node, idx) => {
+      if (map.has(node.id) || node.id === rootNode?.id) return;
+
+      const labelUpper = String(node.data?.label || '').toUpperCase();
+      if (
+        labelUpper.includes('A1') ||
+        labelUpper.includes('A2') ||
+        labelUpper.includes('B1') ||
+        labelUpper.includes('B2') ||
+        labelUpper.includes('C1') ||
+        labelUpper.includes('C2')
+      ) {
+        map.set(node.id, getMilestoneTheme(labelUpper, idx));
+        return;
+      }
+
+      // Trace ancestor to inherit parent milestone theme
+      let curr = parentMap.get(node.id);
+      let depth = 0;
+      while (curr && depth < 10) {
+        if (map.has(curr)) {
+          map.set(node.id, map.get(curr)!);
+          break;
+        }
+        curr = parentMap.get(curr);
+        depth++;
+      }
+
+      if (!map.has(node.id)) {
+        map.set(node.id, getMilestoneTheme(node.data?.label || '', idx));
+      }
+    });
+
+    return map;
+  }, [activeMap?.nodes, activeMap?.edges]);
+
   // Prepare custom node injection with callbacks, collapsing, and diagram layout
   const preparedNodes = useMemo(() => {
     if (!activeMap?.nodes) return [];
@@ -1739,14 +2036,19 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       const isCollapsed = collapsedNodeIds.has(node.id);
       const hCode = hierarchicalCodes.get(node.id) || '';
 
-      // Extract level badge text if any (e.g. B2, B1, A2, C1)
+      // Inherit milestone theme for this node
+      const nodeTheme = nodeMilestoneThemeMap.get(node.id);
+
+      // Extract level badge text if any (e.g. A1, A2, B1, B2)
       let badgeText = hCode || node.data?.milestoneBadge || '';
       if (!badgeText) {
         const labelUpper = String(node.data?.label || '').toUpperCase();
-        if (labelUpper.includes('B2')) badgeText = 'B2';
-        else if (labelUpper.includes('B1')) badgeText = 'B1';
+        if (labelUpper.includes('A1')) badgeText = 'A1';
         else if (labelUpper.includes('A2')) badgeText = 'A2';
+        else if (labelUpper.includes('B1')) badgeText = 'B1';
+        else if (labelUpper.includes('B2')) badgeText = 'B2';
         else if (labelUpper.includes('C1')) badgeText = 'C1';
+        else if (labelUpper.includes('C2')) badgeText = 'C2';
         else if (node.data?.isRoot) badgeText = '★';
         else badgeText = String(index + 1);
       }
@@ -1757,12 +2059,13 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         selected: node.id === selectedNodeId,
         style: {
           ...node.style,
-          background: node.style?.background || node.data?.color || '#FFFFFF',
+          background: node.style?.background || (nodeTheme ? (hCode.includes('.') ? nodeTheme.subBg : nodeTheme.bg) : node.data?.color || '#FFFFFF'),
           outline: matchesSearch && searchQuery.trim() ? '3px solid #3B82F6' : undefined,
           opacity: isVisibleByMastery ? 1 : 0.25
         },
         data: {
           ...node.data,
+          theme: nodeTheme,
           isRoadmap: diagramLayout === 'roadmap' || !!node.data?.isRoadmap,
           milestoneIndex: node.data?.milestoneIndex || index + 1,
           milestoneBadge: badgeText,
@@ -1788,6 +2091,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     childrenMap,
     collapsedNodeIds,
     hierarchicalCodes,
+    nodeMilestoneThemeMap,
     toggleCollapseNode,
     selectedNodeId,
     searchQuery,
@@ -1798,7 +2102,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     handleToggleComplete
   ]);
 
-  // Edges prepared with layout-specific styles and filtering collapsed nodes
+  // Edges prepared with layout-specific styles, theme color matching, and filtering collapsed nodes
   const preparedEdges = useMemo(() => {
     if (!activeMap?.edges) return [];
     const visibleEdges = activeMap.edges.filter(
@@ -1806,31 +2110,37 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     );
 
     if (diagramLayout === 'roadmap') {
-      return visibleEdges.map((e) => ({
-        ...e,
-        type: 'default',
-        style: {
-          stroke: '#7C3AED',
-          strokeWidth: 8,
-          strokeLinecap: 'round'
-        },
-        animated: false
-      }));
+      return visibleEdges.map((e) => {
+        const targetTheme = nodeMilestoneThemeMap.get(e.target);
+        return {
+          ...e,
+          type: 'default',
+          style: {
+            stroke: targetTheme?.edgeColor || '#7C3AED',
+            strokeWidth: 8,
+            strokeLinecap: 'round'
+          },
+          animated: false
+        };
+      });
     }
 
     if (diagramLayout === 'xmind') {
       const rootNode = activeMap.nodes.find((n) => n.data?.isRoot) || activeMap.nodes[0];
-      const rootX = rootNode?.position?.x || 550;
+      const rootX = rootNode?.position?.x || 600;
       return visibleEdges.map((e) => {
         const targetNode = activeMap.nodes.find((n) => n.id === e.target);
         const isRight = (targetNode?.position?.x ?? 600) >= rootX;
+        const targetTheme = nodeMilestoneThemeMap.get(e.target);
+        const branchColor = targetTheme ? targetTheme.edgeColor : isRight ? '#2563EB' : '#7C3AED';
+
         return {
           ...e,
           sourceHandle: isRight ? 'right' : 'left',
           targetHandle: isRight ? 'left' : 'right',
           type: 'smoothstep',
           style: {
-            stroke: isRight ? '#2563EB' : '#7C3AED',
+            stroke: branchColor,
             strokeWidth: 3,
             strokeLinecap: 'round'
           }
@@ -1838,8 +2148,18 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       });
     }
 
-    return visibleEdges;
-  }, [activeMap?.edges, activeMap?.nodes, hiddenNodeIds, diagramLayout]);
+    return visibleEdges.map((e) => {
+      const targetTheme = nodeMilestoneThemeMap.get(e.target);
+      return {
+        ...e,
+        style: {
+          ...e.style,
+          stroke: targetTheme?.edgeColor || e.style?.stroke || '#141414',
+          strokeWidth: e.style?.strokeWidth || 3
+        }
+      };
+    });
+  }, [activeMap?.edges, activeMap?.nodes, hiddenNodeIds, diagramLayout, nodeMilestoneThemeMap]);
 
   // Selected node object
   const selectedNode = useMemo(() => {
@@ -2025,49 +2345,39 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
             <span className="hidden sm:inline">Tạo Mới</span>
           </button>
 
-          {/* Paste Outline */}
-          <button
-            onClick={() => setShowOutlineModal(true)}
-            className="px-2.5 py-1.5 bg-sky-300 hover:bg-sky-200 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
-            title="Dán nhanh dàn ý bài học để tự động tạo sơ đồ xương cá"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Paste Dàn Ý</span>
-          </button>
-
-          {/* View Mode Toggle */}
+          {/* View Mode Toggle: Sơ Đồ | Dàn Bài & Dán Dàn Ý | Ôn Tập */}
           <div className="flex items-center bg-[#EFECE6] p-0.5 rounded-xl border-2 border-[#141414]">
             <button
               onClick={() => setViewMode('canvas')}
               className={cn(
-                'px-2 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
+                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
                 viewMode === 'canvas' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/60 hover:text-ink'
               )}
-              title="Sơ đồ xương cá"
+              title="Sơ đồ tư duy Canvas (Mindmap / Lộ trình / Xương cá)"
             >
-              <Layout className="w-3 h-3" />
-              <span className="hidden sm:inline">Sơ Đồ</span>
+              <Layout className="w-3.5 h-3.5" />
+              <span>Sơ Đồ</span>
             </button>
             <button
               onClick={() => setViewMode('outline')}
               className={cn(
-                'px-2 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
+                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5',
                 viewMode === 'outline' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/60 hover:text-ink'
               )}
-              title="Dàn bài phân cấp dạng cây"
+              title="Dàn bài & Dán dàn ý (nhập hoặc dán dàn ý vào một nơi)"
             >
-              <ListTree className="w-3 h-3" />
-              <span className="hidden sm:inline">Dàn Bài</span>
+              <FileText className="w-3.5 h-3.5" />
+              <span>Dàn Bài & Dán Ý</span>
             </button>
             <button
               onClick={() => setViewMode('study')}
               className={cn(
-                'px-2 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
+                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
                 viewMode === 'study' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/60 hover:text-ink'
               )}
               title="Chế độ ôn tập flashcard"
             >
-              <GraduationCap className="w-3 h-3" />
+              <GraduationCap className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Ôn Tập</span>
             </button>
           </div>
@@ -2537,127 +2847,276 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         </div>
       )}
 
-      {/* OUTLINE TREE VIEW */}
+      {/* UNIFIED OUTLINE & PASTE TAB (GỘP DÀN BÀI VÀ PASTE DÀN Ý THÀNH 1) */}
       {viewMode === 'outline' && (
-        <div className="bg-[#FFFDF7] p-5 sm:p-6 rounded-[24px] border-[2.5px] border-[#141414] shadow-[5px_5px_0px_#141414] flex flex-col gap-4 min-h-[500px]">
-          <div className="flex items-center justify-between border-b-2 border-dashed border-[#141414]/20 pb-3 flex-wrap gap-2">
-            <div>
-              <h3 className="text-base font-black text-ink uppercase flex items-center gap-2">
-                <ListTree className="w-5 h-5 text-amber-500" />
-                Dàn Ý Phân Cấp & Đánh Dấu Nắm Vững
-              </h3>
-              <p className="text-xs text-ink/60">
-                Tick ô vuông bên cạnh mỗi nhánh khi đã nắm vững kiến thức • Chỉnh sửa văn bản trực tiếp
-              </p>
+        <div className="flex flex-col gap-5">
+          {/* 1. Quick Paste Box at the Top */}
+          <div className="bg-[#FFFDF7] p-4 sm:p-5 rounded-[22px] border-[2.5px] border-[#141414] shadow-[4px_4px_0px_#141414] flex flex-col gap-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b-2 border-dashed border-[#141414]/20 pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-300 border-2 border-[#141414] flex items-center justify-center shadow-[1px_1px_0px_#141414]">
+                  <FileText className="w-4 h-4 text-ink" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black uppercase text-ink">
+                    Dán & Soạn Thảo Dàn Ý Tự Động Phân Cấp
+                  </h3>
+                  <p className="text-[11px] text-ink/65">
+                    Rê chuột vào khung để dán ngay (Ctrl+V / Cmd+V) • Tự động gắn ý con vào Level A1, A2, B1, B2...
+                  </p>
+                </div>
+              </div>
+
+              {/* Sample Outlines quick buttons */}
+              <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                <span className="text-ink/50 font-bold hidden md:inline">Mẫu có sẵn:</span>
+                {SAMPLE_OUTLINES.map((tpl) => (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    onClick={() => setOutlineInput(tpl.text)}
+                    className="px-2 py-1 bg-white hover:bg-amber-100 text-ink text-[10px] font-bold rounded-lg border border-[#141414] transition-colors"
+                    title={tpl.name}
+                  >
+                    {tpl.name.split(':')[0]}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowOutlineModal(true)}
-                className="px-3 py-1.5 bg-sky-200 hover:bg-sky-300 text-ink text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-1"
-              >
-                <FileText className="w-3.5 h-3.5" /> Nhập Dàn Ý Mới
-              </button>
-              <button
-                onClick={() => {
-                  if (activeMap?.nodes && activeMap.nodes.length > 0) {
-                    handleAddChildNode(activeMap.nodes[0].id);
-                  }
-                }}
-                className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-ink text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-1"
-              >
-                <Plus className="w-3.5 h-3.5" /> Thêm Nhánh
-              </button>
+
+            {/* Direct Paste Textarea with Hover-to-Focus */}
+            <div className="flex flex-col gap-2">
+              <textarea
+                ref={outlineTextareaRef}
+                rows={4}
+                value={outlineInput}
+                onChange={(e) => setOutlineInput(e.target.value)}
+                onMouseEnter={(e) => e.currentTarget.focus()}
+                placeholder={`Rê chuột vào đây và dán (Ctrl+V hoặc Cmd+V)...
+
+Ví dụ cấu trúc chuẩn:
+Lộ Trình Tiếng Anh
+Level A1: Căn Bản
+- Động từ to be // am/is/are
+- Đại từ nhân xưng
+Level A2: Sơ Cấp
+- Quá khứ đơn
+- So sánh`}
+                className="w-full p-3 font-mono text-xs font-semibold text-ink bg-white border-2 border-[#141414] rounded-xl outline-none focus:bg-amber-50/40 focus:border-amber-500 resize-y leading-relaxed shadow-inner"
+              />
+
+              {/* Action Toolbar for Pasting */}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        if (navigator?.clipboard?.readText) {
+                          const clipText = await navigator.clipboard.readText();
+                          if (clipText && clipText.trim()) {
+                            setOutlineInput(clipText);
+                          }
+                        }
+                      } catch {
+                        outlineTextareaRef.current?.focus();
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 text-xs font-black rounded-xl border-2 border-emerald-700 shadow-[2px_2px_0px_#047857] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Dán từ Clipboard (1 Chạm)</span>
+                  </button>
+
+                  <div className="flex items-center gap-2 text-xs font-bold text-ink">
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="outlineModeUnified"
+                        checked={outlineMode === 'replace'}
+                        onChange={() => setOutlineMode('replace')}
+                        className="accent-black"
+                      />
+                      <span>Cập nhật sơ đồ hiện tại</span>
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="outlineModeUnified"
+                        checked={outlineMode === 'new'}
+                        onChange={() => setOutlineMode('new')}
+                        className="accent-black"
+                      />
+                      <span>Tạo sơ đồ mới</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {outlineInput.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setOutlineInput('')}
+                      className="px-2.5 py-1.5 text-xs font-bold text-ink/60 hover:text-ink"
+                    >
+                      Xóa nội dung
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleParseAndApplyOutline}
+                    disabled={!outlineInput.trim()}
+                    className="px-4 py-1.5 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414] flex items-center justify-center gap-2 active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                  >
+                    <Brain className="w-4 h-4" />
+                    <span>Áp Dụng Dàn Ý Ngay</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            {activeMap?.nodes && activeMap.nodes.map((node) => {
-              const incoming = activeMap.edges.find((e) => e.target === node.id);
-              const parentId = incoming?.source;
-              const hasParent = !!parentId;
-              const isDone = !!node.data?.completed;
-              const isRoot = !!node.data?.isRoot;
+          {/* 2. Interactive Hierarchical Outline Tree right below */}
+          <div className="bg-[#FFFDF7] p-5 sm:p-6 rounded-[24px] border-[2.5px] border-[#141414] shadow-[5px_5px_0px_#141414] flex flex-col gap-4 min-h-[450px]">
+            <div className="flex items-center justify-between border-b-2 border-dashed border-[#141414]/20 pb-3 flex-wrap gap-2">
+              <div>
+                <h3 className="text-base font-black text-ink uppercase flex items-center gap-2">
+                  <ListTree className="w-5 h-5 text-amber-500" />
+                  Dàn Ý Phân Cấp & Đánh Dấu Nắm Vững (Live)
+                </h3>
+                <p className="text-xs text-ink/60">
+                  Tick ô vuông bên cạnh mỗi nhánh khi đã nắm vững • Chỉnh sửa tên nhánh trực tiếp tại đây
+                </p>
+              </div>
 
-              return (
-                <div
-                  key={node.id}
-                  className={cn(
-                    'p-3 rounded-xl border-2 border-[#141414] flex items-start gap-3 transition-all',
-                    isRoot ? 'bg-amber-100 font-black shadow-[3px_3px_0px_#141414]' : hasParent ? 'ml-6 sm:ml-10 bg-white' : 'bg-gray-50',
-                    isDone ? 'bg-emerald-50/80 border-emerald-700' : ''
-                  )}
-                  style={{
-                    backgroundColor: isDone ? '#ECFDF5' : hasParent ? (node.style?.background as string) || '#fff' : '#FEF08A'
-                  }}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setViewMode('canvas')}
+                  className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-950 text-xs font-black rounded-xl border-2 border-blue-600 shadow-[2px_2px_0px_#2563EB] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5"
                 >
-                  {!isRoot ? (
-                    <button
-                      type="button"
-                      onClick={() => handleToggleComplete(node.id)}
-                      className="mt-0.5 text-ink hover:text-emerald-700 transition-transform active:scale-90 shrink-0"
-                      title={isDone ? 'Đã nắm vững! Bấm để bỏ tick' : 'Chưa nắm! Bấm để tick đã nắm'}
-                    >
-                      {isDone ? (
-                        <CheckSquare className="w-5 h-5 text-emerald-700 stroke-[3]" />
-                      ) : (
-                        <Square className="w-5 h-5 text-ink/40 hover:text-ink" />
-                      )}
-                    </button>
-                  ) : (
-                    <span className="text-sm shrink-0">🐟</span>
-                  )}
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Xem trên Sơ Đồ Canvas</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (activeMap?.nodes && activeMap.nodes.length > 0) {
+                      handleAddChildNode(activeMap.nodes[0].id);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-ink text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Thêm Nhánh
+                </button>
+              </div>
+            </div>
 
-                  <div className="flex-1 flex flex-col gap-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={node.data?.label || ''}
-                        onChange={(e) => {
-                          const nextNodes = activeMap.nodes.map((n) =>
-                            n.id === node.id ? { ...n, data: { ...n.data, label: e.target.value } } : n
-                          );
-                          updateCurrentMap(nextNodes, activeMap.edges);
-                        }}
-                        className={cn(
-                          'bg-transparent font-bold text-xs sm:text-sm text-ink outline-none border-b border-transparent focus:border-[#141414] w-full',
-                          isDone ? 'text-emerald-950' : ''
+            <div className="flex flex-col gap-2">
+              {activeMap?.nodes && activeMap.nodes.map((node) => {
+                const incoming = activeMap.edges.find((e) => e.target === node.id);
+                const parentId = incoming?.source;
+                const hasParent = !!parentId;
+                const isDone = !!node.data?.completed;
+                const isRoot = !!node.data?.isRoot;
+                const theme = nodeMilestoneThemeMap.get(node.id);
+                const hCode = hierarchicalCodes.get(node.id) || '';
+                const isSub = hCode.includes('.');
+
+                return (
+                  <div
+                    key={node.id}
+                    className={cn(
+                      'p-3 rounded-xl border-2 border-[#141414] flex items-start gap-3 transition-all',
+                      isRoot ? 'bg-amber-100 font-black shadow-[3px_3px_0px_#141414]' : hasParent ? (isSub ? 'ml-10 sm:ml-14' : 'ml-4 sm:ml-7') : 'bg-gray-50',
+                      isDone ? 'bg-emerald-50/90 border-emerald-700' : ''
+                    )}
+                    style={{
+                      borderColor: isDone ? '#059669' : theme ? (isSub ? theme.subBorder : theme.border) : '#141414',
+                      backgroundColor: isDone ? '#ECFDF5' : theme ? (isSub ? theme.subBg : theme.bg) : hasParent ? (node.style?.background as string) || '#fff' : '#FEF08A'
+                    }}
+                  >
+                    {!isRoot ? (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleComplete(node.id)}
+                        className="mt-0.5 text-ink hover:text-emerald-700 transition-transform active:scale-90 shrink-0 cursor-pointer"
+                        title={isDone ? 'Đã nắm vững! Bấm để bỏ tick' : 'Chưa nắm! Bấm để tick đã nắm'}
+                      >
+                        {isDone ? (
+                          <CheckSquare className="w-5 h-5 text-emerald-700 stroke-[3]" />
+                        ) : (
+                          <Square className="w-5 h-5 text-ink/40 hover:text-ink" />
                         )}
-                      />
-                      {isDone && (
-                        <span className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-200/80 px-2 py-0.5 rounded-full shrink-0">
-                          ✓ Đã nắm
-                        </span>
+                      </button>
+                    ) : (
+                      <span className="text-sm shrink-0">🐟</span>
+                    )}
+
+                    {/* Level / Milestone Badge */}
+                    {!isRoot && (
+                      <span
+                        className="text-[10px] font-black px-2 py-0.5 rounded-md border shrink-0 mt-0.5"
+                        style={{
+                          backgroundColor: theme ? theme.badgeBg : 'rgba(0,0,0,0.06)',
+                          color: theme ? theme.badgeText : '#141414',
+                          borderColor: theme ? theme.border : 'rgba(20,20,20,0.2)'
+                        }}
+                      >
+                        {hCode || node.data?.milestoneBadge || '•'}
+                      </span>
+                    )}
+
+                    <div className="flex-1 flex flex-col gap-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={node.data?.label || ''}
+                          onChange={(e) => {
+                            const nextNodes = activeMap.nodes.map((n) =>
+                              n.id === node.id ? { ...n, data: { ...n.data, label: e.target.value } } : n
+                            );
+                            updateCurrentMap(nextNodes, activeMap.edges);
+                          }}
+                          className={cn(
+                            'bg-transparent font-bold text-xs sm:text-sm text-ink outline-none border-b border-transparent focus:border-[#141414] w-full',
+                            isDone ? 'text-emerald-950 font-black' : ''
+                          )}
+                        />
+                        {isDone && (
+                          <span className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-200/80 px-2 py-0.5 rounded-full shrink-0">
+                            ✓ Đã nắm
+                          </span>
+                        )}
+                      </div>
+
+                      {node.data?.notes && (
+                        <p className="text-xs text-ink/70 font-normal italic">
+                          📝 {node.data.notes}
+                        </p>
                       )}
                     </div>
 
-                    {node.data?.notes && (
-                      <p className="text-xs text-ink/70 font-normal italic">
-                        📝 {node.data.notes}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => handleAddChildNode(node.id)}
-                      className="p-1.5 hover:bg-black/10 rounded-lg text-ink"
-                      title="Thêm nhánh con"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                    {!node.data?.isRoot && (
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
-                        onClick={() => handleDeleteNode(node.id)}
-                        className="p-1.5 hover:bg-rose-100 rounded-lg text-rose-600"
-                        title="Xóa nhánh"
+                        onClick={() => handleAddChildNode(node.id)}
+                        className="p-1.5 hover:bg-black/10 rounded-lg text-ink"
+                        title="Thêm nhánh con"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Plus className="w-3.5 h-3.5" />
                       </button>
-                    )}
+                      {!node.data?.isRoot && (
+                        <button
+                          onClick={() => handleDeleteNode(node.id)}
+                          className="p-1.5 hover:bg-rose-100 rounded-lg text-rose-600"
+                          title="Xóa nhánh"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -2696,154 +3155,6 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
           </div>
         </div>
       )}
-
-      {/* MODAL: PASTE OUTLINE (DÁN DÀN Ý - ĐƠN GIẢN HOÁ) */}
-      <AnimatePresence>
-        {showOutlineModal && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#FFFDF7] w-full max-w-xl p-5 sm:p-6 rounded-[24px] border-[2.5px] border-[#141414] shadow-[6px_6px_0px_#141414] flex flex-col gap-3.5 max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between border-b-2 border-dashed border-[#141414]/20 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-200 border-2 border-[#141414] flex items-center justify-center shadow-[1px_1px_0px_#141414]">
-                    <FileText className="w-4 h-4 text-ink" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black uppercase text-ink">
-                      Dán Dàn Ý
-                    </h3>
-                    <p className="text-[11px] text-ink/65">
-                      Rê chuột vào ô bên dưới để dán trực tiếp (Ctrl+V / Cmd+V)
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowOutlineModal(false)}
-                  className="text-ink/50 hover:text-ink p-1 rounded-lg hover:bg-black/5 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Quick 1-Click Clipboard Paste Button & Sample Outlines */}
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      if (navigator?.clipboard?.readText) {
-                        const clipText = await navigator.clipboard.readText();
-                        if (clipText && clipText.trim()) {
-                          setOutlineInput(clipText);
-                        }
-                      }
-                    } catch (err) {
-                      // fallback
-                      outlineTextareaRef.current?.focus();
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 text-xs font-black rounded-xl border-2 border-emerald-700 shadow-[2px_2px_0px_#047857] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
-                >
-                  <Copy className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Dán từ Clipboard (1 Chạm)</span>
-                </button>
-
-                <div className="flex items-center gap-1.5 text-[11px]">
-                  <span className="text-ink/50 font-bold hidden sm:inline">Mẫu nhanh:</span>
-                  <button
-                    type="button"
-                    onClick={() => setOutlineInput(SAMPLE_OUTLINES[1].text)}
-                    className="px-2 py-1 bg-white hover:bg-amber-100 text-ink text-[10px] font-bold rounded-lg border border-ink/40"
-                  >
-                    Ngữ pháp
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOutlineInput(SAMPLE_OUTLINES[2].text)}
-                    className="px-2 py-1 bg-white hover:bg-amber-100 text-ink text-[10px] font-bold rounded-lg border border-ink/40"
-                  >
-                    Xương cá
-                  </button>
-                </div>
-              </div>
-
-              {/* Minimal Textarea with Hover-to-Focus */}
-              <div className="flex flex-col gap-1">
-                <textarea
-                  ref={outlineTextareaRef}
-                  rows={8}
-                  value={outlineInput}
-                  onChange={(e) => setOutlineInput(e.target.value)}
-                  onMouseEnter={(e) => e.currentTarget.focus()}
-                  autoFocus
-                  placeholder={`Để chuột vào đây và dán (Ctrl+V hoặc Cmd+V)...
-
-Ví dụ cấu trúc đơn giản:
-Chủ Đề Ôn Tập
-  Mục 1 // Ghi chú giải thích
-    [v] Ý con 1.1 đã nắm
-    Ý con 1.2
-  Mục 2
-    Ý con 2.1
-    Ý con 2.2`}
-                  className="w-full p-3 font-mono text-xs font-semibold text-ink bg-white border-2 border-[#141414] rounded-xl outline-none focus:bg-amber-50/40 focus:border-amber-500 resize-none leading-relaxed shadow-inner"
-                />
-              </div>
-
-              {/* Target Mode: Replace or Create new */}
-              <div className="flex items-center justify-between gap-2 bg-[#EFECE6] px-3 py-2 rounded-xl border-2 border-[#141414] text-xs">
-                <span className="font-black uppercase text-ink">Áp dụng:</span>
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-ink">
-                    <input
-                      type="radio"
-                      name="outlineMode"
-                      checked={outlineMode === 'replace'}
-                      onChange={() => setOutlineMode('replace')}
-                      className="accent-black"
-                    />
-                    <span>Sơ đồ hiện tại</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-ink">
-                    <input
-                      type="radio"
-                      name="outlineMode"
-                      checked={outlineMode === 'new'}
-                      onChange={() => setOutlineMode('new')}
-                      className="accent-black"
-                    />
-                    <span>Tạo sơ đồ mới</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowOutlineModal(false)}
-                  className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414]"
-                >
-                  Đóng
-                </button>
-                <button
-                  type="button"
-                  onClick={handleParseAndApplyOutline}
-                  disabled={!outlineInput.trim()}
-                  className="flex-2 py-2 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414] flex items-center justify-center gap-2 active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
-                >
-                  <Brain className="w-4 h-4" />
-                  <span>Tạo Sơ Đồ Ngay</span>
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* MODAL: CREATE MIND MAP */}
       <AnimatePresence>

@@ -352,6 +352,131 @@ const DEFAULT_ENGLISH_BOOKS: EnglishBook[] = [
 
 const DEFAULT_MINDMAPS: MindmapItem[] = [
   {
+    id: "mm-cefr-roadmap",
+    title: "🇬🇧 Lộ Trình Tiếng Anh Toàn Diện (A1 -> B2)",
+    description: "Hệ thống mốc bài học chuẩn CEFR: Level A1, A2, B1, B2 với các nhánh con gắn kết chặt chẽ",
+    category: "Tiếng Anh",
+    colorTheme: "#059669",
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    nodes: [
+      {
+        id: "root-cefr",
+        type: "custom",
+        data: { label: "Lộ Trình Tiếng Anh (A1 - B2)", notes: "Nền tảng vững chắc từ mất gốc đến nâng cao", isRoot: true, important: true },
+        position: { x: 600, y: 400 },
+        style: { background: "#FEF08A" }
+      },
+      // Level A1 & Children
+      {
+        id: "lvl-a1",
+        type: "custom",
+        data: { label: "Level A1: Mất Gốc & Căn Bản", notes: "Nền tảng từ loại và các mẫu câu cơ bản nhất", milestoneBadge: "A1", important: true },
+        position: { x: 930, y: 260 },
+        style: { background: "#ECFDF5" }
+      },
+      {
+        id: "a1-tobe",
+        type: "custom",
+        data: { label: "Động từ To Be (am/is/are)", notes: "Khẳng định, phủ định và câu hỏi nghi vấn", completed: true },
+        position: { x: 1260, y: 200 },
+        style: { background: "#F0FDF4" }
+      },
+      {
+        id: "a1-pronoun",
+        type: "custom",
+        data: { label: "Đại từ nhân xưng & Sở hữu", notes: "I, you, we, they, he, she, it & my, your, our", completed: true },
+        position: { x: 1260, y: 310 },
+        style: { background: "#F0FDF4" }
+      },
+      // Level A2 & Children
+      {
+        id: "lvl-a2",
+        type: "custom",
+        data: { label: "Level A2: Sơ Cấp & Giao Tiếp", notes: "Giao tiếp sinh hoạt hàng ngày và kể chuyện quá khứ", milestoneBadge: "A2", important: true },
+        position: { x: 270, y: 260 },
+        style: { background: "#F0F9FF" }
+      },
+      {
+        id: "a2-past",
+        type: "custom",
+        data: { label: "Thì Quá khứ đơn (Past Simple)", notes: "Động từ có quy tắc -ed và 360 bất quy tắc", completed: true },
+        position: { x: -60, y: 200 },
+        style: { background: "#F8FAFC" }
+      },
+      {
+        id: "a2-prep",
+        type: "custom",
+        data: { label: "Giới từ chỉ thời gian & nơi chốn", notes: "In, On, At, Under, Between, Next to", completed: false },
+        position: { x: -60, y: 310 },
+        style: { background: "#F8FAFC" }
+      },
+      // Level B1 & Children
+      {
+        id: "lvl-b1",
+        type: "custom",
+        data: { label: "Level B1: Trung Cấp Tự Tin", notes: "Tự tin diễn đạt quan điểm cá nhân và thuyết trình", milestoneBadge: "B1", important: true },
+        position: { x: 930, y: 520 },
+        style: { background: "#FFFBEB" }
+      },
+      {
+        id: "b1-present-perfect",
+        type: "custom",
+        data: { label: "Thì Hiện tại hoàn thành", notes: "Trải nghiệm và kết quả lưu lại ở hiện tại", completed: false },
+        position: { x: 1260, y: 470 },
+        style: { background: "#FEFCE8" }
+      },
+      {
+        id: "b1-conditional",
+        type: "custom",
+        data: { label: "Câu điều kiện loại 1 & 2", notes: "Tình huống có thật và giả định", completed: false },
+        position: { x: 1260, y: 570 },
+        style: { background: "#FEFCE8" }
+      },
+      // Level B2 & Children
+      {
+        id: "lvl-b2",
+        type: "custom",
+        data: { label: "Level B2: Nâng Cao & Học Thuật", notes: "Đọc báo, viết luận và giao tiếp phản xạ chuyên sâu", milestoneBadge: "B2", important: true },
+        position: { x: 270, y: 520 },
+        style: { background: "#FAF5FF" }
+      },
+      {
+        id: "b2-storytelling",
+        type: "custom",
+        data: { label: "Kể chuyện nhiều lớp thời gian", notes: "Phối hợp quá khứ đơn, tiếp diễn và hoàn thành", completed: false },
+        position: { x: -60, y: 470 },
+        style: { background: "#F5F3FF" }
+      },
+      {
+        id: "b2-mixed-cond",
+        type: "custom",
+        data: { label: "Câu điều kiện hỗn hợp", notes: "Kết hợp loại 2 và loại 3", completed: false },
+        position: { x: -60, y: 570 },
+        style: { background: "#F5F3FF" }
+      }
+    ],
+    edges: [
+      // Root to Milestones
+      { id: "e-root-a1", source: "root-cefr", target: "lvl-a1", sourceHandle: "right", targetHandle: "left", style: { stroke: "#059669", strokeWidth: 3.5 } },
+      { id: "e-root-a2", source: "root-cefr", target: "lvl-a2", sourceHandle: "left", targetHandle: "right", style: { stroke: "#0284C7", strokeWidth: 3.5 } },
+      { id: "e-root-b1", source: "root-cefr", target: "lvl-b1", sourceHandle: "right", targetHandle: "left", style: { stroke: "#D97706", strokeWidth: 3.5 } },
+      { id: "e-root-b2", source: "root-cefr", target: "lvl-b2", sourceHandle: "left", targetHandle: "right", style: { stroke: "#7C3AED", strokeWidth: 3.5 } },
+      // A1 children
+      { id: "e-a1-tobe", source: "lvl-a1", target: "a1-tobe", sourceHandle: "right", targetHandle: "left", style: { stroke: "#059669", strokeWidth: 2.5 } },
+      { id: "e-a1-pronoun", source: "lvl-a1", target: "a1-pronoun", sourceHandle: "right", targetHandle: "left", style: { stroke: "#059669", strokeWidth: 2.5 } },
+      // A2 children
+      { id: "e-a2-past", source: "lvl-a2", target: "a2-past", sourceHandle: "left", targetHandle: "right", style: { stroke: "#0284C7", strokeWidth: 2.5 } },
+      { id: "e-a2-prep", source: "lvl-a2", target: "a2-prep", sourceHandle: "left", targetHandle: "right", style: { stroke: "#0284C7", strokeWidth: 2.5 } },
+      // B1 children
+      { id: "e-b1-present-perfect", source: "lvl-b1", target: "b1-present-perfect", sourceHandle: "right", targetHandle: "left", style: { stroke: "#D97706", strokeWidth: 2.5 } },
+      { id: "e-b1-conditional", source: "lvl-b1", target: "b1-conditional", sourceHandle: "right", targetHandle: "left", style: { stroke: "#D97706", strokeWidth: 2.5 } },
+      // B2 children
+      { id: "e-b2-storytelling", source: "lvl-b2", target: "b2-storytelling", sourceHandle: "left", targetHandle: "right", style: { stroke: "#7C3AED", strokeWidth: 2.5 } },
+      { id: "e-b2-mixed-cond", source: "lvl-b2", target: "b2-mixed-cond", sourceHandle: "left", targetHandle: "right", style: { stroke: "#7C3AED", strokeWidth: 2.5 } }
+    ]
+  },
+  {
     id: "mm-journey-b2",
     title: "🛤️ Lộ Trình Chinh Phục Tiếng Anh B2",
     description: "Hành trình mốc bài học uốn lượn: từ thì quá khứ, hoàn thành đến kể chuyện nhiều lớp",
