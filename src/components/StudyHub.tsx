@@ -58,6 +58,8 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import type { MindmapItem } from '../types';
+import { AioKnowledgeBase, type KnowledgeTopic } from './AioKnowledgeBase';
+import { AioRoadmapView } from './AioRoadmapView';
 
 // Palette for study nodes
 const NODE_COLORS = [
@@ -1050,7 +1052,7 @@ export function generateOutlineFromNodes(nodes: Node[], edges: Edge[]): string {
     } else if (depth === 1) {
       lines.push(`${indent}${checkMark}${label}${noteSuffix}`);
     } else {
-      lines.push(`${indent}${checkMark}- ${cleanNodeTitle(label)}${noteSuffix}`);
+      lines.push(`${indent}${checkMark}- ${cleanNodeTitle(String(label || ''))}${noteSuffix}`);
     }
 
     const children = childrenMap.get(nodeId) || [];
@@ -1066,6 +1068,126 @@ export function generateOutlineFromNodes(nodes: Node[], edges: Edge[]): string {
   });
 
   return lines.join('\n');
+}
+
+// Convert hierarchical text outline into React Flow nodes and edges
+export function parseOutlineToNodesAndEdges(outlineText: string, defaultTitle?: string): { nodes: Node[]; edges: Edge[] } {
+  if (!outlineText || !outlineText.trim()) return { nodes: [], edges: [] };
+
+  const rawLines = outlineText
+    .split('\n')
+    .map((l) => l.replace(/\r$/, ''))
+    .filter((l) => l.trim().length > 0);
+
+  if (rawLines.length === 0) return { nodes: [], edges: [] };
+
+  interface ParsedLine {
+    id: string;
+    level: number;
+    label: string;
+    notes: string;
+    completed: boolean;
+    important: boolean;
+    parentId?: string;
+  }
+
+  const parsed: ParsedLine[] = [];
+  const stack: { level: number; id: string }[] = [];
+
+  rawLines.forEach((rawLine, idx) => {
+    let line = rawLine;
+
+    let notes = '';
+    if (line.includes('//')) {
+      const parts = line.split('//');
+      line = parts[0];
+      notes = parts.slice(1).join('//').trim();
+    }
+
+    const wsMatch = line.match(/^([ \t]+)/);
+    const ws = wsMatch ? wsMatch[1] : '';
+    const tabs = (ws.match(/\t/g) || []).length;
+    const spaces = (ws.match(/ /g) || []).length;
+    const explicitIndent = tabs + Math.floor(spaces / 2);
+
+    let trimmed = line.trim();
+    let completed = false;
+    if (trimmed.startsWith('[v]') || trimmed.startsWith('[x]') || trimmed.startsWith('[✓]')) {
+      completed = true;
+      trimmed = trimmed.replace(/^\[(v|x|✓)\]\s*/i, '');
+    }
+
+    let level = explicitIndent;
+    if (idx === 0) {
+      level = 0;
+    } else if (level === 0) {
+      level = 1;
+    }
+
+    const id = `node-${idx}-${Date.now().toString(36)}`;
+
+    while (stack.length > 0 && stack[stack.length - 1].level >= level) {
+      stack.pop();
+    }
+
+    const parentId = stack.length > 0 ? stack[stack.length - 1].id : undefined;
+    stack.push({ level, id });
+
+    parsed.push({
+      id,
+      level,
+      label: cleanNodeTitle(trimmed) || trimmed || (idx === 0 && defaultTitle ? defaultTitle : `Nhánh ${idx + 1}`),
+      notes,
+      completed,
+      important: level <= 1,
+      parentId
+    });
+  });
+
+  let milestoneCount = 0;
+  const nodes: Node[] = parsed.map((p, idx) => {
+    const isRoot = idx === 0 || p.level === 0;
+    let theme: LevelTheme | undefined;
+    let bg = '#FFFFFF';
+
+    if (isRoot) {
+      bg = '#FEF08A';
+    } else if (p.level === 1) {
+      theme = getMilestoneTheme(p.label, milestoneCount++);
+      bg = theme.bg;
+    }
+
+    return {
+      id: p.id,
+      type: 'custom',
+      position: { x: 100, y: 100 },
+      data: {
+        label: p.label,
+        notes: p.notes,
+        completed: p.completed,
+        important: p.important,
+        isRoot,
+        color: bg,
+        theme
+      },
+      style: { background: bg }
+    };
+  });
+
+  const edges: Edge[] = [];
+  parsed.forEach((p) => {
+    if (p.parentId) {
+      edges.push({
+        id: `e-${p.parentId}-${p.id}`,
+        source: p.parentId,
+        target: p.id,
+        style: { stroke: '#141414', strokeWidth: p.level === 1 ? 3.5 : 2.5 },
+        animated: false
+      });
+    }
+  });
+
+  return { nodes, edges };
 }
 
 // Custom Node for React Flow: Supports Curved Learning Roadmap, Fishbone, and XMind Mindmap
@@ -1599,8 +1721,32 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     return mindmaps?.find((m) => m.id === activeMapId) || mindmaps?.[0];
   }, [mindmaps, activeMapId]);
 
-  // View mode: 'canvas' | 'outline' | 'study'
-  const [viewMode, setViewMode] = useState<'canvas' | 'outline' | 'study'>('canvas');
+  // View mode: 'knowledge' (tab=kien-thuc) | 'roadmap' (tab=lo-trinh) | 'canvas' (Mindmap) | 'outline' (Dàn bài) | 'study' (Ôn tập)
+  const [viewMode, setViewMode] = useState<'knowledge' | 'roadmap' | 'canvas' | 'outline' | 'study'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab === 'kien-thuc') return 'knowledge';
+      if (tab === 'lo-trinh') return 'roadmap';
+      if (tab === 'mindmap' || tab === 'canvas') return 'canvas';
+      if (tab === 'outline') return 'outline';
+      if (tab === 'study') return 'study';
+    }
+    return 'knowledge'; // Default to Knowledge Base matching aioenglish.com/lo-trinh?tab=kien-thuc
+  });
+
+  const handleSelectViewMode = (mode: 'knowledge' | 'roadmap' | 'canvas' | 'outline' | 'study') => {
+    setViewMode(mode);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (mode === 'knowledge') url.searchParams.set('tab', 'kien-thuc');
+      else if (mode === 'roadmap') url.searchParams.set('tab', 'lo-trinh');
+      else if (mode === 'canvas') url.searchParams.set('tab', 'mindmap');
+      else if (mode === 'outline') url.searchParams.set('tab', 'outline');
+      else if (mode === 'study') url.searchParams.set('tab', 'study');
+      window.history.replaceState(null, '', url.toString());
+    }
+  };
 
   // Search filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -2638,6 +2784,43 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     e.target.value = '';
   };
 
+  // Open Knowledge Topic as Radial Mindmap (Tỏa Tròn)
+  const handleOpenTopicMindmap = (topic: KnowledgeTopic) => {
+    const mapTitle = `${topic.code}: ${topic.title}`;
+    let targetMap = mindmaps.find((m) => m.title.includes(topic.code) || m.id === `map-${topic.id}`);
+
+    if (!targetMap) {
+      const { nodes: rawNodes, edges: rawEdges } = parseOutlineToNodesAndEdges(topic.mindmapOutline, mapTitle);
+      const res = applyRadialStudyLayout(rawNodes, rawEdges);
+      const newMap: MindmapItem = {
+        id: `map-${topic.id}`,
+        title: mapTitle,
+        category: topic.category,
+        nodes: res.nodes,
+        edges: res.edges,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      setMindmaps((prev) => [newMap, ...prev]);
+      setActiveMapId(newMap.id);
+    } else {
+      setActiveMapId(targetMap.id);
+    }
+    setDiagramLayout('radial');
+    handleSelectViewMode('canvas');
+    setSyncToast(`Đã mở Sơ Đồ Tỏa Tròn cho "${topic.title}" 🌟`);
+    setTimeout(() => setSyncToast(null), 3500);
+  };
+
+  // Edit Knowledge Topic in Outline editor (with Tab indentation)
+  const handleEditTopicOutline = (topic: KnowledgeTopic) => {
+    setOutlineInput(topic.mindmapOutline);
+    setOutlineMode('replace');
+    handleSelectViewMode('outline');
+    setSyncToast(`Đã nạp bài học "${topic.title}". Sử dụng phím Tab để phân nhánh nhỏ! 📝`);
+    setTimeout(() => setSyncToast(null), 4000);
+  };
+
   // Calculate mastery stats
   const stats = useMemo(() => {
     if (!activeMap || !activeMap.nodes) return { total: 0, completed: 0, unmastered: 0, percent: 0 };
@@ -2701,35 +2884,56 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
             <span className="hidden sm:inline">Tạo Mới</span>
           </button>
 
-          {/* View Mode Toggle: Sơ Đồ | Dàn Bài & Dán Dàn Ý | Ôn Tập */}
-          <div className="flex items-center bg-[#EFECE6] p-0.5 rounded-xl border-2 border-[#141414]">
+          {/* View Mode Toggle: Kiến Thức (tab=kien-thuc) | Lộ Trình (tab=lo-trinh) | Sơ Đồ | Soạn Bài | Ôn Tập */}
+          <div className="flex items-center bg-[#EFECE6] p-0.5 rounded-xl border-2 border-[#141414] overflow-x-auto max-w-full">
             <button
-              onClick={() => setViewMode('canvas')}
+              onClick={() => handleSelectViewMode('knowledge')}
               className={cn(
-                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
-                viewMode === 'canvas' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/60 hover:text-ink'
+                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1 shrink-0 cursor-pointer',
+                viewMode === 'knowledge' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/65 hover:text-ink'
               )}
-              title="Sơ đồ tư duy Canvas (Mindmap / Lộ trình / Xương cá)"
+              title="Kho Kiến Thức Cốt Lõi A1-C1 (aioenglish.com/lo-trinh?tab=kien-thuc)"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+              <span>Kiến Thức</span>
+            </button>
+            <button
+              onClick={() => handleSelectViewMode('roadmap')}
+              className={cn(
+                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1 shrink-0 cursor-pointer',
+                viewMode === 'roadmap' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/65 hover:text-ink'
+              )}
+              title="Lộ Trình Học Chuẩn Quốc Tế A1 - C1"
+            >
+              <span>🛤️ Lộ Trình</span>
+            </button>
+            <button
+              onClick={() => handleSelectViewMode('canvas')}
+              className={cn(
+                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1 shrink-0 cursor-pointer',
+                viewMode === 'canvas' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/65 hover:text-ink'
+              )}
+              title="Sơ đồ tư duy Canvas (Tỏa tròn / Sổ tay / XMind)"
             >
               <Layout className="w-3.5 h-3.5" />
-              <span>Sơ Đồ</span>
+              <span>Sơ Đồ Mindmap</span>
             </button>
             <button
-              onClick={() => setViewMode('outline')}
+              onClick={() => handleSelectViewMode('outline')}
               className={cn(
-                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1.5',
-                viewMode === 'outline' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/60 hover:text-ink'
+                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1 shrink-0 cursor-pointer',
+                viewMode === 'outline' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/65 hover:text-ink'
               )}
-              title="Dàn bài & Dán dàn ý (nhập hoặc dán dàn ý vào một nơi)"
+              title="Dàn bài là bài học: soạn thảo, thụt lề bằng phím Tab để phân nhánh"
             >
               <FileText className="w-3.5 h-3.5" />
-              <span>Dàn Bài & Dán Ý</span>
+              <span>Soạn Bài & Dán Ý</span>
             </button>
             <button
-              onClick={() => setViewMode('study')}
+              onClick={() => handleSelectViewMode('study')}
               className={cn(
-                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1',
-                viewMode === 'study' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/60 hover:text-ink'
+                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1 shrink-0 cursor-pointer',
+                viewMode === 'study' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/65 hover:text-ink'
               )}
               title="Chế độ ôn tập flashcard"
             >
@@ -3039,6 +3243,27 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         )}
       </AnimatePresence>
 
+      {/* AIO ENGLISH KNOWLEDGE BASE (tab=kien-thuc) */}
+      {viewMode === 'knowledge' && (
+        <AioKnowledgeBase
+          onOpenMindmap={handleOpenTopicMindmap}
+          onEditOutline={handleEditTopicOutline}
+          onStudyFlashcard={(topic) => {
+            handleOpenTopicMindmap(topic);
+            handleSelectViewMode('study');
+          }}
+        />
+      )}
+
+      {/* AIO ENGLISH ROADMAP (tab=lo-trinh) */}
+      {viewMode === 'roadmap' && (
+        <AioRoadmapView
+          onOpenTopicMindmap={handleOpenTopicMindmap}
+          onOpenTopicDetail={handleOpenTopicMindmap}
+          onSwitchToKnowledgeTab={() => handleSelectViewMode('knowledge')}
+        />
+      )}
+
       {/* MAIN VIEW AREA: CANVAS */}
       {viewMode === 'canvas' && (
         <div
@@ -3284,24 +3509,101 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
               </div>
             </div>
 
-            {/* Direct Paste Textarea with Hover-to-Focus */}
+            {/* Formatting & Indentation Toolbar */}
+            <div className="flex items-center gap-1.5 flex-wrap p-2 bg-[#FFF9E6] border border-[#141414]/30 rounded-xl text-xs font-bold text-ink">
+              <span className="text-[10px] font-black uppercase text-amber-900 mr-1 flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Thanh Công Cụ Soạn Bài:
+              </span>
+              <button
+                type="button"
+                onClick={() => insertOutlineSnippet('', true)}
+                className="px-2.5 py-1 bg-white hover:bg-amber-200 rounded-lg border border-[#141414] shadow-xs flex items-center gap-1 transition-all active:scale-95"
+                title="Thụt dòng 2 dấu cách để tạo nhánh con (Phím Tab)"
+              >
+                <span>⇥ Thụt lề (Tab)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!outlineTextareaRef.current) return;
+                  const ta = outlineTextareaRef.current;
+                  const val = ta.value;
+                  const start = ta.selectionStart;
+                  const before = val.substring(0, start);
+                  const lineStart = before.lastIndexOf('\n') + 1;
+                  const currentLine = val.substring(lineStart);
+                  if (currentLine.startsWith('  ')) {
+                    setOutlineInput(val.substring(0, lineStart) + val.substring(lineStart + 2));
+                  } else if (currentLine.startsWith('\t')) {
+                    setOutlineInput(val.substring(0, lineStart) + val.substring(lineStart + 1));
+                  }
+                }}
+                className="px-2.5 py-1 bg-white hover:bg-amber-200 rounded-lg border border-[#141414] shadow-xs flex items-center gap-1 transition-all active:scale-95"
+                title="Lùi lề (Shift + Tab)"
+              >
+                <span>⇤ Lùi lề</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => insertOutlineSnippet('- ')}
+                className="px-2.5 py-1 bg-white hover:bg-amber-200 rounded-lg border border-[#141414] shadow-xs flex items-center gap-1 transition-all active:scale-95"
+                title="Thêm gạch đầu dòng"
+              >
+                <span>• Gạch đầu dòng</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => insertOutlineSnippet(' // ')}
+                className="px-2.5 py-1 bg-white hover:bg-amber-200 rounded-lg border border-[#141414] shadow-xs flex items-center gap-1 transition-all active:scale-95"
+                title="Thêm chú thích / ghi chú (//)"
+              >
+                <span>// Ghi chú</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => insertOutlineSnippet('[v] ')}
+                className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-600 shadow-xs flex items-center gap-1 transition-all active:scale-95"
+                title="Đánh dấu đã nắm ([v])"
+              >
+                <span>✓ Đã nắm ([v])</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (activeMap?.nodes && activeMap.nodes.length > 0) {
+                    setOutlineInput(generateOutlineFromNodes(activeMap.nodes, activeMap.edges));
+                    setSyncToast('Đã nạp dàn bài từ sơ đồ hiện tại ↺');
+                    setTimeout(() => setSyncToast(null), 2500);
+                  }
+                }}
+                className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 rounded-lg border border-[#141414] shadow-xs flex items-center gap-1 ml-auto transition-all active:scale-95"
+                title="Nạp lại dàn ý từ sơ đồ đang mở"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Nạp từ sơ đồ</span>
+              </button>
+            </div>
+
+            {/* Direct Paste Textarea with Hover-to-Focus & Tab Indentation */}
             <div className="flex flex-col gap-2">
               <textarea
                 ref={outlineTextareaRef}
-                rows={4}
+                rows={6}
                 value={outlineInput}
                 onChange={(e) => setOutlineInput(e.target.value)}
+                onKeyDown={handleOutlineKeyDown}
                 onMouseEnter={(e) => e.currentTarget.focus()}
-                placeholder={`Rê chuột vào đây và dán (Ctrl+V hoặc Cmd+V)...
+                placeholder={`Rê chuột vào đây và dán (Ctrl+V hoặc Cmd+V)... Nhấn phím Tab để thụt lề tạo nhánh con!
 
-Ví dụ cấu trúc chuẩn:
-Lộ Trình Tiếng Anh
-Level A1: Căn Bản
-- Động từ to be // am/is/are
-- Đại từ nhân xưng
-Level A2: Sơ Cấp
-- Quá khứ đơn
-- So sánh`}
+Ví dụ cấu trúc chuẩn bài học:
+Lộ Trình Tiếng Anh Toàn Diện
+  Level A1: Căn Bản // Nền tảng từ loại
+    [v] Động từ to be // am/is/are
+    [v] Đại từ nhân xưng & Tính từ sở hữu
+    Thì Hiện tại đơn // S + V(s/es)
+  Level A2: Sơ Cấp // Giao tiếp thường nhật
+    Thì Quá khứ đơn // S + V2/ed
+    Giới từ In/On/At`}
                 className="w-full p-3 font-mono text-xs font-semibold text-ink bg-white border-2 border-[#141414] rounded-xl outline-none focus:bg-amber-50/40 focus:border-amber-500 resize-y leading-relaxed shadow-inner"
               />
 
@@ -3366,10 +3668,10 @@ Level A2: Sơ Cấp
                     type="button"
                     onClick={handleParseAndApplyOutline}
                     disabled={!outlineInput.trim()}
-                    className="px-4 py-1.5 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414] flex items-center justify-center gap-2 active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                    className="px-4 py-2 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414] flex items-center justify-center gap-2 active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
                   >
                     <Brain className="w-4 h-4" />
-                    <span>Áp Dụng Dàn Ý Ngay</span>
+                    <span>💾 Lưu Bài Học & Cập Nhật Sơ Đồ</span>
                   </button>
                 </div>
               </div>

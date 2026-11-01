@@ -35,7 +35,7 @@ export function NavBar({
     { id: "Journal", label: "Home", short: "HOME", icon: Home },
     { id: "Collections", label: "Collections", short: "HUB", icon: FolderTree },
     { id: "Projects", label: "Projects", short: "PRJ", icon: FolderKanban },
-    { id: "Học hành", label: "Học hành", short: "HỌC", icon: GraduationCap },
+    { id: "Học hành", label: "Lộ Trình & Kiến Thức", short: "LỘ TRÌNH", icon: GraduationCap },
     { id: "English Hub", label: "English Hub", short: "ENG", icon: Languages },
     { id: "Calendar", label: "Calendar", short: "CAL", icon: CalendarIcon },
   ];

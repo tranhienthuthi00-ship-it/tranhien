@@ -312,7 +312,16 @@ function AppContent() {
     return (localStorage.getItem("glowup_theme") as "handdrawn" | "minimal") || "handdrawn";
   });
 
-  const [activeTab, setActiveTab] = useState<Tab>("Journal");
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam === "kien-thuc" || tabParam === "lo-trinh" || window.location.pathname.includes("lo-trinh")) {
+        return "Học hành";
+      }
+    }
+    return "Journal";
+  });
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [collectionSearchQuery, setCollectionSearchQuery] = useState("");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "1000 Sentences" | "Sách & Unit" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
