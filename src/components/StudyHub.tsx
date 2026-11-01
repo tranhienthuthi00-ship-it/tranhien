@@ -894,6 +894,180 @@ export function applyXMindLayout(
   return { nodes: nextNodes, edges: xmindEdges };
 }
 
+// 5. Authentic Radial Study Notebook Layout Engine (As in Reference Photos IMG_3848 & IMG_3849):
+// Topics radiate naturally around the central cloud/title in balanced multi-directional angles.
+// Sub-branches spread outward cleanly with zero overlap and organic curved branches.
+export function applyRadialStudyLayout(
+  nodes: Node[],
+  edges: Edge[],
+  hiddenNodeIds: Set<string> = new Set()
+): { nodes: Node[]; edges: Edge[] } {
+  if (!nodes || nodes.length === 0) return { nodes: [], edges: [] };
+
+  const visibleNodes = nodes.filter((n) => !hiddenNodeIds.has(n.id));
+  const visibleNodeIds = new Set(visibleNodes.map((n) => n.id));
+
+  const targetIds = new Set(
+    edges
+      .filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target))
+      .map((e) => e.target)
+  );
+
+  const rootNode =
+    visibleNodes.find((n) => n.data?.isRoot) ||
+    visibleNodes.find((n) => !targetIds.has(n.id)) ||
+    visibleNodes[0];
+
+  const childrenMap = new Map<string, string[]>();
+  edges.forEach((edge) => {
+    if (visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)) {
+      const list = childrenMap.get(edge.source) || [];
+      list.push(edge.target);
+      childrenMap.set(edge.source, list);
+    }
+  });
+
+  const positioned = new Map<string, { x: number; y: number }>();
+  const centerX = 800;
+  const centerY = 560;
+  positioned.set(rootNode.id, { x: centerX, y: centerY });
+
+  // Direct milestone branches (Level 1)
+  const rootChildren = (childrenMap.get(rootNode.id) || []).filter((id) => id !== rootNode.id);
+  const totalM = rootChildren.length;
+
+  // Elliptical radius suitable for widescreen notebook study view
+  const radiusX = Math.max(380, 260 + totalM * 20);
+  const radiusY = Math.max(280, 200 + totalM * 16);
+
+  rootChildren.forEach((childId, idx) => {
+    // Distribute milestones evenly around the central title
+    const angle = (2 * Math.PI * idx) / Math.max(totalM, 1) - Math.PI / 2;
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+
+    const mX = Math.round(centerX + radiusX * cosA);
+    const mY = Math.round(centerY + radiusY * sinA);
+    positioned.set(childId, { x: mX, y: mY });
+
+    // Sub-branches (Level 2)
+    const subChildren = childrenMap.get(childId) || [];
+    const subCount = subChildren.length;
+    const isRightSide = cosA >= -0.05;
+
+    subChildren.forEach((subId, sIdx) => {
+      const horizOffset = isRightSide ? 300 : -300;
+      const vertSpacing = 82;
+      const vertOffset = (sIdx - (subCount - 1) / 2) * vertSpacing;
+
+      const subX = mX + horizOffset;
+      const subY = mY + vertOffset;
+      positioned.set(subId, { x: subX, y: subY });
+
+      // Sub-sub branches (Level 3)
+      const deepChildren = childrenMap.get(subId) || [];
+      const deepCount = deepChildren.length;
+      deepChildren.forEach((deepId, dIdx) => {
+        const deepX = subX + (isRightSide ? 260 : -260);
+        const deepY = subY + (dIdx - (deepCount - 1) / 2) * 70;
+        positioned.set(deepId, { x: deepX, y: deepY });
+      });
+    });
+  });
+
+  // Position any orphaned nodes neatly below
+  let fallbackY = centerY + radiusY + 160;
+  visibleNodes.forEach((n) => {
+    if (!positioned.has(n.id)) {
+      positioned.set(n.id, { x: centerX, y: fallbackY });
+      fallbackY += 90;
+    }
+  });
+
+  // Determine handle connections and smooth organic bezier curves
+  const radialEdges: Edge[] = edges
+    .filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target))
+    .map((e) => {
+      const targetPos = positioned.get(e.target) || { x: centerX, y: centerY };
+      const sourcePos = positioned.get(e.source) || { x: centerX, y: centerY };
+      const isTargetRight = targetPos.x >= sourcePos.x;
+
+      return {
+        ...e,
+        sourceHandle: isTargetRight ? 'source-right' : 'source-left',
+        targetHandle: isTargetRight ? 'target-left' : 'target-right',
+        type: 'default', // Organic curved bezier lines like hand-drawn study notes
+        style: {
+          stroke: isTargetRight ? '#0284C7' : '#7C3AED',
+          strokeWidth: e.source === rootNode.id ? 3.5 : 2.5,
+          strokeLinecap: 'round'
+        }
+      };
+    });
+
+  const nextNodes = nodes.map((node) => {
+    const pos = positioned.get(node.id);
+    return pos
+      ? { ...node, position: pos, data: { ...node.data, isRoadmap: false } }
+      : node;
+  });
+
+  return { nodes: nextNodes, edges: radialEdges };
+}
+
+// 6. Generate structured Outline text from current Mindmap nodes
+export function generateOutlineFromNodes(nodes: Node[], edges: Edge[]): string {
+  if (!nodes || nodes.length === 0) return '';
+  const targetIds = new Set(edges.map((e) => e.target));
+  const rootNode =
+    nodes.find((n) => n.data?.isRoot) ||
+    nodes.find((n) => !targetIds.has(n.id)) ||
+    nodes[0];
+
+  const childrenMap = new Map<string, string[]>();
+  edges.forEach((e) => {
+    const list = childrenMap.get(e.source) || [];
+    list.push(e.target);
+    childrenMap.set(e.source, list);
+  });
+
+  const lines: string[] = [];
+  const visited = new Set<string>();
+
+  const traverse = (nodeId: string, depth: number) => {
+    if (visited.has(nodeId)) return;
+    visited.add(nodeId);
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+
+    const indent = '  '.repeat(depth);
+    const checkMark = node.data?.completed ? '[v] ' : '';
+    const noteSuffix = node.data?.notes ? ` // ${node.data.notes}` : '';
+    const label = node.data?.label || '';
+
+    if (depth === 0) {
+      lines.push(`${label}${noteSuffix}`);
+    } else if (depth === 1) {
+      lines.push(`${indent}${checkMark}${label}${noteSuffix}`);
+    } else {
+      lines.push(`${indent}${checkMark}- ${cleanNodeTitle(label)}${noteSuffix}`);
+    }
+
+    const children = childrenMap.get(nodeId) || [];
+    children.forEach((cId) => traverse(cId, depth + 1));
+  };
+
+  traverse(rootNode.id, 0);
+
+  nodes.forEach((n) => {
+    if (!visited.has(n.id)) {
+      lines.push(`  - ${n.data?.label || ''}${n.data?.notes ? ` // ${n.data.notes}` : ''}`);
+    }
+  });
+
+  return lines.join('\n');
+}
+
 // Custom Node for React Flow: Supports Curved Learning Roadmap, Fishbone, and XMind Mindmap
 interface CustomNodeProps {
   id: string;
@@ -1238,14 +1412,17 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
       {/* Header: Hierarchical Code, Collapse Button, Mastery Checkbox or Root Spine Badge */}
       <div className="flex items-center justify-between gap-1 mb-1.5">
         {isRoot ? (
-          <span className="text-[10px] font-black uppercase tracking-wider bg-black/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-            <Fish className="w-3.5 h-3.5" /> Chủ Đề Trung Tâm
-          </span>
+          <div className="w-full flex items-center justify-between gap-1">
+            <span className="text-[10px] font-black uppercase tracking-widest bg-black/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-amber-600" /> Chủ Đề Trung Tâm
+            </span>
+            <span className="text-[10px] font-bold text-ink/50 italic">Sơ đồ học</span>
+          </div>
         ) : (
           <div className="flex items-center gap-1.5 min-w-0">
             {/* Hierarchical Code Badge e.g. A1, A1.1, A2, B1, 1, 1.1 */}
             <span
-              className="text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 tracking-tight"
+              className="text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 tracking-tight shadow-xs"
               style={{
                 backgroundColor: theme ? theme.badgeBg : 'rgba(0,0,0,0.06)',
                 color: theme ? theme.badgeText : '#141414',
@@ -1287,7 +1464,7 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
 
         <div className="flex items-center gap-1 shrink-0 ml-auto">
           {/* Collapse / Expand Child Branches Button */}
-          {data.hasChildren && (
+          {data.hasChildren && !isRoot && (
             <button
               type="button"
               onClick={(e) => {
@@ -1318,25 +1495,36 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
       </div>
 
       {/* Node Content */}
-      <div className="flex items-start gap-1.5">
-        <div className="flex-1 min-w-0">
-          <div
-            className={cn(
-              'leading-snug break-words',
-              isRoot ? 'text-sm font-black' : 'text-xs font-bold',
-              isCompleted && !isRoot ? 'text-emerald-950 font-black' : 'text-ink'
-            )}
-          >
-            {isRoot ? data.label : (cleanNodeTitle(data.label) || data.label || 'Nhánh mới')}
-          </div>
-
-          {data.notes && (
-            <div className="text-[10px] text-ink/75 mt-1 line-clamp-2 italic font-normal flex items-start gap-1 border-t border-ink/10 pt-1">
-              <span>📝</span>
-              <span className="break-words">{data.notes}</span>
-            </div>
+      <div className="flex flex-col gap-1">
+        <div
+          className={cn(
+            'leading-snug break-words',
+            isRoot ? 'text-base font-black text-center py-1 tracking-tight' : 'text-xs font-black uppercase tracking-tight',
+            isCompleted && !isRoot ? 'text-emerald-950' : 'text-ink'
           )}
+        >
+          {isRoot ? data.label : (cleanNodeTitle(data.label) || data.label || 'Nhánh mới')}
         </div>
+
+        {/* Study notebook underline marker (matches reference photo style) */}
+        {!isRoot && (
+          <div
+            className="w-full h-0.5 rounded-full mb-1 opacity-70"
+            style={{ backgroundColor: theme ? theme.border : '#141414' }}
+          />
+        )}
+
+        {/* Bulleted notes / study points (matches reference photo IMG_3848 & IMG_3849) */}
+        {data.notes && (
+          <div className="text-[10px] text-ink/80 flex flex-col gap-1 pt-0.5 border-t border-ink/10">
+            {data.notes.split('\n').filter((l) => l.trim().length > 0).map((line, idx) => (
+              <div key={idx} className="flex items-start gap-1 leading-tight">
+                <span className="text-ink/50 select-none font-bold">•</span>
+                <span className="break-words flex-1 font-medium">{line.replace(/^[-*•\s]+/, '')}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Floating Action Buttons on Node Hover / Selected */}
@@ -1420,8 +1608,8 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
   // Filter for Mastery: 'all' | 'unmastered' | 'mastered'
   const [masteryFilter, setMasteryFilter] = useState<'all' | 'unmastered' | 'mastered'>('all');
 
-  // Diagram layout style: 'xmind' (Radiating tree like XMind app) | 'roadmap' (Learning path S-curve) | 'fishbone' (Ishikawa)
-  const [diagramLayout, setDiagramLayout] = useState<'xmind' | 'roadmap' | 'fishbone'>('xmind');
+  // Diagram layout style: 'radial' (Study notes radiating in all directions as in sample photos) | 'xmind' | 'roadmap' | 'fishbone'
+  const [diagramLayout, setDiagramLayout] = useState<'radial' | 'xmind' | 'roadmap' | 'fishbone'>('radial');
 
   // Collapsed milestone branches state
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(new Set());
@@ -1450,9 +1638,116 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showOutlineModal, setShowOutlineModal] = useState(false);
 
-  // Outline Paste State
+  // Outline Lesson State (Dàn bài là bài học: có thể sửa, lưu, dùng phím Tab thụt lề để phân nhánh nhỏ)
   const [outlineInput, setOutlineInput] = useState('');
   const [outlineMode, setOutlineMode] = useState<'replace' | 'new'>('replace');
+
+  // Auto populate Outline input from current map if empty
+  useEffect(() => {
+    if (viewMode === 'outline' && (!outlineInput || outlineInput.trim() === '')) {
+      if (activeMap?.nodes && activeMap.nodes.length > 0) {
+        setOutlineInput(generateOutlineFromNodes(activeMap.nodes, activeMap.edges));
+      }
+    }
+  }, [viewMode, activeMap, outlineInput]);
+
+  // Tab & Shift-Tab keyboard handler for outline indentation (phân nhánh con)
+  const handleOutlineKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget;
+    const { selectionStart, selectionEnd, value } = textarea;
+
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        // Shift + Tab: Lùi lề 2 spaces hoặc 1 tab
+        const beforeCursor = value.substring(0, selectionStart);
+        const lineStart = beforeCursor.lastIndexOf('\n') + 1;
+        const currentLine = value.substring(lineStart);
+        if (currentLine.startsWith('  ')) {
+          const nextVal = value.substring(0, lineStart) + value.substring(lineStart + 2);
+          setOutlineInput(nextVal);
+          setTimeout(() => {
+            textarea.selectionStart = Math.max(lineStart, selectionStart - 2);
+            textarea.selectionEnd = Math.max(lineStart, selectionEnd - 2);
+          }, 0);
+        } else if (currentLine.startsWith('\t')) {
+          const nextVal = value.substring(0, lineStart) + value.substring(lineStart + 1);
+          setOutlineInput(nextVal);
+          setTimeout(() => {
+            textarea.selectionStart = Math.max(lineStart, selectionStart - 1);
+            textarea.selectionEnd = Math.max(lineStart, selectionEnd - 1);
+          }, 0);
+        }
+      } else {
+        // Tab: Thụt lề 2 spaces tạo nhánh con
+        const nextVal = value.substring(0, selectionStart) + '  ' + value.substring(selectionEnd);
+        setOutlineInput(nextVal);
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = selectionStart + 2;
+        }, 0);
+      }
+    } else if (e.key === 'Enter') {
+      const beforeCursor = value.substring(0, selectionStart);
+      const lineStart = beforeCursor.lastIndexOf('\n') + 1;
+      const currentLine = beforeCursor.substring(lineStart);
+
+      const indentMatch = currentLine.match(/^([ \t]+)/);
+      const indent = indentMatch ? indentMatch[1] : '';
+      const hasBullet = /^[ \t]*[-*•]\s+/.test(currentLine);
+
+      if (hasBullet) {
+        if (/^[ \t]*[-*•]\s*$/.test(currentLine)) {
+          e.preventDefault();
+          const nextVal = value.substring(0, lineStart) + value.substring(selectionStart);
+          setOutlineInput(nextVal);
+          setTimeout(() => {
+            textarea.selectionStart = textarea.selectionEnd = lineStart;
+          }, 0);
+          return;
+        }
+
+        e.preventDefault();
+        const nextBullet = '\n' + indent + '- ';
+        const nextVal = value.substring(0, selectionStart) + nextBullet + value.substring(selectionStart);
+        setOutlineInput(nextVal);
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = selectionStart + nextBullet.length;
+        }, 0);
+      } else if (indent) {
+        e.preventDefault();
+        const nextIndent = '\n' + indent;
+        const nextVal = value.substring(0, selectionStart) + nextIndent + value.substring(selectionStart);
+        setOutlineInput(nextVal);
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = selectionStart + nextIndent.length;
+        }, 0);
+      }
+    }
+  };
+
+  // Helper to insert snippet or indent from toolbar
+  const insertOutlineSnippet = (snippet: string, isIndent = false) => {
+    if (!outlineTextareaRef.current) return;
+    const textarea = outlineTextareaRef.current;
+    textarea.focus();
+    const { selectionStart, selectionEnd, value } = textarea;
+
+    if (isIndent) {
+      const beforeCursor = value.substring(0, selectionStart);
+      const lineStart = beforeCursor.lastIndexOf('\n') + 1;
+      const nextVal = value.substring(0, lineStart) + '  ' + value.substring(lineStart);
+      setOutlineInput(nextVal);
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = selectionStart + 2;
+      }, 0);
+    } else {
+      const nextVal = value.substring(0, selectionStart) + snippet + value.substring(selectionEnd);
+      setOutlineInput(nextVal);
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = selectionStart + snippet.length;
+      }, 0);
+    }
+  };
 
   const [newMapTitle, setNewMapTitle] = useState('');
   const [newMapCategory, setNewMapCategory] = useState('Kỹ năng học');
@@ -1603,12 +1898,15 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     });
   }, []);
 
-  // Auto clean layout (XMind, Roadmap or Fishbone)
+  // Auto clean layout (Radial Study Notes, XMind, Roadmap or Fishbone)
   const handleAutoLayout = useCallback(
-    (targetLayout?: 'xmind' | 'roadmap' | 'fishbone') => {
+    (targetLayout?: 'radial' | 'xmind' | 'roadmap' | 'fishbone') => {
       if (!activeMap || !activeMap.nodes || activeMap.nodes.length === 0) return;
       const layoutToApply = targetLayout || diagramLayout;
-      if (layoutToApply === 'xmind') {
+      if (layoutToApply === 'radial') {
+        const { nodes: arrangedNodes, edges: arrangedEdges } = applyRadialStudyLayout(activeMap.nodes, activeMap.edges, hiddenNodeIds);
+        updateCurrentMap(arrangedNodes, arrangedEdges);
+      } else if (layoutToApply === 'xmind') {
         const { nodes: arrangedNodes, edges: arrangedEdges } = applyXMindLayout(activeMap.nodes, activeMap.edges, hiddenNodeIds);
         updateCurrentMap(arrangedNodes, arrangedEdges);
       } else if (layoutToApply === 'roadmap') {
@@ -1674,7 +1972,11 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
 
       // Auto re-align in selected format if enabled
       if (autoArrangeEnabled) {
-        if (diagramLayout === 'xmind') {
+        if (diagramLayout === 'radial') {
+          const res = applyRadialStudyLayout(nextNodes, nextEdges, hiddenNodeIds);
+          nextNodes = res.nodes;
+          nextEdges = res.edges;
+        } else if (diagramLayout === 'xmind') {
           const res = applyXMindLayout(nextNodes, nextEdges, hiddenNodeIds);
           nextNodes = res.nodes;
           nextEdges = res.edges;
@@ -1735,7 +2037,11 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
 
       // Auto re-align remaining nodes
       if (autoArrangeEnabled && nextNodes.length > 0) {
-        if (diagramLayout === 'xmind') {
+        if (diagramLayout === 'radial') {
+          const res = applyRadialStudyLayout(nextNodes, nextEdges, hiddenNodeIds);
+          nextNodes = res.nodes;
+          nextEdges = res.edges;
+        } else if (diagramLayout === 'xmind') {
           const res = applyXMindLayout(nextNodes, nextEdges, hiddenNodeIds);
           nextNodes = res.nodes;
           nextEdges = res.edges;
@@ -1942,10 +2248,14 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       }
     });
 
-    // Apply Selected Layout (XMind, Roadmap or Fishbone)
+    // Apply Selected Layout (Radial, XMind, Roadmap or Fishbone)
     let arrangedNodes = newNodes;
     let finalEdges = newEdges;
-    if (diagramLayout === 'xmind') {
+    if (diagramLayout === 'radial') {
+      const res = applyRadialStudyLayout(newNodes, newEdges);
+      arrangedNodes = res.nodes;
+      finalEdges = res.edges;
+    } else if (diagramLayout === 'xmind') {
       const res = applyXMindLayout(newNodes, newEdges);
       arrangedNodes = res.nodes;
       finalEdges = res.edges;
@@ -1960,7 +2270,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     if (outlineMode === 'new') {
       const newMap: MindmapItem = {
         id: `mm-${Date.now()}`,
-        title: parsed[0]?.label || (diagramLayout === 'xmind' ? 'Sơ đồ tư duy XMind từ Dàn ý' : diagramLayout === 'roadmap' ? 'Lộ trình học từ Dàn ý' : 'Sơ đồ xương cá từ Dàn ý'),
+        title: parsed[0]?.label || (diagramLayout === 'radial' ? 'Sơ đồ tỏa tròn từ Dàn ý' : diagramLayout === 'xmind' ? 'Sơ đồ tư duy XMind từ Dàn ý' : diagramLayout === 'roadmap' ? 'Lộ trình học từ Dàn ý' : 'Sơ đồ xương cá từ Dàn ý'),
         description: `Tạo tự động từ dàn ý (${parsed.length} mục)`,
         category: 'Học tập',
         createdAt: Date.now(),
@@ -1970,12 +2280,15 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
       };
       setMindmaps((prev) => [newMap, ...prev]);
       setActiveMapId(newMap.id);
+      setSyncToast('Đã tạo sơ đồ mới và đồng bộ cloud! ☁️');
+      setTimeout(() => setSyncToast(null), 3500);
     } else {
       updateCurrentMap(arrangedNodes, finalEdges);
+      setSyncToast('Đã lưu bài học & cập nhật sơ đồ mindmap thành công! ☁️');
+      setTimeout(() => setSyncToast(null), 3500);
     }
 
     setShowOutlineModal(false);
-    setOutlineInput('');
   };
 
   // Node milestone theme map: propagate theme from Level 1 milestone to all child sub-branches
@@ -2492,8 +2805,24 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
 
           {viewMode === 'canvas' && (
             <>
-              {/* Diagram Layout Mode Switcher: Mindmap (XMind) vs Roadmap vs Fishbone */}
+              {/* Diagram Layout Mode Switcher: Radial Study vs Mindmap (XMind) vs Roadmap vs Fishbone */}
               <div className="flex items-center bg-[#EFECE6] p-0.5 rounded-xl border-2 border-[#141414] text-xs font-black">
+                <button
+                  onClick={() => {
+                    setDiagramLayout('radial');
+                    handleAutoLayout('radial');
+                  }}
+                  className={cn(
+                    'px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
+                    diagramLayout === 'radial'
+                      ? 'bg-[#0284C7] text-white shadow-[1px_1px_0px_#141414]'
+                      : 'text-ink/65 hover:text-ink'
+                  )}
+                  title="Chuyển sang dạng Sơ Đồ Tỏa Tròn chuẩn sổ tay học tập (như ảnh 1 & 2 đính kèm)"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Tỏa Tròn (Sổ Tay)</span>
+                </button>
                 <button
                   onClick={() => {
                     setDiagramLayout('xmind');
@@ -2562,11 +2891,11 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
               <button
                 onClick={() => handleAutoLayout()}
                 className="px-2.5 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-950 border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
-                title={diagramLayout === 'xmind' ? 'Tự động sắp xếp sơ đồ tư duy toả đều 2 bên như XMind' : diagramLayout === 'roadmap' ? 'Tự động sắp xếp lại các mốc uốn lượn gọn gàng' : 'Tự động sắp xếp xương cá thẳng hàng'}
+                title={diagramLayout === 'radial' ? 'Tự động sắp xếp sơ đồ tỏa tròn chuẩn sổ tay học tập' : diagramLayout === 'xmind' ? 'Tự động sắp xếp sơ đồ tư duy toả đều 2 bên như XMind' : diagramLayout === 'roadmap' ? 'Tự động sắp xếp lại các mốc uốn lượn gọn gàng' : 'Tự động sắp xếp xương cá thẳng hàng'}
               >
                 <Wand2 className="w-3.5 h-3.5 text-[#6D28D9]" />
                 <span className="hidden sm:inline">
-                  {diagramLayout === 'xmind' ? 'Xếp XMind' : diagramLayout === 'roadmap' ? 'Xếp Lộ Trình' : 'Xếp Xương Cá'}
+                  {diagramLayout === 'radial' ? 'Xếp Tỏa Tròn' : diagramLayout === 'xmind' ? 'Xếp XMind' : diagramLayout === 'roadmap' ? 'Xếp Lộ Trình' : 'Xếp Xương Cá'}
                 </span>
               </button>
 

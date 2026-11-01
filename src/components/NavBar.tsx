@@ -88,12 +88,12 @@ export function NavBar({
           {tabs.map((tab, index) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
-            const isFirst = index === 0;
+            const applyFocusBg = index === 0 || index === 1;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                style={isFirst ? { backgroundColor: "#faf3eb" } : undefined}
+                style={applyFocusBg ? { backgroundColor: "#faf3eb" } : undefined}
                 className={cn(
                   "relative w-full text-left px-3 py-2 md:py-2.5 rounded-xl transition-all duration-150 flex items-center justify-between group",
                   isActive
