@@ -4520,8 +4520,7 @@ export function DigitalJournal({
                         content: newContent,
                         location: quickLogLocation.trim() || undefined,
                         emoji: quickLogEmoji,
-                        type: quickLogType as 'Reflection' | 'Event',
-                        createdAt: Date.now()
+                        type: quickLogType as 'Reflection' | 'Event'
                       }, ...logs]);
                       
                       // Also update poster description instantly

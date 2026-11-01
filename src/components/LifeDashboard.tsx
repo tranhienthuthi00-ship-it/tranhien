@@ -473,7 +473,7 @@ export function LifeDashboard() {
       if (day.id === dayId) {
         return {
           ...day,
-          tasks: day.map ? day.tasks : day.tasks.map(t => {
+          tasks: day.tasks.map(t => {
             if (t.id === taskId) {
               const currentIcon = t.icon === "check" ? "circle" : "check";
               return { ...t, icon: currentIcon };

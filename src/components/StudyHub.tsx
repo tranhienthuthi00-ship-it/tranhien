@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import html2canvas from 'html2canvas';
 import {
   ReactFlow,
   Controls,
   Background,
+  BackgroundVariant,
   MiniMap,
   applyNodeChanges,
   applyEdgeChanges,
@@ -16,7 +18,8 @@ import {
   Position,
   Panel,
   ReactFlowProvider,
-  MarkerType
+  MarkerType,
+  useReactFlow
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
@@ -53,7 +56,13 @@ import {
   Minimize2,
   MoreHorizontal,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Columns,
+  Grid,
+  Image as ImageIcon,
+  CornerDownRight,
+  Keyboard,
+  Share2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -180,6 +189,53 @@ export function getMilestoneTheme(label: string, fallbackIdx = 0): LevelTheme {
 // Sample Outlines for Quick Insertion
 const SAMPLE_OUTLINES = [
   {
+    id: 'img-3848-genomes',
+    name: '🧬 Manipulating Genomes (Sổ Mẫu IMG_3848)',
+    text: `Manipulating Genomes (DNA Technology) // Nghiên cứu cấu trúc và ứng dụng công nghệ Gen
+  DNA Sequencing // Giải trình tự DNA bằng phương pháp Sanger
+    [v] Sanger Single-Strand Template // Đĩa mẫu đơn với bazơ biến tính
+    Electrophoresis (Điện di gel) // Phân tách phân tử theo kích thước và điện tích
+      > Agarose gel & Buffer solution // Đệm dẫn điện
+      > DNA phân cực về cực dương (Anode) // Do nhóm phosphate tích điện âm
+    Bioinformatics // Lưu trữ và phân tích dữ liệu sinh học máy tính
+  PCR (Polymerase Chain Reaction) // Khuếch đại chuỗi phân tử DNA số lượng lớn
+    [v] 3 Bước chu kỳ nhiệt // Biến tính 94°C -> Bắt cặp 55°C -> Kéo dài 72°C
+    Taq Polymerase chịu nhiệt // Chiết xuất từ vi khuẩn suối nước nóng
+    Applications (Ứng dụng) // Nghiên cứu pháp y, giám sát bệnh truyền nhiễm
+  DNA Profiling & Probes // Nhận dạng dấu vân tay di truyền
+    VNTRs & Short Tandem Repeats // Trình tự lặp lại ngắn đặc trưng
+    Ứng dụng thực tế // Giám định pháp y, xét nghiệm huyết thống cha con
+  Synthetic Biology & Bioethics // Sinh học tổng hợp & Đạo đức sinh học
+    Sản xuất thuốc & Cảm biến sinh học // Vi khuẩn phát quang phát hiện chất độc
+    Quyền riêng tư dữ liệu gen // Hội đồng tư vấn đạo đức & an toàn sinh học`
+  },
+  {
+    id: 'img-3849-anxiety',
+    name: '🧠 Anxiety Disorders (Sổ Mẫu IMG_3849)',
+    text: `Anxiety Disorders (Rối Loạn Lo Âu) // Phân loại và phác đồ điều trị lâm sàng
+  Panic Disorder // Cơn hoảng sợ bất ngờ tái diễn
+    [v] Triệu chứng cốt lõi // Tim đập nhanh, khó thở, lo âu sợ chết
+    Phác đồ điều trị // { SSRIs + Liệu pháp CBT }
+    Cấp cứu cắt cơn // Benzodiazepine dùng ngắn ngày (PRN)
+  Specific Phobia & Social Anxiety // Ám ảnh sợ đặc hiệu & Sợ xã hội
+    Specific Phobia // Nỗi sợ đối tượng cụ thể (độ cao, máu, nhện)
+    Social Anxiety // Sợ bị phán xét, lúng túng nơi đông người
+    Điều trị can thiệp // Liệu pháp giải mẫn cảm + SSRI
+  Generalized Anxiety (GAD) // Lo âu lan tỏa dai dẳng trên 6 tháng
+    Triệu chứng thể chất // Căng cơ bắp, mất ngủ, khó tập trung
+    Điều trị đầu tay // { CBT + SSRI / SNRI }
+  OCD & Body Dysmorphic // Ám ảnh cưỡng chế & Mặc cảm ngoại hình
+    Ám ảnh (Obsessions) // Suy nghĩ xâm lấn gây đau khổ
+    Cưỡng chế (Compulsions) // Hành vi lặp lại để giảm lo âu
+    Phác đồ thuốc // Clomipramine hoặc SSRI liều cao + ERP
+  PTSD & Acute Stress // Căng thẳng cấp và stress sau sang chấn
+    Chấn thương tâm lý // Hồi tưởng ác mộng (Flashbacks), cảnh giác
+    Điều trị phục hồi // { EMDR + SSRI/SNRI + Prazosin trị ác mộng }
+  Adjustment & Separation // Lo âu chia ly & Rối loạn thích ứng
+    Rối loạn thích ứng // Phản ứng cảm xúc sau biến cố cuộc sống
+    Lo âu chia ly // Nỗi sợ quá mức khi xa người gắn bó`
+  },
+  {
     id: 'english-roadmap',
     name: '🇬🇧 Lộ Trình Tiếng Anh Toàn Diện (A1 -> B2)',
     text: `Lộ Trình Học Tiếng Anh (A1 - B2)
@@ -222,25 +278,6 @@ const SAMPLE_OUTLINES = [
     Future Simple (Tương lai đơn) // Quyết định tại lúc nói: will + V
     Near Future (Tương lai gần) // Có kế hoạch trước: be going to + V
     Future Continuous // Đang diễn ra ở thời điểm tương lai`
-  },
-  {
-    id: 'history',
-    name: '📚 Ôn Tập Lịch Sử: Các Cuộc Kháng Chiến',
-    text: `Lịch Sử Việt Nam Thế Kỷ 20
-  Cách Mạng Tháng Tám 1945 // Thắng lợi lịch sử mở ra kỷ nguyên độc lập
-    [v] Thời cơ ngàn năm có một
-    [v] Diễn biến khởi nghĩa Hà Nội, Huế, Sài Gòn
-    Ý nghĩa tuyên ngôn độc lập 2/9
-  Chiến Dịch Điện Biên Phủ 1954 // Đánh bại thực dân Pháp
-    [v] Kế hoạch Nava của Pháp
-    Phương châm đánh chắc tiến chắc
-    3 Đợt tiến công tiêu diệt cứ điểm
-    Ý nghĩa hiệp định Giơ-ne-vơ
-  Đại Thắng Mùa Xuân 1975 // Giải phóng hoàn toàn miền Nam
-    Chiến dịch Tây Nguyên mở màn
-    Chiến dịch Huế - Đà Nẵng
-    Chiến dịch Hồ Chí Minh lịch sử
-    Bài học đại đoàn kết dân tộc`
   },
   {
     id: 'ishikawa',
@@ -936,49 +973,106 @@ export function applyRadialStudyLayout(
 
   // Direct milestone branches (Level 1)
   const rootChildren = (childrenMap.get(rootNode.id) || []).filter((id) => id !== rootNode.id);
-  const totalM = rootChildren.length;
 
-  // Elliptical radius suitable for widescreen notebook study view
-  const radiusX = Math.max(380, 260 + totalM * 20);
-  const radiusY = Math.max(280, 200 + totalM * 16);
-
+  // Divide root children balanced between Right and Left hemispheres (like authentic study mindmap)
+  const rightRootChildren: string[] = [];
+  const leftRootChildren: string[] = [];
   rootChildren.forEach((childId, idx) => {
-    // Distribute milestones evenly around the central title
-    const angle = (2 * Math.PI * idx) / Math.max(totalM, 1) - Math.PI / 2;
-    const cosA = Math.cos(angle);
-    const sinA = Math.sin(angle);
+    if (idx % 2 === 0) {
+      rightRootChildren.push(childId);
+    } else {
+      leftRootChildren.push(childId);
+    }
+  });
 
-    const mX = Math.round(centerX + radiusX * cosA);
-    const mY = Math.round(centerY + radiusY * sinA);
-    positioned.set(childId, { x: mX, y: mY });
+  const NODE_HEIGHT = 80;
+  const SIBLING_GAP = 32;
+  const HORIZ_STEP_1 = 340;
+  const HORIZ_STEP_2 = 300;
 
-    // Sub-branches (Level 2)
-    const subChildren = childrenMap.get(childId) || [];
-    const subCount = subChildren.length;
-    const isRightSide = cosA >= -0.05;
-
-    subChildren.forEach((subId, sIdx) => {
-      const horizOffset = isRightSide ? 300 : -300;
-      const vertSpacing = 82;
-      const vertOffset = (sIdx - (subCount - 1) / 2) * vertSpacing;
-
-      const subX = mX + horizOffset;
-      const subY = mY + vertOffset;
-      positioned.set(subId, { x: subX, y: subY });
-
-      // Sub-sub branches (Level 3)
-      const deepChildren = childrenMap.get(subId) || [];
-      const deepCount = deepChildren.length;
-      deepChildren.forEach((deepId, dIdx) => {
-        const deepX = subX + (isRightSide ? 260 : -260);
-        const deepY = subY + (dIdx - (deepCount - 1) / 2) * 70;
-        positioned.set(deepId, { x: deepX, y: deepY });
-      });
+  // Calculate recursive bounding heights for subtrees to prevent ANY collisions
+  const subtreeHeightMemo = new Map<string, number>();
+  const getSubtreeHeight = (nodeId: string): number => {
+    if (subtreeHeightMemo.has(nodeId)) return subtreeHeightMemo.get(nodeId)!;
+    const children = childrenMap.get(nodeId) || [];
+    if (children.length === 0) {
+      subtreeHeightMemo.set(nodeId, NODE_HEIGHT);
+      return NODE_HEIGHT;
+    }
+    let total = 0;
+    children.forEach((cId, idx) => {
+      total += getSubtreeHeight(cId);
+      if (idx > 0) total += SIBLING_GAP;
     });
+    const h = Math.max(NODE_HEIGHT, total);
+    subtreeHeightMemo.set(nodeId, h);
+    return h;
+  };
+
+  // Layout Right Hemisphere (Radiating towards +X with notebook arc)
+  let totalRightHeight = 0;
+  rightRootChildren.forEach((id, idx) => {
+    totalRightHeight += getSubtreeHeight(id);
+    if (idx > 0) totalRightHeight += SIBLING_GAP + 20;
+  });
+
+  let curRightY = centerY - totalRightHeight / 2;
+  const layoutBranchRight = (nodeId: string, x: number, topY: number, depth = 1) => {
+    const h = getSubtreeHeight(nodeId);
+    const nodeY = topY + (h - NODE_HEIGHT) / 2;
+    positioned.set(nodeId, { x, y: nodeY });
+
+    const children = childrenMap.get(nodeId) || [];
+    let childY = topY;
+    const step = depth === 1 ? HORIZ_STEP_1 : HORIZ_STEP_2;
+    children.forEach((cId) => {
+      layoutBranchRight(cId, x + step, childY, depth + 1);
+      childY += getSubtreeHeight(cId) + SIBLING_GAP;
+    });
+  };
+
+  rightRootChildren.forEach((id, idx) => {
+    const h = getSubtreeHeight(id);
+    const totalR = rightRootChildren.length;
+    // Organic arc curve: middle nodes bow outward slightly
+    const arcOffset = totalR > 1 ? Math.sin((idx / (totalR - 1)) * Math.PI) * 50 : 0;
+    layoutBranchRight(id, centerX + 320 + arcOffset, curRightY, 1);
+    curRightY += h + SIBLING_GAP + 20;
+  });
+
+  // Layout Left Hemisphere (Radiating towards -X with notebook arc)
+  let totalLeftHeight = 0;
+  leftRootChildren.forEach((id, idx) => {
+    totalLeftHeight += getSubtreeHeight(id);
+    if (idx > 0) totalLeftHeight += SIBLING_GAP + 20;
+  });
+
+  let curLeftY = centerY - totalLeftHeight / 2;
+  const layoutBranchLeft = (nodeId: string, x: number, topY: number, depth = 1) => {
+    const h = getSubtreeHeight(nodeId);
+    const nodeY = topY + (h - NODE_HEIGHT) / 2;
+    positioned.set(nodeId, { x, y: nodeY });
+
+    const children = childrenMap.get(nodeId) || [];
+    let childY = topY;
+    const step = depth === 1 ? HORIZ_STEP_1 : HORIZ_STEP_2;
+    children.forEach((cId) => {
+      layoutBranchLeft(cId, x - step, childY, depth + 1);
+      childY += getSubtreeHeight(cId) + SIBLING_GAP;
+    });
+  };
+
+  leftRootChildren.forEach((id, idx) => {
+    const h = getSubtreeHeight(id);
+    const totalL = leftRootChildren.length;
+    // Organic arc curve: middle nodes bow outward slightly
+    const arcOffset = totalL > 1 ? Math.sin((idx / (totalL - 1)) * Math.PI) * 50 : 0;
+    layoutBranchLeft(id, centerX - 320 - arcOffset, curLeftY, 1);
+    curLeftY += h + SIBLING_GAP + 20;
   });
 
   // Position any orphaned nodes neatly below
-  let fallbackY = centerY + radiusY + 160;
+  let fallbackY = centerY + Math.max(totalRightHeight, totalLeftHeight) / 2 + 100;
   visibleNodes.forEach((n) => {
     if (!positioned.has(n.id)) {
       positioned.set(n.id, { x: centerX, y: fallbackY });
@@ -986,22 +1080,35 @@ export function applyRadialStudyLayout(
     }
   });
 
-  // Determine handle connections and smooth organic bezier curves
+  // Track nodes on right side for handle orientation
+  const rightNodeSet = new Set<string>();
+  const collectSubtree = (id: string, set: Set<string>) => {
+    set.add(id);
+    (childrenMap.get(id) || []).forEach((c) => collectSubtree(c, set));
+  };
+  rightRootChildren.forEach((id) => collectSubtree(id, rightNodeSet));
+
+  // Determine handle connections and smooth organic curved lines with notebook arrowheads
   const radialEdges: Edge[] = edges
     .filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target))
     .map((e) => {
-      const targetPos = positioned.get(e.target) || { x: centerX, y: centerY };
-      const sourcePos = positioned.get(e.source) || { x: centerX, y: centerY };
-      const isTargetRight = targetPos.x >= sourcePos.x;
+      const isRight = rightNodeSet.has(e.target);
+      const isRootSource = e.source === rootNode.id;
 
       return {
         ...e,
-        sourceHandle: isTargetRight ? 'source-right' : 'source-left',
-        targetHandle: isTargetRight ? 'target-left' : 'target-right',
-        type: 'default', // Organic curved bezier lines like hand-drawn study notes
+        sourceHandle: isRight ? 'source-right' : 'source-left',
+        targetHandle: isRight ? 'target-left' : 'target-right',
+        type: 'default', // Smooth curved bezier ribbons
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: isRight ? '#0284C7' : '#7C3AED',
+          width: 14,
+          height: 14
+        },
         style: {
-          stroke: isTargetRight ? '#0284C7' : '#7C3AED',
-          strokeWidth: e.source === rootNode.id ? 3.5 : 2.5,
+          stroke: isRight ? '#0284C7' : '#7C3AED',
+          strokeWidth: isRootSource ? 3.5 : 2.5,
           strokeLinecap: 'round'
         }
       };
@@ -1190,7 +1297,7 @@ export function parseOutlineToNodesAndEdges(outlineText: string, defaultTitle?: 
   return { nodes, edges };
 }
 
-// Custom Node for React Flow: Supports Curved Learning Roadmap, Fishbone, and XMind Mindmap
+// Custom Node for React Flow: Supports Curved Learning Roadmap, Fishbone, Radial Study Notes, and XMind Mindmap
 interface CustomNodeProps {
   id: string;
   data: {
@@ -1198,6 +1305,7 @@ interface CustomNodeProps {
     notes?: string;
     color?: string;
     theme?: LevelTheme;
+    notebookTheme?: 'img3848' | 'img3849' | 'xmind' | 'cefr';
     completed?: boolean;
     important?: boolean;
     isRoot?: boolean;
@@ -1211,9 +1319,12 @@ interface CustomNodeProps {
     onToggleCollapse?: () => void;
     isCurrentActive?: boolean;
     onAddChild?: (parentId: string) => void;
+    onAddSibling?: (nodeId: string) => void;
     onDelete?: (nodeId: string) => void;
     onToggleComplete?: (nodeId: string) => void;
     onEditNode?: (nodeId: string) => void;
+    onInlineUpdate?: (nodeId: string, newLabel: string) => void;
+    onSelectColor?: (nodeId: string, color: string) => void;
   };
   selected?: boolean;
   style?: React.CSSProperties;
@@ -1225,7 +1336,41 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
   const isRoot = !!data.isRoot;
   const theme = data.theme;
 
-  // --- 1. ROADMAP / LEARNING PATHWAY NODE (AS IN IMG_3834_bc3ec55e.jpeg) ---
+  // Inline editing state for quick direct typing on canvas
+  const [isEditingInline, setIsEditingInline] = useState(false);
+  const [inlineText, setInlineText] = useState(data.label || '');
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setInlineText(data.label || '');
+  }, [data.label]);
+
+  useEffect(() => {
+    if (isEditingInline) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }, 30);
+    }
+  }, [isEditingInline]);
+
+  const handleCommitInlineEdit = () => {
+    setIsEditingInline(false);
+    const trimmed = inlineText.trim();
+    if (trimmed && trimmed !== data.label) {
+      data.onInlineUpdate?.(id, trimmed);
+    } else {
+      setInlineText(data.label || '');
+    }
+  };
+
+  const handleCancelInlineEdit = () => {
+    setIsEditingInline(false);
+    setInlineText(data.label || '');
+  };
+
+  // --- 1. ROADMAP / LEARNING PATHWAY NODE ---
   if (data.isRoadmap) {
     const isCurrentActive = !!data.isCurrentActive;
     const badgeText = data.milestoneBadge || '';
@@ -1235,13 +1380,13 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
       <div
         onDoubleClick={(e) => {
           e.stopPropagation();
-          data.onEditNode?.(id);
+          setIsEditingInline(true);
         }}
         className={cn(
           "relative flex items-center gap-3.5 select-none cursor-pointer group transition-all duration-200",
           selected ? "scale-105" : ""
         )}
-        title="Nhấn đúp để chỉnh sửa"
+        title="Nhấn đúp để sửa tiêu đề trực tiếp"
       >
         {/* Connection Handles */}
         <Handle
@@ -1257,10 +1402,9 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
           className="!w-3 !h-3 !bg-[#6D28D9] !border-2 !border-white !-bottom-1.5"
         />
 
-        {/* Milestone Circle (Centered along the serpentine track) */}
+        {/* Milestone Circle */}
         <div className="relative shrink-0 flex items-center justify-center">
           {isCompleted ? (
-            // Completed / Mastered state: Solid circle with white checkmark
             <div
               className="w-13 h-13 rounded-full border-[4px] border-white shadow-[0_4px_12px_rgba(109,40,217,0.35)] flex items-center justify-center ring-4 transition-transform group-hover:scale-110"
               style={{
@@ -1270,7 +1414,6 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
               <Check className="w-6 h-6 text-white stroke-[3.5]" />
             </div>
           ) : isCurrentActive ? (
-            // Active state: Vibrant golden circle with "Bạn đang ở đây" badge
             <div className="relative flex flex-col items-center">
               <div className="w-13 h-13 rounded-full bg-amber-400 border-[4px] border-white shadow-[0_4px_14px_rgba(245,158,11,0.5)] flex items-center justify-center ring-4 ring-amber-300 transition-transform group-hover:scale-110">
                 <Star className="w-6 h-6 text-amber-950 fill-amber-950" />
@@ -1280,7 +1423,6 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
               </div>
             </div>
           ) : isLevelBadge ? (
-            // Level Badge circle (e.g. A1, A2, B1, B2) with colored ring
             <div
               className="w-13 h-13 rounded-full bg-white border-[4px] shadow-md flex items-center justify-center transition-transform group-hover:scale-110"
               style={{
@@ -1295,14 +1437,13 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
               </span>
             </div>
           ) : (
-            // Numbered Milestone Circle
             <div className="w-12 h-12 rounded-full bg-white border-[3.5px] border-slate-300 shadow-sm flex items-center justify-center ring-4 ring-slate-100 transition-transform group-hover:scale-110">
               <span className="text-xs font-black text-slate-700">{data.milestoneIndex || '•'}</span>
             </div>
           )}
         </div>
 
-        {/* Milestone Card (Speech-bubble style card as in IMG_3834_bc3ec55e.jpeg) */}
+        {/* Milestone Card */}
         <div
           className={cn(
             "min-w-[190px] max-w-[320px] bg-white px-4 py-3 rounded-2xl border-[2.5px] border-[#141414] shadow-[3px_3px_0px_#141414] transition-all relative",
@@ -1331,7 +1472,7 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
                     data.onToggleCollapse?.();
                   }}
                   className="px-1.5 py-0.5 rounded-full text-[9px] font-black border flex items-center gap-0.5 transition-all bg-amber-100 hover:bg-amber-200 border-amber-500 text-amber-950 shadow-xs cursor-pointer active:scale-95 shrink-0"
-                  title={data.isCollapsed ? "Bấm để mở rộng các nhánh con" : "Bấm để thu gọn các nhánh con"}
+                  title={data.isCollapsed ? "Mở rộng nhánh con" : "Thu gọn nhánh con"}
                 >
                   {data.isCollapsed ? (
                     <>
@@ -1377,12 +1518,27 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
             </button>
           </div>
 
-          {/* Topic Title */}
-          <div className={cn("text-xs font-black text-[#141414] leading-snug break-words", isCompleted ? "text-emerald-950" : "")}>
-            {cleanNodeTitle(data.label) || data.label || 'Nội dung mốc học'}
-          </div>
+          {/* Inline Edit or Label */}
+          {isEditingInline ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={inlineText}
+              onChange={(e) => setInlineText(e.target.value)}
+              onBlur={handleCommitInlineEdit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCommitInlineEdit();
+                if (e.key === 'Escape') handleCancelInlineEdit();
+              }}
+              className="w-full text-xs font-black text-ink bg-white border border-[#141414] rounded-md px-1.5 py-0.5 outline-none ring-2 ring-blue-500"
+            />
+          ) : (
+            <div className={cn("text-xs font-black text-[#141414] leading-snug break-words", isCompleted ? "text-emerald-950" : "")}>
+              {cleanNodeTitle(data.label) || data.label || 'Nội dung mốc học'}
+            </div>
+          )}
 
-          {/* Progress underline bar (as seen in IMG_3834_bc3ec55e.jpeg) */}
+          {/* Progress underline bar */}
           <div className="w-full h-1 bg-black/10 rounded-full mt-2 overflow-hidden">
             <div
               className={cn(
@@ -1395,23 +1551,22 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
             />
           </div>
 
-          {/* Optional notes */}
           {data.notes && (
             <div className="text-[10px] text-slate-600 mt-1.5 line-clamp-2 italic font-normal border-t border-slate-100 pt-1">
               {data.notes}
             </div>
           )}
 
-          {/* Action buttons on hover */}
+          {/* Floating Actions */}
           <div className="absolute -top-3 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                data.onEditNode?.(id);
+                setIsEditingInline(true);
               }}
               className="bg-sky-400 hover:bg-sky-500 text-ink text-[10px] font-black w-5 h-5 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110"
-              title="Sửa nội dung"
+              title="Sửa tên nhanh"
             >
               <Edit3 className="w-2.5 h-2.5" />
             </button>
@@ -1443,7 +1598,190 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
     );
   }
 
-  // --- 2. FISHBONE & XMIND MINDMAP NODE ---
+  const notebookTheme = data.notebookTheme || 'img3848';
+
+  // --- 2. AUTHENTIC ROOT NODE ---
+  if (isRoot) {
+    if (notebookTheme === 'img3849') {
+      return (
+        <div
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            setIsEditingInline(true);
+          }}
+          className={cn(
+            "group relative px-7 py-5 bg-white border-[3px] border-[#0D9488] shadow-[5px_5px_0px_#0D9488] rounded-2xl cursor-pointer select-none min-w-[230px] max-w-[360px] text-center transition-all duration-200",
+            selected ? "ring-4 ring-teal-500 ring-offset-2 scale-105" : "hover:scale-[1.02]"
+          )}
+          title="Chủ đề trung tâm (Phong cách Sổ Phác Thảo IMG_3849) - Nhấn đúp để chỉnh sửa"
+        >
+          {/* Inner double border accent */}
+          <div className="absolute inset-1 rounded-xl border border-[#0D9488]/40 pointer-events-none" />
+
+          {/* Connection Handles */}
+          <Handle type="source" position={Position.Right} id="source-right" className="!w-2.5 !h-2.5 !bg-[#0D9488] !border-2 !border-white" />
+          <Handle type="source" position={Position.Left} id="source-left" className="!w-2.5 !h-2.5 !bg-[#0D9488] !border-2 !border-white" />
+          <Handle type="source" position={Position.Top} id="source-top" className="!w-2.5 !h-2.5 !bg-[#0D9488] !border-2 !border-white" />
+          <Handle type="source" position={Position.Bottom} id="source-bottom" className="!w-2.5 !h-2.5 !bg-[#0D9488] !border-2 !border-white" />
+          <Handle type="target" position={Position.Right} id="target-right" className="!w-2.5 !h-2.5 !bg-[#0D9488] !border-2 !border-white opacity-0" />
+          <Handle type="target" position={Position.Left} id="target-left" className="!w-2.5 !h-2.5 !bg-[#0D9488] !border-2 !border-white opacity-0" />
+
+          {/* Calligraphic header banner matching IMG_3849 */}
+          <div className="flex items-center justify-center gap-2 mb-1 text-[#0D9488] text-[10px] font-black uppercase tracking-widest select-none">
+            <span className="h-[1.5px] w-5 bg-[#0D9488]" />
+            <span>CHỦ ĐỀ TRỌNG TÂM</span>
+            <span className="h-[1.5px] w-5 bg-[#0D9488]" />
+          </div>
+
+          {isEditingInline ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={inlineText}
+              onChange={(e) => setInlineText(e.target.value)}
+              onBlur={handleCommitInlineEdit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCommitInlineEdit();
+                if (e.key === 'Escape') handleCancelInlineEdit();
+              }}
+              className="w-full text-lg font-black text-center text-[#0F766E] bg-teal-50 border-2 border-[#0D9488] rounded-xl px-2 py-1 outline-none ring-2 ring-teal-500 shadow-sm font-serif italic"
+            />
+          ) : (
+            <div className="text-xl sm:text-2xl font-black text-[#0F766E] leading-tight tracking-tight break-words font-serif italic px-2">
+              {data.label || 'Chủ Đề Trung Tâm'}
+            </div>
+          )}
+
+          {data.notes && (
+            <p className="text-[11px] text-teal-800/80 font-medium italic mt-1.5 border-t border-teal-100 pt-1 line-clamp-2">
+              {data.notes}
+            </p>
+          )}
+
+          {/* Floating Actions on Hover / Selection */}
+          <div className={cn(
+            "absolute -top-3.5 right-2 flex items-center gap-1 transition-all z-20",
+            selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditingInline(true);
+              }}
+              className="bg-teal-400 hover:bg-teal-500 text-ink text-[10px] font-black w-6 h-6 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110 cursor-pointer"
+              title="Sửa tên (Nhấn đúp)"
+            >
+              <Edit3 className="w-3 h-3" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onAddChild?.(id);
+              }}
+              className="bg-amber-400 hover:bg-amber-500 text-ink text-[10px] font-black px-2 h-6 rounded-full border border-ink flex items-center gap-1 shadow-[1px_1px_0px_#141414] hover:scale-105 cursor-pointer"
+              title="Thêm nhánh con (Phím Tab)"
+            >
+              <Plus className="w-3 h-3 stroke-[3]" />
+              <span className="text-[9px]">Nhánh</span>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Default / IMG_3848: Scalloped cloud shape with warm gradient & dashed line
+    return (
+      <div
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          setIsEditingInline(true);
+        }}
+        className={cn(
+          "group relative px-7 py-5 rounded-[36px] border-[3px] border-[#141414] shadow-[5px_5px_0px_#141414] bg-gradient-to-br from-amber-200 via-yellow-100 to-amber-200 cursor-pointer select-none min-w-[220px] max-w-[360px] text-center transition-all duration-200",
+          selected ? "ring-4 ring-blue-500 ring-offset-2 scale-105" : "hover:scale-[1.02]"
+        )}
+        title="Chủ đề trung tâm (Phong cách Đám Mây Sổ Tay IMG_3848) - Nhấn đúp để chỉnh sửa trực tiếp"
+      >
+        {/* Double-contour inner ring simulating hand-drawn notebook pen lines */}
+        <div className="absolute inset-1.5 rounded-[28px] border-[1.5px] border-dashed border-[#141414]/30 pointer-events-none" />
+
+        {/* 4-directional handles for radial / xmind fan-out */}
+        <Handle type="source" position={Position.Right} id="source-right" className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white" />
+        <Handle type="source" position={Position.Left} id="source-left" className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white" />
+        <Handle type="source" position={Position.Top} id="source-top" className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white" />
+        <Handle type="source" position={Position.Bottom} id="source-bottom" className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white" />
+        <Handle type="target" position={Position.Right} id="target-right" className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white opacity-0" />
+        <Handle type="target" position={Position.Left} id="target-left" className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white opacity-0" />
+
+        {/* Center Tag / Sparkle */}
+        <div className="flex items-center justify-center gap-1.5 mb-1.5">
+          <span className="text-[10px] font-black uppercase tracking-wider bg-black/10 px-2.5 py-0.5 rounded-full flex items-center gap-1 text-[#141414]">
+            <Sparkles className="w-3 h-3 text-amber-600" /> Chủ Đề Trung Tâm
+          </span>
+        </div>
+
+        {/* Root Title (Inline Edit or Text) */}
+        {isEditingInline ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={inlineText}
+            onChange={(e) => setInlineText(e.target.value)}
+            onBlur={handleCommitInlineEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleCommitInlineEdit();
+              if (e.key === 'Escape') handleCancelInlineEdit();
+            }}
+            className="w-full text-base font-black text-center text-ink bg-white border-2 border-[#141414] rounded-xl px-2 py-1 outline-none ring-2 ring-blue-500 shadow-sm"
+          />
+        ) : (
+          <div className="text-base sm:text-lg font-black text-ink leading-tight tracking-tight break-words px-1">
+            {data.label || 'Chủ Đề Trung Tâm'}
+          </div>
+        )}
+
+        {data.notes && (
+          <p className="text-[11px] text-ink/75 font-medium italic mt-1 line-clamp-2">
+            {data.notes}
+          </p>
+        )}
+
+        {/* Floating Actions on Hover / Selection */}
+        <div className={cn(
+          "absolute -top-3.5 right-2 flex items-center gap-1 transition-all z-20",
+          selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditingInline(true);
+            }}
+            className="bg-sky-400 hover:bg-sky-500 text-ink text-[10px] font-black w-6 h-6 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110 cursor-pointer"
+            title="Sửa tên (Nhấn đúp)"
+          >
+            <Edit3 className="w-3 h-3" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              data.onAddChild?.(id);
+            }}
+            className="bg-amber-400 hover:bg-amber-500 text-ink text-[10px] font-black px-2 h-6 rounded-full border border-ink flex items-center gap-1 shadow-[1px_1px_0px_#141414] hover:scale-105 cursor-pointer"
+            title="Thêm nhánh con (Phím Tab)"
+          >
+            <Plus className="w-3 h-3 stroke-[3]" />
+            <span className="text-[9px]">Nhánh</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- 3. RADIAL / XMIND / FISHBONE STUDY NOTEBOOK CARD ---
   const isSubBranch = !!data.hierarchicalCode && data.hierarchicalCode.includes('.');
   const cardBorderColor = isCompleted
     ? '#059669'
@@ -1453,140 +1791,92 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
       : theme.border
     : '#141414';
 
-  const cardBgColor = isCompleted && !isRoot
+  const cardBgColor = isCompleted
     ? '#ECFDF5'
+    : notebookTheme === 'img3849'
+    ? '#FFFFFF'
     : theme
     ? isSubBranch
       ? theme.subBg
       : theme.bg
     : (style?.background as string) || data.color || '#FFFFFF';
 
+  // Highlighter background color for IMG_3848 style
+  const highlighterColor = theme ? theme.subBg : data.color || '#FEF08A';
+
   return (
     <div
       onDoubleClick={(e) => {
         e.stopPropagation();
-        data.onEditNode?.(id);
+        setIsEditingInline(true);
       }}
       className={cn(
-        'group relative px-3.5 py-2.5 rounded-2xl border-[2.5px] transition-all duration-200 select-none min-w-[150px] max-w-[280px] cursor-pointer',
-        selected ? 'ring-2 ring-blue-500 ring-offset-2 scale-[1.02]' : '',
-        isRoot
-          ? 'font-black text-sm shadow-[4px_4px_0px_#141414] bg-[#FEF08A] border-[#141414]'
-          : 'font-bold text-xs shadow-[3px_3px_0px_rgba(20,20,20,0.8)]'
+        'group relative px-3.5 py-2.5 rounded-2xl border-[2.5px] transition-all duration-200 select-none min-w-[155px] max-w-[290px] cursor-pointer',
+        notebookTheme === 'img3849' ? 'rounded-xl border-[2px] shadow-[3px_3px_0px_#0D9488]/30' : '',
+        selected ? 'ring-3 ring-blue-500 ring-offset-2 scale-[1.03] shadow-[4px_4px_0px_#2563EB]' : 'shadow-[3px_3px_0px_rgba(20,20,20,0.85)] hover:scale-[1.01]'
       )}
       style={{
-        borderColor: cardBorderColor,
+        borderColor: notebookTheme === 'img3849' ? (isCompleted ? '#059669' : '#141414') : cardBorderColor,
         backgroundColor: cardBgColor,
         color: '#141414'
       }}
-      title="Nhấn đúp để chỉnh sửa"
+      title="Nhấn đúp để sửa trực tiếp • Phím Tab: Thêm nhánh con • Phím Enter: Nhánh cùng cấp"
     >
-      {/* Handles for XMind and Fishbone - Complete Left & Right Source/Target pairs */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="target-left"
-        className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
-      />
-      <Handle
-        type="source"
-        position={Position.Left}
-        id="source-left"
-        className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
-      />
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="left"
-        className="!w-1 !h-1 opacity-0 pointer-events-none"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="source-right"
-        className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
-      />
-      <Handle
-        type="target"
-        position={Position.Right}
-        id="target-right"
-        className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="right"
-        className="!w-1 !h-1 opacity-0 pointer-events-none"
-      />
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="top"
-        className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white opacity-0 group-hover:opacity-100 transition-opacity"
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="bottom"
-        className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white opacity-0 group-hover:opacity-100 transition-opacity"
-      />
+      {/* Complete Handle pairs for Left, Right, Top, Bottom */}
+      <Handle type="target" position={Position.Left} id="target-left" className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform" />
+      <Handle type="source" position={Position.Left} id="source-left" className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform" />
+      <Handle type="target" position={Position.Right} id="target-right" className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform" />
+      <Handle type="source" position={Position.Right} id="source-right" className="!w-2.5 !h-2.5 !bg-[#141414] !border-2 !border-white hover:!scale-125 transition-transform" />
+      <Handle type="target" position={Position.Top} id="top" className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2 !h-2 !bg-[#141414] !border-2 !border-white opacity-0 group-hover:opacity-100 transition-opacity" />
 
-      {/* Header: Hierarchical Code, Collapse Button, Mastery Checkbox or Root Spine Badge */}
+      {/* Header: Hierarchical Code, Collapse Button, Mastery Checkbox */}
       <div className="flex items-center justify-between gap-1 mb-1.5">
-        {isRoot ? (
-          <div className="w-full flex items-center justify-between gap-1">
-            <span className="text-[10px] font-black uppercase tracking-widest bg-black/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-600" /> Chủ Đề Trung Tâm
-            </span>
-            <span className="text-[10px] font-bold text-ink/50 italic">Sơ đồ học</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 min-w-0">
-            {/* Hierarchical Code Badge e.g. A1, A1.1, A2, B1, 1, 1.1 */}
-            <span
-              className="text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 tracking-tight shadow-xs"
-              style={{
-                backgroundColor: theme ? theme.badgeBg : 'rgba(0,0,0,0.06)',
-                color: theme ? theme.badgeText : '#141414',
-                borderColor: theme ? theme.border : 'rgba(20,20,20,0.2)'
-              }}
-            >
-              {data.hierarchicalCode || data.milestoneBadge || '•'}
-            </span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          {/* Hierarchical Code Badge e.g. A1, A1.1, A2, B1, 1, 1.1 */}
+          <span
+            className="text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 tracking-tight shadow-xs"
+            style={{
+              backgroundColor: theme ? theme.badgeBg : 'rgba(0,0,0,0.06)',
+              color: theme ? theme.badgeText : '#141414',
+              borderColor: theme ? theme.border : 'rgba(20,20,20,0.2)'
+            }}
+          >
+            {data.hierarchicalCode || data.milestoneBadge || '•'}
+          </span>
 
-            {/* Checkbox for Mastery */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                data.onToggleComplete?.(id);
-              }}
-              className={cn(
-                "flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border transition-all cursor-pointer active:scale-95 shrink-0",
-                isCompleted
-                  ? "bg-emerald-100 text-emerald-800 border-emerald-600 hover:bg-emerald-200"
-                  : "bg-white/90 text-ink/70 border-ink/30 hover:border-ink hover:text-ink hover:bg-white"
-              )}
-              title={isCompleted ? "Đã nắm! Bấm để bỏ tick" : "Chưa nắm. Bấm để tick 'Đã nắm'"}
-            >
-              {isCompleted ? (
-                <>
-                  <CheckSquare className="w-3 h-3 text-emerald-700 stroke-[3]" />
-                  <span>Đã nắm</span>
-                </>
-              ) : (
-                <>
-                  <Square className="w-3 h-3 text-ink/40" />
-                  <span>Chưa nắm</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
+          {/* Checkbox for Mastery */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              data.onToggleComplete?.(id);
+            }}
+            className={cn(
+              "flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border transition-all cursor-pointer active:scale-95 shrink-0",
+              isCompleted
+                ? "bg-emerald-100 text-emerald-800 border-emerald-600 hover:bg-emerald-200"
+                : "bg-white/90 text-ink/70 border-ink/30 hover:border-ink hover:text-ink hover:bg-white"
+            )}
+            title={isCompleted ? "Đã nắm! Bấm để bỏ tick" : "Chưa nắm. Bấm để tick 'Đã nắm'"}
+          >
+            {isCompleted ? (
+              <>
+                <CheckSquare className="w-3 h-3 text-emerald-700 stroke-[3]" />
+                <span>Đã nắm</span>
+              </>
+            ) : (
+              <>
+                <Square className="w-3 h-3 text-ink/40" />
+                <span>Chưa nắm</span>
+              </>
+            )}
+          </button>
+        </div>
 
         <div className="flex items-center gap-1 shrink-0 ml-auto">
           {/* Collapse / Expand Child Branches Button */}
-          {data.hasChildren && !isRoot && (
+          {data.hasChildren && (
             <button
               type="button"
               onClick={(e) => {
@@ -1594,7 +1884,7 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
                 data.onToggleCollapse?.();
               }}
               className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-ink/30 bg-amber-100 hover:bg-amber-200 text-ink shadow-xs transition-all active:scale-95 cursor-pointer"
-              title={data.isCollapsed ? "Bấm để mở rộng các nhánh con" : "Bấm để thu gọn các nhánh con"}
+              title={data.isCollapsed ? "Mở rộng nhánh con" : "Thu gọn nhánh con"}
             >
               {data.isCollapsed ? (
                 <>
@@ -1616,78 +1906,177 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
         </div>
       </div>
 
-      {/* Node Content */}
+      {/* Node Content / Inline Edit Input */}
       <div className="flex flex-col gap-1">
-        <div
-          className={cn(
-            'leading-snug break-words',
-            isRoot ? 'text-base font-black text-center py-1 tracking-tight' : 'text-xs font-black uppercase tracking-tight',
-            isCompleted && !isRoot ? 'text-emerald-950' : 'text-ink'
-          )}
-        >
-          {isRoot ? data.label : (cleanNodeTitle(data.label) || data.label || 'Nhánh mới')}
-        </div>
-
-        {/* Study notebook underline marker (matches reference photo style) */}
-        {!isRoot && (
-          <div
-            className="w-full h-0.5 rounded-full mb-1 opacity-70"
-            style={{ backgroundColor: theme ? theme.border : '#141414' }}
+        {isEditingInline ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={inlineText}
+            onChange={(e) => setInlineText(e.target.value)}
+            onBlur={handleCommitInlineEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleCommitInlineEdit();
+              if (e.key === 'Escape') handleCancelInlineEdit();
+            }}
+            className="w-full text-xs font-black text-ink bg-white border border-[#141414] rounded-md px-1.5 py-0.5 outline-none ring-2 ring-blue-500 shadow-sm"
           />
+        ) : notebookTheme === 'img3848' ? (
+          /* Highlighter marker backing matching IMG_3848 study notes */
+          <div className="relative inline-block my-0.5">
+            <span
+              className="absolute inset-0 -rotate-0.5 rounded-sm opacity-90 -z-0"
+              style={{
+                backgroundColor: isCompleted ? '#A7F3D0' : highlighterColor,
+                boxShadow: '0 1px 0 rgba(0,0,0,0.06)'
+              }}
+            />
+            <div
+              className={cn(
+                'relative z-10 leading-snug break-words text-xs font-black tracking-tight px-1.5 py-0.5',
+                isCompleted ? 'text-emerald-950' : 'text-ink'
+              )}
+            >
+              {cleanNodeTitle(data.label) || data.label || 'Nhánh mới'}
+            </div>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              'leading-snug break-words text-xs font-black tracking-tight',
+              notebookTheme === 'img3849' ? 'uppercase tracking-wide' : '',
+              isCompleted ? 'text-emerald-950' : 'text-ink'
+            )}
+          >
+            {cleanNodeTitle(data.label) || data.label || 'Nhánh mới'}
+          </div>
         )}
 
-        {/* Bulleted notes / study points (matches reference photo IMG_3848 & IMG_3849) */}
+        {/* Study notebook underline marker (matches reference photo style in IMG_3848 & IMG_3849) */}
+        <div
+          className="w-full h-0.5 rounded-full mb-1 opacity-70"
+          style={{ backgroundColor: theme ? theme.border : '#141414' }}
+        />
+
+        {/* Bulleted notes / study points */}
         {data.notes && (
-          <div className="text-[10px] text-ink/80 flex flex-col gap-1 pt-0.5 border-t border-ink/10">
-            {data.notes.split('\n').filter((l) => l.trim().length > 0).map((line, idx) => (
-              <div key={idx} className="flex items-start gap-1 leading-tight">
-                <span className="text-ink/50 select-none font-bold">•</span>
-                <span className="break-words flex-1 font-medium">{line.replace(/^[-*•\s]+/, '')}</span>
-              </div>
-            ))}
+          <div className="text-[10px] text-ink/85 flex flex-col gap-1 pt-0.5 border-t border-ink/10">
+            {data.notes.split('\n').filter((l) => l.trim().length > 0).map((line, idx) => {
+              const clean = line.replace(/^[-*•>]\s*/, '').trim();
+              const isTag = clean.startsWith('{') && clean.endsWith('}');
+              return (
+                <div key={idx} className="flex items-start gap-1 leading-tight">
+                  {isTag ? (
+                    <span className="bg-purple-100 text-purple-900 font-bold px-1.5 py-0.5 rounded border border-purple-300 text-[9px]">
+                      {clean}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-ink/50 select-none font-bold">
+                        {notebookTheme === 'img3848' ? '>' : '•'}
+                      </span>
+                      <span className="break-words flex-1 font-medium">{clean}</span>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* Floating Action Buttons on Node Hover / Selected */}
-      <div className="absolute -top-3.5 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+      <div className={cn(
+        "absolute -top-3.5 right-1 flex items-center gap-1 transition-opacity z-20",
+        selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+      )}>
+        {/* Inline Edit Trigger */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            data.onEditNode?.(id);
+            setIsEditingInline(true);
           }}
-          className="bg-sky-400 hover:bg-sky-500 text-ink text-[10px] font-black w-6 h-6 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110 transition-transform"
-          title="Nhấn đúp hoặc bấm để sửa"
+          className="bg-sky-400 hover:bg-sky-500 text-ink text-[10px] font-black w-6 h-6 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110 transition-transform cursor-pointer"
+          title="Sửa tên nhanh (Phím F2)"
         >
           <Edit3 className="w-3 h-3" />
         </button>
 
+        {/* Add Child (Tab) */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             data.onAddChild?.(id);
           }}
-          className="bg-amber-400 hover:bg-amber-500 text-ink text-[10px] font-black w-6 h-6 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110 transition-transform"
-          title="Thêm nhánh con"
+          className="bg-amber-400 hover:bg-amber-500 text-ink text-[10px] font-black w-6 h-6 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110 transition-transform cursor-pointer"
+          title="Thêm nhánh con (Phím Tab)"
         >
           <Plus className="w-3.5 h-3.5 stroke-[3]" />
         </button>
 
-        {!isRoot && (
+        {/* Add Sibling (Enter) */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onAddSibling?.(id);
+          }}
+          className="bg-emerald-300 hover:bg-emerald-400 text-ink text-[10px] font-black w-6 h-6 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110 transition-transform cursor-pointer"
+          title="Thêm nhánh cùng cấp (Phím Enter)"
+        >
+          <CornerDownRight className="w-3 h-3 stroke-[2.5]" />
+        </button>
+
+        {/* Quick Color Picker */}
+        <div className="relative">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              data.onDelete?.(id);
+              setShowColorPicker(!showColorPicker);
             }}
-            className="bg-rose-400 hover:bg-rose-500 text-white text-[10px] font-black w-6 h-6 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110 transition-transform"
-            title="Xóa nhánh này"
+            className="bg-purple-300 hover:bg-purple-400 text-ink text-[10px] font-black w-6 h-6 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110 transition-transform cursor-pointer"
+            title="Đổi màu nhánh"
           >
-            <Trash2 className="w-3 h-3" />
+            <Palette className="w-3 h-3" />
           </button>
-        )}
+
+          {showColorPicker && (
+            <div
+              className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white p-1 rounded-xl border-2 border-[#141414] shadow-lg flex items-center gap-1 z-30"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {NODE_COLORS.slice(0, 6).map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => {
+                    data.onSelectColor?.(id, c.bg);
+                    setShowColorPicker(false);
+                  }}
+                  className="w-4 h-4 rounded-full border border-[#141414] hover:scale-125 transition-transform"
+                  style={{ backgroundColor: c.bg }}
+                  title={c.name}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Delete Node */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onDelete?.(id);
+          }}
+          className="bg-rose-400 hover:bg-rose-500 text-white text-[10px] font-black w-6 h-6 rounded-full border border-ink flex items-center justify-center shadow-[1px_1px_0px_#141414] hover:scale-110 transition-transform cursor-pointer"
+          title="Xóa nhánh này (Phím Delete)"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
       </div>
     </div>
   );
@@ -1696,6 +2085,172 @@ function CustomMindmapNodeComponent({ id, data, selected, style }: CustomNodePro
 const nodeTypes = {
   custom: CustomMindmapNodeComponent
 };
+
+// Sleek Floating Canvas Toolbar inside ReactFlowProvider
+function MindmapCanvasInnerToolbar({
+  onAutoLayout,
+  currentLayout,
+  onExportPNG,
+  onCopyOutline,
+  onLoadSample,
+  notebookTheme,
+  setNotebookTheme,
+  canvasBgPattern,
+  setCanvasBgPattern,
+}: {
+  onAutoLayout: () => void;
+  currentLayout: string;
+  onExportPNG: () => void;
+  onCopyOutline: () => void;
+  onLoadSample: (sampleId: string) => void;
+  notebookTheme: 'img3848' | 'img3849' | 'xmind' | 'cefr';
+  setNotebookTheme: (t: 'img3848' | 'img3849' | 'xmind' | 'cefr') => void;
+  canvasBgPattern: 'lines' | 'dots' | 'blank' | 'cross';
+  setCanvasBgPattern: (p: 'lines' | 'dots' | 'blank' | 'cross') => void;
+}) {
+  const { fitView, zoomIn, zoomOut } = useReactFlow();
+
+  return (
+    <Panel position="top-right" className="!m-3 z-30">
+      <div className="bg-[#FFFDF7]/95 backdrop-blur-md p-1.5 rounded-2xl border-2 border-[#141414] shadow-[3px_3px_0px_#141414] flex items-center gap-1.5 flex-wrap max-w-[95vw]">
+        {/* Fit View Button */}
+        <button
+          type="button"
+          onClick={() => fitView({ padding: 0.2, duration: 400 })}
+          className="px-2.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-ink text-xs font-black rounded-xl border border-[#141414] shadow-xs flex items-center gap-1 active:scale-95 cursor-pointer"
+          title="Căn giữa toàn bộ sơ đồ vào giữa màn hình (Fit View)"
+        >
+          <Maximize2 className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Căn Giữa</span>
+        </button>
+
+        {/* Zoom In & Out */}
+        <div className="flex items-center bg-[#EFECE6] p-0.5 rounded-xl border border-[#141414]">
+          <button
+            type="button"
+            onClick={() => zoomIn({ duration: 250 })}
+            className="w-6 h-6 flex items-center justify-center text-xs font-black hover:bg-white rounded-lg cursor-pointer"
+            title="Phóng to (+)"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => zoomOut({ duration: 250 })}
+            className="w-6 h-6 flex items-center justify-center text-xs font-black hover:bg-white rounded-lg cursor-pointer"
+            title="Thu nhỏ (-)"
+          >
+            -
+          </button>
+        </div>
+
+        {/* Notebook Style Presets */}
+        <div className="flex items-center bg-[#EFECE6] p-0.5 rounded-xl border border-[#141414] text-[11px] font-black">
+          <button
+            type="button"
+            onClick={() => {
+              setNotebookTheme('img3848');
+              setCanvasBgPattern('lines');
+            }}
+            className={cn(
+              "px-2 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1",
+              notebookTheme === 'img3848' ? "bg-amber-400 text-ink shadow-xs" : "text-ink/65 hover:text-ink"
+            )}
+            title="Sổ kẻ ô tô dạ quang (Theo ảnh mẫu 1 IMG_3848)"
+          >
+            <span>📔</span>
+            <span className="hidden md:inline">Sổ Dạ Quang</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setNotebookTheme('img3849');
+              setCanvasBgPattern('blank');
+            }}
+            className={cn(
+              "px-2 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1",
+              notebookTheme === 'img3849' ? "bg-amber-400 text-ink shadow-xs" : "text-ink/65 hover:text-ink"
+            )}
+            title="Sổ phác thảo chuyên đề (Theo ảnh mẫu 2 IMG_3849)"
+          >
+            <span>📋</span>
+            <span className="hidden md:inline">Sổ Phác Thảo</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setNotebookTheme('xmind')}
+            className={cn(
+              "px-2 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1",
+              notebookTheme === 'xmind' ? "bg-amber-400 text-ink shadow-xs" : "text-ink/65 hover:text-ink"
+            )}
+            title="Phong cách XMind hiện đại"
+          >
+            <span>⚡</span>
+            <span className="hidden md:inline">XMind</span>
+          </button>
+        </div>
+
+        {/* Load Sample Reference Outlines */}
+        <div className="relative group/sample">
+          <button
+            type="button"
+            className="px-2 py-1.5 bg-white hover:bg-amber-100 text-ink text-xs font-black rounded-xl border border-[#141414] shadow-xs flex items-center gap-1 cursor-pointer"
+            title="Nạp nhanh các mẫu sơ đồ thực tế (theo ảnh đã gửi)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span className="hidden sm:inline">Mẫu Sổ</span>
+            <ChevronDown className="w-3 h-3 text-ink/60" />
+          </button>
+
+          <div className="absolute right-0 top-full mt-1 w-56 bg-white p-1 rounded-xl border-2 border-[#141414] shadow-xl flex-col gap-1 hidden group-hover/sample:flex z-50">
+            <button
+              type="button"
+              onClick={() => onLoadSample('img-3848-genomes')}
+              className="text-left px-2.5 py-1.5 text-xs font-bold text-ink hover:bg-amber-100 rounded-lg flex items-center gap-2 cursor-pointer"
+            >
+              <span>🧬</span>
+              <span className="truncate">Genomes (Ảnh 1 IMG_3848)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onLoadSample('img-3849-anxiety')}
+              className="text-left px-2.5 py-1.5 text-xs font-bold text-ink hover:bg-amber-100 rounded-lg flex items-center gap-2 cursor-pointer"
+            >
+              <span>🧠</span>
+              <span className="truncate">Anxiety (Ảnh 2 IMG_3849)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onLoadSample('english-roadmap')}
+              className="text-left px-2.5 py-1.5 text-xs font-bold text-ink hover:bg-amber-100 rounded-lg flex items-center gap-2 cursor-pointer"
+            >
+              <span>🇬🇧</span>
+              <span className="truncate">Tiếng Anh A1 - B2</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Export PNG & Copy Outline */}
+        <button
+          type="button"
+          onClick={onExportPNG}
+          className="p-1.5 bg-sky-100 hover:bg-sky-200 text-sky-950 rounded-xl border border-sky-600 shadow-xs cursor-pointer active:scale-95"
+          title="Tải ảnh PNG độ nét cao"
+        >
+          <ImageIcon className="w-3.5 h-3.5 text-sky-700" />
+        </button>
+        <button
+          type="button"
+          onClick={onCopyOutline}
+          className="p-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 rounded-xl border border-emerald-600 shadow-xs cursor-pointer active:scale-95"
+          title="Sao chép dàn ý vào Clipboard"
+        >
+          <Copy className="w-3.5 h-3.5 text-emerald-700" />
+        </button>
+      </div>
+    </Panel>
+  );
+}
 
 export interface StudyHubProps {
   mindmaps: MindmapItem[];
@@ -1721,38 +2276,47 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     return mindmaps?.find((m) => m.id === activeMapId) || mindmaps?.[0];
   }, [mindmaps, activeMapId]);
 
-  // View mode: 'knowledge' (tab=kien-thuc) | 'roadmap' (tab=lo-trinh) | 'canvas' (Mindmap) | 'outline' (Dàn bài) | 'study' (Ôn tập)
-  const [viewMode, setViewMode] = useState<'knowledge' | 'roadmap' | 'canvas' | 'outline' | 'study'>(() => {
+  // View mode: 'knowledge' (tab=kien-thuc) | 'roadmap' (tab=lo-trinh) | 'canvas' (Mindmap) | 'split' (Song Song) | 'outline' (Dàn bài) | 'study' (Ôn tập)
+  const [viewMode, setViewMode] = useState<'knowledge' | 'roadmap' | 'canvas' | 'split' | 'outline' | 'study'>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab');
       if (tab === 'kien-thuc') return 'knowledge';
       if (tab === 'lo-trinh') return 'roadmap';
       if (tab === 'mindmap' || tab === 'canvas') return 'canvas';
+      if (tab === 'split') return 'split';
       if (tab === 'outline') return 'outline';
       if (tab === 'study') return 'study';
     }
     return 'knowledge'; // Default to Knowledge Base matching aioenglish.com/lo-trinh?tab=kien-thuc
   });
 
-  const handleSelectViewMode = (mode: 'knowledge' | 'roadmap' | 'canvas' | 'outline' | 'study') => {
+  const handleSelectViewMode = (mode: 'knowledge' | 'roadmap' | 'canvas' | 'split' | 'outline' | 'study') => {
     setViewMode(mode);
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       if (mode === 'knowledge') url.searchParams.set('tab', 'kien-thuc');
       else if (mode === 'roadmap') url.searchParams.set('tab', 'lo-trinh');
       else if (mode === 'canvas') url.searchParams.set('tab', 'mindmap');
+      else if (mode === 'split') url.searchParams.set('tab', 'split');
       else if (mode === 'outline') url.searchParams.set('tab', 'outline');
       else if (mode === 'study') url.searchParams.set('tab', 'study');
       window.history.replaceState(null, '', url.toString());
     }
   };
 
+  // Canvas background pattern: 'lines' (Spiral Notebook Grid as in IMG_3848) | 'dots' | 'blank' (Sketchbook as in IMG_3849) | 'cross'
+  const [canvasBgPattern, setCanvasBgPattern] = useState<'lines' | 'dots' | 'blank' | 'cross'>('lines');
+  const flowCanvasRef = useRef<HTMLDivElement>(null);
+
   // Search filter
   const [searchQuery, setSearchQuery] = useState('');
 
   // Filter for Mastery: 'all' | 'unmastered' | 'mastered'
   const [masteryFilter, setMasteryFilter] = useState<'all' | 'unmastered' | 'mastered'>('all');
+
+  // Notebook study theme: 'img3848' (Grid & Highlighter) | 'img3849' (White Sketchbook & Card) | 'xmind' | 'cefr'
+  const [notebookTheme, setNotebookTheme] = useState<'img3848' | 'img3849' | 'xmind' | 'cefr'>('img3848');
 
   // Diagram layout style: 'radial' (Study notes radiating in all directions as in sample photos) | 'xmind' | 'roadmap' | 'fishbone'
   const [diagramLayout, setDiagramLayout] = useState<'radial' | 'xmind' | 'roadmap' | 'fishbone'>('radial');
@@ -2225,6 +2789,102 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     [activeMap, updateCurrentMap]
   );
 
+  // Inline rename / update node title directly on canvas
+  const handleInlineUpdateNode = useCallback(
+    (nodeId: string, newLabel: string) => {
+      if (!activeMap) return;
+      const nextNodes = activeMap.nodes.map((n) =>
+        n.id === nodeId ? { ...n, data: { ...n.data, label: newLabel } } : n
+      );
+      updateCurrentMap(nextNodes, activeMap.edges);
+    },
+    [activeMap, updateCurrentMap]
+  );
+
+  // Quick select color swatch for node
+  const handleSelectColorNode = useCallback(
+    (nodeId: string, color: string) => {
+      if (!activeMap) return;
+      const nextNodes = activeMap.nodes.map((n) =>
+        n.id === nodeId
+          ? {
+              ...n,
+              style: { ...n.style, background: color },
+              data: { ...n.data, color }
+            }
+          : n
+      );
+      updateCurrentMap(nextNodes, activeMap.edges);
+    },
+    [activeMap, updateCurrentMap]
+  );
+
+  // Canvas Keyboard Shortcuts (Tab: Add Child, Enter: Add Sibling, Delete/Backspace: Delete, Esc: Deselect)
+  useEffect(() => {
+    const handleCanvasKeyDown = (e: KeyboardEvent) => {
+      if (viewMode !== 'canvas' && viewMode !== 'split') return;
+
+      const activeEl = document.activeElement;
+      const isTyping = activeEl && (
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        (activeEl as HTMLElement).isContentEditable
+      );
+      if (isTyping) return;
+
+      if (!selectedNodeId) return;
+
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        handleAddChildNode(selectedNodeId);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAddSiblingNode(selectedNodeId);
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        handleDeleteNode(selectedNodeId);
+      } else if (e.key === 'Escape') {
+        setSelectedNodeId(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleCanvasKeyDown);
+    return () => window.removeEventListener('keydown', handleCanvasKeyDown);
+  }, [viewMode, selectedNodeId, handleAddChildNode, handleAddSiblingNode, handleDeleteNode]);
+
+  // Export high-resolution PNG
+  const handleExportPNG = async () => {
+    if (!flowCanvasRef.current || !activeMap) return;
+    try {
+      setSyncToast('Đang tạo ảnh sơ đồ độ nét cao PNG...');
+      const canvas = await html2canvas(flowCanvasRef.current, {
+        backgroundColor: canvasBgPattern === 'blank' ? '#FFFFFF' : '#FFFDF7',
+        scale: 2,
+        logging: false,
+        useCORS: true
+      });
+      const link = document.createElement('a');
+      link.download = `${(activeMap.title || 'mindmap').replace(/[\s\/\\:*?"<>|]+/g, '_')}_mindmap.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      link.remove();
+      setSyncToast('Đã tải ảnh PNG sơ đồ thành công! 🖼️');
+      setTimeout(() => setSyncToast(null), 3500);
+    } catch (err) {
+      setSyncToast('Không thể xuất ảnh sơ đồ.');
+      setTimeout(() => setSyncToast(null), 3000);
+    }
+  };
+
+  // Copy structured Markdown outline to clipboard
+  const handleCopyOutline = () => {
+    if (!activeMap) return;
+    const outline = generateOutlineFromNodes(activeMap.nodes, activeMap.edges);
+    navigator.clipboard.writeText(outline);
+    setSyncToast('Đã sao chép dàn ý vào Clipboard! 📋');
+    setTimeout(() => setSyncToast(null), 3500);
+  };
+
   // Parse Outline text into Mindmap / Fishbone nodes and edges
   const handleParseAndApplyOutline = () => {
     if (!outlineInput.trim()) return;
@@ -2568,6 +3228,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         data: {
           ...node.data,
           theme: nodeTheme,
+          notebookTheme,
           isRoadmap: diagramLayout === 'roadmap' || !!node.data?.isRoadmap,
           milestoneIndex: node.data?.milestoneIndex || index + 1,
           milestoneBadge: badgeText,
@@ -2578,8 +3239,11 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
           onToggleCollapse: () => toggleCollapseNode(node.id),
           isCurrentActive,
           onAddChild: handleAddChildNode,
+          onAddSibling: handleAddSiblingNode,
           onDelete: handleDeleteNode,
           onToggleComplete: handleToggleComplete,
+          onInlineUpdate: handleInlineUpdateNode,
+          onSelectColor: handleSelectColorNode,
           onEditNode: (nodeId: string) => {
             setSelectedNodeId(nodeId);
             setIsEditingNodeModalOpen(true);
@@ -2599,9 +3263,13 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     searchQuery,
     masteryFilter,
     diagramLayout,
+    notebookTheme,
     handleAddChildNode,
+    handleAddSiblingNode,
     handleDeleteNode,
-    handleToggleComplete
+    handleToggleComplete,
+    handleInlineUpdateNode,
+    handleSelectColorNode
   ]);
 
   // Edges prepared with layout-specific styles, theme color matching, and filtering collapsed nodes
@@ -2919,6 +3587,17 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
               <span>Sơ Đồ Mindmap</span>
             </button>
             <button
+              onClick={() => handleSelectViewMode('split')}
+              className={cn(
+                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1 shrink-0 cursor-pointer',
+                viewMode === 'split' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/65 hover:text-ink'
+              )}
+              title="Chế độ Song Song: Soạn dàn bài bên trái + Xem sơ đồ tư duy trực tiếp bên phải"
+            >
+              <Columns className="w-3.5 h-3.5 text-amber-400" />
+              <span>⚡ Song Song</span>
+            </button>
+            <button
               onClick={() => handleSelectViewMode('outline')}
               className={cn(
                 'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1 shrink-0 cursor-pointer',
@@ -3007,7 +3686,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           </button>
 
-          {viewMode === 'canvas' && (
+          {(viewMode === 'canvas' || viewMode === 'split') && (
             <>
               {/* Diagram Layout Mode Switcher: Radial Study vs Mindmap (XMind) vs Roadmap vs Fishbone */}
               <div className="flex items-center bg-[#EFECE6] p-0.5 rounded-xl border-2 border-[#141414] text-xs font-black">
@@ -3017,15 +3696,15 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
                     handleAutoLayout('radial');
                   }}
                   className={cn(
-                    'px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
+                    'px-2 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
                     diagramLayout === 'radial'
                       ? 'bg-[#0284C7] text-white shadow-[1px_1px_0px_#141414]'
                       : 'text-ink/65 hover:text-ink'
                   )}
-                  title="Chuyển sang dạng Sơ Đồ Tỏa Tròn chuẩn sổ tay học tập (như ảnh 1 & 2 đính kèm)"
+                  title="Chuyển sang dạng Sơ Đồ Tỏa Tròn chuẩn sổ tay học tập (như ảnh mẫu 1 & 2)"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Tỏa Tròn (Sổ Tay)</span>
+                  <span className="hidden sm:inline">Tỏa Tròn (Sổ Tay)</span>
                 </button>
                 <button
                   onClick={() => {
@@ -3033,15 +3712,15 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
                     handleAutoLayout('xmind');
                   }}
                   className={cn(
-                    'px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
+                    'px-2 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
                     diagramLayout === 'xmind'
                       ? 'bg-[#2563EB] text-white shadow-[1px_1px_0px_#141414]'
                       : 'text-ink/65 hover:text-ink'
                   )}
-                  title="Chuyển sang dạng Sơ Đồ Tư Duy Mindmap (hoạt động toả ra đối xứng 2 bên như app XMind)"
+                  title="Chuyển sang dạng Sơ Đồ Tư Duy Mindmap (toả đều 2 bên như app XMind)"
                 >
                   <Brain className="w-3.5 h-3.5" />
-                  <span>Mindmap (XMind)</span>
+                  <span className="hidden sm:inline">Mindmap (XMind)</span>
                 </button>
                 <button
                   onClick={() => {
@@ -3049,14 +3728,15 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
                     handleAutoLayout('roadmap');
                   }}
                   className={cn(
-                    'px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
+                    'px-2 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
                     diagramLayout === 'roadmap'
                       ? 'bg-[#6D28D9] text-white shadow-[1px_1px_0px_#141414]'
                       : 'text-ink/65 hover:text-ink'
                   )}
-                  title="Chuyển sang dạng Lộ Trình Học Uốn Lượn (như ảnh tham khảo)"
+                  title="Chuyển sang dạng Lộ Trình Học Uốn Lượn"
                 >
-                  <span>🛤️ Lộ Trình</span>
+                  <span>🛤️</span>
+                  <span className="hidden sm:inline">Lộ Trình</span>
                 </button>
                 <button
                   onClick={() => {
@@ -3064,14 +3744,49 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
                     handleAutoLayout('fishbone');
                   }}
                   className={cn(
-                    'px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
+                    'px-2 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
                     diagramLayout === 'fishbone'
                       ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]'
                       : 'text-ink/65 hover:text-ink'
                   )}
                   title="Chuyển sang dạng Sơ Đồ Xương Cá Ishikawa"
                 >
-                  <span>🐟 Xương Cá</span>
+                  <span>🐟</span>
+                  <span className="hidden sm:inline">Xương Cá</span>
+                </button>
+              </div>
+
+              {/* Background Paper Switcher (Grid Lines / Dot Grid / Blank / Cross) */}
+              <div className="flex items-center bg-[#EFECE6] p-0.5 rounded-xl border-2 border-[#141414] text-[11px] font-black">
+                <button
+                  onClick={() => setCanvasBgPattern('lines')}
+                  className={cn(
+                    'px-2 py-1 rounded-lg transition-colors cursor-pointer',
+                    canvasBgPattern === 'lines' ? 'bg-amber-400 text-ink shadow-xs' : 'text-ink/60 hover:text-ink'
+                  )}
+                  title="Giấy kẻ ô vuông (Sổ tay chuẩn như ảnh mẫu IMG_3848)"
+                >
+                  📄 Kẻ Ô Sổ
+                </button>
+                <button
+                  onClick={() => setCanvasBgPattern('dots')}
+                  className={cn(
+                    'px-2 py-1 rounded-lg transition-colors cursor-pointer',
+                    canvasBgPattern === 'dots' ? 'bg-amber-400 text-ink shadow-xs' : 'text-ink/60 hover:text-ink'
+                  )}
+                  title="Giấy chấm bi Bullet Journal"
+                >
+                  ⁖ Chấm
+                </button>
+                <button
+                  onClick={() => setCanvasBgPattern('blank')}
+                  className={cn(
+                    'px-2 py-1 rounded-lg transition-colors cursor-pointer',
+                    canvasBgPattern === 'blank' ? 'bg-amber-400 text-ink shadow-xs' : 'text-ink/60 hover:text-ink'
+                  )}
+                  title="Giấy trắng sketchbook (như ảnh mẫu IMG_3849)"
+                >
+                  ⬜ Trắng
                 </button>
               </div>
 
@@ -3084,23 +3799,43 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
                     handleAddChildNode(activeMap.nodes[0].id);
                   }
                 }}
-                className="px-2.5 py-1.5 bg-amber-300 hover:bg-amber-400 text-ink border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
-                title={diagramLayout === 'roadmap' ? 'Thêm mốc học mới' : 'Thêm nhánh con mới'}
+                className="px-2.5 py-1.5 bg-amber-300 hover:bg-amber-400 text-ink border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                title={diagramLayout === 'roadmap' ? 'Thêm mốc học mới' : 'Thêm nhánh con mới (Phím Tab)'}
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>{diagramLayout === 'roadmap' ? 'Thêm Mốc' : 'Thêm Nhánh'}</span>
+                <span className="hidden sm:inline">{diagramLayout === 'roadmap' ? 'Thêm Mốc' : 'Thêm Nhánh'}</span>
               </button>
 
               {/* Auto Layout Align Button */}
               <button
                 onClick={() => handleAutoLayout()}
-                className="px-2.5 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-950 border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
-                title={diagramLayout === 'radial' ? 'Tự động sắp xếp sơ đồ tỏa tròn chuẩn sổ tay học tập' : diagramLayout === 'xmind' ? 'Tự động sắp xếp sơ đồ tư duy toả đều 2 bên như XMind' : diagramLayout === 'roadmap' ? 'Tự động sắp xếp lại các mốc uốn lượn gọn gàng' : 'Tự động sắp xếp xương cá thẳng hàng'}
+                className="px-2.5 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-950 border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                title="Tự động căn chỉnh sơ đồ cân bằng mắt nhìn"
               >
                 <Wand2 className="w-3.5 h-3.5 text-[#6D28D9]" />
-                <span className="hidden sm:inline">
+                <span className="hidden md:inline">
                   {diagramLayout === 'radial' ? 'Xếp Tỏa Tròn' : diagramLayout === 'xmind' ? 'Xếp XMind' : diagramLayout === 'roadmap' ? 'Xếp Lộ Trình' : 'Xếp Xương Cá'}
                 </span>
+              </button>
+
+              {/* Export High-Res PNG Button */}
+              <button
+                onClick={handleExportPNG}
+                className="px-2.5 py-1.5 bg-sky-100 hover:bg-sky-200 text-sky-950 border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                title="Tải ảnh PNG sơ đồ độ nét cao về máy"
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-sky-700" />
+                <span className="hidden lg:inline">Ảnh PNG</span>
+              </button>
+
+              {/* Copy Markdown Outline Button */}
+              <button
+                onClick={handleCopyOutline}
+                className="px-2.5 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border-2 border-[#141414] rounded-xl text-xs font-black shadow-[2px_2px_0px_#141414] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                title="Sao chép toàn bộ dàn ý vào Clipboard"
+              >
+                <Copy className="w-3.5 h-3.5 text-emerald-700" />
+                <span className="hidden lg:inline">Copy Dàn Ý</span>
               </button>
 
               {/* Collapse / Expand All Branches Button */}
@@ -3264,211 +3999,328 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
         />
       )}
 
-      {/* MAIN VIEW AREA: CANVAS */}
-      {viewMode === 'canvas' && (
-        <div
-          className={cn(
-            "w-full bg-[#FFFDF7] rounded-[22px] border-[2.5px] border-[#141414] shadow-[4px_4px_0px_#141414] overflow-hidden relative",
-            isFullscreen ? "flex-1 h-full min-h-0" : "h-[calc(100vh-170px)] min-h-[580px]"
-          )}
-        >
-          <ReactFlowProvider>
-            <ReactFlow
-              nodes={preparedNodes}
-              edges={preparedEdges}
-              nodeTypes={nodeTypes}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={(_, node) => {
-                // Single click ONLY selects node (highlights), DOES NOT open editor
-                setSelectedNodeId(node.id);
-              }}
-              onNodeDoubleClick={(_, node) => {
-                // Double click triggers the editor modal!
-                setSelectedNodeId(node.id);
-                setIsEditingNodeModalOpen(true);
-              }}
-              onPaneClick={() => {
-                setSelectedNodeId(null);
-              }}
-              fitView
-              minZoom={0.2}
-              maxZoom={2}
-            >
-              <Background color="#141414" gap={20} size={1.2} />
-              <Controls className="!bg-white !border-2 !border-[#141414] !rounded-xl !shadow-[2px_2px_0px_#141414] !m-3" />
-              <MiniMap
-                nodeColor={(n) => (n.style?.background as string) || '#FEF08A'}
-                className="!bg-white !border-2 !border-[#141414] !rounded-xl !shadow-[3px_3px_0px_#141414] !m-3 hidden md:block"
-                maskColor="rgba(255, 255, 255, 0.7)"
-              />
-            </ReactFlow>
-          </ReactFlowProvider>
+      {/* MAIN VIEW AREA: CANVAS OR SPLIT VIEW */}
+      {(viewMode === 'canvas' || viewMode === 'split') && (
+        <div className={cn(
+          viewMode === 'split' ? "flex flex-col lg:flex-row gap-3.5 h-[calc(100vh-170px)] min-h-[620px]" : "w-full"
+        )}>
+          {/* LEFT PANE IN SPLIT VIEW: LIVE OUTLINE EDITOR */}
+          {viewMode === 'split' && (
+            <div className="w-full lg:w-[40%] bg-[#FFFDF7] p-3.5 rounded-[22px] border-[2.5px] border-[#141414] shadow-[4px_4px_0px_#141414] flex flex-col gap-2.5 h-full overflow-hidden">
+              <div className="flex items-center justify-between border-b-2 border-dashed border-[#141414]/20 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-6 h-6 rounded-lg bg-amber-400 border border-[#141414] flex items-center justify-center">
+                    <FileText className="w-3.5 h-3.5 text-ink" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase text-ink">Soạn Dàn Ý Bài Học</h4>
+                    <span className="text-[10px] text-ink/60">Dùng phím Tab thụt lề để phân nhánh nhỏ</span>
+                  </div>
+                </div>
 
-          {/* DOUBLE-CLICK EDIT MODAL DIALOG */}
-          <AnimatePresence>
-            {isEditingNodeModalOpen && selectedNode && (
-              <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  className="w-full max-w-md bg-white p-5 rounded-2xl border-[2.5px] border-[#141414] shadow-[6px_6px_0px_#141414] flex flex-col gap-4 max-h-[90vh] overflow-y-auto"
+                <button
+                  type="button"
+                  onClick={handleParseAndApplyOutline}
+                  className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-ink text-[11px] font-black uppercase rounded-lg border-2 border-[#141414] shadow-[1px_1px_0px_#141414] flex items-center gap-1 active:scale-95 cursor-pointer"
                 >
-                  <div className="flex items-center justify-between border-b-2 border-dashed border-[#141414]/20 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-amber-400 border border-[#141414] flex items-center justify-center">
-                        <Edit3 className="w-4 h-4 text-[#141414]" />
+                  <Brain className="w-3 h-3" />
+                  <span>Áp Dụng</span>
+                </button>
+              </div>
+
+              {/* Formatting Helper Buttons */}
+              <div className="flex items-center gap-1 flex-wrap p-1.5 bg-[#FFF9E6] border border-[#141414]/20 rounded-xl text-[10px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => insertOutlineSnippet('', true)}
+                  className="px-2 py-0.5 bg-white hover:bg-amber-200 rounded-md border border-[#141414] flex items-center gap-0.5"
+                  title="Thụt lề (Tab)"
+                >
+                  <span>⇥ Tab</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertOutlineSnippet('- ')}
+                  className="px-2 py-0.5 bg-white hover:bg-amber-200 rounded-md border border-[#141414] flex items-center gap-0.5"
+                  title="Gạch đầu dòng"
+                >
+                  <span>• Gạch đầu dòng</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertOutlineSnippet('[v] ')}
+                  className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-md border border-emerald-600 flex items-center gap-0.5"
+                  title="Đánh dấu đã nắm"
+                >
+                  <span>✓ [v] Đã nắm</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertOutlineSnippet(' // ')}
+                  className="px-2 py-0.5 bg-white hover:bg-amber-200 rounded-md border border-[#141414] flex items-center gap-0.5"
+                  title="Chú thích ghi nhớ"
+                >
+                  <span>// Ghi chú</span>
+                </button>
+              </div>
+
+              {/* Textarea with Tab handler */}
+              <textarea
+                ref={outlineTextareaRef}
+                value={outlineInput}
+                onChange={(e) => setOutlineInput(e.target.value)}
+                onKeyDown={handleOutlineKeyDown}
+                placeholder="Nhập dàn ý bài học... Nhấn phím Tab để thụt dòng tạo nhánh con..."
+                className="w-full flex-1 p-2.5 font-mono text-xs font-semibold text-ink bg-white border-2 border-[#141414] rounded-xl outline-none focus:bg-amber-50/40 resize-none leading-relaxed shadow-inner"
+              />
+
+              {/* Quick sample chips */}
+              <div className="flex items-center gap-1 overflow-x-auto text-[10px] pt-1 border-t border-ink/10">
+                <span className="text-ink/50 font-bold shrink-0">Mẫu:</span>
+                {SAMPLE_OUTLINES.map((tpl) => (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    onClick={() => setOutlineInput(tpl.text)}
+                    className="px-1.5 py-0.5 bg-white hover:bg-amber-100 rounded border border-[#141414] shrink-0 text-ink font-bold"
+                  >
+                    {tpl.name.split(':')[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CANVAS AREA (Takes full width in 'canvas' mode or right 60% in 'split' mode) */}
+          <div
+            ref={flowCanvasRef}
+            className={cn(
+              "bg-[#FFFDF7] rounded-[22px] border-[2.5px] border-[#141414] shadow-[4px_4px_0px_#141414] overflow-hidden relative",
+              viewMode === 'split'
+                ? "flex-1 h-full min-h-[500px]"
+                : isFullscreen ? "flex-1 h-full min-h-0" : "w-full h-[calc(100vh-170px)] min-h-[580px]"
+            )}
+          >
+            <ReactFlowProvider>
+              <ReactFlow
+                nodes={preparedNodes}
+                edges={preparedEdges}
+                nodeTypes={nodeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onNodeClick={(_, node) => {
+                  setSelectedNodeId(node.id);
+                }}
+                onNodeDoubleClick={(_, node) => {
+                  setSelectedNodeId(node.id);
+                  setIsEditingNodeModalOpen(true);
+                }}
+                onPaneClick={() => {
+                  setSelectedNodeId(null);
+                }}
+                fitView
+                minZoom={0.15}
+                maxZoom={2.2}
+              >
+                {/* Paper Grid Background matching user images (IMG_3848 grid lines or IMG_3849 sketchbook) */}
+                {canvasBgPattern === 'lines' && (
+                  <Background variant={BackgroundVariant.Lines} gap={24} color="#14141412" />
+                )}
+                {canvasBgPattern === 'dots' && (
+                  <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="#14141425" />
+                )}
+                {canvasBgPattern === 'cross' && (
+                  <Background variant={BackgroundVariant.Cross} gap={24} size={2} color="#14141415" />
+                )}
+
+                <Controls className="!bg-white !border-2 !border-[#141414] !rounded-xl !shadow-[2px_2px_0px_#141414] !m-3" />
+                <MiniMap
+                  nodeColor={(n) => (n.style?.background as string) || '#FEF08A'}
+                  className="!bg-white !border-2 !border-[#141414] !rounded-xl !shadow-[3px_3px_0px_#141414] !m-3 hidden md:block"
+                  maskColor="rgba(255, 255, 255, 0.7)"
+                />
+
+                {/* Keyboard Shortcuts Guide Banner at Canvas Bottom */}
+                <Panel position="bottom-center" className="!mb-2.5">
+                  <div className="bg-[#141414]/90 backdrop-blur-xs text-white px-3 py-1.5 rounded-full border border-white/20 shadow-lg text-[10px] font-bold flex items-center gap-2 select-none">
+                    <Keyboard className="w-3.5 h-3.5 text-amber-400" />
+                    <span><kbd className="bg-white/20 px-1 py-0.5 rounded text-[9px] font-mono">Tab</kbd> Thêm nhánh con</span>
+                    <span className="text-white/40">•</span>
+                    <span><kbd className="bg-white/20 px-1 py-0.5 rounded text-[9px] font-mono">Enter</kbd> Cùng cấp</span>
+                    <span className="text-white/40">•</span>
+                    <span><kbd className="bg-white/20 px-1 py-0.5 rounded text-[9px] font-mono">Delete</kbd> Xóa</span>
+                    <span className="text-white/40">•</span>
+                    <span><kbd className="bg-white/20 px-1 py-0.5 rounded text-[9px] font-mono">Nhấn đúp</kbd> Sửa trực tiếp</span>
+                  </div>
+                </Panel>
+              </ReactFlow>
+            </ReactFlowProvider>
+
+            {/* DOUBLE-CLICK EDIT MODAL DIALOG */}
+            <AnimatePresence>
+              {isEditingNodeModalOpen && selectedNode && (
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                    className="w-full max-w-md bg-white p-5 rounded-2xl border-[2.5px] border-[#141414] shadow-[6px_6px_0px_#141414] flex flex-col gap-4 max-h-[90vh] overflow-y-auto"
+                  >
+                    <div className="flex items-center justify-between border-b-2 border-dashed border-[#141414]/20 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-amber-400 border border-[#141414] flex items-center justify-center">
+                          <Edit3 className="w-4 h-4 text-[#141414]" />
+                        </div>
+                        <h4 className="text-sm font-black uppercase text-ink">
+                          {selectedNode.data?.isRoot ? 'Chỉnh Sửa Trục Trung Tâm' : 'Chỉnh Sửa Nhánh Kiến Thức'}
+                        </h4>
                       </div>
-                      <h4 className="text-sm font-black uppercase text-ink">
-                        {selectedNode.data?.isRoot ? 'Chỉnh Sửa Trục Xương Sống' : 'Chỉnh Sửa Nhánh Kiến Thức'}
-                      </h4>
+                      <button
+                        onClick={() => setIsEditingNodeModalOpen(false)}
+                        className="text-ink/50 hover:text-ink p-1 rounded-lg hover:bg-gray-100"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => setIsEditingNodeModalOpen(false)}
-                      className="text-ink/50 hover:text-ink p-1 rounded-lg hover:bg-gray-100"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
 
-                  {/* Mastery Toggle Button inside Edit Modal */}
-                  {!selectedNode.data?.isRoot && (
-                    <button
-                      type="button"
-                      onClick={() => handleToggleComplete(selectedNode.id)}
-                      className={cn(
-                        'w-full py-2.5 px-3 rounded-xl border-2 flex items-center justify-center gap-2 text-xs font-black transition-all shadow-[2px_2px_0px_#141414]',
-                        selectedNode.data?.completed
-                          ? 'bg-emerald-100 border-emerald-700 text-emerald-800'
-                          : 'bg-amber-50 border-[#141414] text-ink hover:bg-amber-100'
-                      )}
-                    >
-                      {selectedNode.data?.completed ? (
-                        <>
-                          <CheckSquare className="w-4 h-4 text-emerald-700 stroke-[3]" />
-                          <span>✓ ĐÃ NẮM VỮNG KIẾN THỨC (Bấm để bỏ tick)</span>
-                        </>
-                      ) : (
-                        <>
-                          <Square className="w-4 h-4 text-ink/40" />
-                          <span>CHƯA NẮM (Bấm để đánh dấu đã thuộc)</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-
-                  {/* Node Title Input */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-black text-ink uppercase">
-                      Tiêu đề nhánh:
-                    </label>
-                    <input
-                      type="text"
-                      autoFocus
-                      value={selectedNode.data?.label || ''}
-                      onChange={(e) => handleUpdateSelectedNode('label', e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') setIsEditingNodeModalOpen(false);
-                      }}
-                      className="px-3 py-2 text-sm font-bold text-ink bg-[#FFFDF7] border-2 border-[#141414] rounded-xl focus:bg-amber-50/50 outline-none"
-                      placeholder="Nhập tên nhánh kiến thức..."
-                    />
-                  </div>
-
-                  {/* Node Detailed Notes */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-black text-ink uppercase flex items-center gap-1">
-                      <span>Ghi chú / Mẹo nhớ / Ví dụ:</span>
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={selectedNode.data?.notes || ''}
-                      onChange={(e) => handleUpdateSelectedNode('notes', e.target.value)}
-                      className="px-3 py-2 text-xs font-medium text-ink bg-[#FFFDF7] border-2 border-[#141414] rounded-xl focus:bg-amber-50/50 outline-none resize-none"
-                      placeholder="Ghi chú chi tiết, định nghĩa, công thức, ví dụ..."
-                    />
-                  </div>
-
-                  {/* Color Swatches */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-black text-ink uppercase flex items-center gap-1">
-                      <Palette className="w-3.5 h-3.5" /> Màu sắc nhánh:
-                    </label>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {NODE_COLORS.map((col) => {
-                        const isSelected =
-                          (selectedNode.style?.background as string) === col.bg ||
-                          selectedNode.data?.color === col.bg;
-                        return (
-                          <button
-                            key={col.id}
-                            type="button"
-                            onClick={() => handleUpdateSelectedNode('color', col.bg)}
-                            className={cn(
-                              'h-7 rounded-lg border-2 border-[#141414] flex items-center justify-center transition-transform hover:scale-105',
-                              isSelected ? 'ring-2 ring-black scale-105' : ''
-                            )}
-                            style={{ backgroundColor: col.bg }}
-                            title={col.name}
-                          >
-                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3] text-[#141414]" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Options: Important */}
-                  <div className="flex flex-col gap-2 pt-1 border-t border-ink/10">
-                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-ink">
-                      <input
-                        type="checkbox"
-                        checked={!!selectedNode.data?.important}
-                        onChange={(e) => handleUpdateSelectedNode('important', e.target.checked)}
-                        className="w-4 h-4 accent-amber-500 rounded border-2 border-[#141414]"
-                      />
-                      <span>Đánh dấu trọng tâm cần nhớ ⭐</span>
-                    </label>
-                  </div>
-
-                  {/* Node Actions */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-ink/10">
-                    <button
-                      onClick={() => {
-                        handleAddChildNode(selectedNode.id);
-                        setIsEditingNodeModalOpen(false);
-                      }}
-                      className="py-2 px-3 bg-amber-400 hover:bg-amber-300 text-ink text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center justify-center gap-1 active:translate-x-0.5 active:translate-y-0.5"
-                    >
-                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> Thêm Nhánh Con
-                    </button>
-
+                    {/* Mastery Toggle Button inside Edit Modal */}
                     {!selectedNode.data?.isRoot && (
                       <button
-                        onClick={() => {
-                          handleDeleteNode(selectedNode.id);
-                          setIsEditingNodeModalOpen(false);
-                        }}
-                        className="p-2 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center justify-center active:translate-x-0.5 active:translate-y-0.5"
-                        title="Xóa nhánh này"
+                        type="button"
+                        onClick={() => handleToggleComplete(selectedNode.id)}
+                        className={cn(
+                          'w-full py-2.5 px-3 rounded-xl border-2 flex items-center justify-center gap-2 text-xs font-black transition-all shadow-[2px_2px_0px_#141414]',
+                          selectedNode.data?.completed
+                            ? 'bg-emerald-100 border-emerald-700 text-emerald-800'
+                            : 'bg-amber-50 border-[#141414] text-ink hover:bg-amber-100'
+                        )}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {selectedNode.data?.completed ? (
+                          <>
+                            <CheckSquare className="w-4 h-4 text-emerald-700 stroke-[3]" />
+                            <span>✓ ĐÃ NẮM VỮNG KIẾN THỨC (Bấm để bỏ tick)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Square className="w-4 h-4 text-ink/40" />
+                            <span>CHƯA NẮM (Bấm để đánh dấu đã thuộc)</span>
+                          </>
+                        )}
                       </button>
                     )}
 
-                    <button
-                      onClick={() => setIsEditingNodeModalOpen(false)}
-                      className="flex-1 py-2 bg-[#141414] hover:bg-[#2a2a2a] text-white text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] ml-auto"
-                    >
-                      Xong
-                    </button>
-                  </div>
-                </motion.div>
-              </div>
-            )}
-          </AnimatePresence>
+                    {/* Node Title Input */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-black text-ink uppercase">
+                        Tiêu đề nhánh:
+                      </label>
+                      <input
+                        type="text"
+                        autoFocus
+                        value={selectedNode.data?.label || ''}
+                        onChange={(e) => handleUpdateSelectedNode('label', e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') setIsEditingNodeModalOpen(false);
+                        }}
+                        className="px-3 py-2 text-sm font-bold text-ink bg-[#FFFDF7] border-2 border-[#141414] rounded-xl focus:bg-amber-50/50 outline-none"
+                        placeholder="Nhập tên nhánh kiến thức..."
+                      />
+                    </div>
+
+                    {/* Node Detailed Notes */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-black text-ink uppercase flex items-center gap-1">
+                        <span>Ghi chú / Mẹo nhớ / Ví dụ:</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={selectedNode.data?.notes || ''}
+                        onChange={(e) => handleUpdateSelectedNode('notes', e.target.value)}
+                        className="px-3 py-2 text-xs font-medium text-ink bg-[#FFFDF7] border-2 border-[#141414] rounded-xl focus:bg-amber-50/50 outline-none resize-none"
+                        placeholder="Ghi chú chi tiết, định nghĩa, công thức, ví dụ..."
+                      />
+                    </div>
+
+                    {/* Color Swatches */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-black text-ink uppercase flex items-center gap-1">
+                        <Palette className="w-3.5 h-3.5" /> Màu sắc nhánh:
+                      </label>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {NODE_COLORS.map((col) => {
+                          const isSelected =
+                            (selectedNode.style?.background as string) === col.bg ||
+                            selectedNode.data?.color === col.bg;
+                          return (
+                            <button
+                              key={col.id}
+                              type="button"
+                              onClick={() => handleUpdateSelectedNode('color', col.bg)}
+                              className={cn(
+                                'h-7 rounded-lg border-2 border-[#141414] flex items-center justify-center transition-transform hover:scale-105',
+                                isSelected ? 'ring-2 ring-black scale-105' : ''
+                              )}
+                              style={{ backgroundColor: col.bg }}
+                              title={col.name}
+                            >
+                              {isSelected && <Check className="w-3.5 h-3.5 stroke-[3] text-[#141414]" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Options: Important */}
+                    <div className="flex flex-col gap-2 pt-1 border-t border-ink/10">
+                      <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-ink">
+                        <input
+                          type="checkbox"
+                          checked={!!selectedNode.data?.important}
+                          onChange={(e) => handleUpdateSelectedNode('important', e.target.checked)}
+                          className="w-4 h-4 accent-amber-500 rounded border-2 border-[#141414]"
+                        />
+                        <span>Đánh dấu trọng tâm cần nhớ ⭐</span>
+                      </label>
+                    </div>
+
+                    {/* Node Actions */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-ink/10">
+                      <button
+                        onClick={() => {
+                          handleAddChildNode(selectedNode.id);
+                          setIsEditingNodeModalOpen(false);
+                        }}
+                        className="py-2 px-3 bg-amber-400 hover:bg-amber-300 text-ink text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center justify-center gap-1 active:translate-x-0.5 active:translate-y-0.5"
+                      >
+                        <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> Thêm Nhánh Con
+                      </button>
+
+                      {!selectedNode.data?.isRoot && (
+                        <button
+                          onClick={() => {
+                            handleDeleteNode(selectedNode.id);
+                            setIsEditingNodeModalOpen(false);
+                          }}
+                          className="p-2 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center justify-center active:translate-x-0.5 active:translate-y-0.5"
+                          title="Xóa nhánh này"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => setIsEditingNodeModalOpen(false)}
+                        className="flex-1 py-2 bg-[#141414] hover:bg-[#2a2a2a] text-white text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] ml-auto"
+                      >
+                        Xong
+                      </button>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       )}
 
