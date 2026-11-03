@@ -69,6 +69,7 @@ import { cn } from '../lib/utils';
 import type { MindmapItem } from '../types';
 import { AioKnowledgeBase, type KnowledgeTopic } from './AioKnowledgeBase';
 import { AioRoadmapView } from './AioRoadmapView';
+import { AioSentenceTyping } from './AioSentenceTyping';
 
 // Palette for study nodes
 const NODE_COLORS = [
@@ -2278,13 +2279,14 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     return mindmaps?.find((m) => m.id === activeMapId) || mindmaps?.[0];
   }, [mindmaps, activeMapId]);
 
-  // View mode: 'knowledge' (tab=kien-thuc) | 'roadmap' (tab=lo-trinh) | 'canvas' (Mindmap) | 'split' (Song Song) | 'outline' (Dàn bài) | 'study' (Ôn tập)
-  const [viewMode, setViewMode] = useState<'knowledge' | 'roadmap' | 'canvas' | 'split' | 'outline' | 'study'>(() => {
+  // View mode: 'knowledge' (tab=kien-thuc) | 'roadmap' (tab=lo-trinh) | 'typing' (tab=go-cau) | 'canvas' (Mindmap) | 'split' (Song Song) | 'outline' (Dàn bài) | 'study' (Ôn tập)
+  const [viewMode, setViewMode] = useState<'knowledge' | 'roadmap' | 'typing' | 'canvas' | 'split' | 'outline' | 'study'>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab');
       if (tab === 'kien-thuc') return 'knowledge';
       if (tab === 'lo-trinh') return 'roadmap';
+      if (tab === 'go-cau') return 'typing';
       if (tab === 'mindmap' || tab === 'canvas') return 'canvas';
       if (tab === 'split') return 'split';
       if (tab === 'outline') return 'outline';
@@ -2293,12 +2295,13 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     return 'knowledge'; // Default to Knowledge Base matching aioenglish.com/lo-trinh?tab=kien-thuc
   });
 
-  const handleSelectViewMode = (mode: 'knowledge' | 'roadmap' | 'canvas' | 'split' | 'outline' | 'study') => {
+  const handleSelectViewMode = (mode: 'knowledge' | 'roadmap' | 'typing' | 'canvas' | 'split' | 'outline' | 'study') => {
     setViewMode(mode);
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       if (mode === 'knowledge') url.searchParams.set('tab', 'kien-thuc');
       else if (mode === 'roadmap') url.searchParams.set('tab', 'lo-trinh');
+      else if (mode === 'typing') url.searchParams.set('tab', 'go-cau');
       else if (mode === 'canvas') url.searchParams.set('tab', 'mindmap');
       else if (mode === 'split') url.searchParams.set('tab', 'split');
       else if (mode === 'outline') url.searchParams.set('tab', 'outline');
@@ -3632,6 +3635,18 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
               <span>🛤️ Lộ Trình</span>
             </button>
             <button
+              onClick={() => handleSelectViewMode('typing')}
+              className={cn(
+                'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1 shrink-0 cursor-pointer',
+                viewMode === 'typing' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/65 hover:text-ink'
+              )}
+              title="Luyện Gõ Câu Tiếng Anh (aioenglish.com/go-cau)"
+            >
+              <Keyboard className="w-3.5 h-3.5 text-amber-400" />
+              <span>Gõ Câu</span>
+              <span className="text-[9px] bg-amber-400 text-ink px-1 rounded font-black hidden sm:inline">MỚI</span>
+            </button>
+            <button
               onClick={() => handleSelectViewMode('canvas')}
               className={cn(
                 'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1 shrink-0 cursor-pointer',
@@ -4043,6 +4058,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
             handleOpenTopicMindmap(topic);
             handleSelectViewMode('study');
           }}
+          onSwitchToTypingTab={() => handleSelectViewMode('typing')}
         />
       )}
 
@@ -4052,6 +4068,25 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
           onOpenTopicMindmap={handleOpenTopicMindmap}
           onOpenTopicDetail={handleOpenTopicMindmap}
           onSwitchToKnowledgeTab={() => handleSelectViewMode('knowledge')}
+          onSwitchToTypingTab={() => handleSelectViewMode('typing')}
+        />
+      )}
+
+      {/* AIO ENGLISH SENTENCE TYPING (tab=go-cau) */}
+      {viewMode === 'typing' && (
+        <AioSentenceTyping
+          onBackToRoadmap={() => handleSelectViewMode('roadmap')}
+          onSwitchToKnowledgeTab={() => handleSelectViewMode('knowledge')}
+          onOpenMindmapTopic={(topicCode) => {
+            const matchedTopic = INITIAL_KNOWLEDGE_TOPICS.find(
+              (t) => t.code === topicCode || t.id.includes(topicCode.toLowerCase())
+            );
+            if (matchedTopic) {
+              handleOpenTopicMindmap(matchedTopic);
+            } else {
+              handleSelectViewMode('canvas');
+            }
+          }}
         />
       )}
 

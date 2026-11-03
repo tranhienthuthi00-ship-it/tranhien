@@ -20,7 +20,8 @@ import {
   Trophy,
   ExternalLink,
   Flame,
-  Volume2
+  Volume2,
+  Keyboard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -652,6 +653,7 @@ interface AioKnowledgeBaseProps {
   onOpenMindmap: (topic: KnowledgeTopic) => void;
   onEditOutline: (topic: KnowledgeTopic) => void;
   onStudyFlashcard: (topic: KnowledgeTopic) => void;
+  onSwitchToTypingTab?: () => void;
   completedTopicIds?: Set<string>;
   onToggleCompleteTopic?: (id: string) => void;
 }
@@ -660,6 +662,7 @@ export function AioKnowledgeBase({
   onOpenMindmap,
   onEditOutline,
   onStudyFlashcard,
+  onSwitchToTypingTab,
   completedTopicIds,
   onToggleCompleteTopic
 }: AioKnowledgeBaseProps) {
@@ -783,6 +786,17 @@ export function AioKnowledgeBase({
               {completedCount} / {totalCount} bài học
             </span>
           </div>
+
+          {onSwitchToTypingTab && (
+            <button
+              onClick={onSwitchToTypingTab}
+              className="mt-1 w-full py-1.5 px-3 bg-amber-300 hover:bg-amber-400 text-ink text-xs font-black uppercase rounded-xl border border-[#141414] shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+              title="Luyện gõ câu tiếng Anh (aioenglish.com/go-cau)"
+            >
+              <Keyboard className="w-3.5 h-3.5 text-amber-950" />
+              <span>Luyện Gõ Câu (tab=go-cau)</span>
+            </button>
+          )}
         </div>
       </div>
 

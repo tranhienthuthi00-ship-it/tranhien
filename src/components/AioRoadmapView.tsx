@@ -33,6 +33,7 @@ interface AioRoadmapViewProps {
   onOpenTopicMindmap: (topic: KnowledgeTopic) => void;
   onOpenTopicDetail: (topic: KnowledgeTopic) => void;
   onSwitchToKnowledgeTab: (level?: string) => void;
+  onSwitchToTypingTab?: () => void;
   completedTopicIds?: Set<string>;
   onToggleTopicComplete?: (topicId: string) => void;
 }
@@ -41,6 +42,7 @@ export function AioRoadmapView({
   onOpenTopicMindmap,
   onOpenTopicDetail,
   onSwitchToKnowledgeTab,
+  onSwitchToTypingTab,
   completedTopicIds: initialCompletedSet,
   onToggleTopicComplete
 }: AioRoadmapViewProps) {
@@ -233,6 +235,17 @@ export function AioRoadmapView({
 
           {/* Quick Action Buttons */}
           <div className="flex items-center gap-2 self-end md:self-center shrink-0 flex-wrap">
+            {onSwitchToTypingTab && (
+              <button
+                onClick={onSwitchToTypingTab}
+                className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[2.5px_2.5px_0px_#141414] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                title="Luyện gõ câu tiếng Anh chuẩn aioenglish.com/go-cau"
+              >
+                <Keyboard className="w-4 h-4" />
+                <span>Luyện Gõ Câu (tab=go-cau)</span>
+              </button>
+            )}
+
             <button
               onClick={() => onSwitchToKnowledgeTab()}
               className="px-3.5 py-2 bg-[#FEF08A] hover:bg-amber-300 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[2.5px_2.5px_0px_#141414] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"

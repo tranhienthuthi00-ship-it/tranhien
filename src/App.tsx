@@ -24,6 +24,7 @@ import { DigitalJournal } from "./components/DigitalJournal";
 import { KanbanBoard } from "./components/KanbanBoard";
 import { EnglishMaterials } from "./components/EnglishMaterials";
 import { StudyHub } from "./components/StudyHub";
+import { AioSentenceTyping } from "./components/AioSentenceTyping";
 import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
 import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target, Sparkles, Flame, Search, X, FolderKanban, BookMarked } from "lucide-react";
 
@@ -316,7 +317,13 @@ function AppContent() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
-      if (tabParam === "kien-thuc" || tabParam === "lo-trinh" || window.location.pathname.includes("lo-trinh")) {
+      if (
+        tabParam === "kien-thuc" ||
+        tabParam === "lo-trinh" ||
+        tabParam === "go-cau" ||
+        window.location.pathname.includes("lo-trinh") ||
+        window.location.pathname.includes("go-cau")
+      ) {
         return "Học hành";
       }
     }
@@ -325,7 +332,7 @@ function AppContent() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [collectionSearchQuery, setCollectionSearchQuery] = useState("");
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "1000 Sentences" | "Sách & Unit" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
-  const [activePracticeSubTab, setActivePracticeSubTab] = useState<"Dictation" | "Speech" | "Translation" | "Reflex" | "SRS" | "Picture">("Dictation");
+  const [activePracticeSubTab, setActivePracticeSubTab] = useState<"Dictation" | "Speech" | "Translation" | "Reflex" | "SRS" | "Picture" | "Typing">("Dictation");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Habits" | "Places" | "Content" | "Assets">("Lists");
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
@@ -446,6 +453,7 @@ function AppContent() {
                 {activeEnglishSubTab === "Luyện Tập" && (
                   <div className="flex justify-center flex-wrap gap-2 mt-3 animate-in slide-in-from-top-2">
                     {[
+                      { id: "Typing", label: "⌨️ Gõ câu", name: "Typing" },
                       { id: "Dictation", label: "🎧 Chép chính tả", name: "Dictation" },
                       { id: "Speech", label: "🎙️ Phát âm", name: "Speech" },
                       { id: "Translation", label: "🔤 Dịch thuật", name: "Translation" },
@@ -476,6 +484,7 @@ function AppContent() {
               
               {activeEnglishSubTab === "Luyện Tập" && (
                 <>
+                  {activePracticeSubTab === "Typing" && <AioSentenceTyping />}
                   {activePracticeSubTab === "Dictation" && <YouTubeDictation dictations={dictations} setDictations={setDictations} words={words} setWords={setWords} />}
                   {activePracticeSubTab === "Speech" && <SpeechGame words={words} updateWordDifficulty={updateWordDifficulty} />}
                   {activePracticeSubTab === "Translation" && <TranslationPractice words={words} setWords={setWords} />}
