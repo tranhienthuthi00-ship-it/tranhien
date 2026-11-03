@@ -587,7 +587,19 @@ function AppContent() {
             <StudyHub 
               mindmaps={mindmaps} 
               setMindmaps={setMindmaps} 
+              onOpenTypingTab={() => setActiveTab("Gõ Câu")}
             />
+          )}
+
+          {activeTab === "Gõ Câu" && (
+            <div className="w-full">
+              <AioSentenceTyping 
+                defaultFullscreen={true}
+                onClose={() => setActiveTab("Học hành")}
+                onBackToRoadmap={() => setActiveTab("Học hành")}
+                onSwitchToKnowledgeTab={() => setActiveTab("Học hành")}
+              />
+            </div>
           )}
 
           {activeTab === "Journal" && (

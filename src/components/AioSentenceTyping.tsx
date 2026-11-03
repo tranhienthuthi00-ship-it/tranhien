@@ -23,7 +23,10 @@ import {
   Share2,
   Settings,
   Star,
-  FileText
+  FileText,
+  Maximize2,
+  Minimize2,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -323,13 +326,31 @@ export interface AioSentenceTypingProps {
   onOpenMindmapTopic?: (topicCode: string) => void;
   onBackToRoadmap?: () => void;
   onSwitchToKnowledgeTab?: () => void;
+  onClose?: () => void;
+  defaultFullscreen?: boolean;
 }
 
 export function AioSentenceTyping({
   onOpenMindmapTopic,
   onBackToRoadmap,
-  onSwitchToKnowledgeTab
+  onSwitchToKnowledgeTab,
+  onClose,
+  defaultFullscreen = false
 }: AioSentenceTypingProps) {
+  // Fullscreen view state
+  const [isFullscreen, setIsFullscreen] = useState(defaultFullscreen);
+
+  // Esc key to exit fullscreen
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isFullscreen]);
+
   // Practice Mode:
   // 'typing' = Gõ theo mẫu từng ký tự (Real-time char-by-char matching with WPM & accuracy)
   // 'translate' = Gõ dịch câu tiếng Việt sang tiếng Anh (Self translation & verify)
@@ -639,51 +660,91 @@ export function AioSentenceTyping({
     : LEVEL_THEMES.A1;
 
   return (
-    <div className="flex flex-col gap-5 w-full max-w-4xl mx-auto pb-10 select-none">
-      {/* 1. HEADER BANNER */}
-      <div className="bg-[#FFFDF7] p-4 sm:p-5 rounded-[24px] border-[2.5px] border-[#141414] shadow-[4px_4px_0px_#141414] flex flex-col gap-3.5 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-amber-400 border-2 border-[#141414] flex items-center justify-center shadow-[2px_2px_0px_#141414] text-ink shrink-0">
-              <Keyboard className="w-6 h-6 stroke-[2.5]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-black text-ink uppercase tracking-tight">
-                  Luyện Gõ Câu Tiếng Anh (Sentence Typing)
-                </h2>
-                <span className="bg-amber-100 text-amber-900 border border-amber-600 font-black text-[10px] px-2 py-0.5 rounded-full">
-                  aioenglish.com/go-cau
-                </span>
+    <div
+      className={cn(
+        "transition-all duration-300 select-none",
+        isFullscreen
+          ? "fixed inset-0 z-[100] bg-[#FAF8F5] p-3 sm:p-6 w-screen h-screen overflow-y-auto"
+          : "w-full max-w-4xl mx-auto pb-10"
+      )}
+    >
+      <div className={cn("w-full flex flex-col gap-5", isFullscreen ? "max-w-5xl mx-auto" : "")}>
+        {/* 1. HEADER BANNER */}
+        <div className="bg-[#FFFDF7] p-4 sm:p-5 rounded-[24px] border-[2.5px] border-[#141414] shadow-[4px_4px_0px_#141414] flex flex-col gap-3.5 relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-amber-400 border-2 border-[#141414] flex items-center justify-center shadow-[2px_2px_0px_#141414] text-ink shrink-0">
+                <Keyboard className="w-6 h-6 stroke-[2.5]" />
               </div>
-              <p className="text-xs text-ink/70 font-medium mt-0.5">
-                Rèn phản xạ cơ tay, ghi nhớ trật tự từ và chính tả câu tiếng Anh chuẩn quốc tế.
-              </p>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-lg sm:text-xl font-black text-ink uppercase tracking-tight">
+                    Luyện Gõ Câu Tiếng Anh (Sentence Typing)
+                  </h2>
+                  <span className="bg-amber-100 text-amber-900 border border-amber-600 font-black text-[10px] px-2 py-0.5 rounded-full">
+                    aioenglish.com/go-cau
+                  </span>
+                </div>
+                <p className="text-xs text-ink/70 font-medium mt-0.5">
+                  Rèn phản xạ cơ tay, ghi nhớ trật tự từ và chính tả câu tiếng Anh chuẩn quốc tế.
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2 self-end sm:self-center flex-wrap">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-3 py-1.5 bg-white hover:bg-amber-100 text-ink text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                title="Thêm câu mới để luyện gõ"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Thêm Câu</span>
+              </button>
+
+              {/* Fullscreen Toggle Button */}
+              <button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] text-xs font-black flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer",
+                  isFullscreen ? "bg-rose-100 text-rose-800 hover:bg-rose-200" : "bg-[#FEF08A] hover:bg-amber-300 text-ink"
+                )}
+                title={isFullscreen ? "Thu nhỏ (Esc)" : "Toàn Màn Hình"}
+              >
+                {isFullscreen ? (
+                  <>
+                    <Minimize2 className="w-3.5 h-3.5" />
+                    <span>Thu nhỏ (Esc)</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>Toàn Màn Hình</span>
+                  </>
+                )}
+              </button>
+
+              {onBackToRoadmap && !isFullscreen && (
+                <button
+                  onClick={onBackToRoadmap}
+                  className="px-3 py-1.5 bg-white hover:bg-amber-50 text-ink text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Xem Lộ Trình</span>
+                </button>
+              )}
+
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="p-1.5 bg-gray-100 hover:bg-gray-200 text-ink text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center justify-center transition-all cursor-pointer"
+                  title="Đóng / Thoát về trang trước"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
-
-          {/* Quick Actions */}
-          <div className="flex items-center gap-2 self-end sm:self-center">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="px-3 py-1.5 bg-white hover:bg-amber-100 text-ink text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
-              title="Thêm câu mới để luyện gõ"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Thêm Câu</span>
-            </button>
-
-            {onBackToRoadmap && (
-              <button
-                onClick={onBackToRoadmap}
-                className="px-3 py-1.5 bg-[#FEF08A] hover:bg-amber-300 text-ink text-xs font-black rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
-              >
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Xem Lộ Trình</span>
-              </button>
-            )}
-          </div>
-        </div>
 
         {/* Real-time Performance HUD (WPM, Accuracy, Streak) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-dashed border-[#141414]/20">
@@ -1196,6 +1257,7 @@ export function AioSentenceTyping({
           </div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

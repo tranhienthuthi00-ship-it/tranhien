@@ -2258,9 +2258,10 @@ function MindmapCanvasInnerToolbar({
 export interface StudyHubProps {
   mindmaps: MindmapItem[];
   setMindmaps: (maps: MindmapItem[] | ((prev: MindmapItem[]) => MindmapItem[])) => void;
+  onOpenTypingTab?: () => void;
 }
 
-export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
+export function StudyHub({ mindmaps, setMindmaps, onOpenTypingTab }: StudyHubProps) {
   // Active Mind Map
   const [activeMapId, setActiveMapId] = useState<string>(() => {
     return mindmaps && mindmaps.length > 0 ? mindmaps[0].id : '';
@@ -3635,16 +3636,22 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
               <span>🛤️ Lộ Trình</span>
             </button>
             <button
-              onClick={() => handleSelectViewMode('typing')}
+              onClick={() => {
+                if (onOpenTypingTab) {
+                  onOpenTypingTab();
+                } else {
+                  handleSelectViewMode('typing');
+                }
+              }}
               className={cn(
                 'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-1 shrink-0 cursor-pointer',
                 viewMode === 'typing' ? 'bg-[#141414] text-white shadow-[1px_1px_0px_#141414]' : 'text-ink/65 hover:text-ink'
               )}
-              title="Luyện Gõ Câu Tiếng Anh (aioenglish.com/go-cau)"
+              title="Mở tab riêng Luyện Gõ Câu Tiếng Anh Full màn hình (aioenglish.com/go-cau)"
             >
               <Keyboard className="w-3.5 h-3.5 text-amber-400" />
               <span>Gõ Câu</span>
-              <span className="text-[9px] bg-amber-400 text-ink px-1 rounded font-black hidden sm:inline">MỚI</span>
+              <span className="text-[9px] bg-amber-400 text-ink px-1 rounded font-black hidden sm:inline">FULL</span>
             </button>
             <button
               onClick={() => handleSelectViewMode('canvas')}
@@ -4058,7 +4065,10 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
             handleOpenTopicMindmap(topic);
             handleSelectViewMode('study');
           }}
-          onSwitchToTypingTab={() => handleSelectViewMode('typing')}
+          onSwitchToTypingTab={() => {
+            if (onOpenTypingTab) onOpenTypingTab();
+            else handleSelectViewMode('typing');
+          }}
         />
       )}
 
@@ -4068,7 +4078,10 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
           onOpenTopicMindmap={handleOpenTopicMindmap}
           onOpenTopicDetail={handleOpenTopicMindmap}
           onSwitchToKnowledgeTab={() => handleSelectViewMode('knowledge')}
-          onSwitchToTypingTab={() => handleSelectViewMode('typing')}
+          onSwitchToTypingTab={() => {
+            if (onOpenTypingTab) onOpenTypingTab();
+            else handleSelectViewMode('typing');
+          }}
         />
       )}
 

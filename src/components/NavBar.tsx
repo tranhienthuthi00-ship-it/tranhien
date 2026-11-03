@@ -7,10 +7,11 @@ import {
   Languages, 
   Calendar as CalendarIcon,
   LogOut,
-  LogIn
+  LogIn,
+  Keyboard
 } from "lucide-react";
 
-export type Tab = "Journal" | "Collections" | "Projects" | "Học hành" | "English Hub" | "Calendar";
+export type Tab = "Journal" | "Collections" | "Projects" | "Học hành" | "Gõ Câu" | "English Hub" | "Calendar";
 
 export function NavBar({ 
   activeTab, 
@@ -36,6 +37,7 @@ export function NavBar({
     { id: "Collections", label: "Collections", short: "HUB", icon: FolderTree },
     { id: "Projects", label: "Projects", short: "PRJ", icon: FolderKanban },
     { id: "Học hành", label: "Lộ Trình & Kiến Thức", short: "LỘ TRÌNH", icon: GraduationCap },
+    { id: "Gõ Câu", label: "Gõ Câu (Full)", short: "GÕ CÂU", icon: Keyboard },
     { id: "English Hub", label: "English Hub", short: "ENG", icon: Languages },
     { id: "Calendar", label: "Calendar", short: "CAL", icon: CalendarIcon },
   ];
