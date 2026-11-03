@@ -579,6 +579,8 @@ export function applyRoadmapLayout(nodes: Node[], edges: Edge[]): { nodes: Node[
   for (let i = 0; i < orderedIds.length - 1; i++) {
     const sourceId = orderedIds[i];
     const targetId = orderedIds[i + 1];
+    const targetNode = nextNodes.find((n) => n.id === targetId);
+    const theme = getMilestoneTheme((targetNode?.data as any)?.label, i);
     roadmapEdges.push({
       id: `road-edge-${sourceId}-${targetId}`,
       source: sourceId,
@@ -588,10 +590,10 @@ export function applyRoadmapLayout(nodes: Node[], edges: Edge[]): { nodes: Node[
       type: 'default',
       animated: false,
       style: {
-        stroke: '#7C3AED',
+        stroke: theme.badgeBg,
         strokeWidth: 8,
         strokeLinecap: 'round',
-        filter: 'drop-shadow(0 2px 4px rgba(124, 58, 237, 0.3))'
+        filter: `drop-shadow(0 2px 4px ${theme.border}40)`
       }
     });
   }
@@ -3340,7 +3342,7 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
           ...e,
           type: 'default',
           style: {
-            stroke: targetTheme?.edgeColor || '#7C3AED',
+            stroke: targetTheme?.badgeBg || targetTheme?.edgeColor || '#059669',
             strokeWidth: 8,
             strokeLinecap: 'round'
           },
