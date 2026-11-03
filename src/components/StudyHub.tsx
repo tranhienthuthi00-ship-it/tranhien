@@ -2513,6 +2513,60 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
     };
   }, [isFullscreen]);
 
+  // Quick load authentic notebook samples (Manipulating Genomes IMG_3848 & Anxiety Disorders IMG_3849)
+  const handleLoadSampleToMap = useCallback(
+    (sampleId: string) => {
+      const sample = SAMPLE_OUTLINES.find((s) => s.id === sampleId);
+      if (!sample) return;
+
+      const { nodes: rawNodes, edges: rawEdges } = parseOutlineToNodesAndEdges(sample.text, sample.name);
+      let arrangedNodes = rawNodes;
+      let finalEdges = rawEdges;
+
+      if (diagramLayout === 'radial') {
+        const res = applyRadialStudyLayout(rawNodes, rawEdges);
+        arrangedNodes = res.nodes;
+        finalEdges = res.edges;
+      } else if (diagramLayout === 'xmind') {
+        const res = applyXMindLayout(rawNodes, rawEdges);
+        arrangedNodes = res.nodes;
+        finalEdges = res.edges;
+      } else if (diagramLayout === 'roadmap') {
+        const res = applyRoadmapLayout(rawNodes, rawEdges);
+        arrangedNodes = res.nodes;
+        finalEdges = res.edges;
+      } else {
+        arrangedNodes = applyFishboneLayout(rawNodes, rawEdges);
+      }
+
+      if (sampleId === 'img-3848-genomes') {
+        setNotebookTheme('img3848');
+        setCanvasBgPattern('lines');
+      } else if (sampleId === 'img-3849-anxiety') {
+        setNotebookTheme('img3849');
+        setCanvasBgPattern('blank');
+      }
+
+      const cleanTitle = sample.name.replace(/^[^\w\s]+\s*/, '');
+      const newMap: MindmapItem = {
+        id: `mm-sample-${Date.now()}`,
+        title: cleanTitle,
+        description: `Sơ đồ mẫu trực quan: ${sample.name}`,
+        category: 'Học tập',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        nodes: arrangedNodes,
+        edges: finalEdges
+      };
+
+      setMindmaps((prev) => [newMap, ...prev]);
+      setActiveMapId(newMap.id);
+      setSyncToast(`Đã mở sơ đồ mẫu "${sample.name.split('(')[0].trim()}" 🌟`);
+      setTimeout(() => setSyncToast(null), 3500);
+    },
+    [diagramLayout, setMindmaps]
+  );
+
   // Helper to update active map nodes & edges (and sync across devices)
   const updateCurrentMap = useCallback(
     (nextNodes: Node[], nextEdges: Edge[]) => {
@@ -4133,6 +4187,18 @@ export function StudyHub({ mindmaps, setMindmaps }: StudyHubProps) {
                 {canvasBgPattern === 'cross' && (
                   <Background variant={BackgroundVariant.Cross} gap={24} size={2} color="#14141415" />
                 )}
+
+                <MindmapCanvasInnerToolbar
+                  onAutoLayout={handleAutoLayout}
+                  currentLayout={diagramLayout}
+                  onExportPNG={handleExportPNG}
+                  onCopyOutline={handleCopyOutline}
+                  onLoadSample={handleLoadSampleToMap}
+                  notebookTheme={notebookTheme}
+                  setNotebookTheme={setNotebookTheme}
+                  canvasBgPattern={canvasBgPattern}
+                  setCanvasBgPattern={setCanvasBgPattern}
+                />
 
                 <Controls className="!bg-white !border-2 !border-[#141414] !rounded-xl !shadow-[2px_2px_0px_#141414] !m-3" />
                 <MiniMap
