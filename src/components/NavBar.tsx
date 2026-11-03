@@ -87,20 +87,19 @@ export function NavBar({
 
         {/* Vertical Navigation Tabs */}
         <nav className="flex flex-row md:flex-col gap-1.5 md:gap-2 overflow-x-auto md:overflow-x-visible py-1 md:py-0">
-          {tabs.map((tab, index) => {
+          {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
-            const applyFocusBg = index === 0 || index === 1;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                style={applyFocusBg ? { backgroundColor: "#faf3eb" } : undefined}
+                style={!isActive ? { backgroundColor: "#faf3eb" } : undefined}
                 className={cn(
                   "relative w-full text-left px-3 py-2 md:py-2.5 rounded-xl transition-all duration-150 flex items-center justify-between group",
                   isActive
                     ? "bg-[#FEF08A] text-ink font-black border-2 border-ink shadow-[2.5px_2.5px_0px_#141414] translate-x-0.5"
-                    : "text-ink/75 font-bold hover:text-ink hover:bg-black/5 border-2 border-transparent"
+                    : "bg-[#faf3eb] text-ink/75 font-bold hover:text-ink hover:bg-[#f3ebd9] border-2 border-transparent"
                 )}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
