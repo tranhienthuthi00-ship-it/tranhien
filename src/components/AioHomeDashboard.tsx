@@ -1,5 +1,18 @@
 import React, { useState, useMemo } from "react";
-import { Check, Bookmark, X, ChevronRight, ChevronDown, Plus, RotateCcw, Save, Trash2, Calendar as CalendarIcon, Sparkles } from "lucide-react";
+import { 
+  Check, 
+  Bookmark, 
+  X, 
+  ChevronRight, 
+  ChevronDown, 
+  ChevronLeft, 
+  Plus, 
+  RotateCcw, 
+  Save, 
+  Trash2, 
+  Calendar as CalendarIcon, 
+  Sparkles 
+} from "lucide-react";
 
 interface BucketItem {
   id: string;
@@ -111,6 +124,11 @@ const DEFAULT_CASH_LIST: CashItem[] = [
 
 const DEFAULT_CONTENT_NOTE = `"Add up to" là một cụm động từ, nghĩa đen là các con số cộng lại thành một tổng nào đó (ví dụ: các khoản chi cộng lại thành 500 đô la). Nghĩa bóng, nó chỉ việc nhiều chi tiết hay sự việc gộp lại tạo thành một kết quả, ý nghĩa chung nào đó, kiểu như "rốt cuộc là", "tựu chung lại thành". Cụm này rất hay gặp trong câu phủ định như "it doesn't add up to much" (chẳng đáng là bao).`;
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
 export function AioHomeDashboard({
   onNavigate,
   onOpenClassicJournal,
@@ -118,8 +136,51 @@ export function AioHomeDashboard({
   onNavigate?: (tab: string) => void;
   onOpenClassicJournal?: () => void;
 }) {
-  // Calendar state (defaults to day 9 as in screenshot)
-  const [selectedDay, setSelectedDay] = useState<number>(9);
+  // Real today date detection (marked day is TODAY, not default day 9)
+  const today = useMemo(() => new Date(), []);
+  const todayDate = today.getDate();
+  const todayMonth = today.getMonth(); // 0 to 11
+  const todayYear = today.getFullYear();
+
+  // Calendar month/year navigation state
+  const [currentMonth, setCurrentMonth] = useState<number>(todayMonth);
+  const [currentYear, setCurrentYear] = useState<number>(todayYear);
+  const [selectedDay, setSelectedDay] = useState<number>(todayDate);
+
+  // Month navigation handlers
+  const handlePrevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear((prev) => prev - 1);
+    } else {
+      setCurrentMonth((prev) => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear((prev) => prev + 1);
+    } else {
+      setCurrentMonth((prev) => prev + 1);
+    }
+  };
+
+  const handleGoToToday = () => {
+    setCurrentMonth(todayMonth);
+    setCurrentYear(todayYear);
+    setSelectedDay(todayDate);
+  };
+
+  // Days count and starting day of week for current month
+  const daysInCurrentMonth = useMemo(() => {
+    return new Date(currentYear, currentMonth + 1, 0).getDate();
+  }, [currentYear, currentMonth]);
+
+  const firstDayOfWeek = useMemo(() => {
+    // 0: Sunday, 1: Monday, ... 6: Saturday
+    return new Date(currentYear, currentMonth, 1).getDay();
+  }, [currentYear, currentMonth]);
 
   // Events list state (persisted, shared between Top-Left card and Bottom-Left card)
   const [events, setEvents] = useState<DashboardEvent[]>(() => {
@@ -160,9 +221,16 @@ export function AioHomeDashboard({
     }
   };
 
+  // Default formatted date for new event
+  const initialEventDate = useMemo(() => {
+    const d = todayDate < 10 ? `0${todayDate}` : `${todayDate}`;
+    const m = todayMonth + 1 < 10 ? `0${todayMonth + 1}` : `${todayMonth + 1}`;
+    return `${d}/${m}/${todayYear}`;
+  }, [todayDate, todayMonth, todayYear]);
+
   // New event form state
   const [newEventTitle, setNewEventTitle] = useState("");
-  const [newEventDate, setNewEventDate] = useState("09/11/2026");
+  const [newEventDate, setNewEventDate] = useState(initialEventDate);
   const [newEventNote, setNewEventNote] = useState("");
   const [showAddEventForm, setShowAddEventForm] = useState(false);
 
@@ -170,18 +238,17 @@ export function AioHomeDashboard({
     e.preventDefault();
     if (!newEventTitle.trim()) return;
 
-    // derive dayMonth from date string (e.g. "09/11/2026" -> "9/11")
-    let dayMonth = "9/11";
+    let dayMonth = `${todayDate}/${todayMonth + 1}`;
     const parts = newEventDate.split("/");
     if (parts.length >= 2) {
       const d = parseInt(parts[0], 10) || 1;
-      const m = parseInt(parts[1], 10) || 11;
+      const m = parseInt(parts[1], 10) || (currentMonth + 1);
       dayMonth = `${d}/${m}`;
     }
 
     const newEv: DashboardEvent = {
       id: "ev-" + Date.now(),
-      date: newEventDate.trim() || "09/11/2026",
+      date: newEventDate.trim() || initialEventDate,
       dayMonth,
       title: newEventTitle.trim(),
       note: newEventNote.trim() || undefined,
@@ -200,31 +267,45 @@ export function AioHomeDashboard({
   };
 
   // Group events by dayMonth for the Top-Left Calendar Event Card
-  const groupedEvents = useMemo(() => {
+  const currentMonthEvents = useMemo(() => {
+    const targetMonth = currentMonth + 1;
+    return events.filter((ev) => {
+      const parts = ev.date.split("/");
+      if (parts.length >= 2) {
+        const m = parseInt(parts[1], 10);
+        return m === targetMonth;
+      }
+      return false;
+    });
+  }, [events, currentMonth]);
+
+  const groupedCurrentMonthEvents = useMemo(() => {
     const groups: { [key: string]: DashboardEvent[] } = {};
-    events.forEach((ev) => {
+    currentMonthEvents.forEach((ev) => {
       const key = ev.dayMonth || "Sự kiện";
       if (!groups[key]) groups[key] = [];
       groups[key].push(ev);
     });
     return groups;
-  }, [events]);
+  }, [currentMonthEvents]);
 
-  // Days in November that have events
+  // Days in currently viewed month that have events
   const daysWithEvents = useMemo(() => {
     const daySet = new Set<number>();
+    const targetMonth = currentMonth + 1;
     events.forEach((ev) => {
       const parts = ev.date.split("/");
       if (parts.length >= 2) {
         const d = parseInt(parts[0], 10);
         const m = parseInt(parts[1], 10);
-        if (m === 11 && !isNaN(d)) {
+        const y = parts.length >= 3 ? parseInt(parts[2], 10) : currentYear;
+        if (m === targetMonth && (!parts[2] || y === currentYear) && !isNaN(d)) {
           daySet.add(d);
         }
       }
     });
     return daySet;
-  }, [events]);
+  }, [events, currentMonth, currentYear]);
 
   // Bucket list state
   const [bucketList, setBucketList] = useState<BucketItem[]>(() => {
@@ -330,16 +411,48 @@ export function AioHomeDashboard({
       {/* 2x2 Grid matching the screenshot */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* ========================================================= */}
-        {/* TOP LEFT: November Calendar & Events Card (cols 12 -> 5) */}
+        {/* TOP LEFT: Calendar & Events Card (cols 12 -> 5)           */}
+        {/* Header & Year inside card with Prev/Next buttons          */}
+        {/* Today highlighted instead of hardcoded Day 9              */}
         {/* ========================================================= */}
         <div className="lg:col-span-5 flex flex-col items-center">
-          <h2 className="text-xl md:text-2xl font-black text-gray-900 tracking-wide mb-2 text-center">
-            November
-          </h2>
+          <div className="w-full bg-[#5468B4] text-white rounded-[32px] border-2 border-[#141414] shadow-[6px_6px_0px_#141414] p-5 md:p-6 flex flex-col justify-between min-h-[490px]">
+            {/* TIÊU ĐỀ LỊCH + NĂM + NÚT QUA LẠI NẰM BÊN TRONG Ô */}
+            <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/20">
+              <button
+                onClick={handlePrevMonth}
+                title="Tháng trước"
+                className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition-all active:scale-90 cursor-pointer shadow-xs"
+              >
+                <ChevronLeft className="w-4 h-4 stroke-[3]" />
+              </button>
 
-          <div className="w-full bg-[#5468B4] text-white rounded-[32px] border-2 border-[#141414] shadow-[6px_6px_0px_#141414] p-5 md:p-6 flex flex-col justify-between min-h-[460px]">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl md:text-2xl font-black text-white tracking-wide text-center">
+                  {MONTH_NAMES[currentMonth]} {currentYear}
+                </h2>
+                {(currentMonth !== todayMonth || currentYear !== todayYear) && (
+                  <button
+                    onClick={handleGoToToday}
+                    title="Trở về tháng hiện tại"
+                    className="text-[10px] bg-yellow-300 hover:bg-yellow-400 text-black font-bold px-2.5 py-0.5 rounded-full transition-all cursor-pointer shadow-xs"
+                  >
+                    Hôm nay
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={handleNextMonth}
+                title="Tháng sau"
+                className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition-all active:scale-90 cursor-pointer shadow-xs"
+              >
+                <ChevronRight className="w-4 h-4 stroke-[3]" />
+              </button>
+            </div>
+
             {/* Days Header */}
-            <div className="grid grid-cols-7 text-center font-bold text-sm md:text-base tracking-wider mb-3 text-white/95">
+            <div className="grid grid-cols-7 text-center font-bold text-sm md:text-base tracking-wider mb-2 text-white/95">
               <span>Su</span>
               <span>Mo</span>
               <span>Tu</span>
@@ -349,9 +462,19 @@ export function AioHomeDashboard({
               <span>Sa</span>
             </div>
 
-            {/* Days Grid (Nov 1 to 30) */}
-            <div className="grid grid-cols-7 text-center gap-y-3 font-semibold text-base md:text-lg mb-4">
-              {Array.from({ length: 30 }, (_, i) => i + 1).map((day) => {
+            {/* Days Grid: Starting day aligned with first day of month */}
+            <div className="grid grid-cols-7 text-center gap-y-2.5 font-semibold text-base md:text-lg mb-4">
+              {/* Empty padding cells for start of the month */}
+              {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                <div key={`empty-${i}`} className="h-9 w-9 mx-auto opacity-0 pointer-events-none" />
+              ))}
+
+              {/* Day cells 1 to daysInCurrentMonth */}
+              {Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1).map((day) => {
+                const isToday =
+                  day === todayDate &&
+                  currentMonth === todayMonth &&
+                  currentYear === todayYear;
                 const isSelected = selectedDay === day;
                 const hasEvent = daysWithEvents.has(day);
 
@@ -360,14 +483,23 @@ export function AioHomeDashboard({
                     key={day}
                     onClick={() => {
                       setSelectedDay(day);
-                      // Update default date for new event to this day
+                      // Update default date for new event to this selected day
                       const dayStr = day < 10 ? `0${day}` : `${day}`;
-                      setNewEventDate(`${dayStr}/11/2026`);
+                      const monthStr = currentMonth + 1 < 10 ? `0${currentMonth + 1}` : `${currentMonth + 1}`;
+                      setNewEventDate(`${dayStr}/${monthStr}/${currentYear}`);
                     }}
                     className="relative flex flex-col items-center justify-center h-9 w-9 mx-auto transition-transform hover:scale-110 active:scale-95 cursor-pointer"
                   >
-                    {isSelected ? (
-                      <span className="w-9 h-9 rounded-full bg-[#1c2541] border border-black/30 text-white flex items-center justify-center font-bold shadow-inner">
+                    {isToday ? (
+                      /* ĐƯỢC ĐÁNH DẤU LÀ NGÀY HÔM NAY THEO YÊU CẦU */
+                      <span
+                        title="Hôm nay"
+                        className="w-9 h-9 rounded-full bg-[#1c2541] border-2 border-yellow-300 text-white flex items-center justify-center font-black shadow-inner"
+                      >
+                        {day}
+                      </span>
+                    ) : isSelected ? (
+                      <span className="w-9 h-9 rounded-full bg-[#35467e] border border-white/60 text-white flex items-center justify-center font-bold shadow-xs">
                         {day}
                       </span>
                     ) : (
@@ -377,7 +509,7 @@ export function AioHomeDashboard({
                     )}
 
                     {/* Small event indicator dot */}
-                    {hasEvent && !isSelected && (
+                    {hasEvent && !isToday && (
                       <span className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-yellow-300" />
                     )}
                   </button>
@@ -503,17 +635,17 @@ export function AioHomeDashboard({
               </div>
 
               {/* Event List - Dynamically synchronized with bottom events! */}
-              <div className="flex flex-col text-right pl-4 max-h-[180px] overflow-y-auto pr-1">
+              <div className="flex flex-col text-right pl-4 max-h-[190px] overflow-y-auto pr-1">
                 <div className="flex items-center justify-end gap-1 text-[#fde047] font-black text-sm md:text-base tracking-wide mb-2 sticky top-0 bg-[#5468B4] py-0.5">
                   <span>✦</span>
                   <span>Sự kiện tháng này</span>
                 </div>
 
-                {Object.keys(groupedEvents).length === 0 ? (
-                  <p className="text-xs text-white/70 italic">Chưa có sự kiện nào</p>
+                {Object.keys(groupedCurrentMonthEvents).length === 0 ? (
+                  <p className="text-xs text-white/70 italic">Chưa có sự kiện tháng {currentMonth + 1}</p>
                 ) : (
                   <div className="space-y-1.5 text-xs md:text-sm font-medium text-white/95 leading-snug">
-                    {Object.entries(groupedEvents).map(([dateLabel, evList]) => (
+                    {Object.entries(groupedCurrentMonthEvents).map(([dateLabel, evList]) => (
                       <div key={dateLabel} className="pt-0.5">
                         <span className="font-bold text-yellow-200">{dateLabel}</span>
                         <div className="pl-2">
@@ -538,14 +670,21 @@ export function AioHomeDashboard({
         </div>
 
         {/* ========================================================= */}
-        {/* TOP RIGHT: 2026 Bucket List (cols 12 -> 7) */}
+        {/* TOP RIGHT: 2026 Bucket List (cols 12 -> 7)                */}
+        {/* Title placed INSIDE card per user request                */}
         {/* ========================================================= */}
         <div className="lg:col-span-7 flex flex-col items-center">
-          <h2 className="text-xl md:text-2xl font-black text-gray-900 tracking-wide mb-2 text-center">
-            2026 Bucket list
-          </h2>
+          <div className="w-full bg-white rounded-[32px] border-2 border-[#141414] shadow-[6px_6px_0px_#5468B4] p-5 md:p-7 flex flex-col justify-between min-h-[490px]">
+            {/* TIÊU ĐỀ BUCKET LIST NẰM BÊN TRONG Ô */}
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-100">
+              <h2 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">
+                2026 Bucket list
+              </h2>
+              <span className="text-xs font-bold text-[#5468B4] bg-[#5468B4]/10 px-3 py-1 rounded-full border border-[#5468B4]/30">
+                {bucketList.filter((b) => b.completed).length}/{bucketList.length} hoàn thành
+              </span>
+            </div>
 
-          <div className="w-full bg-white rounded-[32px] border-2 border-[#141414] shadow-[6px_6px_0px_#5468B4] p-5 md:p-7 flex flex-col justify-between min-h-[460px]">
             {/* 3 Columns Grid of Bucket List Items */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-3 mb-6">
               {/* Column 1 */}
@@ -719,7 +858,7 @@ export function AioHomeDashboard({
               <form onSubmit={handleAddEvent} className="p-3 mb-4 bg-blue-50 border-2 border-[#5468B4] rounded-2xl flex flex-col md:flex-row gap-2 items-center">
                 <input
                   type="text"
-                  placeholder="Ngày (dd/mm/yyyy ví dụ: 09/11/2026)"
+                  placeholder="Ngày (dd/mm/yyyy)"
                   value={newEventDate}
                   onChange={(e) => setNewEventDate(e.target.value)}
                   className="text-xs bg-white border border-gray-300 rounded-xl px-3 py-2 w-full md:w-36 font-mono outline-none"
@@ -748,7 +887,7 @@ export function AioHomeDashboard({
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-black text-sm text-black">Nội dung</h4>
                     
-                    {/* NÚT LƯU THEO YÊU CẦU CỦA NGƯỜI DÙNG */}
+                    {/* NÚT LƯU TRONG Ô NỘI DUNG */}
                     <button
                       onClick={handleSaveContentNote}
                       className={`px-3 py-1 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-[2px_2px_0px_#141414] transition-all active:scale-95 cursor-pointer ${
