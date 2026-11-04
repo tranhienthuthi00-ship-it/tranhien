@@ -544,20 +544,22 @@ export function TranslationPractice({
                 {/* Embedded Video Player container */}
                 <div className="bg-black w-full aspect-video rounded-3xl overflow-hidden shadow-lg sketch-border-sm relative group">
                   <YouTube
-                    videoId={youtubeId || ""}
-                    containerClassName="w-full h-full"
-                    className="w-full h-full"
-                    onReady={(event) => setPlayer(event.target)}
-                    opts={{
-                      width: "100%",
-                      height: "100%",
-                      playerVars: {
-                        autoplay: 1,
-                        controls: 1,
-                        modestbranding: 1,
-                        rel: 0
-                      }
-                    }}
+                    {...({
+                      videoId: youtubeId || "",
+                      containerClassName: "w-full h-full",
+                      className: "w-full h-full",
+                      onReady: (event: any) => setPlayer(event.target),
+                      opts: {
+                        width: "100%",
+                        height: "100%",
+                        playerVars: {
+                          autoplay: 1,
+                          controls: 1,
+                          modestbranding: 1,
+                          rel: 0,
+                        },
+                      },
+                    } as any)}
                   />
                   
                   {/* Action Bar overlay */}

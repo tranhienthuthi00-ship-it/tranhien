@@ -213,7 +213,7 @@ export function YouTubeDictation({
     setWords([newWord, ...words]);
     setIsSavedToWordbook(true);
   };
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<any>(null);
   const playerRef = useRef<any>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -1346,7 +1346,7 @@ export function YouTubeDictation({
                 if (playerRef.current) playerRef.current.pauseVideo();
               }}
               className={cn("p-1.5 text-[9px] font-bold uppercase tracking-widest rounded transition-colors flex items-center gap-1", 
-                mode === 'practice' ? "bg-ink text-paper" : "bg-ink/5 text-ink/60 hover:bg-ink/10"
+                (mode as string) === 'practice' ? "bg-ink text-paper" : "bg-ink/5 text-ink/60 hover:bg-ink/10"
               )}
             >
               <Headphones size={10} /> <span className="hidden xs:inline">Practice</span>
@@ -1376,7 +1376,7 @@ export function YouTubeDictation({
                   setVideoError('');
                 }}
                 onPlay={() => {
-                   if (mode === 'practice' && isPlayerReady) {
+                   if ((mode as string) === 'practice' && isPlayerReady) {
                       // Optionally seek if user is lost
                    }
                 }}
@@ -1823,7 +1823,7 @@ export function YouTubeDictation({
               )}
             </div>
 
-            {(mode === 'practice' || mode === 'shadowing') && sentences.length > 0 && (
+            {((mode as string) === 'practice' || mode === 'shadowing') && sentences.length > 0 && (
               <div className="bg-ink/5 border-t border-dashed border-ink/20 px-2 py-1 shrink-0">
                 <div className="flex items-center gap-1.5 mb-1">
                    <span className="text-[7px] font-black uppercase tracking-widest text-ink/40 shrink-0">BÀI HỌC</span>

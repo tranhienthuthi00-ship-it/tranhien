@@ -231,7 +231,7 @@ export function Progress({
     return excludedAssetsList.reduce((sum, item) => {
       const val = getValueInVND(item.value, item.currency, item.exchangeRate);
       return item.isDebt ? sum - val : sum + val;
-    }, [excludedAssetsList]);
+    }, 0);
   }, [excludedAssetsList]);
 
   return (

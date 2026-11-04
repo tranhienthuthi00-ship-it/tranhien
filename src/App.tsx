@@ -26,6 +26,7 @@ import { EnglishMaterials } from "./components/EnglishMaterials";
 import { StudyHub } from "./components/StudyHub";
 import { AioSentenceTyping } from "./components/AioSentenceTyping";
 import { AioHomeDashboard } from "./components/AioHomeDashboard";
+import { AioAssetsManagement } from "./components/AioAssetsManagement";
 import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
 import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target, Sparkles, Flame, Search, X, FolderKanban, BookMarked } from "lucide-react";
 
@@ -398,6 +399,8 @@ function AppContent() {
       <NavBar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
+        activeCollectionSubTab={activeCollectionSubTab}
+        setActiveCollectionSubTab={setActiveCollectionSubTab}
         lastSaved={lastSaved} 
         onLogout={user ? handleLogout : () => setShowLoginModal(true)} 
         isLoggedIn={!!user}
@@ -518,26 +521,6 @@ function AppContent() {
                 )}
               </div>
             </div>
-            <div className="bg-paper py-2 flex justify-center flex-wrap gap-1.5 md:gap-4 mb-2 px-1 md:px-4 text-ink/60 max-w-full">
-              {(["Lists", "Habits", "Places", "Content", "Assets"] as const).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveCollectionSubTab(tab)}
-                  className={`text-[10px] md:text-sm font-sans font-bold uppercase tracking-widest px-3 md:px-4 py-1.5 rounded-full border-2 transition-all flex items-center gap-1.5 md:gap-2 shrink-0 ${activeCollectionSubTab === tab ? "bg-ink text-paper border-ink scale-105 shadow-md" : "border-ink/20 hover:border-ink/50"}`}
-                >
-                  {tab === "Lists" && <ClipboardList className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
-                  {tab === "Habits" && <Flame className="w-4 h-4 text-orange-500" style={{ filter: 'url(#hand-drawn-filter)' }} />}
-                  {tab === "Places" && <MapPin className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
-                  {tab === "Content" && <Lightbulb className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
-                  {tab === "Assets" && <Wallet className="w-4 h-4" style={{ filter: 'url(#hand-drawn-filter)' }} />}
-                  {tab === "Lists" && "MỤC TIÊU & NHIỆM VỤ"}
-                  {tab === "Habits" && "HÀNH TRÌNH GLOW UP"}
-                  {tab === "Places" && "ĐỊA ĐIỂM & ĂN UỐNG"}
-                  {tab === "Content" && "Ý TƯỞNG & SÁNG TẠO"}
-                  {tab === "Assets" && "TÀI SẢN & TÀI CHÍNH"}
-                </button>
-              ))}
-            </div>
             
             <div className="w-full px-2 md:px-6">
               {activeCollectionSubTab === "Lists" && (
@@ -567,7 +550,7 @@ function AppContent() {
               {activeCollectionSubTab === "Habits" && <HabitTracker logs={logs} setLogs={setLogs} />}
               {activeCollectionSubTab === "Places" && <Places places={foodPlaces} setPlaces={setFoodPlaces} />}
               {activeCollectionSubTab === "Content" && <ContentManager ideas={contentIdeas} setIdeas={setContentIdeas} />}
-              {activeCollectionSubTab === "Assets" && <AssetsManager assets={assets} setAssets={setAssets} categories={assetCategories} setCategories={setAssetCategories} bulkDebts={bulkDebts} setBulkDebts={setBulkDebts} bulkCardSpends={bulkCardSpends} setBulkCardSpends={setBulkCardSpends} bulkCurrentCash={bulkCurrentCash} setBulkCurrentCash={setBulkCurrentCash} />}
+              {activeCollectionSubTab === "Assets" && <AioAssetsManagement />}
             </div>
           </div>
         )}
@@ -650,6 +633,10 @@ function AppContent() {
                 />
               </div>
             )
+          )}
+
+          {activeTab === "Assets" && (
+            <AioAssetsManagement />
           )}
         </div>
             </motion.div>

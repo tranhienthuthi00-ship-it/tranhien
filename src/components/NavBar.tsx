@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { 
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   LogIn,
   CheckCircle2,
@@ -12,11 +13,14 @@ import {
   Users
 } from "lucide-react";
 
-export type Tab = "Journal" | "Collections" | "Projects" | "Học hành" | "Gõ Câu" | "English Hub" | "Calendar";
+export type Tab = "Journal" | "Collections" | "Projects" | "Học hành" | "Gõ Câu" | "English Hub" | "Calendar" | "Assets";
+export type CollectionSubTab = "Lists" | "Habits" | "Places" | "Content" | "Assets";
 
 interface NavBarProps {
   activeTab: Tab;
   setActiveTab: (tab: Tab) => void;
+  activeCollectionSubTab?: CollectionSubTab;
+  setActiveCollectionSubTab?: (subTab: CollectionSubTab) => void;
   lastSaved?: string;
   onLogout: () => void;
   dueCount?: number;
@@ -28,6 +32,8 @@ interface NavBarProps {
 export function NavBar({ 
   activeTab, 
   setActiveTab, 
+  activeCollectionSubTab = "Lists",
+  setActiveCollectionSubTab,
   lastSaved, 
   onLogout, 
   dueCount = 0,
@@ -36,6 +42,7 @@ export function NavBar({
   isLoggedIn = false
 }: NavBarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollectionsOpen, setIsCollectionsOpen] = useState(true);
   const [activeModal, setActiveModal] = useState<"friends" | "feedback" | "notes" | "coming_soon" | null>(null);
 
   const mainNavItems = [
@@ -45,7 +52,7 @@ export function NavBar({
     { id: "Học hành" as Tab, label: "Lộ trình & Kiến thức" },
     { id: "English Hub" as Tab, label: "English" },
     { id: "Calendar" as Tab, label: "Calendar" },
-    { id: "coming1", label: "Coming soon", isComingSoon: true },
+    { id: "Assets" as Tab, label: "Quản lý tài sản" },
     { id: "coming2", label: "Coming soon", isComingSoon: true },
   ];
 
@@ -122,45 +129,112 @@ export function NavBar({
           <nav className="flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible py-1 md:py-0">
             {mainNavItems.map((item) => {
               const isComing = (item as any).isComingSoon;
+              const isCollections = item.id === "Collections";
               const isActive = !isComing && activeTab === item.id;
 
+              const collectionSubItems: { id: CollectionSubTab; label: string }[] = [
+                { id: "Lists", label: "Mục tiêu & Nhiệm vụ" },
+                { id: "Habits", label: "Hành trình Glow up" },
+                { id: "Places", label: "Địa điểm & Ăn uống" },
+                { id: "Content", label: "Ý tưởng & Sáng tạo" },
+              ];
+
               return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    if (isComing) {
-                      setActiveModal("coming_soon");
-                    } else {
-                      setActiveTab(item.id as Tab);
-                    }
-                  }}
-                  className={cn(
-                    "relative w-full text-left transition-all duration-150 flex items-center justify-between rounded-2xl group",
-                    isCollapsed ? "px-2 py-2.5 justify-center" : "px-4 py-2.5",
-                    isActive
-                      ? "bg-[#5468B4] text-white font-bold border-2 border-[#141414] shadow-[3.5px_3.5px_0px_#141414]"
-                      : isComing
-                      ? "text-gray-400 font-medium hover:text-gray-600 bg-transparent"
-                      : "text-gray-700 font-semibold hover:text-black hover:bg-black/5 bg-transparent"
-                  )}
-                >
-                  <span className={cn("text-sm md:text-[15px] truncate", isCollapsed && "hidden")}>
-                    {item.label}
-                  </span>
-
-                  {isCollapsed && (
-                    <span className="text-xs font-bold uppercase">
-                      {item.label.substring(0, 2)}
+                <div key={item.id} className="flex flex-col gap-1 w-full">
+                  <button
+                    onClick={() => {
+                      if (isComing) {
+                        setActiveModal("coming_soon");
+                      } else if (isCollections) {
+                        if (activeTab !== "Collections") {
+                          setActiveTab("Collections");
+                          setIsCollectionsOpen(true);
+                        } else {
+                          setIsCollectionsOpen(!isCollectionsOpen);
+                        }
+                      } else {
+                        setActiveTab(item.id as Tab);
+                      }
+                    }}
+                    className={cn(
+                      "relative w-full text-left transition-all duration-150 flex items-center justify-between rounded-2xl group",
+                      isCollapsed ? "px-2 py-2.5 justify-center" : "px-4 py-2.5",
+                      isActive
+                        ? "bg-[#5468B4] text-white font-bold border-2 border-[#141414] shadow-[3.5px_3.5px_0px_#141414]"
+                        : isComing
+                        ? "text-gray-400 font-medium hover:text-gray-600 bg-transparent"
+                        : "text-gray-700 font-semibold hover:text-black hover:bg-black/5 bg-transparent"
+                    )}
+                  >
+                    <span className={cn("text-sm md:text-[15px] truncate", isCollapsed && "hidden")}>
+                      {item.label}
                     </span>
-                  )}
 
-                  {/* Due count badge for English */}
-                  {item.id === "English Hub" && dueCount > 0 && !isCollapsed && (
-                    <span className="shrink-0 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-1">
-                      {dueCount > 99 ? "99+" : dueCount}
-                    </span>
+                    {isCollapsed && (
+                      <span className="text-xs font-bold uppercase">
+                        {item.label.substring(0, 2)}
+                      </span>
+                    )}
+
+                    {/* Due count badge for English */}
+                    {item.id === "English Hub" && dueCount > 0 && !isCollapsed && (
+                      <span className="shrink-0 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-1">
+                        {dueCount > 99 ? "99+" : dueCount}
+                      </span>
+                    )}
+
+                    {/* Toggle Chevron for Collections */}
+                    {isCollections && !isCollapsed && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (activeTab !== "Collections") {
+                            setActiveTab("Collections");
+                            setIsCollectionsOpen(true);
+                          } else {
+                            setIsCollectionsOpen(!isCollectionsOpen);
+                          }
+                        }}
+                        className="p-1 hover:bg-black/10 rounded-lg transition-colors cursor-pointer"
+                        title={isCollectionsOpen ? "Thu gọn mục nhỏ" : "Mở rộng mục nhỏ"}
+                      >
+                        <ChevronDown 
+                          className={cn(
+                            "w-4 h-4 transition-transform duration-200",
+                            isCollectionsOpen && "rotate-180",
+                            isActive ? "text-white" : "text-gray-600"
+                          )} 
+                        />
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Collections Toggle Submenu */}
+                  {isCollections && !isCollapsed && isCollectionsOpen && (
+                    <div className="flex flex-col gap-1 pl-3.5 ml-3 border-l-2 border-gray-300 py-1 transition-all">
+                      {collectionSubItems.map((sub) => {
+                        const isSubActive = activeTab === "Collections" && activeCollectionSubTab === sub.id;
+                        return (
+                          <button
+                            key={sub.id}
+                            onClick={() => {
+                              setActiveTab("Collections");
+                              setActiveCollectionSubTab?.(sub.id);
+                            }}
+                            className={cn(
+                              "w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between",
+                              isSubActive
+                                ? "bg-[#F8EFCB] text-black border-2 border-[#141414] shadow-[2px_2px_0px_#141414]"
+                                : "text-gray-600 hover:text-black hover:bg-black/5"
+                            )}
+                          >
+                            <span className="truncate">{sub.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
-                </button>
+                </div>
               );
             })}
           </nav>

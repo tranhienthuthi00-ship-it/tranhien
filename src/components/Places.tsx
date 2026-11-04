@@ -11,7 +11,7 @@ export function Places({
   places: FoodPlace[]; 
   setPlaces: (p: FoodPlace[]) => void 
 }) {
-  const [filter, setFilter] = useState<'All' | 'Food' | 'Cafe' | 'Dessert' | 'Travel' | 'Other'>('All');
+  const [filter, setFilter] = useState<'All' | 'Food' | 'Cafe' | 'Dessert' | 'Travel' | 'Other' | 'Favorite'>('All');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Visited' | 'Want to visit'>('All');
   const [sortBy, setSortBy] = useState<'Recent' | 'Rating'>('Recent');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);

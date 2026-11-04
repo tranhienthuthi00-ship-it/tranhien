@@ -38,7 +38,7 @@ interface Sentence {
   vi: string;
   en?: string;
   userTranslation?: string;
-  status: "pending" | "correct" | "thinking";
+  status: "pending" | "correct" | "thinking" | "failed";
   hint?: string;
   explanation?: string;
 }
