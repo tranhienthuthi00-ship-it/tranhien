@@ -503,26 +503,28 @@ function AppContent() {
         )}
         
         {activeTab === "Collections" && (
-          <div className="flex flex-col gap-4">
-            <div className="max-w-md mx-auto w-full px-4 mb-2">
-              <div className="flex items-center bg-[#f8f5ed] border-2 border-[#3A1412] px-4 py-2 rounded-xl shadow-[3px_3px_0px_#3A1412]">
-                <Search className="w-5 h-5 text-[#3A1412] mr-2" />
-                <input 
-                  type="text" 
-                  placeholder="Tìm kiếm..." 
-                  value={collectionSearchQuery} 
-                  onChange={e => setCollectionSearchQuery(e.target.value)}
-                  className="bg-transparent outline-none flex-1 text-sm font-hand font-bold text-[#3A1412] placeholder-[#3A1412]/50" 
-                />
-                {collectionSearchQuery && (
-                  <button onClick={() => setCollectionSearchQuery("")} className="ml-2 hover:scale-110">
-                    <X className="w-4 h-4 text-[#3A1412]/50" />
-                  </button>
-                )}
+          <div className="flex flex-col gap-3">
+            {activeCollectionSubTab !== "Assets" && (
+              <div className="max-w-md mx-auto w-full px-4 mb-1">
+                <div className="flex items-center bg-[#f8f5ed] border-2 border-[#3A1412] px-4 py-2 rounded-xl shadow-[3px_3px_0px_#3A1412]">
+                  <Search className="w-5 h-5 text-[#3A1412] mr-2" />
+                  <input 
+                    type="text" 
+                    placeholder="Tìm kiếm..." 
+                    value={collectionSearchQuery} 
+                    onChange={e => setCollectionSearchQuery(e.target.value)}
+                    className="bg-transparent outline-none flex-1 text-sm font-hand font-bold text-[#3A1412] placeholder-[#3A1412]/50" 
+                  />
+                  {collectionSearchQuery && (
+                    <button onClick={() => setCollectionSearchQuery("")} className="ml-2 hover:scale-110">
+                      <X className="w-4 h-4 text-[#3A1412]/50" />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             
-            <div className="w-full px-2 md:px-6">
+            <div className={cn("w-full", activeCollectionSubTab === "Assets" ? "px-0" : "px-2 md:px-6")}>
               {activeCollectionSubTab === "Lists" && (
                 <div className="max-w-5xl mx-auto space-y-12">
                   <PersonalGoals 

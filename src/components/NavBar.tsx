@@ -52,7 +52,6 @@ export function NavBar({
     { id: "Học hành" as Tab, label: "Lộ trình & Kiến thức" },
     { id: "English Hub" as Tab, label: "English" },
     { id: "Calendar" as Tab, label: "Calendar" },
-    { id: "Assets" as Tab, label: "Quản lý tài sản" },
     { id: "coming2", label: "Coming soon", isComingSoon: true },
   ];
 
@@ -137,6 +136,7 @@ export function NavBar({
                 { id: "Habits", label: "Hành trình Glow up" },
                 { id: "Places", label: "Địa điểm & Ăn uống" },
                 { id: "Content", label: "Ý tưởng & Sáng tạo" },
+                { id: "Assets", label: "Quản lý tài sản" },
               ];
 
               return (
