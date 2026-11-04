@@ -25,6 +25,7 @@ import { KanbanBoard } from "./components/KanbanBoard";
 import { EnglishMaterials } from "./components/EnglishMaterials";
 import { StudyHub } from "./components/StudyHub";
 import { AioSentenceTyping } from "./components/AioSentenceTyping";
+import { AioHomeDashboard } from "./components/AioHomeDashboard";
 import { FirebaseProvider, useFirebase } from "./context/FirebaseContext";
 import { BookText, Gamepad2, Headphones, Mic, Loader2, ClipboardList, MapPin, Lightbulb, Wallet, Brain, Languages, Target, Sparkles, Flame, Search, X, FolderKanban, BookMarked } from "lucide-react";
 
@@ -334,6 +335,7 @@ function AppContent() {
   const [activeEnglishSubTab, setActiveEnglishSubTab] = useState<"Từ Vựng" | "1000 Sentences" | "Sách & Unit" | "Luyện Tập" | "Trò Chơi">("Từ Vựng");
   const [activePracticeSubTab, setActivePracticeSubTab] = useState<"Dictation" | "Speech" | "Translation" | "Reflex" | "SRS" | "Picture" | "Typing">("Dictation");
   const [activeCollectionSubTab, setActiveCollectionSubTab] = useState<"Lists" | "Habits" | "Places" | "Content" | "Assets">("Lists");
+  const [showClassicJournal, setShowClassicJournal] = useState(false);
 
   const [lastSaved, setLastSaved] = useState<string>("Synced");
 
@@ -603,33 +605,51 @@ function AppContent() {
           )}
 
           {activeTab === "Journal" && (
-            <DigitalJournal 
-              onSearch={(q) => {
-                setCollectionSearchQuery(q);
-                setActiveTab("Collections");
-              }}
-              logs={logs} 
-              setLogs={setLogs} 
-              wishlist={wishlist} 
-              assets={assets} 
-              setAssets={setAssets}
-              categories={assetCategories}
-              words={words} 
-              places={foodPlaces} 
-              setPlaces={setFoodPlaces} 
-              ideas={contentIdeas} 
-              tasks={tasks} 
-              setTasks={setTasks} 
-              achievements={achievements} 
-              goals={studyGoals} 
-              setGoals={setStudyGoals}
-              bulkDebts={bulkDebts}
-              setBulkDebts={setBulkDebts}
-              bulkCardSpends={bulkCardSpends}
-              setBulkCardSpends={setBulkCardSpends}
-              bulkCurrentCash={bulkCurrentCash}
-              setBulkCurrentCash={setBulkCurrentCash}
-            />
+            !showClassicJournal ? (
+              <AioHomeDashboard 
+                onNavigate={(tab) => setActiveTab(tab as Tab)}
+                onOpenClassicJournal={() => setShowClassicJournal(true)}
+              />
+            ) : (
+              <div className="w-full">
+                <div className="flex justify-between items-center mb-4 pb-2 border-b border-dashed border-gray-300">
+                  <button
+                    onClick={() => setShowClassicJournal(false)}
+                    className="flex items-center gap-2 text-xs md:text-sm font-bold bg-[#5468B4] text-white px-4 py-2 rounded-xl shadow-[2px_2px_0px_#141414] hover:bg-[#46579a] transition-all"
+                  >
+                    <span>⬅ Quay lại Dashboard Trang chủ</span>
+                  </button>
+                  <span className="text-xs text-gray-500 font-medium">Chế độ Nhật ký chi tiết & Quản lý tài chính</span>
+                </div>
+                <DigitalJournal 
+                  onSearch={(q) => {
+                    setCollectionSearchQuery(q);
+                    setActiveTab("Collections");
+                  }}
+                  logs={logs} 
+                  setLogs={setLogs} 
+                  wishlist={wishlist} 
+                  assets={assets} 
+                  setAssets={setAssets}
+                  categories={assetCategories}
+                  words={words} 
+                  places={foodPlaces} 
+                  setPlaces={setFoodPlaces} 
+                  ideas={contentIdeas} 
+                  tasks={tasks} 
+                  setTasks={setTasks} 
+                  achievements={achievements} 
+                  goals={studyGoals} 
+                  setGoals={setStudyGoals}
+                  bulkDebts={bulkDebts}
+                  setBulkDebts={setBulkDebts}
+                  bulkCardSpends={bulkCardSpends}
+                  setBulkCardSpends={setBulkCardSpends}
+                  bulkCurrentCash={bulkCurrentCash}
+                  setBulkCurrentCash={setBulkCurrentCash}
+                />
+              </div>
+            )
           )}
         </div>
             </motion.div>

@@ -1,17 +1,29 @@
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { 
-  Home, 
-  FolderTree, 
-  FolderKanban, 
-  GraduationCap, 
-  Languages, 
-  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
   LogOut,
   LogIn,
-  Keyboard
+  CheckCircle2,
+  Sparkles,
+  HelpCircle,
+  FileText,
+  Users
 } from "lucide-react";
 
 export type Tab = "Journal" | "Collections" | "Projects" | "Học hành" | "Gõ Câu" | "English Hub" | "Calendar";
+
+interface NavBarProps {
+  activeTab: Tab;
+  setActiveTab: (tab: Tab) => void;
+  lastSaved?: string;
+  onLogout: () => void;
+  dueCount?: number;
+  theme?: "handdrawn" | "minimal";
+  onToggleTheme?: () => void;
+  isLoggedIn?: boolean;
+}
 
 export function NavBar({ 
   activeTab, 
@@ -22,154 +34,303 @@ export function NavBar({
   theme = "handdrawn",
   onToggleTheme,
   isLoggedIn = false
-}: { 
-  activeTab: Tab; 
-  setActiveTab: (tab: Tab) => void; 
-  lastSaved?: string; 
-  onLogout: () => void; 
-  dueCount?: number;
-  theme?: "handdrawn" | "minimal";
-  onToggleTheme?: () => void;
-  isLoggedIn?: boolean;
-}) {
-  const tabs: { id: Tab; label: string; short: string; icon: any }[] = [
-    { id: "Journal", label: "Home", short: "HOME", icon: Home },
-    { id: "Collections", label: "Collections", short: "HUB", icon: FolderTree },
-    { id: "Projects", label: "Projects", short: "PRJ", icon: FolderKanban },
-    { id: "Học hành", label: "Lộ Trình & Kiến Thức", short: "LỘ TRÌNH", icon: GraduationCap },
-    { id: "Gõ Câu", label: "Gõ Câu (Full)", short: "GÕ CÂU", icon: Keyboard },
-    { id: "English Hub", label: "English Hub", short: "ENG", icon: Languages },
-    { id: "Calendar", label: "Calendar", short: "CAL", icon: CalendarIcon },
+}: NavBarProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [activeModal, setActiveModal] = useState<"friends" | "feedback" | "notes" | "coming_soon" | null>(null);
+
+  const mainNavItems = [
+    { id: "Journal" as Tab, label: "Trang chủ" },
+    { id: "Collections" as Tab, label: "Bộ sưu tập" },
+    { id: "Projects" as Tab, label: "Dự án" },
+    { id: "Học hành" as Tab, label: "Lộ trình & Kiến thức" },
+    { id: "English Hub" as Tab, label: "English" },
+    { id: "Calendar" as Tab, label: "Calendar" },
+    { id: "coming1", label: "Coming soon", isComingSoon: true },
+    { id: "coming2", label: "Coming soon", isComingSoon: true },
+  ];
+
+  const bottomNavItems = [
+    { id: "friends", label: "Tiến độ & Bạn bè", icon: Users },
+    { id: "feedback", label: "Yêu cầu tính năng", icon: HelpCircle },
+    { id: "notes", label: "Ghi chú", icon: FileText },
   ];
 
   return (
-    <aside className="w-full md:w-60 lg:w-64 bg-paper border-b-2 md:border-b-0 md:border-r-2 border-dashed border-ink/20 flex flex-col justify-between shrink-0 md:sticky md:top-0 md:h-screen md:overflow-y-auto z-40 p-3 md:p-5 select-none transition-all">
-      {/* Top: Logo & Brand */}
-      <div className="flex flex-col gap-4">
-        <div 
-          onClick={onToggleTheme}
-          title="Nhấp để chuyển giao diện (Vẽ tay 🎨 / Tối giản ✨)"
-          className="flex items-center gap-2 cursor-pointer group hover:scale-[1.02] transition-transform"
-        >
-          {/* Handdrawn Star Icon */}
-          <div className="relative w-8 h-8 shrink-0 flex items-center justify-center">
-            <svg 
-              className="absolute w-[120%] h-[120%] text-emerald-200 drop-shadow-sm group-hover:animate-[spin_4s_linear_infinite]" 
-              viewBox="0 0 100 100" 
-              fill="currentColor" 
-              stroke="var(--color-ink)" 
-              strokeWidth="4" 
-              strokeLinejoin="round"
-            >
-              <path d="M50 5 L60 30 L85 25 L75 50 L95 65 L70 70 L75 95 L50 80 L25 95 L30 70 L5 65 L25 50 L15 25 L40 30 Z" />
-            </svg>
-            <div className="w-[10px] h-[10px] bg-white border-[2.5px] border-ink rounded-full absolute z-10" />
-          </div>
-
-          <div className="relative flex-1 min-w-0">
-            <svg className="absolute -inset-1 w-[calc(100%+8px)] h-[calc(100%+8px)] text-[#fbcfe8] -rotate-[1deg]" viewBox="0 0 100 40" preserveAspectRatio="none">
-              <path d="M5 10 Q 50 0 95 10 C 98 20 98 30 90 35 Q 50 45 10 35 C 2 30 2 20 5 10 Z" fill="currentColor" stroke="var(--color-ink)" strokeWidth="2.5" strokeDasharray="4 4"/>
-            </svg>
-            <span className="font-logo keep-logo-style text-[18px] md:text-[22px] font-black tracking-widest text-ink relative z-10 uppercase pt-1 inline-block truncate">
-              TRAN HIEN
-            </span>
-          </div>
-
-          <div className="relative w-5 h-5 hidden md:flex items-center justify-center group-hover:-translate-y-0.5 transition-transform">
-            <svg className="w-full h-full text-yellow-300 drop-shadow-sm" viewBox="0 0 100 100" fill="currentColor" stroke="var(--color-ink)" strokeWidth="5" strokeLinejoin="round">
-              <path d="M50 0 L58 35 L100 50 L58 65 L50 100 L42 65 L0 50 L42 35 Z" />
-            </svg>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="hidden md:block w-full border-t border-dashed border-ink/15 my-1" />
-
-        {/* Vertical Navigation Tabs */}
-        <nav className="flex flex-row md:flex-col gap-1.5 md:gap-2 overflow-x-auto md:overflow-x-visible py-1 md:py-0">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={!isActive ? { backgroundColor: "#faf3eb" } : undefined}
-                className={cn(
-                  "relative w-full text-left px-3 py-2 md:py-2.5 rounded-xl transition-all duration-150 flex items-center justify-between group",
-                  isActive
-                    ? "bg-[#FEF08A] text-ink font-black border-2 border-ink shadow-[2.5px_2.5px_0px_#141414] translate-x-0.5"
-                    : "bg-[#faf3eb] text-ink/75 font-bold hover:text-ink hover:bg-[#f3ebd9] border-2 border-transparent"
-                )}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon className={cn("w-4 h-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "text-ink stroke-[2.5]" : "text-ink/60")} />
-                  <span className="text-xs md:text-sm uppercase tracking-wider truncate">
-                    <span className="md:hidden">{tab.short}</span>
-                    <span className="hidden md:inline">{tab.label}</span>
-                  </span>
-                </div>
-
-                {/* Due Count Badge for English Hub */}
-                {tab.id === "English Hub" && dueCount > 0 && (
-                  <span className="shrink-0 bg-crimson text-white text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full font-black shadow-sm ml-1">
-                    {dueCount > 99 ? "99+" : dueCount}
-                  </span>
-                )}
-
-                {/* Active Indicator Squiggle / Dot */}
-                {isActive && (
-                  <span className="hidden md:block w-2 h-2 rounded-full bg-ink shrink-0 ml-1" />
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Bottom: Cloud Sync Status & Account */}
-      <div className="hidden md:flex flex-col gap-3 pt-4 border-t border-dashed border-ink/20">
-        <div 
-          onClick={!isLoggedIn ? onLogout : undefined}
-          className={cn(
-            "flex items-center justify-between text-[11px] font-bold px-3 py-2 rounded-xl border-2 transition-all cursor-pointer",
-            isLoggedIn 
-              ? "bg-emerald-50 text-emerald-900 border-emerald-500 shadow-[2px_2px_0px_#059669]" 
-              : "bg-emerald-50/80 text-emerald-950 border-emerald-400"
-          )}
-          title="Đã kết nối Firebase Firestore - Dữ liệu tự động đồng bộ thời gian thực trên mọi thiết bị!"
-        >
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Đã đồng bộ ☁️</span>
-          </div>
-          <span className="text-[9px] font-mono text-emerald-700 uppercase">Live</span>
-        </div>
-
+    <>
+      <aside 
+        className={cn(
+          "relative bg-[#FAF7F2] border-r-2 border-gray-300 flex flex-col justify-between shrink-0 md:sticky md:top-0 md:h-screen md:overflow-y-auto z-40 p-4 select-none transition-all duration-300 font-sans",
+          isCollapsed ? "w-20" : "w-full md:w-64"
+        )}
+      >
+        {/* Collapse toggle button on the right edge */}
         <button
-          onClick={onLogout}
-          title={isLoggedIn ? "Đăng xuất tài khoản" : "Đăng nhập để đồng bộ dữ liệu trên các thiết bị"}
-          className="w-full flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider px-3 py-2 rounded-xl border-2 border-ink/30 hover:border-ink hover:bg-ink hover:text-paper transition-all active:translate-x-0.5 active:translate-y-0.5"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          title={isCollapsed ? "Mở rộng thanh điều hướng" : "Thu gọn thanh điều hướng"}
+          className="hidden md:flex absolute -right-3 top-28 w-6 h-6 rounded-full border-2 border-black bg-white shadow-sm items-center justify-center text-gray-700 hover:bg-gray-100 z-50 transition-transform hover:scale-110 active:scale-95"
         >
-          {isLoggedIn ? (
-            <>
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Đăng Xuất</span>
-            </>
+          {isCollapsed ? (
+            <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
           ) : (
-            <>
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Đăng Nhập</span>
-            </>
+            <ChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
           )}
         </button>
 
-        {lastSaved && (
-          <div className="text-[10px] text-ink/40 text-center font-mono">
-            {lastSaved}
+        {/* Top: Logo & Nav items */}
+        <div className="flex flex-col gap-5">
+          {/* Brand Header */}
+          <div 
+            onClick={onToggleTheme}
+            className="flex items-center justify-center gap-1.5 cursor-pointer group py-1"
+            title="Nhấp để chuyển giao diện"
+          >
+            {/* Mint Green 5-point Star */}
+            <div className="relative w-6 h-6 shrink-0 flex items-center justify-center">
+              <svg 
+                className="w-full h-full text-emerald-200 drop-shadow-sm group-hover:rotate-45 transition-transform" 
+                viewBox="0 0 100 100" 
+                fill="currentColor" 
+                stroke="#141414" 
+                strokeWidth="4" 
+                strokeLinejoin="round"
+              >
+                <path d="M50 5 L60 30 L85 25 L75 50 L95 65 L70 70 L75 95 L50 80 L25 95 L30 70 L5 65 L25 50 L15 25 L40 30 Z" />
+              </svg>
+              <div className="w-2 h-2 bg-white border-2 border-[#141414] rounded-full absolute z-10" />
+            </div>
+
+            {/* Pink Banner with TRAN HIEN */}
+            {!isCollapsed && (
+              <div className="relative px-3 py-1 bg-[#FCE7F3] border-2 border-dashed border-[#141414] rounded-xl flex items-center justify-center shadow-xs">
+                <span className="font-mono text-sm md:text-base font-black tracking-widest text-[#141414] uppercase">
+                  TRAN HIEN
+                </span>
+              </div>
+            )}
+
+            {/* Yellow 4-point Sparkle Star */}
+            {!isCollapsed && (
+              <div className="relative w-4 h-4 flex items-center justify-center group-hover:scale-125 transition-transform">
+                <svg className="w-full h-full text-yellow-300 drop-shadow-xs" viewBox="0 0 100 100" fill="currentColor" stroke="#141414" strokeWidth="6" strokeLinejoin="round">
+                  <path d="M50 0 L58 35 L100 50 L58 65 L50 100 L42 65 L0 50 L42 35 Z" />
+                </svg>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </aside>
+
+          {/* Navigation List */}
+          <nav className="flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible py-1 md:py-0">
+            {mainNavItems.map((item) => {
+              const isComing = (item as any).isComingSoon;
+              const isActive = !isComing && activeTab === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (isComing) {
+                      setActiveModal("coming_soon");
+                    } else {
+                      setActiveTab(item.id as Tab);
+                    }
+                  }}
+                  className={cn(
+                    "relative w-full text-left transition-all duration-150 flex items-center justify-between rounded-2xl group",
+                    isCollapsed ? "px-2 py-2.5 justify-center" : "px-4 py-2.5",
+                    isActive
+                      ? "bg-[#5468B4] text-white font-bold border-2 border-[#141414] shadow-[3.5px_3.5px_0px_#141414]"
+                      : isComing
+                      ? "text-gray-400 font-medium hover:text-gray-600 bg-transparent"
+                      : "text-gray-700 font-semibold hover:text-black hover:bg-black/5 bg-transparent"
+                  )}
+                >
+                  <span className={cn("text-sm md:text-[15px] truncate", isCollapsed && "hidden")}>
+                    {item.label}
+                  </span>
+
+                  {isCollapsed && (
+                    <span className="text-xs font-bold uppercase">
+                      {item.label.substring(0, 2)}
+                    </span>
+                  )}
+
+                  {/* Due count badge for English */}
+                  {item.id === "English Hub" && dueCount > 0 && !isCollapsed && (
+                    <span className="shrink-0 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-1">
+                      {dueCount > 99 ? "99+" : dueCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Bottom Section */}
+        <div className="flex flex-col gap-4 pt-4">
+          {/* Thin Divider Line */}
+          <div className="w-full border-t border-gray-300" />
+
+          {/* Bottom Links */}
+          {!isCollapsed ? (
+            <div className="flex flex-col gap-2">
+              {bottomNavItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveModal(item.id as any)}
+                  className="w-full text-left px-2 py-1.5 text-sm md:text-[15px] font-bold text-gray-800 hover:text-black hover:bg-black/5 rounded-xl transition-colors"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              {bottomNavItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveModal(item.id as any)}
+                    title={item.label}
+                    className="p-2 text-gray-600 hover:text-black rounded-lg hover:bg-black/5"
+                  >
+                    <Icon className="w-4 h-4" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* User Profile Card */}
+          <div className="w-full bg-white rounded-2xl border-2 border-gray-300 p-2.5 flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {/* Cute Cartoon Avatar */}
+              <div className="w-9 h-9 rounded-full bg-amber-100 border border-gray-400 overflow-hidden shrink-0 flex items-center justify-center">
+                <svg viewBox="0 0 100 100" className="w-full h-full">
+                  <circle cx="50" cy="50" r="48" fill="#fef3c7" />
+                  {/* Cap / Hair */}
+                  <path d="M 20 40 Q 50 15 80 40 Q 85 45 75 48 Q 50 30 25 48 Z" fill="#3b4c8a" />
+                  {/* Face */}
+                  <ellipse cx="50" cy="56" rx="28" ry="24" fill="#fed7aa" />
+                  {/* Eyes */}
+                  <circle cx="40" cy="54" r="3" fill="#141414" />
+                  <circle cx="60" cy="54" r="3" fill="#141414" />
+                  {/* Smile */}
+                  <path d="M 44 65 Q 50 70 56 65" fill="none" stroke="#141414" strokeWidth="2.5" strokeLinecap="round" />
+                  {/* Cheeks */}
+                  <circle cx="34" cy="60" r="3" fill="#fca5a5" opacity="0.8" />
+                  <circle cx="66" cy="60" r="3" fill="#fca5a5" opacity="0.8" />
+                </svg>
+              </div>
+
+              {!isCollapsed && (
+                <div className="flex flex-col min-w-0">
+                  <span className="font-bold text-xs md:text-sm text-gray-900 truncate">
+                    Hien Tran
+                  </span>
+                  <span className="text-[11px] text-gray-500 font-medium">
+                    Trình độ B1
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Logout/Login small button */}
+            {!isCollapsed && (
+              <button
+                onClick={onLogout}
+                title={isLoggedIn ? "Đăng xuất" : "Đăng nhập"}
+                className="p-1.5 text-gray-400 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                {isLoggedIn ? <LogOut className="w-4 h-4" /> : <LogIn className="w-4 h-4" />}
+              </button>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* Interactive Modal for bottom links */}
+      {activeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl border-2 border-black shadow-[6px_6px_0px_#141414] p-6 max-w-md w-full animate-in fade-in zoom-in-95">
+            {activeModal === "friends" && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="w-5 h-5 text-[#5468B4]" />
+                  <h3 className="font-black text-lg text-gray-900">Tiến độ & Bạn bè</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                  Theo dõi tiến độ học tập hàng ngày cùng bạn bè, chia sẻ streak từ vựng và bảng xếp hạng thành viên năng nổ!
+                </p>
+                <div className="space-y-2 mb-5">
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
+                    <span className="text-sm font-bold">Hien Tran (Bạn)</span>
+                    <span className="text-xs font-semibold text-emerald-600">Streak: 12 ngày 🔥</span>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
+                    <span className="text-sm font-bold">Anna Le</span>
+                    <span className="text-xs font-semibold text-emerald-600">Streak: 9 ngày 🔥</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeModal === "feedback" && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <HelpCircle className="w-5 h-5 text-[#5468B4]" />
+                  <h3 className="font-black text-lg text-gray-900">Yêu cầu tính năng</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                  Bạn có ý tưởng hay tính năng mới nào muốn bổ sung cho góc học tập Aio English không?
+                </p>
+                <textarea 
+                  rows={3} 
+                  placeholder="Nhập góp ý hoặc tính năng bạn mong muốn..." 
+                  className="w-full border-2 border-gray-300 rounded-xl p-3 text-sm outline-none focus:border-black mb-4"
+                />
+              </div>
+            )}
+
+            {activeModal === "notes" && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-5 h-5 text-[#5468B4]" />
+                  <h3 className="font-black text-lg text-gray-900">Ghi chú cá nhân</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                  Khu vực ghi chép nhanh những lưu ý quan trọng khi ôn luyện Tiếng Anh và kế hoạch năm 2026.
+                </p>
+                <div className="p-3 bg-[#FEF08A] rounded-xl border-2 border-black text-xs leading-relaxed font-medium mb-4">
+                  "Add up to": con số cộng lại thành tổng, hoặc tổng hợp ý nghĩa thành một kết quả chung.
+                </div>
+              </div>
+            )}
+
+            {activeModal === "coming_soon" && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-5 h-5 text-[#5468B4]" />
+                  <h3 className="font-black text-lg text-gray-900">Tính năng sắp ra mắt</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-5 leading-relaxed">
+                  Phân hệ này đang được phát triển để mang đến trải nghiệm học tập và ghi chép toàn diện nhất. Hãy đón chờ bản cập nhật tiếp theo nhé!
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                onClick={() => setActiveModal(null)}
+                className="bg-[#5468B4] hover:bg-[#46579a] text-white font-bold text-sm px-5 py-2 rounded-xl border border-black shadow-[2px_2px_0px_#141414] transition-all"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

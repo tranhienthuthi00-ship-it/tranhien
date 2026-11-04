@@ -22,7 +22,8 @@ import {
   Zap,
   Award,
   SlidersHorizontal,
-  ChevronDown
+  ChevronDown,
+  Keyboard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';

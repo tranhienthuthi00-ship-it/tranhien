@@ -67,7 +67,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import type { MindmapItem } from '../types';
-import { AioKnowledgeBase, type KnowledgeTopic } from './AioKnowledgeBase';
+import { AioKnowledgeBase, INITIAL_KNOWLEDGE_TOPICS, type KnowledgeTopic } from './AioKnowledgeBase';
 import { AioRoadmapView } from './AioRoadmapView';
 import { AioSentenceTyping } from './AioSentenceTyping';
 
