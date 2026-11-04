@@ -76,7 +76,7 @@ export function Login({ onLogin, onClose }: { onLogin: () => void; onClose?: () 
            </div>
 
            <div className="relative mt-2 px-4 mb-2 inline-block">
-              <svg className="absolute -inset-1 w-[calc(100%+8px)] h-[calc(100%+8px)] text-[#fbcfe8] -rotate-[1deg]" viewBox="0 0 100 40" preserveAspectRatio="none">
+              <svg className="absolute -inset-1 w-[calc(100%+8px)] h-[calc(100%+8px)] text-[#F0D5E4] -rotate-[1deg]" viewBox="0 0 100 40" preserveAspectRatio="none">
                  <path d="M5 10 Q 50 0 95 10 C 98 20 98 30 90 35 Q 50 45 10 35 C 2 30 2 20 5 10 Z" fill="currentColor" stroke="var(--color-ink)" strokeWidth="2.5" strokeDasharray="4 4"/>
               </svg>
               <h1 className="font-logo text-[36px] font-black tracking-widest text-ink relative z-10 uppercase pt-2 inline-block">TRAN HIEN</h1>

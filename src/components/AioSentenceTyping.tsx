@@ -707,7 +707,7 @@ export function AioSentenceTyping({
                 onClick={() => setIsFullscreen(!isFullscreen)}
                 className={cn(
                   "px-3 py-1.5 rounded-xl border-2 border-[#141414] shadow-[2px_2px_0px_#141414] text-xs font-black flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer",
-                  isFullscreen ? "bg-rose-100 text-rose-800 hover:bg-rose-200" : "bg-[#FEF08A] hover:bg-amber-300 text-ink"
+                  isFullscreen ? "bg-rose-100 text-rose-800 hover:bg-rose-200" : "bg-[#F8EFCB] hover:bg-amber-200 text-ink"
                 )}
                 title={isFullscreen ? "Thu nhỏ (Esc)" : "Toàn Màn Hình"}
               >

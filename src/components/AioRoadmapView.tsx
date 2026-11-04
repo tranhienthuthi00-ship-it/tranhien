@@ -249,7 +249,7 @@ export function AioRoadmapView({
 
             <button
               onClick={() => onSwitchToKnowledgeTab()}
-              className="px-3.5 py-2 bg-[#FEF08A] hover:bg-amber-300 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[2.5px_2.5px_0px_#141414] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+              className="px-3.5 py-2 bg-[#F8EFCB] hover:bg-amber-200 text-ink text-xs font-black uppercase rounded-xl border-2 border-[#141414] shadow-[2.5px_2.5px_0px_#141414] flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
             >
               <BookOpen className="w-4 h-4" />
               <span>Kho Kiến Thức (tab=kien-thuc)</span>
@@ -477,7 +477,7 @@ export function AioRoadmapView({
                 <path
                   d={roadGeometry.pathD}
                   fill="none"
-                  stroke="#FEF08A"
+                  stroke="#F8EFCB"
                   strokeWidth="3"
                   strokeDasharray="10 12"
                   strokeLinecap="round"

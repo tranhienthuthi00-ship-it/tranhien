@@ -73,10 +73,10 @@ import { AioSentenceTyping } from './AioSentenceTyping';
 
 // Palette for study nodes
 const NODE_COLORS = [
-  { id: 'yellow', name: 'Vàng Chanh', bg: '#FEF08A', border: '#141414', text: '#141414' },
+  { id: 'yellow', name: 'Vàng Chanh', bg: '#F8EFCB', border: '#141414', text: '#141414' },
   { id: 'mint', name: 'Xanh Bạc Hà', bg: '#DCFCE7', border: '#141414', text: '#141414' },
   { id: 'sky', name: 'Xanh Da Trời', bg: '#DBEAFE', border: '#141414', text: '#141414' },
-  { id: 'pink', name: 'Hồng Phấn', bg: '#FCE7F3', border: '#141414', text: '#141414' },
+  { id: 'pink', name: 'Hồng Phấn', bg: '#F0D5E4', border: '#141414', text: '#141414' },
   { id: 'purple', name: 'Tím Oải Hương', bg: '#EDE9FE', border: '#141414', text: '#141414' },
   { id: 'peach', name: 'Cam Đào', bg: '#FFEDD5', border: '#141414', text: '#141414' },
   { id: 'emerald', name: 'Ngọc Bích', bg: '#A7F3D0', border: '#141414', text: '#141414' },

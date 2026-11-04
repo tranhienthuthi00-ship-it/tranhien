@@ -101,7 +101,7 @@ export function NavBar({
 
             {/* Pink Banner with TRAN HIEN */}
             {!isCollapsed && (
-              <div className="relative px-3 py-1 bg-[#FCE7F3] border-2 border-dashed border-[#141414] rounded-xl flex items-center justify-center shadow-xs">
+              <div className="relative px-3 py-1 bg-[#F0D5E4] border-2 border-dashed border-[#141414] rounded-xl flex items-center justify-center shadow-xs">
                 <span className="font-mono text-sm md:text-base font-black tracking-widest text-[#141414] uppercase">
                   TRAN HIEN
                 </span>
@@ -302,7 +302,7 @@ export function NavBar({
                 <p className="text-sm text-gray-600 mb-4 leading-relaxed">
                   Khu vực ghi chép nhanh những lưu ý quan trọng khi ôn luyện Tiếng Anh và kế hoạch năm 2026.
                 </p>
-                <div className="p-3 bg-[#FEF08A] rounded-xl border-2 border-black text-xs leading-relaxed font-medium mb-4">
+                <div className="p-3 bg-[#F8EFCB] rounded-xl border-2 border-black text-xs leading-relaxed font-medium mb-4">
                   "Add up to": con số cộng lại thành tổng, hoặc tổng hợp ý nghĩa thành một kết quả chung.
                 </div>
               </div>

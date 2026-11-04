@@ -882,7 +882,7 @@ export function AioHomeDashboard({
             {/* Dual Content Columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               {/* Left Column: Yellow Sticky Note Card WITH SAVE BUTTON */}
-              <div className="bg-[#FEF08A] rounded-2xl border-2 border-[#141414] p-4 text-xs leading-relaxed text-gray-900 shadow-[2px_2px_0px_#141414] flex flex-col justify-between">
+              <div className="bg-[#F8EFCB] rounded-2xl border-2 border-[#141414] p-4 text-xs leading-relaxed text-gray-900 shadow-[2px_2px_0px_#141414] flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-black text-sm text-black">Nội dung</h4>
@@ -1006,7 +1006,7 @@ export function AioHomeDashboard({
         {/* BOTTOM RIGHT: Bảng kê tiền mặt Card (cols 12 -> 4) */}
         {/* ========================================================= */}
         <div className="lg:col-span-4 flex flex-col">
-          <div className="w-full bg-[#FEF08A] rounded-[32px] border-2 border-[#141414] shadow-[6px_6px_0px_#141414] p-6 flex flex-col">
+          <div className="w-full bg-[#F8EFCB] rounded-[32px] border-2 border-[#141414] shadow-[6px_6px_0px_#141414] p-6 flex flex-col">
             {/* Header */}
             <h3 className="text-xl md:text-2xl font-black text-gray-900 text-center mb-5 tracking-tight">
               Bảng kê tiền mặt

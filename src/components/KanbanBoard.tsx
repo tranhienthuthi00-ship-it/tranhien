@@ -75,7 +75,7 @@ export function KanbanBoard({
         id: 'n1',
         title: '📌 Ghi chú nhanh mẫu',
         content: 'Chào mừng bạn đến với mục Ghi chú nhanh! Bạn có thể lưu lại ý tưởng, ghi chú cá nhân, thông tin liên hệ hoặc danh sách mua sắm tại đây.',
-        color: '#FEF08A',
+        color: '#F8EFCB',
         isPinned: true,
         createdAt: new Date().toLocaleDateString('vi-VN')
       },
@@ -83,7 +83,7 @@ export function KanbanBoard({
         id: 'n2',
         title: '💡 Ý tưởng dự án mới',
         content: '- Tối ưu hóa bộ lọc Kanban & Hashtags\n- Thêm lịch làm việc tự động\n- Xuất báo cáo công việc',
-        color: '#FBCFE8',
+        color: '#F0D5E4',
         isPinned: false,
         createdAt: new Date().toLocaleDateString('vi-VN')
       }
@@ -98,7 +98,7 @@ export function KanbanBoard({
 
   const [newNoteTitle, setNewNoteTitle] = useState("");
   const [newNoteContent, setNewNoteContent] = useState("");
-  const [newNoteColor, setNewNoteColor] = useState("#FEF08A");
+  const [newNoteColor, setNewNoteColor] = useState("#F8EFCB");
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [editingNote, setEditingNote] = useState<QuickNote | null>(null);
   const [copiedNoteId, setCopiedNoteId] = useState<string | null>(null);
@@ -976,7 +976,7 @@ export function KanbanBoard({
 
           {/* Form thêm ghi chú mới */}
           {isAddingNote && (
-            <div className="bg-[#FEF08A] border-[3px] border-[#141414] rounded-[24px] shadow-[6px_6px_0px_#141414] p-5 sm:p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
+            <div className="bg-[#F8EFCB] border-[3px] border-[#141414] rounded-[24px] shadow-[6px_6px_0px_#141414] p-5 sm:p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
               <div className="flex justify-between items-center pb-2 border-b-2 border-[#141414]/10">
                 <span className="font-extrabold text-sm text-[#141414] uppercase tracking-wider flex items-center gap-2">
                   <StickyNote size={18} /> Tạo ghi chú nhanh mới
@@ -1006,8 +1006,8 @@ export function KanbanBoard({
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-[#141414]">Màu sắc:</span>
                   {[
-                    { hex: '#FEF08A', name: 'Vàng' },
-                    { hex: '#FBCFE8', name: 'Hồng' },
+                    { hex: '#F8EFCB', name: 'Vàng' },
+                    { hex: '#F0D5E4', name: 'Hồng' },
                     { hex: '#BFDBFE', name: 'Xanh' },
                     { hex: '#BBF7D0', name: 'Lá' },
                     { hex: '#DDD6FE', name: 'Tím' },
@@ -1252,8 +1252,8 @@ export function KanbanBoard({
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-[#141414]">Màu:</span>
                 {[
-                  { hex: '#FEF08A' },
-                  { hex: '#FBCFE8' },
+                  { hex: '#F8EFCB' },
+                  { hex: '#F0D5E4' },
                   { hex: '#BFDBFE' },
                   { hex: '#BBF7D0' },
                   { hex: '#DDD6FE' },

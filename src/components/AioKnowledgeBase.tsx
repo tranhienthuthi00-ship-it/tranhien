@@ -740,7 +740,7 @@ export function AioKnowledgeBase({
       {/* 1. HERO BANNER: AIO ENGLISH LỘ TRÌNH KIẾN THỨC */}
       <div className="bg-[#FFFDF7] p-5 sm:p-6 rounded-[24px] border-[2.5px] border-[#141414] shadow-[5px_5px_0px_#141414] flex flex-col md:flex-row items-center justify-between gap-5 relative overflow-hidden">
         {/* Decorative corner tag */}
-        <div className="absolute top-0 right-0 bg-[#FEF08A] text-ink font-black text-[10px] uppercase px-4 py-1 border-b-2 border-l-2 border-[#141414] tracking-widest rounded-bl-xl shadow-xs">
+        <div className="absolute top-0 right-0 bg-[#F8EFCB] text-ink font-black text-[10px] uppercase px-4 py-1 border-b-2 border-l-2 border-[#141414] tracking-widest rounded-bl-xl shadow-xs">
           AIO English Standard • Kho Kiến Thức Toàn Diện
         </div>
 
