@@ -348,6 +348,25 @@ export function AioHomeDashboard({
     setNewGoalText("");
   };
 
+  // State for double-click editing of bucket list items
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [editingGoalText, setEditingGoalText] = useState("");
+
+  const handleSaveEditedGoal = (id: string) => {
+    const clean = editingGoalText.trim();
+    if (!clean) {
+      // Xoá hết ký tự để xoá mục tiêu theo yêu cầu
+      const updated = bucketList.filter((item) => item.id !== id);
+      saveBucket(updated);
+    } else {
+      const updated = bucketList.map((item) =>
+        item.id === id ? { ...item, text: clean } : item
+      );
+      saveBucket(updated);
+    }
+    setEditingGoalId(null);
+  };
+
   // Cash denomination state
   const [cashItems, setCashItems] = useState<CashItem[]>(() => {
     try {
@@ -643,96 +662,192 @@ export function AioHomeDashboard({
               </span>
             </div>
 
-            {/* 3 Columns Grid of Bucket List Items */}
+            {/* 3 Columns Grid of Bucket List Items with Double-Click to Edit & Clear to Delete */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1.5 mb-2">
               {/* Column 1 */}
               <div className="flex flex-col gap-1.5">
-                {bucketList.slice(0, 11).map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => toggleBucketItem(item.id)}
-                    className="flex items-center gap-1.5 text-left group transition-all cursor-pointer"
-                  >
-                    <span
-                      className={`w-4 h-4 rounded-full border-2 border-gray-700 shrink-0 flex items-center justify-center transition-all ${
-                        item.completed
-                          ? "bg-[#5468B4] border-[#5468B4] text-white"
-                          : "group-hover:border-black"
-                      }`}
+                {bucketList.slice(0, 11).map((item) => {
+                  const isEditing = editingGoalId === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-1.5 text-left group transition-all min-h-[22px]"
                     >
-                      {item.completed && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                    </span>
-                    <span
-                      className={`text-[11px] md:text-xs font-medium truncate ${
-                        item.completed
-                          ? "line-through text-gray-400 italic"
-                          : "text-gray-800 group-hover:text-black"
-                      }`}
-                    >
-                      {item.text}
-                    </span>
-                  </button>
-                ))}
+                      <button
+                        type="button"
+                        onClick={() => toggleBucketItem(item.id)}
+                        title={item.completed ? "Đánh dấu chưa hoàn thành" : "Đánh dấu đã hoàn thành"}
+                        className="shrink-0 cursor-pointer"
+                      >
+                        <span
+                          className={`w-4 h-4 rounded-full border-2 border-gray-700 shrink-0 flex items-center justify-center transition-all ${
+                            item.completed
+                              ? "bg-[#5468B4] border-[#5468B4] text-white"
+                              : "group-hover:border-black"
+                          }`}
+                        >
+                          {item.completed && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                        </span>
+                      </button>
+
+                      {isEditing ? (
+                        <input
+                          autoFocus
+                          type="text"
+                          value={editingGoalText}
+                          onChange={(e) => setEditingGoalText(e.target.value)}
+                          onBlur={() => handleSaveEditedGoal(item.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveEditedGoal(item.id);
+                            if (e.key === "Escape") setEditingGoalId(null);
+                          }}
+                          placeholder="Xoá hết để xoá mục tiêu..."
+                          className="text-[11px] md:text-xs font-medium text-gray-900 border-b-2 border-[#5468B4] bg-white rounded-xs outline-none w-full px-1 py-0.5"
+                        />
+                      ) : (
+                        <span
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            setEditingGoalId(item.id);
+                            setEditingGoalText(item.text);
+                          }}
+                          title="Nhấn đúp để sửa mục tiêu (xoá hết ký tự để xoá)"
+                          className={`text-[11px] md:text-xs font-medium truncate flex-1 cursor-text select-text ${
+                            item.completed
+                              ? "line-through text-gray-400 italic"
+                              : "text-gray-800 group-hover:text-black"
+                          }`}
+                        >
+                          {item.text}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Column 2 */}
               <div className="flex flex-col gap-1.5">
-                {bucketList.slice(11, 22).map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => toggleBucketItem(item.id)}
-                    className="flex items-center gap-1.5 text-left group transition-all cursor-pointer"
-                  >
-                    <span
-                      className={`w-4 h-4 rounded-full border-2 border-gray-700 shrink-0 flex items-center justify-center transition-all ${
-                        item.completed
-                          ? "bg-[#5468B4] border-[#5468B4] text-white"
-                          : "group-hover:border-black"
-                      }`}
+                {bucketList.slice(11, 22).map((item) => {
+                  const isEditing = editingGoalId === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-1.5 text-left group transition-all min-h-[22px]"
                     >
-                      {item.completed && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                    </span>
-                    <span
-                      className={`text-[11px] md:text-xs font-medium truncate ${
-                        item.completed
-                          ? "line-through text-gray-400 italic"
-                          : "text-gray-800 group-hover:text-black"
-                      }`}
-                    >
-                      {item.text}
-                    </span>
-                  </button>
-                ))}
+                      <button
+                        type="button"
+                        onClick={() => toggleBucketItem(item.id)}
+                        title={item.completed ? "Đánh dấu chưa hoàn thành" : "Đánh dấu đã hoàn thành"}
+                        className="shrink-0 cursor-pointer"
+                      >
+                        <span
+                          className={`w-4 h-4 rounded-full border-2 border-gray-700 shrink-0 flex items-center justify-center transition-all ${
+                            item.completed
+                              ? "bg-[#5468B4] border-[#5468B4] text-white"
+                              : "group-hover:border-black"
+                          }`}
+                        >
+                          {item.completed && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                        </span>
+                      </button>
+
+                      {isEditing ? (
+                        <input
+                          autoFocus
+                          type="text"
+                          value={editingGoalText}
+                          onChange={(e) => setEditingGoalText(e.target.value)}
+                          onBlur={() => handleSaveEditedGoal(item.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveEditedGoal(item.id);
+                            if (e.key === "Escape") setEditingGoalId(null);
+                          }}
+                          placeholder="Xoá hết để xoá mục tiêu..."
+                          className="text-[11px] md:text-xs font-medium text-gray-900 border-b-2 border-[#5468B4] bg-white rounded-xs outline-none w-full px-1 py-0.5"
+                        />
+                      ) : (
+                        <span
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            setEditingGoalId(item.id);
+                            setEditingGoalText(item.text);
+                          }}
+                          title="Nhấn đúp để sửa mục tiêu (xoá hết ký tự để xoá)"
+                          className={`text-[11px] md:text-xs font-medium truncate flex-1 cursor-text select-text ${
+                            item.completed
+                              ? "line-through text-gray-400 italic"
+                              : "text-gray-800 group-hover:text-black"
+                          }`}
+                        >
+                          {item.text}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Column 3 */}
               <div className="flex flex-col gap-1.5">
-                {bucketList.slice(22).map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => toggleBucketItem(item.id)}
-                    className="flex items-center gap-1.5 text-left group transition-all cursor-pointer"
-                  >
-                    <span
-                      className={`w-4 h-4 rounded-full border-2 border-gray-700 shrink-0 flex items-center justify-center transition-all ${
-                        item.completed
-                          ? "bg-[#5468B4] border-[#5468B4] text-white"
-                          : "group-hover:border-black"
-                      }`}
+                {bucketList.slice(22).map((item) => {
+                  const isEditing = editingGoalId === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-1.5 text-left group transition-all min-h-[22px]"
                     >
-                      {item.completed && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                    </span>
-                    <span
-                      className={`text-[11px] md:text-xs font-medium truncate ${
-                        item.completed
-                          ? "line-through text-gray-400 italic"
-                          : "text-gray-800 group-hover:text-black"
-                      }`}
-                    >
-                      {item.text}
-                    </span>
-                  </button>
-                ))}
+                      <button
+                        type="button"
+                        onClick={() => toggleBucketItem(item.id)}
+                        title={item.completed ? "Đánh dấu chưa hoàn thành" : "Đánh dấu đã hoàn thành"}
+                        className="shrink-0 cursor-pointer"
+                      >
+                        <span
+                          className={`w-4 h-4 rounded-full border-2 border-gray-700 shrink-0 flex items-center justify-center transition-all ${
+                            item.completed
+                              ? "bg-[#5468B4] border-[#5468B4] text-white"
+                              : "group-hover:border-black"
+                          }`}
+                        >
+                          {item.completed && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                        </span>
+                      </button>
+
+                      {isEditing ? (
+                        <input
+                          autoFocus
+                          type="text"
+                          value={editingGoalText}
+                          onChange={(e) => setEditingGoalText(e.target.value)}
+                          onBlur={() => handleSaveEditedGoal(item.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveEditedGoal(item.id);
+                            if (e.key === "Escape") setEditingGoalId(null);
+                          }}
+                          placeholder="Xoá hết để xoá mục tiêu..."
+                          className="text-[11px] md:text-xs font-medium text-gray-900 border-b-2 border-[#5468B4] bg-white rounded-xs outline-none w-full px-1 py-0.5"
+                        />
+                      ) : (
+                        <span
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            setEditingGoalId(item.id);
+                            setEditingGoalText(item.text);
+                          }}
+                          title="Nhấn đúp để sửa mục tiêu (xoá hết ký tự để xoá)"
+                          className={`text-[11px] md:text-xs font-medium truncate flex-1 cursor-text select-text ${
+                            item.completed
+                              ? "line-through text-gray-400 italic"
+                              : "text-gray-800 group-hover:text-black"
+                          }`}
+                        >
+                          {item.text}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
