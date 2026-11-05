@@ -23,8 +23,12 @@ export function AioAssetsManagement() {
     setAssets,
     assetCategories = [],
     bulkCardSpends = [],
-    setBulkCardSpends 
+    setBulkCardSpends,
+    bulkDebts = [],
+    setBulkDebts,
   } = useFirebase();
+
+  const [activePage, setActivePage] = useState<"page1" | "page2">("page1");
 
   // Credit card spends state - Preserves previously saved data from localStorage and bulkCardSpends
   const [creditSpends, setCreditSpends] = useState<CreditCardSpend[]>(() => {
@@ -58,6 +62,14 @@ export function AioAssetsManagement() {
 
   const saveCreditSpends = (items: CreditCardSpend[]) => {
     setCreditSpends(items);
+    setBulkCardSpends(
+      items.map((it, idx) => ({
+        id: idx + 1,
+        name: it.date,
+        amount: String(it.amount),
+        notes: it.description,
+      }))
+    );
     try {
       localStorage.setItem("aio_credit_spends_data", JSON.stringify(items));
     } catch (e) {
@@ -206,7 +218,7 @@ export function AioAssetsManagement() {
 
   // Filter into 3 groups
   const currentAssets = useMemo(() => {
-    return assets.filter((a) => !a.isDebt && !a.isLoan);
+    return assets.filter((a) => !a.isDebt && !a.isLoan && !a.isNewMoney);
   }, [assets]);
 
   const loanAssets = useMemo(() => {
@@ -274,10 +286,136 @@ export function AioAssetsManagement() {
     });
   }, [allocation]);
 
+  // New Money (Bảng kê tiền mới) denominations & handlers
+  const NEW_MONEY_DENOMS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
+
+  const getNewMoneyQty = (denom: number) => {
+    const found = assets.find((a) => a.isNewMoney && Number(a.denomination) === denom);
+    return found?.quantity || 0;
+  };
+
+  const updateNewMoneyQty = (denom: number, newQty: number) => {
+    const qty = Math.max(0, newQty);
+    const existingIdx = assets.findIndex((a) => a.isNewMoney && Number(a.denomination) === denom);
+    const defaultCatId = assetCategories[0]?.id || "cat-money";
+
+    if (qty === 0) {
+      if (existingIdx !== -1) {
+        setAssets(assets.filter((_, idx) => idx !== existingIdx));
+      }
+      return;
+    }
+
+    const val = denom * qty;
+    if (existingIdx !== -1) {
+      const updated = [...assets];
+      updated[existingIdx] = {
+        ...updated[existingIdx],
+        quantity: qty,
+        value: val,
+      };
+      setAssets(updated);
+    } else {
+      const newAsset: Asset = {
+        id: `new-money-${denom}-${Date.now()}`,
+        name: `Tiền mới ${denom.toLocaleString("vi-VN")}đ`,
+        category: defaultCatId,
+        value: val,
+        currency: "VND",
+        quantity: qty,
+        denomination: denom,
+        isNewMoney: true,
+        acquiredAt: Date.now(),
+      };
+      setAssets([...assets, newAsset]);
+    }
+  };
+
+  const resetNewMoney = () => {
+    setAssets(assets.filter((a) => !a.isNewMoney));
+  };
+
+  const totalNewMoney = useMemo(() => {
+    return NEW_MONEY_DENOMS.reduce((sum, d) => sum + d * getNewMoneyQty(d), 0);
+  }, [assets]);
+
+  // Bulk Debts / Revenue (Bảng kê doanh thu) handlers
+  const handleUpdateBulkDebt = (id: number, field: "name" | "amount" | "notes", value: string) => {
+    setBulkDebts((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
+    );
+  };
+
+  const handleResetBulkDebts = () => {
+    const dates: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dates.push(d.toISOString().split("T")[0]);
+    }
+    setBulkDebts(
+      dates.map((dateStr, idx) => ({
+        id: idx + 1,
+        name: dateStr,
+        amount: "",
+        notes: "",
+      }))
+    );
+  };
+
+  const totalBulkRevenue = useMemo(() => {
+    return bulkDebts.reduce((sum, d) => sum + parseVNDAmount(d.amount || "0"), 0);
+  }, [bulkDebts]);
+
+  const touchStartX = React.useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && activePage === "page1") setActivePage("page2");
+      else if (diff < 0 && activePage === "page2") setActivePage("page1");
+    }
+    touchStartX.current = null;
+  };
+
   return (
-    <div className="w-full max-w-[1520px] mx-auto py-1 px-2 sm:px-3 md:px-5 select-none font-sans">
-      {/* 2x2 Grid compact layout that fits nicely inside the screen */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="w-full max-w-[1520px] mx-auto py-1 px-2 sm:px-3 md:px-5 select-none font-sans flex flex-col gap-2.5"
+    >
+      {/* Pagination Dots */}
+      <div className="flex items-center justify-center gap-2 py-0.5">
+        <button
+          type="button"
+          onClick={() => setActivePage("page1")}
+          aria-label="Trang 1"
+          className={`h-2.5 rounded-full border-2 border-[#141414] transition-all cursor-pointer ${
+            activePage === "page1"
+              ? "w-7 bg-[#5468B4] shadow-[1.5px_1.5px_0px_#141414]"
+              : "w-2.5 bg-white hover:bg-gray-200"
+          }`}
+        />
+        <button
+          type="button"
+          onClick={() => setActivePage("page2")}
+          aria-label="Trang 2"
+          className={`h-2.5 rounded-full border-2 border-[#141414] transition-all cursor-pointer ${
+            activePage === "page2"
+              ? "w-7 bg-[#5468B4] shadow-[1.5px_1.5px_0px_#141414]"
+              : "w-2.5 bg-white hover:bg-gray-200"
+          }`}
+        />
+      </div>
+
+      {activePage === "page1" ? (
+        /* 2x2 Grid compact layout that fits nicely inside the screen */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
         {/* ========================================================= */}
         {/* TOP LEFT (lg:col-span-7): Thêm Tài Sản Mới                */}
         {/* ========================================================= */}
@@ -718,6 +856,175 @@ export function AioAssetsManagement() {
           </div>
         </div>
       </div>
+      ) : (
+        /* ========================================================= */
+        /* PAGE 2: Bảng kê tiền mới & Bảng kê doanh thu              */
+        /* ========================================================= */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
+          {/* LEFT (lg:col-span-5): Bảng kê tiền mới */}
+          <div className="lg:col-span-5 flex flex-col">
+            <div className="w-full h-full bg-[#F8EFCB] rounded-[22px] border-2 border-[#141414] shadow-[4px_4px_0px_#141414] p-3.5 md:p-4 flex flex-col justify-between">
+              <div>
+                <h3 className="text-base md:text-lg font-bold text-gray-900 text-center mb-2.5 tracking-tight">
+                  Bảng kê tiền mới
+                </h3>
+
+                <div className="bg-white rounded-2xl border-2 border-[#141414] p-3 shadow-xs flex flex-col justify-between">
+                  <div className="flex flex-col gap-1.5 font-mono text-xs text-gray-800">
+                    {NEW_MONEY_DENOMS.map((denom) => {
+                      const qty = getNewMoneyQty(denom);
+                      const subtotal = denom * qty;
+                      return (
+                        <div
+                          key={denom}
+                          className="flex items-center justify-between hover:bg-gray-50 px-1.5 py-0.5 rounded transition-colors group"
+                        >
+                          <span className="font-semibold w-16 text-right">
+                            {denom.toLocaleString("vi-VN")}
+                          </span>
+                          <span className="text-gray-400 text-[10px]">*</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => updateNewMoneyQty(denom, qty - 1)}
+                              className="opacity-60 group-hover:opacity-100 text-gray-500 hover:text-black w-4 h-4 flex items-center justify-center rounded text-xs cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              min={0}
+                              value={qty}
+                              onChange={(e) =>
+                                updateNewMoneyQty(denom, parseInt(e.target.value, 10) || 0)
+                              }
+                              className="w-10 text-center font-bold bg-transparent border-b border-gray-300 focus:border-[#5468B4] focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => updateNewMoneyQty(denom, qty + 1)}
+                              className="opacity-60 group-hover:opacity-100 text-gray-500 hover:text-black w-4 h-4 flex items-center justify-center rounded text-xs cursor-pointer"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <span className="text-gray-400 text-[10px]">=</span>
+                          <span className="font-bold w-24 text-right text-[#5468B4]">
+                            {subtotal.toLocaleString("vi-VN")}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="pt-2.5 mt-2.5 border-t-2 border-[#141414] flex items-center justify-between font-mono font-black text-xs md:text-sm">
+                    <button
+                      type="button"
+                      onClick={resetNewMoney}
+                      title="Xóa toàn bộ tiền mới"
+                      className="text-[11px] text-gray-500 hover:text-black flex items-center gap-1 font-sans font-bold cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Đặt lại</span>
+                    </button>
+                    <span className="text-right tracking-wider text-gray-900">
+                      {totalNewMoney.toLocaleString("vi-VN")} đ
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT (lg:col-span-7): Bảng kê doanh thu */}
+          <div className="lg:col-span-7 flex flex-col">
+            <div className="w-full h-full bg-[#EAEFFD] rounded-[22px] border-2 border-[#141414] shadow-[4px_4px_0px_#141414] p-3.5 md:p-4 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <h3 className="text-base md:text-lg font-bold text-gray-900 tracking-tight">
+                    Bảng kê doanh thu
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={handleResetBulkDebts}
+                    className="bg-white hover:bg-gray-100 text-black font-bold px-3 py-1 rounded-full border-2 border-[#141414] shadow-[2px_2px_0px_#141414] text-[11px] flex items-center gap-1 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Đặt lại 7 ngày</span>
+                  </button>
+                </div>
+
+                <div className="bg-white rounded-2xl border-2 border-[#141414] p-3 shadow-xs flex flex-col gap-2">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-gray-600 border-b border-dashed border-gray-300 pb-1.5 px-1">
+                    <div className="col-span-3">Ngày</div>
+                    <div className="col-span-4">Số tiền (VND)</div>
+                    <div className="col-span-5">Ghi chú</div>
+                  </div>
+
+                  {/* 7-day rows */}
+                  <div className="flex flex-col gap-1.5 max-h-[340px] overflow-y-auto pr-0.5">
+                    {bulkDebts.map((row) => (
+                      <div
+                        key={row.id}
+                        className="grid grid-cols-12 gap-2 items-center"
+                      >
+                        <div className="col-span-3">
+                          <input
+                            type="text"
+                            value={row.name}
+                            onChange={(e) =>
+                              handleUpdateBulkDebt(row.id, "name", e.target.value)
+                            }
+                            placeholder="YYYY-MM-DD"
+                            className="w-full bg-[#FAF8F5] border border-gray-300 focus:border-[#141414] rounded-lg px-2 py-1 text-xs font-mono outline-none"
+                          />
+                        </div>
+                        <div className="col-span-4">
+                          <input
+                            type="text"
+                            value={row.amount}
+                            onChange={(e) =>
+                              handleUpdateBulkDebt(row.id, "amount", e.target.value)
+                            }
+                            placeholder="VD: 500000"
+                            className="w-full bg-white border border-gray-300 focus:border-[#5468B4] rounded-lg px-2.5 py-1 text-xs font-mono font-bold outline-none"
+                          />
+                        </div>
+                        <div className="col-span-5">
+                          <input
+                            type="text"
+                            value={row.notes}
+                            onChange={(e) =>
+                              handleUpdateBulkDebt(row.id, "notes", e.target.value)
+                            }
+                            placeholder="Ghi chú doanh thu..."
+                            className="w-full bg-white border border-gray-300 focus:border-[#141414] rounded-lg px-2.5 py-1 text-xs outline-none"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Total Line */}
+              <div className="pt-2.5 mt-2.5 border-t border-dashed border-[#5468B4]/40 flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-800">
+                  Tổng doanh thu / nợ (tự động đồng bộ vào tài sản):
+                </span>
+                <span
+                  className={`text-xs md:text-sm font-black font-mono tracking-tight ${
+                    totalBulkRevenue < 0 ? "text-teal-600" : "text-[#5468B4]"
+                  }`}
+                >
+                  {totalBulkRevenue.toLocaleString("vi-VN")} đ
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

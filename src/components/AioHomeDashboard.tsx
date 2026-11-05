@@ -14,6 +14,7 @@ import {
   Sparkles,
   Edit2
 } from "lucide-react";
+import { useFirebase } from "../context/FirebaseContext";
 
 interface BucketItem {
   id: string;
@@ -367,18 +368,53 @@ export function AioHomeDashboard({
     setEditingGoalId(null);
   };
 
-  // Cash denomination state
-  const [cashItems, setCashItems] = useState<CashItem[]>(() => {
+  const { bulkCurrentCash, setBulkCurrentCash } = useFirebase();
+
+  // Migrate localStorage aio_cash_breakdown to bulkCurrentCash if bulkCurrentCash is empty
+  React.useEffect(() => {
+    const hasBulk = bulkCurrentCash && Object.keys(bulkCurrentCash).length > 0;
+    if (!hasBulk) {
+      try {
+        const saved = localStorage.getItem("aio_cash_breakdown");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const nextMap: Record<number, number> = {};
+            parsed.forEach((it: CashItem) => {
+              nextMap[it.denom] = it.qty;
+            });
+            setBulkCurrentCash(nextMap);
+          }
+        }
+      } catch {}
+    }
+  }, [bulkCurrentCash, setBulkCurrentCash]);
+
+  // Cash denomination state synced with bulkCurrentCash
+  const cashItems: CashItem[] = useMemo(() => {
+    const hasBulk = bulkCurrentCash && Object.keys(bulkCurrentCash).length > 0;
+    if (hasBulk) {
+      return DEFAULT_CASH_LIST.map((item) => ({
+        denom: item.denom,
+        qty: bulkCurrentCash[item.denom] ?? 0,
+      }));
+    }
     try {
       const saved = localStorage.getItem("aio_cash_breakdown");
-      return saved ? JSON.parse(saved) : DEFAULT_CASH_LIST;
-    } catch {
-      return DEFAULT_CASH_LIST;
-    }
-  });
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_CASH_LIST;
+  }, [bulkCurrentCash]);
 
   const saveCash = (items: CashItem[]) => {
-    setCashItems(items);
+    const nextMap: Record<number, number> = {};
+    items.forEach((it) => {
+      nextMap[it.denom] = it.qty;
+    });
+    setBulkCurrentCash(nextMap);
     try {
       localStorage.setItem("aio_cash_breakdown", JSON.stringify(items));
     } catch (e) {
@@ -387,14 +423,16 @@ export function AioHomeDashboard({
   };
 
   const updateCashQty = (index: number, delta: number) => {
-    const updated = [...cashItems];
-    updated[index].qty = Math.max(0, updated[index].qty + delta);
+    const updated = cashItems.map((it, idx) =>
+      idx === index ? { ...it, qty: Math.max(0, it.qty + delta) } : it
+    );
     saveCash(updated);
   };
 
   const setCashQtyDirect = (index: number, val: number) => {
-    const updated = [...cashItems];
-    updated[index].qty = Math.max(0, val);
+    const updated = cashItems.map((it, idx) =>
+      idx === index ? { ...it, qty: Math.max(0, val) } : it
+    );
     saveCash(updated);
   };
 
