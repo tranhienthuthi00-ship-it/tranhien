@@ -339,6 +339,15 @@ export function AioAssetsManagement() {
     return NEW_MONEY_DENOMS.reduce((sum, d) => sum + d * getNewMoneyQty(d), 0);
   }, [assets]);
 
+  const formatVNDInput = (val: string) => {
+    if (!val) return "";
+    const isNeg = val.trim().startsWith("-");
+    const digits = val.replace(/\D/g, "");
+    if (!digits) return isNeg ? "-" : "";
+    const formatted = parseInt(digits, 10).toLocaleString("vi-VN");
+    return isNeg ? `-${formatted}` : formatted;
+  };
+
   // Bulk Debts / Revenue (Bảng kê doanh thu) handlers
   const handleUpdateBulkDebt = (id: number, field: "name" | "amount" | "notes", value: string) => {
     setBulkDebts((prev) => {
@@ -693,9 +702,6 @@ export function AioAssetsManagement() {
                           <span className="text-xs font-bold text-gray-900 truncate">
                             {item.name}
                           </span>
-                          <span className="inline-block px-2 py-0.2 rounded-full text-[9px] font-bold bg-[#E0F2FE] text-sky-800 border border-sky-300">
-                            Cho vay
-                          </span>
                         </div>
 
                         <div className="flex items-center gap-1.5">
@@ -746,9 +752,6 @@ export function AioAssetsManagement() {
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-xs font-bold text-gray-900 truncate">
                             {item.name}
-                          </span>
-                          <span className="inline-block px-2 py-0.2 rounded-full text-[9px] font-bold bg-[#FEE2E2] text-rose-800 border border-rose-300">
-                            Đi vay
                           </span>
                         </div>
 
@@ -848,14 +851,14 @@ export function AioAssetsManagement() {
                 </form>
 
                 {/* Right side: Spends List (sm:col-span-6) */}
-                <div className="sm:col-span-6 flex flex-col gap-1 max-h-[175px] overflow-y-auto pr-1">
+                <div className="sm:col-span-6 bg-white/90 rounded-xl border-2 border-[#141414] p-2 shadow-xs flex flex-col gap-1 max-h-[175px] overflow-y-auto">
                   {creditSpends.map((cs) => (
                     <div
                       key={cs.id}
-                      className="flex items-center justify-between gap-1 p-1 rounded-lg hover:bg-white/60 transition-colors group"
+                      className="flex items-center justify-between gap-1 p-1 rounded-lg hover:bg-[#FAF8F5] transition-colors group"
                     >
                       <div className="flex items-center gap-1 min-w-0">
-                        <span className="border border-gray-600 rounded-full px-1.5 py-0.2 text-[8px] font-mono text-gray-700 bg-white/80 shrink-0">
+                        <span className="border border-[#141414]/40 rounded-full px-1.5 py-0.2 text-[8px] font-mono text-gray-700 bg-[#FAF8F5] shrink-0">
                           {cs.shortDate}
                         </span>
                         <span className="text-xs font-semibold text-gray-800 truncate">
@@ -882,7 +885,7 @@ export function AioAssetsManagement() {
             </div>
 
             {/* Bottom Total Line */}
-            <div className="pt-2 mt-2 border-t border-dashed border-rose-300 flex items-center justify-between">
+            <div className="pt-2 mt-2 border-t border-dashed border-[#141414]/25 flex items-center justify-between">
               <span className="text-xs font-bold text-gray-800">Tổng chi tiêu:</span>
               <span className="text-xs md:text-sm font-black text-rose-500 font-mono tracking-tight">
                 {totalCreditSpend.toLocaleString("vi-VN")} đ
@@ -1018,11 +1021,15 @@ export function AioAssetsManagement() {
                         <div className="col-span-4">
                           <input
                             type="text"
-                            value={row.amount}
+                            value={formatVNDInput(row.amount)}
                             onChange={(e) =>
-                              handleUpdateBulkDebt(row.id, "amount", e.target.value)
+                              handleUpdateBulkDebt(
+                                row.id,
+                                "amount",
+                                formatVNDInput(e.target.value)
+                              )
                             }
-                            placeholder="VD: 500000"
+                            placeholder="VD: 1.000.000"
                             className="w-full bg-white border border-gray-300 focus:border-[#5468B4] rounded-lg px-2.5 py-1 text-xs font-mono font-bold outline-none"
                           />
                         </div>
