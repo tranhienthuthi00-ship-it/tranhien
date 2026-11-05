@@ -437,7 +437,7 @@ export function AioHomeDashboard({
   };
 
   const resetCash = () => {
-    saveCash(DEFAULT_CASH_LIST);
+    saveCash(DEFAULT_CASH_LIST.map((it) => ({ ...it, qty: 0 })));
   };
 
   // Computed total

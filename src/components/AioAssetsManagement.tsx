@@ -346,12 +346,22 @@ export function AioAssetsManagement() {
     );
   };
 
+  const formatDMY = (dateStr: string) => {
+    if (!dateStr) return "";
+    const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+    return dateStr;
+  };
+
   const handleResetBulkDebts = () => {
     const dates: string[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      dates.push(d.toISOString().split("T")[0]);
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      dates.push(`${dd}/${mm}/${yyyy}`);
     }
     setBulkDebts(
       dates.map((dateStr, idx) => ({
@@ -502,7 +512,7 @@ export function AioAssetsManagement() {
         {/* TOP RIGHT (lg:col-span-5): Phân Bổ Tài Sản                */}
         {/* ========================================================= */}
         <div className="lg:col-span-5 flex flex-col">
-          <div className="w-full h-full bg-white rounded-[22px] border-2 border-[#141414] shadow-[4px_4px_0px_#141414] p-3.5 md:p-4 flex flex-col items-center justify-between">
+          <div className="w-full h-full bg-[#F8EFCB] rounded-[22px] border-2 border-[#141414] shadow-[4px_4px_0px_#141414] p-3.5 md:p-4 flex flex-col items-center justify-between">
             <h3 className="text-base md:text-lg font-bold text-center text-gray-900 mb-1 tracking-tight">
               Phân bổ tài sản
             </h3>
@@ -510,7 +520,7 @@ export function AioAssetsManagement() {
             {/* Circular Donut Chart */}
             <div className="relative w-32 h-32 md:w-36 md:h-36 flex items-center justify-center my-1">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#F3F4F6" strokeWidth="16" />
+                <circle cx="50" cy="50" r="38" fill="#FFFFFF" stroke="#E5E7EB" strokeWidth="16" />
 
                 {donutSegments.map((seg) => (
                   <circle
@@ -749,7 +759,7 @@ export function AioAssetsManagement() {
         {/* BOTTOM RIGHT (lg:col-span-5): Chi Tiêu Thẻ Tín Dụng       */}
         {/* ========================================================= */}
         <div className="lg:col-span-5 flex flex-col">
-          <div className="w-full h-full bg-[#FAF0EB] rounded-[22px] border-2 border-[#141414] shadow-[4px_4px_0px_#141414] p-3.5 md:p-4 flex flex-col justify-between">
+          <div className="w-full h-full bg-[#F0D5E4] rounded-[22px] border-2 border-[#141414] shadow-[4px_4px_0px_#141414] p-3.5 md:p-4 flex flex-col justify-between">
             <div>
               <h3 className="text-base md:text-lg font-bold text-gray-900 tracking-tight mb-2">
                 Chi tiêu thẻ tín dụng
@@ -972,11 +982,11 @@ export function AioAssetsManagement() {
                         <div className="col-span-3">
                           <input
                             type="text"
-                            value={row.name}
+                            value={formatDMY(row.name)}
                             onChange={(e) =>
                               handleUpdateBulkDebt(row.id, "name", e.target.value)
                             }
-                            placeholder="YYYY-MM-DD"
+                            placeholder="dd/mm/yyyy"
                             className="w-full bg-[#FAF8F5] border border-gray-300 focus:border-[#141414] rounded-lg px-2 py-1 text-xs font-mono outline-none"
                           />
                         </div>
