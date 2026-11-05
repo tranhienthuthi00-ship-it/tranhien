@@ -341,9 +341,34 @@ export function AioAssetsManagement() {
 
   // Bulk Debts / Revenue (Bảng kê doanh thu) handlers
   const handleUpdateBulkDebt = (id: number, field: "name" | "amount" | "notes", value: string) => {
-    setBulkDebts((prev) =>
-      prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
-    );
+    setBulkDebts((prev) => {
+      const isFirstRowDate = field === "name" && prev.length > 0 && prev[0].id === id;
+      if (isFirstRowDate) {
+        const match = value.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (match) {
+          const day = parseInt(match[1], 10);
+          const month = parseInt(match[2], 10) - 1;
+          const year = parseInt(match[3], 10);
+          const baseDate = new Date(year, month, day);
+          if (
+            !isNaN(baseDate.getTime()) &&
+            baseDate.getFullYear() === year &&
+            baseDate.getMonth() === month &&
+            baseDate.getDate() === day
+          ) {
+            return prev.map((row, idx) => {
+              if (idx === 0) return { ...row, name: value };
+              const nextDate = new Date(year, month, day + idx);
+              const dd = String(nextDate.getDate()).padStart(2, "0");
+              const mm = String(nextDate.getMonth() + 1).padStart(2, "0");
+              const yyyy = nextDate.getFullYear();
+              return { ...row, name: `${dd}/${mm}/${yyyy}` };
+            });
+          }
+        }
+      }
+      return prev.map((row) => (row.id === id ? { ...row, [field]: value } : row));
+    });
   };
 
   const formatDMY = (dateStr: string) => {
